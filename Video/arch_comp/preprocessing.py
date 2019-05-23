@@ -111,7 +111,7 @@ def calc_optical_flow(video, segment_array):
     return video_out
 
 
-def calcFeatures(video, type):
+def calc_features(video, type):
     if type == 0:
         desc = cv2.xfeatures2d.SURF_create()
     elif type == 1:
@@ -158,76 +158,4 @@ def reshape_data_for_model(x):
     return y
 
 
-if __name__ == "__main__":
-    video = read_video('../data/transporter.mp4')
 
-    segment_length = 10
-    segment_count = 10
-    resize_size = 128
-    batch_size = 10
-
-    segment_array = get_segment_array(video, segment_length, segment_count, 'random')
-
-    video_seg = segment_element(video, segment_array)
-    video_res = resize_video(video_seg, resize_size)
-    of = calc_optical_flow(video_res, segment_array)
-    hog = calc_hog(video)
-    raise Exception()
-
-    model = CombiNet(input_size = resize_size,
-                     feature_size = 100,
-                     output_size = 10,
-                     model_types = ['inception', 'mobilenet'],
-                     aggregator_type = 'wavg')
-    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    loss = nn.CrossEntropyLoss()
-
-    for i in np.arange(0, len(video_res)-batch_size-1, batch_size):
-        video_prep = reshape_data_for_model(video_res[i:i+batch_size])
-        of_prep = reshape_data_for_model(of[i:i+batch_size])
-
-        x = [video_prep, of_prep]
-        y = model(x)
-
-
-        # set dummy desired output
-        y_des = torch.ones(batch_size, dtype=torch.int64)
-
-        lss = loss(y, y_des)
-        optimizer.zero_grad()
-        lss.backward()
-
-        optimizer.step()
-
-
-    #apply_weight_sharing(model)
-    #huffman_encode_model(model, "../saves/encodings")
-
-
-
-    #seg_video = getSegmentedVideo(video, 5, 10)
-    #seg_of = calcOpticalFlow(video, 5, 10)
-    #calcFeatures(video, 2)
-    #calcHog(video)
-    #calcMser(video)
-
-#    print(seg_video.shape)
-#    print(seg_of.shape)
-
-    # for i in range(video.shape[0]-1):
-    #     flow = pyx_flow.optical_fn(video[i],video[i+1])
-    #
-        #img = visualize_flo.computeImg(flow)
-        #cv2.imshow('display', img)
-        #k = cv2.waitKey()
-
-    # im1 = plt.imread("/home/dingsda/thomas/autodl/ofdis/car1.jpg")
-    # im2 = plt.imread("/home/dingsda/thomas/autodl/ofdis/car2.jpg")
-    # flow = pyx_flow.optical_fn(im1,im2)
-    # print('1')
-    # print(flow.shape)
-    # img = visualize_flo.computeImg(flow)
-    # print('2')
-    # cv2.imshow('display', img)
-    # print('3')
-    # k = cv2.waitKey()

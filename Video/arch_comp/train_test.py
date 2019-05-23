@@ -134,6 +134,3 @@ def train(cfg):
 
     return valid_score, train_time, status
 
-
-if __name__ == "__main__":
-    train()
