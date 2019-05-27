@@ -3,37 +3,7 @@ import numpy as np
 from ofdis import pyx_flow, visualize_flo
 
 import time
-import matplotlib.pylab as plt
-from model_pool import CombiNet
-
-import torchvision.models as models
-import datasets as datasets
-import torch.optim as optim
-import torch.nn as nn
-
 import torch
-import torchvision
-
-
-# pip install opencv-python
-# pip install opencv-contrib-python
-
-def read_video(filename):
-    cap = cv2.VideoCapture(filename)
-    frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frameWidth = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frameHeight = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    buf = np.empty((frameCount, frameHeight, frameWidth, 3), np.dtype('uint8'))
-
-    fc = 0
-    ret = True
-
-    while (fc < frameCount and ret):
-        ret, buf[fc] = cap.read()
-        fc += 1
-
-    return buf
 
 
 def get_segment_array(video, segment_length=10, segment_count=10, cut_type='even'):

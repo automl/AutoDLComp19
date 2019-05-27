@@ -25,6 +25,7 @@ class NasWorker(Worker):
 
         try:
             valid_score, train_time, status = train_test.train(self.cfg)
+            print(valid_score)
         except Exception:
             status = traceback.format_exc()
             print(status)

@@ -80,7 +80,10 @@ def validate(cfg, model, loader, valid_fraction = 1):
                 break
 
     array = torch.stack(label_diff_list)
-    score = torch.sum(torch.sum(array)) / array.numel()
+    score = torch.sum(torch.sum(array)).numpy() / array.numel()
+    if not np.isfinite(score):
+        score = 0
+
     print('score: ' + str(score))
     return score
 
@@ -129,7 +132,7 @@ def train(cfg):
                 break
 
     train_time = time.time() - t1
-    valid_score = validate(cfg, model, valid_loader)
+    valid_score = validate(cfg, model, valid_loader, epochs_num+epochs_frac)
     status = 'ok'
 
     return valid_score, train_time, status

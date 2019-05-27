@@ -19,7 +19,8 @@ def get_configspace():
     model_types = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'squeezenet', 'inceptionnet', 'mobilenet', 'dummy']
     cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_type_1', model_types))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_type_2', model_types))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_aggregator_type', ['lstm', 'rnn', 'fc', 'wavg']))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_aggregator_type', ['lstm', 'rnn', 'fc', 'wavg']))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_aggregator_type', ['wavg']))
     cs.add_hyperparameter(CSH.UniformIntegerHyperparameter('model_feature_size', lower=100, upper=200, log=False))
 
     return cs
@@ -32,7 +33,7 @@ def get_configuration():
     cfg['dataset_label_path'] ='/home/dingsda/autodl/data/ucf101_labels.mat'
     cfg['dataset_split'] = [0.6, 0.2, 0.2]
 
-    cfg['bohb_min_budget'] = 1
+    cfg['bohb_min_budget'] = 0.0000001
     cfg['bohb_max_budget'] = 10
     cfg['bohb_iterations'] = 3
     cfg['bohb_log_dir'] = './logs'
