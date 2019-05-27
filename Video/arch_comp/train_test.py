@@ -29,6 +29,12 @@ def early_out(i, i_max, epoch, epochs_num, epochs_frac):
         return False
 
 
+def one_hot_encoding(i, i_max):
+    '''
+    return a one-hot-encoding of a given label
+    '''
+
+
 def process_video(cfg, model, video, labels_des):
     '''
     calculate labels based on a video sequence of adequate size
@@ -61,8 +67,6 @@ def process_video(cfg, model, video, labels_des):
 
 
 def validate(cfg, model, loader, valid_fraction = 1):
-    score_list = torch.Tensor()
-
     label_diff_list = []
 
     model.eval()
@@ -94,15 +98,14 @@ def test(cfg, model, loader):
 
 def train(cfg):
     dataset = Dataset(cfg['dataset_name'],
-                      cfg['dataset_data_dir'],
-                      cfg['dataset_label_path'],
-                      cfg['dataset_split'])
+                      cfg['dataset_data_dir'])
 
     train_loader, valid_loader, test_loader = dataset.get_data_loader()
+    label_size = len(train_loader[0][1])
 
     model = mp.CombiNet(input_size = cfg['video_size'],
                         feature_size = cfg['model_feature_size'],
-                        output_size = dataset.get_label_size(),
+                        output_size = label_size,
                         model_types = [cfg['model_type_1'], cfg['model_type_2']],
                         aggregator_type = cfg['model_aggregator_type'])
 

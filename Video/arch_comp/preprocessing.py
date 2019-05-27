@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from ofdis import pyx_flow, visualize_flo
+from ofdis import pyx_flow
 
 import time
 import torch

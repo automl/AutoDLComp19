@@ -64,7 +64,6 @@ class InputNet(nn.Module):
         super(InputNet, self).__init__()
         self.model_type = model_type
 
-        # CAUTION:
         if model_type == 'resnet18':
             self.model = torchvision.models.resnet18(num_classes = feature_size)
         elif model_type == 'resnet34':
@@ -77,10 +76,14 @@ class InputNet(nn.Module):
             self.model = torchvision.models.resnet152(num_classes = feature_size)
         elif model_type == 'squeezenet':
             self.model = torchvision.models.squeezenet1_1(num_classes = feature_size)
-        elif model_type == 'inceptionnet':
+        elif model_type == 'inception':
             self.model = torchvision.models.Inception3(num_classes=feature_size, aux_logits=False)
         elif model_type == 'mobilenet':
             self.model = MobileNetV2(input_size = input_size, n_class=feature_size)
+        elif model_type == 'timeception':
+            pass
+        elif model_type == 'slowfast':
+            pass
         elif model_type == 'dummy':
             self.model = DummyNet(num_classes = feature_size)
         else:

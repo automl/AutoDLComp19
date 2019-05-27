@@ -1,5 +1,6 @@
 import os
 import cv2
+import csv
 import numpy as np
 import numpy.matlib as matl
 import scipy.io
@@ -8,157 +9,92 @@ import eioh
 
 
 class Dataset():
-    def __init__(self, dataset='ucf101', data_dir=".", label_path="./labels.mat", split=[0.6, 0.2, 0.2]):
+    def __init__(self, dataset='ucf101', data_dir="."):
         if dataset == 'ucf101':
-            self.dataset = UCF101(data_dir, label_path)
-            self._init_data_loader(split)
+            self.train_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='train'), batch_size=1, shuffle=True)
+            self.valid_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='valid'), batch_size=1, shuffle=True)
+            self.test_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='test'), batch_size=1, shuffle=False)
+        elif dataset == 'charades':
+            pass
+            #self.dataset = Charades(data_dir)
         else:
             raise Exception('dataset not handled: ' + str(dataset))
-
-
-    def _init_data_loader(self, split):
-        train_idx, valid_idx, test_idx = self._get_split(split)
-
-        train_sampler = data.SubsetRandomSampler(train_idx)
-        valid_sampler = data.SubsetRandomSampler(valid_idx)
-        test_sampler = data.SubsetRandomSampler(test_idx)
-
-
-        self.train_loader = data.DataLoader(dataset=self.dataset,
-                                            batch_size=1,
-                                            shuffle=False,
-                                            sampler=train_sampler)
-        self.valid_loader = data.DataLoader(dataset=self.dataset,
-                                            batch_size=1,
-                                            shuffle=False,
-                                            sampler=valid_sampler)
-        self.test_loader = data.DataLoader(dataset=self.dataset,
-                                           batch_size=1,
-                                           shuffle=False,
-                                           sampler=test_sampler)
-
-    def _get_split(self, split):
-        '''
-        calculate train/validation/test splits
-
-        :return: indices of dataset belonging to the specific split
-        '''
-
-        l = self.dataset.len()
-        idx = np.arange(l)
-        np.random.seed(1337)
-        np.random.shuffle(idx)
-
-        split = np.array(split)
-        split = split / sum(split)
-        split = split.cumsum()*l
-        split = split.astype(int)
-
-        train_idx = idx[:split[0]]
-        valid_idx = idx[split[0]:split[1]]
-        test_idx = idx[split[1]:]
-
-        return train_idx, valid_idx, test_idx
-
-
-    def get_label_size(self):
-        return self.dataset.get_label_size()
-
 
     def get_data_loader(self):
         return self.train_loader, self.valid_loader, self.test_loader
 
 
 class UCF101(data.Dataset):
-    def __init__(self, data_dir=".", label_path="./labels.mat"):
+    '''
+    Data loader for the ucf 101 dataset. It assumes that in the top-level folder there is another
+    folder (aaa_recognition in our case) with the files for the test/train split
+    '''
+    def __init__(self, data_dir, type):
+        self.data_dir = data_dir
 
-        paths = self._parse_paths(data_dir)
-        labels = self._parse_labels(label_path)
-        self.metadata = self._merge_paths_and_labels(paths,labels)
+        # path to class index file
+        index_path = os.path.join(os.path.abspath(data_dir), 'aaa_recognition/classInd.txt')
+        train_list_path = os.path.join(os.path.abspath(data_dir), 'aaa_recognition/trainlist01.txt')
+        test_list_path = os.path.join(os.path.abspath(data_dir), 'aaa_recognition/testlist01.txt')
 
+        train_dataset, valid_dataset = self.parse_train_list(train_list_path)
+        test_dataset, self.num_classes = self.parse_test_list(index_path, test_list_path)
 
-    def _parse_paths(self, data_dir):
-        '''
-        get list of all absolute UCF101 video file paths
-
-        Note: Because the folder names do not correspond 1:1 to the labels in the
-        corresponding label file, we cannot use the folder names to identify
-        the class of each video. Rather we have to sort them alphabetically and
-        hope for the best :)
-
-        :param data_dir: path to the UCF101 folder containing all videos
-        :return: 2D list of all UCF101 file paths. First dimension corresponds to class
-        '''
-
-        paths = []
-
-        for dir_name in sorted(os.listdir(data_dir)):
-            abs_dir_name = os.path.join(os.path.abspath(data_dir), dir_name)
-
-            if os.path.isdir(abs_dir_name):
-                dir_paths = []
-
-                for video_name in os.listdir(abs_dir_name):
-                    abs_video_name = os.path.join(os.path.abspath(abs_dir_name), video_name)
-
-                    if os.path.isfile(abs_video_name) or os.path.isdir(abs_video_name):
-                        dir_paths.append(abs_video_name)
-                    else:
-                        raise Exception('directory should only contain files or folders: ' + abs_dir_name)
-                paths.append(dir_paths)
-            else:
-                raise Exception('no directory: ' + abs_dir_name)
-
-        if len(paths) != 101:
-            raise Exception('not exactly 101 classes in dataset')
-
-        return paths
+        if type == 'train':
+            self.dataset = train_dataset
+        elif type == 'valid':
+            self.dataset = valid_dataset
+        elif type == 'test':
+            self.dataset = test_dataset
+        else:
+            raise Exception('Unknown dataset type: ' + str(type))
 
 
-    def _parse_labels(self, label_path):
-        '''
-        get the labels for all UCF101 classes
+    def parse_train_list(self, train_list_path):
+        train_dataset = []
+        valid_dataset = []
 
-        :param label_path: path to the label file
-        :return: numpy array with shape 101(classes)x115(labels)
-        '''
+        # load train dataset
+        with open(train_list_path, 'r') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ')
+            for row in reader:
+                abs_path = os.path.join(os.path.abspath(self.data_dir), row[0])
+                class_label = int(row[1])
+                train_dataset.append((abs_path, class_label))
 
-        mat = scipy.io.loadmat(label_path)
-        # mapping between classes and labels
-        vals = mat['class_attributes'][0][0][2]
-        vals = np.array(vals).transpose().astype(float)
+        # assign one third of the training data to the validation data
+        for i in range(int(len(train_dataset)/3)):
+            valid_dataset.append(train_dataset.pop(0))
 
-        if vals.shape[0] != 101:
-            raise Exception('not exactly 101 classes in label file')
-
-        return vals
-
-
-    def _merge_paths_and_labels(self, files, labels):
-        '''
-        :param paths: list of all UCF101 videos
-        :param labels: array of all UCF101 labels
-        :return: list of corresponding videos/labels
-        '''
-
-        paths_and_labels = []
-        for i in range(len(files)):
-            for file in files[i]:
-                paths_and_labels.append((file,labels[i]))
-
-        return paths_and_labels
+        return train_dataset, valid_dataset
 
 
-    def __len__(self):
-        return len(self.metadata)
+    def parse_test_list(self, index_path, test_list_path):
+        index_list = {}
+        num_classes = 0
 
+        # load mapping between names and labels
+        with open(index_path, 'r') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ')
+            for row in reader:
+                class_name = row[1]
+                class_label = int((row[0]))
+                num_classes = max(class_label, num_classes)
+                index_list[class_name] = class_label
 
-    def len(self):
-        return len(self.metadata)
+        test_dataset = []
 
+        # load test dataset and assign correct labels
+        with open(test_list_path, 'r') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ')
+            for row in reader:
+                abs_path = os.path.join(os.path.abspath(self.data_dir), row[0])
+                class_name = row[0].split('/')[0]
+                class_label = index_list[class_name]
 
-    def get_label_size(self):
-        return len(self.metadata[0][1])
+                test_dataset.append((class_name, class_label))
+
+        return test_dataset, num_classes
 
 
     def __getitem__(self, idx):
@@ -168,8 +104,12 @@ class UCF101(data.Dataset):
         :param idx: index of the video in paths_and_labels
         :return: array (video,label)
         '''
-        path = self.metadata[idx][0]
-        label = self.metadata[idx][1]
+        path = self.dataset[idx][0]
+        lbl = self.dataset[idx][1]
+
+        # one-hot-encoding of label
+        label = np.zeros([self.num_classes])
+        label[lbl-1] = 1
 
         if os.path.isfile(path):
             video = eioh.load_video_file(path)
@@ -181,9 +121,15 @@ class UCF101(data.Dataset):
         return (video,label)
 
 
+# class Charades(data.dataset):
+#     '''
+#     Data loader for the ucf 101 dataset. It assumes that in the top-level folder there is another
+#     folder (aaa_recognition in our case) with the files for the test/train split
+#     '''
+#     def __init__(self, data_dir):
+#         pass
+
+
 if __name__ == "__main__":
-    ucf = Dataset(dataset = 'ucf101',
-                  data_dir = '../data/ucf101_frames',
-                  label_path = '../data/class_attributes_UCF101.mat')
-    print(ucf.dataset.metadata)
+    ucf = Dataset(dataset='ucf101', data_dir = '/home/dingsda/autodl/data/ucf101')
 

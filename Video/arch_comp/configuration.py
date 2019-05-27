@@ -16,7 +16,8 @@ def get_configspace():
     cs.add_hyperparameter(CSH.CategoricalHyperparameter('video_cut_type', ['even', 'random', 'random_within_segment']))
 
     # neural network parameters
-    model_types = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'squeezenet', 'inceptionnet', 'mobilenet', 'dummy']
+    #model_types = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'squeezenet', 'inception', 'mobilenet', 'dummy']
+    model_types = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'squeezenet', 'inception', 'mobilenet', 'dummy']
     cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_type_1', model_types))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_type_2', model_types))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter('model_aggregator_type', ['lstm', 'rnn', 'fc', 'wavg']))
