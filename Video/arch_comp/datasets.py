@@ -1,9 +1,5 @@
 import os
-import cv2
 import csv
-import numpy as np
-import numpy.matlib as matl
-import scipy.io
 import torch.utils.data as data
 import eioh
 
@@ -11,6 +7,7 @@ import eioh
 class Dataset():
     def __init__(self, dataset='ucf101', data_dir="."):
         if dataset == 'ucf101':
+            self.dataset = UCF101(data_dir=data_dir, type='train')
             self.train_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='train'), batch_size=1, shuffle=True)
             self.valid_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='valid'), batch_size=1, shuffle=True)
             self.test_loader = data.DataLoader(dataset=UCF101(data_dir=data_dir, type='test'), batch_size=1, shuffle=False)
@@ -22,6 +19,10 @@ class Dataset():
 
     def get_data_loader(self):
         return self.train_loader, self.valid_loader, self.test_loader
+
+    def get_num_classes(self):
+        return self.dataset.get_num_classes()
+
 
 
 class UCF101(data.Dataset):
@@ -97,6 +98,14 @@ class UCF101(data.Dataset):
         return test_dataset, num_classes
 
 
+    def get_num_classes(self):
+        return self.num_classes
+
+
+    def __len__(self):
+        return len(self.dataset)
+
+
     def __getitem__(self, idx):
         '''
         load video from disk and return it with corresponding label
@@ -105,19 +114,16 @@ class UCF101(data.Dataset):
         :return: array (video,label)
         '''
         path = self.dataset[idx][0]
-        lbl = self.dataset[idx][1]
-
-        # one-hot-encoding of label
-        label = np.zeros([self.num_classes])
-        label[lbl-1] = 1
+        pathname, pathext = os.path.splitext(path)
+        label = self.dataset[idx][1]
 
         if os.path.isfile(path):
             video = eioh.load_video_file(path)
-        elif os.path.isdir(path):
-            video = eioh.load_image_dir(path)
+        elif os.path.isdir(pathname):
+            video = eioh.load_image_dir(pathname)
         else:
-            raise Exception('unknown path type')
-        label = matl.repmat(label,video.shape[0],1)
+            raise Exception('unknown path type: ' + str(path))
+
         return (video,label)
 
 

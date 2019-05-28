@@ -1,6 +1,6 @@
 from datasets import Dataset
 import preprocessing as prep
-import model_pool as mp
+import models
 import torch.optim as optim
 import torch.nn as nn
 import torch
@@ -29,53 +29,42 @@ def early_out(i, i_max, epoch, epochs_num, epochs_frac):
         return False
 
 
-def one_hot_encoding(i, i_max):
-    '''
-    return a one-hot-encoding of a given label
-    '''
-
-
-def process_video(cfg, model, video, labels_des):
+def process_video(cfg, model, video):
     '''
     calculate labels based on a video sequence of adequate size
     '''
     # undo effects from loader
     video = video.squeeze(0)
     video = video.numpy()
-    labels_des = labels_des.squeeze(0)
-    labels_des = labels_des.type(torch.FloatTensor)
     # array containing the frames to extract from the video
     segment_array = prep.get_segment_array(video=video,
                                            segment_length=cfg['video_segment_length'],
                                            segment_count=cfg['video_segment_count'],
                                            cut_type=cfg['video_cut_type'])
     # extract frames from video
-    video_seg = prep.segment_element(video, segment_array)
-    labels_des = prep.segment_element(labels_des, segment_array)
+    video_seg = prep.segment_video(video, segment_array)
+
     # resize video
     video_res = prep.resize_video(video_seg, cfg['video_size'])
-    # calculate optical flow
-    of = prep.calc_optical_flow(video_res, segment_array)
-    # adjust shape
-    video_prep = prep.reshape_data_for_model(video_res)
-    of_prep = prep.reshape_data_for_model(of)
+    # convert from 0-255 to 0-1 range
+    video_res = prep.convert_video_to_float(video_res)
     # forward pass
-    x = [video_prep, of_prep]
-    labels = model(x)
-
-    return labels, labels_des
+    x = torch.Tensor(video_res)
+    x = x.unsqueeze(0)
+    label = model(x)
+    return label
 
 
 def validate(cfg, model, loader, valid_fraction = 1):
-    label_diff_list = []
-
+    total = 0
+    correct = 0
     model.eval()
     with torch.no_grad():
-        for i, (video, labels_des) in enumerate(loader):
-            labels, labels_des = process_video(cfg, model, video, labels_des)
-            labels = torch.round(labels)
-            labels = torch.clamp(labels,0,1)
-            label_diff_list.append(torch.abs(labels-labels_des))
+        for i, (video, label_des) in enumerate(loader):
+            label = process_video(cfg, model, video)
+            idx = np.argmax(label, axis=1)
+            correct += torch.sum(idx==label_des).item()
+            total += len(label_des)
 
             # allow validation over only a fraction of the entire validation dataset
             print('validate')
@@ -83,8 +72,8 @@ def validate(cfg, model, loader, valid_fraction = 1):
                 print('validate: early out')
                 break
 
-    array = torch.stack(label_diff_list)
-    score = torch.sum(torch.sum(array)).numpy() / array.numel()
+
+    score = correct/total
     if not np.isfinite(score):
         score = 0
 
@@ -97,23 +86,20 @@ def test(cfg, model, loader):
 
 
 def train(cfg):
-    dataset = Dataset(cfg['dataset_name'],
-                      cfg['dataset_data_dir'])
+    dataset = Dataset(dataset = cfg['dataset_name'],
+                      data_dir = cfg['dataset_data_dir'])
 
     train_loader, valid_loader, test_loader = dataset.get_data_loader()
-    label_size = len(train_loader[0][1])
 
-    model = mp.CombiNet(input_size = cfg['video_size'],
-                        feature_size = cfg['model_feature_size'],
-                        output_size = label_size,
-                        model_types = [cfg['model_type_1'], cfg['model_type_2']],
-                        aggregator_type = cfg['model_aggregator_type'])
+    model = models.ModelSelect(nb_frames = cfg['video_segment_length'] * cfg['video_segment_count'],
+                               output_size = dataset.get_num_classes(),
+                               model_type = cfg['model_type'])
 
     optimizer = optim.Adam(model.parameters(),
                            lr=cfg["optimizer_lr"],
                            weight_decay=cfg["optimizer_weight_decay"])
 
-    loss = nn.MultiLabelSoftMarginLoss()
+    loss = nn.CrossEntropyLoss()
 
     epochs_num, epochs_frac = split_up_epochs(cfg['train_epochs'])
 
@@ -121,9 +107,9 @@ def train(cfg):
 
     model.train()
     for epoch in range(epochs_num+1):
-        for i, (video, labels_des) in enumerate(train_loader):
-            labels, labels_des = process_video(cfg, model, video, labels_des)
-            lss = loss(labels, labels_des)
+        for i, (video, label_des) in enumerate(train_loader):
+            label = process_video(cfg, model, video)
+            lss = loss(label, label_des)
             optimizer.zero_grad()
             lss.backward()
             optimizer.step()

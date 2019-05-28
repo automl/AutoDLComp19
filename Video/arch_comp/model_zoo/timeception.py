@@ -40,6 +40,22 @@ import torchsummary
 
 from torch.nn import Module, Conv3d, BatchNorm3d, MaxPool3d, ReLU
 from torch.nn import functional as F
+from model_zoo.resnet_stub import resnet152, resnet50
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def padding1d(tensor, filter):
     it, = tensor.shape[2:]
@@ -477,18 +493,48 @@ class Timeception(Module):
 
         return n_channels_per_branch, n_channels_out
 
+
+class TimeceptionWrapper(torch.nn.Module):
+    def __init__(self, nb_frames, output_size, base_model='resnet50'):
+        super(TimeceptionWrapper, self).__init__()
+
+        if base_model == 'resnet50':
+            self.model_1 = resnet50()
+        elif base_model == 'resnet152':
+            self.model_1 = resnet152()
+        else:
+            raise Exception('Unknown model type: ' + str(base_model))
+
+        self.model_2 = Timeception(torch.Size([1,nb_frames,2048,7,7]), n_layers=4)
+        self.fc = torch.nn.Linear(in_features = int(nb_frames*128*7*7*5/4), out_features = output_size)
+
+    def forward(self, x):
+        x = self.model_1(x)
+        x = x.unsqueeze(0)
+        x = self.model_2(x)
+        x = x.view(1, x.numel())
+        x = self.fc(x)
+        return x
+
+
 if __name__ == '__main__':
-    # define input tensor
-    input = torch.tensor(np.zeros((2, 1024, 128, 7, 7)), dtype=torch.float32)
+    nb_frames = 32
+    x = torch.ones([nb_frames,3,224,224])
+    model = TimeceptionWrapper(nb_frames = nb_frames, output_size = 100)
+    y = model.forward(x)
 
-    # define 4 layers of timeception
-    module = Timeception(input.size(), n_layers=4)
 
-    # feedforward the input to the timeception layers
-    tensor = module(input)
-
-    # the output is (32, 2480, 8, 7, 7)
-    print(tensor.size())
+    # # define input tensor
+    # input = torch.tensor(np.zeros((1, 512, 256, 7, 7)), dtype=torch.float32)
+    #
+    # # define 4 layers of timeception
+    # module = Timeception(input.size(), n_layers=4)
+    #
+    # # feedforward the input to the timeception layers
+    # tensor = module(input)
+    #
+    # # the output is (32, 2480, 8, 7, 7)
+    # print(tensor.size())
 
 
 # endregion
