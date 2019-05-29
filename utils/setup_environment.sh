@@ -9,6 +9,11 @@ if [ ! -d ".miniconda/envs/" ]; then
     rm install_miniconda.sh
 
     cd ..
+
+    # Install basic utils
+    source .miniconda/bin/activate
+    conda install -y black isort
+    pip install importchecker  # not available in conda
 fi
 
 source .miniconda/bin/activate
