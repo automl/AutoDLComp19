@@ -40,11 +40,10 @@ bash utils/setup_environment.sh
 ## Usage
 
 
-(De)activating an environment without having the conda installation in your `PATH`:
+Activating an environment without having the conda installation in your `PATH`:
 
 ```bash
 source .miniconda/bin/activate autodl
-source .miniconda/bin/deactivate
 ```
 
 To format all python code, sort imports, and display unused imports in `src/` run:
