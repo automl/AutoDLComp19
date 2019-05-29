@@ -32,10 +32,10 @@ To setup the python environment or to update an environment run
 bash utils/setup_environment.sh
 ```
 
-1. If there is no miniconda installation, the script downloads the miniconda installer from the web, executes it to install miniconda into .miniconda
-* Updates conda
-* If there is no autodl environment, the script installs it as specified in `utils/environment.yml`
-* If there is an autodl environment, the script updates it if there are changes to `utils/environment.yml`
+1. If there is no miniconda installation, downloads the miniconda installer from the web, executes it to install miniconda into .miniconda
+1. Updates conda
+1. If there is no autodl environment, installs it as specified in `utils/environment.yml`
+1. If there is an autodl environment and there are changes to `utils/environment.yml` performs updates 
 
 ## Usage
 
