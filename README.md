@@ -20,7 +20,9 @@ AutoDL Competition Scripts 2019
 │   ├── video
 │   └── image
 │
-└── submission          <<  Submission scripts for clusters
+├── submission          <<  Submission scripts for clusters
+│
+└── utils               <<  General purpose scripts (formating, setup, ..)
 ```
 
 
