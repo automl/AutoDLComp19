@@ -106,3 +106,19 @@ venv.bak/
 # Experiments and data
 experiments/cluster_oe/*
 datafiles/*
+
+# .miniconda
+bin/
+compiler_compat/
+conda-meta/
+condabin/
+shell/
+envs/
+etc/
+include/
+lib/
+pkgs/
+share/
+ssl/
+x86_64-conda_cos6-linux-gnu/
+LICENSE.txt

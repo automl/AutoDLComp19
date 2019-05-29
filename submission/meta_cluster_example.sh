@@ -11,6 +11,6 @@
 #SBATCH -e experiments/cluster_oe/%j.%x.err
 #SBATCH --job-name test_run
 
-source miniconda/bin/activate autocv
+source .miniconda/bin/activate autodl
 
 python -c "print('Hello World')"
