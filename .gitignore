@@ -102,3 +102,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Experiments and data
+experiments/cluster_oe/*
+datafiles/*
