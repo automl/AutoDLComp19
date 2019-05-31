@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ ! -d ".miniconda/envs/" ]; then
-    # Install conda
+if [ ! -d ".miniconda/bin/activate" ] && [ ! -z "$(conda --version | grep "not found")" ]; then
+    # Ensure conda is installed on the machine
     cd .miniconda
 
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O install_miniconda.sh
@@ -9,19 +9,19 @@ if [ ! -d ".miniconda/envs/" ]; then
     rm install_miniconda.sh
 
     cd ..
-
-    # Install basic utils
+fi
+if [ -d ".miniconda/bin/activate" ]; then
+    # Use local miniconda installation and keep it up to date
     source .miniconda/bin/activate
-    conda install -y black isort
-    pip install importchecker  # not available in conda
+    conda update -n base -c defaults conda --yes
 fi
 
-source .miniconda/bin/activate
-conda update -n base -c defaults conda --yes
-if [ ! -d ".miniconda/envs/autodl" ]; then
+if [ -z "$(conda env list | grep autodl)" ]; then
     # Install environment from scratch
     conda env create -f utils/environment.yml
 else
     # Install changes according to .yml file
     conda env update -f utils/environment.yml --prune
 fi
+
+pre-commit install

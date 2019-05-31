@@ -3,8 +3,12 @@ channels:
   - pytorch
 dependencies:
   - python=3.5
-  - pytorch=1.0.1  # TODO: check competition version
+  - pytorch=1.0.1
   - cudatoolkit=10.0
-  - torchvision=0.2.1  # TODO: check competition version
+  - torchvision=0.2.2
+  - flake8
   - numpy
   - pip
+  - pip:
+    - pre-commit
+    - tensorflow-gpu==1.13.1
