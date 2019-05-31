@@ -16,6 +16,7 @@ repos:
     hooks:
     - id: black
       language_version: python3
+      args: [--line-length 90 --target-version py35]
 -   repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.7
     hooks:
@@ -36,6 +37,7 @@ repos:
     rev: v4.3.20
     hooks:
     -   id: isort
+        args: [--multi-line=3 --trailing-comma --force-grid-wrap=0 --use-parentheses --line-width=90 -rc $SRC_FOLDER]
 -   repo: https://github.com/asottile/reorder_python_imports
     rev: v1.4.0
     hooks:
