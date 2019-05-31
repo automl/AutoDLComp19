@@ -37,7 +37,7 @@ bash utils/setup_environment.sh
 1. If there is no miniconda installation, downloads the miniconda installer and installs it into `.miniconda`
 1. Updates conda
 1. If there is no autodl environment, installs it as specified in `utils/environment.yml`
-1. If there is an autodl environment and there are changes to `utils/environment.yml` performs updates 
+1. If there is an autodl environment and there are changes to `utils/environment.yml` performs updates
 
 ## Usage
 
@@ -48,10 +48,9 @@ Activating an environment without having the conda installation in your `PATH`:
 source .miniconda/bin/activate autodl
 ```
 
-To format all python code, sort imports, and display unused imports in `src/` run:
-
+Setting up installs pre-commit. Pre-commit allows to specify, configure and share git pre-commit hooks. Formatting and format checking is therefore performed when committing. Please ensure you installed it. When in doubt, from the project's root run:
 ```bash
-bash utils/format.sh  # currently only formats in src/image
+pre-commit install
 ```
 
 ## Deinstallation
