@@ -1,0 +1,8 @@
+[flake8]
+select = C,E,F,W,B,B950
+ignore = E501
+max-line-length = 90
+exclude = tests/*
+          reports/*
+          .miniconda/*
+max-complexity = 10
