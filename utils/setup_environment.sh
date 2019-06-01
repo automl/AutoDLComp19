@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -d ".miniconda/bin/activate" ] && [ ! -z "$(conda --version | grep "not found")" ]; then
+if [ ! -f ".miniconda/bin/activate" ] && [ -z "$(which conda)" ]; then
     # Ensure conda is installed on the machine
     cd .miniconda
 
@@ -10,7 +10,7 @@ if [ ! -d ".miniconda/bin/activate" ] && [ ! -z "$(conda --version | grep "not f
 
     cd ..
 fi
-if [ -d ".miniconda/bin/activate" ]; then
+if [ -f ".miniconda/bin/activate" ]; then
     # Use local miniconda installation and keep it up to date
     source .miniconda/bin/activate
     conda update -n base -c defaults conda --yes
@@ -23,5 +23,5 @@ else
     # Install changes according to .yml file
     conda env update -f utils/environment.yml --prune
 fi
-
+conda activate autodl
 pre-commit install
