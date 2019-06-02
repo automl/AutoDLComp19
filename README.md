@@ -56,7 +56,7 @@ pre-commit install
 
 To run the pre-commit scripts manually run
 ```bash
-bash utils/format.sh  # currently only formats in src/image
+bash utils/format.sh
 ```
 
 
