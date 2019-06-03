@@ -85,7 +85,7 @@
     \begin{itemize}
         \item Model $m_\theta$
         \item Meta initialization $\theta_{metainit} \subseteq  \theta$
-        \item Partitioning of the parameters $\theta_{frozen} \cup \theta_{nonfrozen} = \theta$
+        \item Partitioning of the parameters $\theta_{frozen} \ \dot{\cup} \ \theta_{nonfrozen} = \theta$
     \end{itemize}
 \end{block}
 
@@ -139,7 +139,7 @@ Optimize $\theta_{nonfrozen}$ for the given dataset
 \begin{block}{Tasks}
     \begin{itemize}
         \item Select model $m_\theta \in M$
-        \item Produce partitioning $\theta_{frozen} \cup \theta_{nonfrozen} = \theta$
+        \item Produce partitioning $\theta_{frozen} \ \dot{\cup} \ \theta_{nonfrozen} = \theta$
         \item Provide meta initialization $\theta_{metainit} \subseteq  \theta$
         \begin{itemize}
             \item[>] Select among $\Theta_{offline}^{m_\theta}$
