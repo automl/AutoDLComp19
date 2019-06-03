@@ -1,0 +1,345 @@
+%\documentclass[aspectratio=169,12pt]{beamer}
+\documentclass[aspectratio=169,12pt,handout]{beamer}
+\usepackage{utils}
+% ______________________________________________________________________________
+
+
+% Title page settings
+\title{AutoDL Competition 2019}
+\subtitle{Design Choices and Empirical Questions}
+\author{Danny Stoll}
+\date{03.06.2019}
+%\date{Meeting, 07.06.2019}
+
+% ______________________________________________________________________________
+\begin{document}
+
+\maketitle
+
+% \begin{frame}{Table of Contents}
+% \tableofcontents
+% \end{frame}
+
+
+% ______________________________________________________________________________
+\begin{frame}{Basic Structure}
+
+
+\begin{block}{Partitioned in phases}
+\begin{itemize}
+    \item Before submission (offline)
+    \item After submission (online)
+\end{itemize}
+
+\end{block}
+
+
+\begin{block}{Optimization levels in each phase}
+\begin{itemize}
+    \item Concrete optimization
+    \item Meta optimization
+\end{itemize}
+\end{block}
+
+
+\end{frame}
+
+% ______________________________________________________________________________
+\begin{frame}{Offline phase}
+
+\begin{block}{Meta optimization}
+    Design learning algorithms and optimize hyperparameters
+\end{block}
+
+\begin{block}{Concrete optimization}
+    Obtain (partial) model parameters for use in online phase
+\end{block}
+
+
+\end{frame}
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Online Phase}
+
+\begin{block}{Meta optimization}
+    Select model (schedule) and pretrained parameter based on data
+\end{block}
+
+\begin{block}{Concrete optimization}
+    Optimize non-frozen parameters on the task
+\end{block}
+
+
+
+\end{frame}
+
+
+% ______________________________________________________________________________
+\begin{frame}{Online Concrete}
+
+
+
+\begin{block}{Given}
+    \begin{itemize}
+        \item Model $m_\theta$
+        \item Meta initialization $\theta_{metainit} \subseteq  \theta$
+        \item Partitioning of the parameters $\theta_{frozen} \cup \theta_{nonfrozen} = \theta$
+    \end{itemize}
+\end{block}
+
+\begin{block}{Task}
+Optimize $\theta_{nonfrozen}$ for the given dataset
+\end{block}
+
+
+
+\end{frame}
+
+
+% ______________________________________________________________________________
+
+\begin{frame}{Online Concrete: Questions}
+
+\begin{itemizebig}
+    \item<1->
+    How sensitive are datasets / models / transfer-strategies to up- and downsampling?
+
+    \item<2->
+    Optimization pipeline:
+    \begin{itemize}
+        \item[>] Data augmentation
+        \item[>] Initialization of $\theta \setminus \theta_{metainit}$
+        \item[>] Optimizer (AdamW was mentioned)
+        \item[>] Learning rate schedule (heat up was mentioned)
+    \end{itemize}
+
+    \item<3->
+    Use mixed precision trainig?
+
+    \item<4>
+    Is unbalanced training data an issue?
+
+\end{itemizebig}
+
+\end{frame}
+
+
+% ______________________________________________________________________________
+\begin{frame}{Online meta}
+
+\begin{block}{Given}
+    \begin{itemize}
+        \item Set of models $M$
+        \item Set of meta initializations $\Theta_{offline}^m$ for each model $m$
+    \end{itemize}
+\end{block}
+
+\begin{block}{Tasks}
+    \begin{itemize}
+        \item Select model $m_\theta \in M$
+        \item Produce partitioning $\theta_{frozen} \cup \theta_{nonfrozen} = \theta$
+        \item Provide meta initialization $\theta_{metainit} \subseteq  \theta$
+        \begin{itemize}
+            \item[>] Select among $\Theta_{offline}^{m_\theta}$
+            \item[>] Produce, e.g., as in proto-MAML
+        \end{itemize}
+    \end{itemize}
+\end{block}
+
+\end{frame}
+
+
+% ______________________________________________________________________________
+\begin{frame}{Online Meta: Questions}
+
+
+\begin{itemizebig}
+    \item How to form $\theta_{nonfrozen}$? Compare
+    \begin{itemize}
+        \item[>] last $k$ layers
+        \item[>] include first $j$ layers
+        \item[>] parameter efficient patches
+        \item[>] full finetuning ($\theta_{frozen} = \emptyset$)
+    \end{itemize}
+
+    \item How to handle changing resolutions and channel number?
+    \begin{itemize}
+        \item[>] How sensitive are datasets / models / transfer-strategies to up- and downsampling?
+        \item[>] Different encoders for 1 channel / 3 channels / other
+    \end{itemize}
+\end{itemizebig}
+
+\end{frame}
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Online Meta: Questions 2}
+
+
+\begin{itemizebig}
+    \item How to select models and parameters?
+    \begin{itemize}
+        \item[>] Which datasets correlate in performance?
+        \item[>] Based on resolution and channel numbers
+        \item[>] Learn to select
+        \item[>] Minimum distance in some embedding space
+        \item[>] Performance driven
+    \end{itemize}
+
+    \item Does proto-MAML-like initialization for the last layer help?
+
+    \item First run at low resolutions to speed up training?
+    \begin{itemize}
+        \item[>] How to schedule this?
+        \item[>] How sensitive are datasets / models / transfer-strategies to up- and downsampling?
+    \end{itemize}
+
+\end{itemizebig}
+
+\end{frame}
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Offline Concrete}
+
+\begin{block}{Given}
+  \begin{itemize}
+      \item Dataset distribution $p(D)$
+      \item Set of models $M$
+  \end{itemize}
+\end{block}
+
+\begin{block}{Task}
+Produce set of meta initializations $\Theta_{offline}^m$ for each model $m$
+\end{block}
+
+\end{frame}
+
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Offline Concrete: Questions}
+
+
+
+\begin{itemizebig}
+    \item How to handle changing resolutions and channel number?
+    \begin{itemize}
+        \item[>] How sensitive are datasets / models / transfer-strategies to up- and downsampling?
+        \item[>] Different encoders for 1 channel / 3 channels / other
+    \end{itemize}
+
+    \item<2> How to obtain meta initializations $\Theta_{offline}^m$?
+    \begin{itemize}
+        \item[>] Which datasets correlate in performance?
+        \item[>] Transfer learning
+        \item[>] Transfer from multi-task learned models
+        \item[>] Meta Learning (Reptile, LEAP)
+        \item[>] Transfer learning to warmstart meta learning
+    \end{itemize}
+\end{itemizebig}
+
+\end{frame}
+
+
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Offline Meta}
+
+\begin{block}{Given}
+Students, researchers, engineers, and competition rules
+\end{block}
+
+\begin{block}{Tasks}
+    \begin{itemize}
+        \item Produce dataset distribution(s) $p(D)$
+        \item Produce set of models $M_\Theta$
+        \item Optimize hyperparameters
+    \end{itemize}
+\end{block}
+
+
+\end{frame}
+
+
+% ______________________________________________________________________________
+\begin{frame}{Offline Meta: Questions}
+
+\begin{itemizebig}
+    \item Which models do we use?
+    \item Can we perform a NAS for our setting?
+    \item Which datasets correlate in performance?
+    \item How do we select hyperparameters?
+\end{itemizebig}
+
+
+\end{frame}
+
+
+
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Experiments to Run}
+
+\begin{itemizebig}
+    \item How sensitive are datasets / models / transfer-strategies to up- and downsampling?
+    \item Which datasets correlate in performance?
+
+
+    \item For offline concrete, compare
+    \begin{itemize}
+        \item[>] Transfer learning
+        \item[>] Transfer from multi-task learned models
+        \item[>] Meta Learning (Reptile, LEAP)
+        \item[>] Transfer learning to warmstart meta learning
+    \end{itemize}
+
+    \item For online meta, compare finetuning
+    \begin{itemize}
+        \item[>] last $k$ layers
+        \item[>] include first $j$ layers
+        \item[>] parameter efficient patches
+        \item[>] all parameters
+    \end{itemize}
+
+\end{itemizebig}
+
+
+\end{frame}
+
+
+
+% ______________________________________________________________________________
+\begin{frame}{Implementation Priority}
+
+My suggestion is a weak ordering along the lines of
+
+\begin{enumerate}
+    \item Execution on colab works smoothly
+    \item Inner optimizations
+    \item Transfer learning strategies
+    \item Datasets
+    \item Different models
+    \item Meta learning approaches
+\end{enumerate}
+
+\begin{block}<2>{}
+\centering Thank You!
+\end{block}
+
+\end{frame}
+
+
+
+% ______________________________________________________________________________
+
+\end{document}
