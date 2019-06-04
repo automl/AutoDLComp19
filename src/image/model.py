@@ -96,6 +96,7 @@ class ImageNetModels:
         self.set_parameter_requires_grad(model_ft, feature_extract)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, num_classes)
+        model_ft.ls = nn.LogSoftmax(dim=1)
         input_size = 224
 
     elif model_name == "alexnet":
@@ -105,6 +106,7 @@ class ImageNetModels:
         self.set_parameter_requires_grad(model_ft, feature_extract)
         num_ftrs = model_ft.classifier[6].in_features
         model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
+        model_ft.ls = nn.LogSoftmax(dim=1)
         input_size = 224
 
     elif model_name == "vgg":
@@ -114,6 +116,7 @@ class ImageNetModels:
         self.set_parameter_requires_grad(model_ft, feature_extract)
         num_ftrs = model_ft.classifier[6].in_features
         model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
+        model_ft.ls = nn.LogSoftmax(dim=1)
         input_size = 224
 
     elif model_name == "squeezenet":
@@ -122,6 +125,7 @@ class ImageNetModels:
         model_ft = models.squeezenet1_0(pretrained=use_pretrained)
         self.set_parameter_requires_grad(model_ft, feature_extract)
         model_ft.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
+        model_ft.ls = nn.LogSoftmax(dim=1)
         model_ft.num_classes = num_classes
         input_size = 224
 
@@ -131,7 +135,8 @@ class ImageNetModels:
         model_ft = models.densenet121(pretrained=use_pretrained)
         self.set_parameter_requires_grad(model_ft, feature_extract)
         num_ftrs = model_ft.classifier.in_features
-        model_ft.classifier = nn.Linear(num_ftrs, num_classes) 
+        model_ft.classifier = nn.Linear(num_ftrs, num_classes)
+        model_ft.ls = nn.LogSoftmax(dim=1)
         input_size = 224
 
     elif model_name == "inception":
@@ -143,9 +148,11 @@ class ImageNetModels:
         # Handle the auxilary net
         num_ftrs = model_ft.AuxLogits.fc.in_features
         model_ft.AuxLogits.fc = nn.Linear(num_ftrs, num_classes)
+        model_ft.AuxLogits.ls = nn.LogSoftmax(dim=1)
         # Handle the primary net
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs,num_classes)
+        model_ft.ls = nn.LogSoftmax(dim=1)
         input_size = 299
 
     else:
@@ -195,7 +202,7 @@ class Model(algorithm.Algorithm):
     model_ft, _ = inm.initialize_model(model_name, self.output_dim, feature_extract, use_pretrained=True)
 
     # Print the model we just instantiated
-    # print(model_ft)
+    print(model_ft)
 
     self.pytorchmodel = model_ft
     if torch.cuda.is_available(): self.pytorchmodel.cuda()
