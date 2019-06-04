@@ -236,14 +236,14 @@ class Model(algorithm.Algorithm):
       num_frames = tensor_4d_shape[0]
     else:
       num_frames = self.default_num_frames
-    if tensor_4d_shape[1] > 0:
-      new_row_count = tensor_4d_shape[1]
-    else:
-      new_row_count=self.default_image_size[0]
-    if tensor_4d_shape[2] > 0:
-      new_col_count = tensor_4d_shape[2]
-    else:
-      new_col_count=self.default_image_size[1]
+    # if tensor_4d_shape[1] > 0:
+    # new_row_count = tensor_4d_shape[1]
+    # else:
+    new_row_count=self.default_image_size[0]
+    # if tensor_4d_shape[2] > 0:
+    # new_col_count = tensor_4d_shape[2]
+    # else:
+    new_col_count=self.default_image_size[1]
 
     if not tensor_4d_shape[0] > 0:
       print_log("Detected that examples have variable sequence_size, will " +
