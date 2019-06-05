@@ -1,0 +1,103 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{packages_beamer}[]
+
+% ========================================================================================
+% Packages
+% ========================================================================================
+
+% Encoding and language
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[T1]{fontenc}
+\RequirePackage[english]{babel}
+
+% Font
+\RequirePackage{DejaVuSerif}
+
+% Formatting
+\RequirePackage[activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=10]{microtype}
+
+% Structures (Lists, tables, ..)
+\RequirePackage{booktabs}
+\RequirePackage[ruled, vlined, linesnumbered]{algorithm2e}
+
+
+% ========================================================================================
+% Commands
+% ========================================================================================
+
+\newenvironment{itemizebig}
+{\begin{itemize}
+\setlength\itemsep{1em}
+}
+{
+\end{itemize}
+}
+
+
+% ========================================================================================
+% Outer Colour Theme
+% ========================================================================================
+
+\usecolortheme{whale}
+
+
+
+% ========================================================================================
+% Font Theme
+% ========================================================================================
+
+\usefonttheme{serif}
+\RequirePackage{DejaVuSerif}
+
+
+% ========================================================================================
+% Inner Theme
+% ========================================================================================
+
+\useinnertheme{circles}
+
+% Remove junk from section page
+\setbeamertemplate{section page}
+{
+    \centering
+    \begin{beamercolorbox}[sep=12pt,center]{section title}
+      \usebeamerfont{section title}\insertsection\par
+    \end{beamercolorbox}
+}
+
+
+% Spacing between blocks
+\addtobeamertemplate{block end}{}{\vskip\smallskipamount}
+
+
+% ========================================================================================
+% Outer Theme
+% ========================================================================================
+
+\beamertemplatenavigationsymbolsempty
+
+
+% Make pagenumbering do not count paused slides, and not show total slides.
+% Note that this will also remove all footer info.
+\def\insertpresentationendframe{\inserttotalframenumber}
+\makeatletter
+\g@addto@macro{\appendix}{\immediate\write\@auxout{\string\@writefile{nav}{\noexpand\headcommand{\noexpand\def\noexpand\insertpresentationendframe{\the\c@framenumber}}}}}
+\makeatother
+
+
+
+\setbeamertemplate{footline}
+{%
+\hfill%
+\usebeamercolor[black]{page number in head/foot}%
+\usebeamerfont{page number in head/foot}%
+%\insertframenumber\,/\,\insertpresentationendframe\kern1em\vskip2pt% with max numbeer
+\insertframenumber\kern1em\vskip2pt%
+}
+
+
+
+
+
+
+\endinput
