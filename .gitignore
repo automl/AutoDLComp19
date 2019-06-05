@@ -108,7 +108,7 @@ venv.bak/
 
 # Experiments and data
 experiments/cluster_oe/*
-datafiles/*
+datasets/*
 
 # .miniconda
 bin/

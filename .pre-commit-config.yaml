@@ -4,7 +4,6 @@ repos:
     rev: v2.1.0
     hooks:
     -   id: check-merge-conflict
-    -   id: check-docstring-first
     -   id: check-yaml
     -   id: debug-statements
     -   id: trailing-whitespace
