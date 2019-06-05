@@ -19,7 +19,7 @@ image_t *image_new(const int width, const int height){
         exit(1);
     }
     image->width = width;
-    image->height = height;  
+    image->height = height;
     image->stride = ( (width+3) / 4 ) * 4;
     image->c1 = (float*) memalign(16, image->stride*height*sizeof(float));
     if(image->c1== NULL){
@@ -72,7 +72,7 @@ color_image_t *color_image_new(const int width, const int height){
         exit(1);
     }
     image->width = width;
-    image->height = height;  
+    image->height = height;
     image->stride = ( (width+3) / 4 ) * 4;
     image->c1 = (float*) memalign(16, 3*image->stride*height*sizeof(float));
     if(image->c1 == NULL){
@@ -131,12 +131,12 @@ static void image_resize_horiz(image_t *dst, const image_t *src){
         int j;
         for(j = 0; j < dst->width; j++){
             const int x = floor((float) j * real_scale);
-	        const float dx = j * real_scale - x; 
+	        const float dx = j * real_scale - x;
 	        if(x >= (src->width - 1)){
-	            dst->c1[i * dst->stride + j] = src->c1[i * src->stride + src->width - 1]; 
+	            dst->c1[i * dst->stride + j] = src->c1[i * src->stride + src->width - 1];
             }else{
-	            dst->c1[i * dst->stride + j] = 
-		            (1.0f - dx) * src->c1[i * src->stride + x    ] + 
+	            dst->c1[i * dst->stride + j] =
+		            (1.0f - dx) * src->c1[i * src->stride + x    ] +
 		            (       dx) * src->c1[i * src->stride + x + 1];
             }
         }
@@ -151,20 +151,20 @@ static void color_image_resize_horiz(color_image_t *dst, const color_image_t *sr
         int j;
         for(j = 0; j < dst->width; j++){
             const int x = floor((float) j * real_scale);
-	        const float dx = j * real_scale - x; 
+	        const float dx = j * real_scale - x;
 	        if(x >= (src->width - 1)){
-	            dst->c1[i * dst->stride + j] = src->c1[i * src->stride + src->width - 1]; 
-	            dst->c2[i * dst->stride + j] = src->c2[i * src->stride + src->width - 1]; 
-	            dst->c3[i * dst->stride + j] = src->c3[i * src->stride + src->width - 1]; 
+	            dst->c1[i * dst->stride + j] = src->c1[i * src->stride + src->width - 1];
+	            dst->c2[i * dst->stride + j] = src->c2[i * src->stride + src->width - 1];
+	            dst->c3[i * dst->stride + j] = src->c3[i * src->stride + src->width - 1];
             }else{
-	            dst->c1[i * dst->stride + j] = 
-		            (1.0f - dx) * src->c1[i * src->stride + x    ] + 
+	            dst->c1[i * dst->stride + j] =
+		            (1.0f - dx) * src->c1[i * src->stride + x    ] +
 		            (       dx) * src->c1[i * src->stride + x + 1];
-	            dst->c2[i * dst->stride + j] = 
-		            (1.0f - dx) * src->c2[i * src->stride + x    ] + 
+	            dst->c2[i * dst->stride + j] =
+		            (1.0f - dx) * src->c2[i * src->stride + x    ] +
 		            (       dx) * src->c2[i * src->stride + x + 1];
-	            dst->c3[i * dst->stride + j] = 
-		            (1.0f - dx) * src->c3[i * src->stride + x    ] + 
+	            dst->c3[i * dst->stride + j] =
+		            (1.0f - dx) * src->c3[i * src->stride + x    ] +
 		            (       dx) * src->c3[i * src->stride + x + 1];
             }
         }
@@ -181,10 +181,10 @@ static void image_resize_vert(image_t *dst, const image_t *src){
 	    const int y = floor((float) j * real_scale);
         const float dy = j * real_scale - y;
 	    if(y >= (src->height - 1)){
-	            dst->c1[j * dst->stride + i] = src->c1[i + (src->height - 1) * src->stride]; 
+	            dst->c1[j * dst->stride + i] = src->c1[i + (src->height - 1) * src->stride];
             }else{
 	            dst->c1[j * dst->stride + i] =
-		            (1.0f - dy) * src->c1[i + (y    ) * src->stride] + 
+		            (1.0f - dy) * src->c1[i + (y    ) * src->stride] +
 		            (       dy) * src->c1[i + (y + 1) * src->stride];
             }
         }
@@ -201,18 +201,18 @@ static void color_image_resize_vert(color_image_t *dst, const color_image_t *src
 	    const int y = floor((float) j * real_scale);
         const float dy = j * real_scale - y;
 	    if(y >= (src->height - 1)){
-            dst->c1[j * dst->stride + i] = src->c1[i + (src->height - 1) * src->stride]; 
-	        dst->c2[j * dst->stride + i] = src->c2[i + (src->height - 1) * src->stride]; 
-	        dst->c3[j * dst->stride + i] = src->c3[i + (src->height - 1) * src->stride]; 
+            dst->c1[j * dst->stride + i] = src->c1[i + (src->height - 1) * src->stride];
+	        dst->c2[j * dst->stride + i] = src->c2[i + (src->height - 1) * src->stride];
+	        dst->c3[j * dst->stride + i] = src->c3[i + (src->height - 1) * src->stride];
         }else{
 	        dst->c1[j * dst->stride + i] =
-		        (1.0f - dy) * src->c1[i +  y      * src->stride] + 
+		        (1.0f - dy) * src->c1[i +  y      * src->stride] +
 		        (       dy) * src->c1[i + (y + 1) * src->stride];
             dst->c2[j * dst->stride + i] =
-		        (1.0f - dy) * src->c2[i +  y      * src->stride] + 
+		        (1.0f - dy) * src->c2[i +  y      * src->stride] +
 		        (       dy) * src->c2[i + (y + 1) * src->stride];
 		    dst->c3[j * dst->stride + i] =
-		        (1.0f - dy) * src->c3[i +  y      * src->stride] + 
+		        (1.0f - dy) * src->c3[i +  y      * src->stride] +
 		        (       dy) * src->c3[i + (y + 1) * src->stride];
             }
         }
@@ -250,7 +250,7 @@ void image_resize_bilinear_newsize(image_t *dst, const image_t *src, const int n
     }else{
         image_t *tmp = image_new(src->width,new_height);
         image_resize_vert(tmp,src);
-        image_resize_horiz(dst,tmp); 
+        image_resize_horiz(dst,tmp);
         image_delete(tmp);
     }
 }
@@ -293,9 +293,9 @@ float *gaussian_filter(const float sigma, int *filter_order){
         exit(1);
     }
     // computer the filter order as 1 + 2* floor(3*sigma)
-    *filter_order = floor(3*sigma); 
+    *filter_order = floor(3*sigma);
     if ( *filter_order == 0 )
-        *filter_order = 1; 
+        *filter_order = 1;
     // compute coefficients
     float *data = (float*) malloc(sizeof(float) * (2*(*filter_order)+1));
     if(data == NULL ){
@@ -384,18 +384,18 @@ static void convolve_vert_fast_3(image_t *dst, const image_t *src, const convolu
         *dstp = (coeff[0]+coeff[1])*(*srcp) + coeff[2]*(*srcp_p1);
         dstp+=1; srcp+=1; srcp_p1+=1;
     }
-    v4sf* srcp_m1 = (v4sf*) src->c1; 
+    v4sf* srcp_m1 = (v4sf*) src->c1;
     for(i=src->height-1 ; --i ; ){ // others line
         int j;
         for(j=iterline ; --j ; ){
             *dstp = coeff[0]*(*srcp_m1) + coeff[1]*(*srcp) + coeff[2]*(*srcp_p1);
             dstp+=1; srcp_m1+=1; srcp+=1; srcp_p1+=1;
         }
-    }       
+    }
     for(i=iterline ; --i ; ){ // last line
         *dstp = coeff[0]*(*srcp_m1) + (coeff[1]+coeff[2])*(*srcp);
-        dstp+=1; srcp_m1+=1; srcp+=1; 
-    }  
+        dstp+=1; srcp_m1+=1; srcp+=1;
+    }
 }
 
 static void convolve_vert_fast_5(image_t *dst, const image_t *src, const convolution_t *conv){
@@ -414,7 +414,7 @@ static void convolve_vert_fast_5(image_t *dst, const image_t *src, const convolu
     for(i=iterline ; --i ; ){ // second line
         *dstp = (coeff[0]+coeff[1])*(*srcp_m1) + coeff[2]*(*srcp) + coeff[3]*(*srcp_p1) + coeff[4]*(*srcp_p2);
         dstp+=1; srcp_m1+=1; srcp+=1; srcp_p1+=1; srcp_p2+=1;
-    }   
+    }
     v4sf* srcp_m2 = (v4sf*) src->c1;
     for(i=src->height-3 ; --i ; ){ // others line
         int j;
@@ -422,15 +422,15 @@ static void convolve_vert_fast_5(image_t *dst, const image_t *src, const convolu
             *dstp = coeff[0]*(*srcp_m2) + coeff[1]*(*srcp_m1) + coeff[2]*(*srcp) + coeff[3]*(*srcp_p1) + coeff[4]*(*srcp_p2);
             dstp+=1; srcp_m2+=1;srcp_m1+=1; srcp+=1; srcp_p1+=1; srcp_p2+=1;
         }
-    }    
+    }
     for(i=iterline ; --i ; ){ // second to last line
         *dstp = coeff[0]*(*srcp_m2) + coeff[1]*(*srcp_m1) + coeff[2]*(*srcp) + (coeff[3]+coeff[4])*(*srcp_p1);
         dstp+=1; srcp_m2+=1;srcp_m1+=1; srcp+=1; srcp_p1+=1;
-    }          
+    }
     for(i=iterline ; --i ; ){ // last line
         *dstp = coeff[0]*(*srcp_m2) + coeff[1]*(*srcp_m1) + (coeff[2]+coeff[3]+coeff[4])*(*srcp);
-        dstp+=1; srcp_m2+=1;srcp_m1+=1; srcp+=1; 
-    }  
+        dstp+=1; srcp_m2+=1;srcp_m1+=1; srcp+=1;
+    }
 }
 
 static void convolve_horiz_fast_3(image_t *dst, const image_t *src, const convolution_t *conv){
@@ -453,7 +453,7 @@ static void convolve_horiz_fast_3(image_t *dst, const image_t *src, const convol
         src_p1[stride_minus_1] = right_coef;
         memcpy(src_p1, srcptr+1, sizeof(float)*stride_minus_1);
         v4sf *srcp_p1 = (v4sf*) src_p1, *srcp_m1 = (v4sf*) src_m1;
-        
+
         for(i=0;i<iterline;i++){
             *dstp = coeff[0]*(*srcp_m1) + coeff[1]*(*srcp) + coeff[2]*(*srcp_p1);
             dstp+=1; srcp_m1+=1; srcp+=1; srcp_p1+=1;
@@ -490,9 +490,9 @@ static void convolve_horiz_fast_5(image_t *dst, const image_t *src, const convol
         src_p2[stride_minus_1] = right_coef;
         src_p2[stride_minus_2] = right_coef;
         memcpy(src_p2, srcptr+2, sizeof(float)*stride_minus_2);
-                
+
         v4sf *srcp_p1 = (v4sf*) src_p1, *srcp_p2 = (v4sf*) src_p2, *srcp_m1 = (v4sf*) src_m1, *srcp_m2 = (v4sf*) src_m2;
-        
+
         for(i=0;i<iterline;i++){
             *dstp = coeff[0]*(*srcp_m2) + coeff[1]*(*srcp_m1) + coeff[2]*(*srcp) + coeff[3]*(*srcp_p1) + coeff[4]*(*srcp_p2);
             dstp+=1; srcp_m2 +=1; srcp_m1+=1; srcp+=1; srcp_p1+=1; srcp_p2+=1;
@@ -508,7 +508,7 @@ void convolve_horiz(image_t *dest, const image_t *src, const convolution_t *conv
         return;
     }else if(conv->order==2){
         convolve_horiz_fast_5(dest,src,conv);
-        return;    
+        return;
     }
     float *in = src->c1;
     float * out = dest->c1;
@@ -558,7 +558,7 @@ void convolve_vert(image_t *dest, const image_t *src, const convolution_t *conv)
         return;
     }else if(conv->order==2){
         convolve_vert_fast_5(dest,src,conv);
-        return;    
+        return;
     }
     float *in = src->c1;
     float *out = dest->c1;
@@ -580,7 +580,7 @@ void convolve_vert(image_t *dest, const image_t *src, const convolution_t *conv)
             }
 	        *o++ = sum;
         }
-        for(j = 0; j < src->stride - src->width; j++) 
+        for(j = 0; j < src->stride - src->width; j++)
 	    {
 	        o++;
         }
@@ -631,7 +631,7 @@ void convolution_delete(convolution_t *conv){
 void color_image_convolve_hv(color_image_t *dst, const color_image_t *src, const convolution_t *horiz_conv, const convolution_t *vert_conv){
     const int width = src->width, height = src->height, stride = src->stride;
     // separate channels of images
-    image_t src_red = {width,height,stride,src->c1}, src_green = {width,height,stride,src->c2}, src_blue = {width,height,stride,src->c3}, 
+    image_t src_red = {width,height,stride,src->c1}, src_green = {width,height,stride,src->c2}, src_blue = {width,height,stride,src->c3},
             dst_red = {width,height,stride,dst->c1}, dst_green = {width,height,stride,dst->c2}, dst_blue = {width,height,stride,dst->c3};
     // horizontal and vertical
     if(horiz_conv != NULL && vert_conv != NULL){
@@ -639,14 +639,14 @@ void color_image_convolve_hv(color_image_t *dst, const color_image_t *src, const
         if(tmp_data == NULL){
 	        fprintf(stderr,"error color_image_convolve_hv(): not enough memory\n");
 	        exit(1);
-        }  
-        image_t tmp = {width,height,stride,tmp_data};   
+        }
+        image_t tmp = {width,height,stride,tmp_data};
         // perform convolution for each channel
-        convolve_horiz(&tmp,&src_red,horiz_conv); 
-        convolve_vert(&dst_red,&tmp,vert_conv); 
+        convolve_horiz(&tmp,&src_red,horiz_conv);
+        convolve_vert(&dst_red,&tmp,vert_conv);
         convolve_horiz(&tmp,&src_green,horiz_conv);
-        convolve_vert(&dst_green,&tmp,vert_conv); 
-        convolve_horiz(&tmp,&src_blue,horiz_conv); 
+        convolve_vert(&dst_green,&tmp,vert_conv);
+        convolve_horiz(&tmp,&src_blue,horiz_conv);
         convolve_vert(&dst_blue,&tmp,vert_conv);
         free(tmp_data);
     }else if(horiz_conv != NULL && vert_conv == NULL){ // only horizontal
@@ -665,7 +665,7 @@ void image_convolve_hv(image_t *dst, const image_t *src, const convolution_t *ho
 {
     const int width = src->width, height = src->height, stride = src->stride;
     // separate channels of images
-    image_t src_red = {width,height,stride,src->c1}, 
+    image_t src_red = {width,height,stride,src->c1},
             dst_red = {width,height,stride,dst->c1};
     // horizontal and vertical
     if(horiz_conv != NULL && vert_conv != NULL){
@@ -673,11 +673,11 @@ void image_convolve_hv(image_t *dst, const image_t *src, const convolution_t *ho
         if(tmp_data == NULL){
           fprintf(stderr,"error image_convolve_hv(): not enough memory\n");
           exit(1);
-        }  
-        image_t tmp = {width,height,stride,tmp_data};   
+        }
+        image_t tmp = {width,height,stride,tmp_data};
         // perform convolution for each channel
-        convolve_horiz(&tmp,&src_red,horiz_conv); 
-        convolve_vert(&dst_red,&tmp,vert_conv); 
+        convolve_horiz(&tmp,&src_red,horiz_conv);
+        convolve_vert(&dst_red,&tmp,vert_conv);
         free(tmp_data);
     }else if(horiz_conv != NULL && vert_conv == NULL){ // only horizontal
         convolve_horiz(&dst_red,&src_red,horiz_conv);
@@ -715,7 +715,7 @@ static void color_image_pyramid_set_size(color_image_pyramid_t* pyr, const int s
     }
     if(pyr->images == NULL){
         fprintf(stderr,"Error in color_image_pyramid_set_size(): not enough memory\n");
-        exit(1);      
+        exit(1);
     }
     pyr->size = size;
 }

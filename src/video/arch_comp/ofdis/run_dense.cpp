@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sys/time.h>
 #include <fstream>
-    
+
 #include "oflow.h"
 
 
@@ -30,9 +30,9 @@ void SaveFlowFile(cv::Mat& img, const char* filename)
       (int)fwrite(&height, sizeof(int),   1, stream) != 1)
     cout << "WriteFile: problem writing header" << endl;
 
-  for (int y = 0; y < height; y++) 
+  for (int y = 0; y < height; y++)
   {
-    for (int x = 0; x < width; x++) 
+    for (int x = 0; x < width; x++)
     {
       if (nc==1) // depth
         tmp[0] = img.at<float>(y,x);
@@ -47,10 +47,10 @@ void SaveFlowFile(cv::Mat& img, const char* filename)
         tmp[1] = img.at<cv::Vec4f>(y,x)[1];
         tmp[2] = img.at<cv::Vec4f>(y,x)[2];
         tmp[3] = img.at<cv::Vec4f>(y,x)[3];
-      }	  
+      }
 
       if ((int)fwrite(tmp, sizeof(float), nc, stream) != nc)
-        cout << "WriteFile: problem writing data" << endl;         
+        cout << "WriteFile: problem writing data" << endl;
     }
   }
   fclose(stream);
@@ -60,23 +60,23 @@ void SaveFlowFile(cv::Mat& img, const char* filename)
 void SavePFMFile(cv::Mat& img, const char* filename)
 {
   cv::Size szt = img.size();
-  
+
   FILE *stream = fopen(filename, "wb");
   if (stream == 0)
     cout << "WriteFile: could not open file" << endl;
 
   // write the header
-  fprintf(stream, "Pf\n%d %d\n%f\n", szt.width, szt.height, (float)-1.0f);    
-  
-  for (int y = szt.height-1; y >= 0 ; --y) 
+  fprintf(stream, "Pf\n%d %d\n%f\n", szt.width, szt.height, (float)-1.0f);
+
+  for (int y = szt.height-1; y >= 0 ; --y)
   {
-    for (int x = 0; x < szt.width; ++x) 
+    for (int x = 0; x < szt.width; ++x)
     {
       float tmp = -img.at<float>(y,x);
       if ((int)fwrite(&tmp, sizeof(float), 1, stream) != 1)
-        cout << "WriteFile: problem writing data" << endl;         
+        cout << "WriteFile: problem writing data" << endl;
     }
-  }  
+  }
   fclose(stream);
 }
 
@@ -86,20 +86,20 @@ void ReadFlowFile(cv::Mat& img, const char* filename)
   FILE *stream = fopen(filename, "rb");
   if (stream == 0)
     cout << "ReadFile: could not open %s" << endl;
-  
+
   int width, height;
   float tag;
   int nc = img.channels();
-  float tmp[nc];  
+  float tmp[nc];
 
   if ((int)fread(&tag,    sizeof(float), 1, stream) != 1 ||
       (int)fread(&width,  sizeof(int),   1, stream) != 1 ||
       (int)fread(&height, sizeof(int),   1, stream) != 1)
         cout << "ReadFile: problem reading file %s" << endl;
 
-  for (int y = 0; y < height; y++) 
+  for (int y = 0; y < height; y++)
   {
-    for (int x = 0; x < width; x++) 
+    for (int x = 0; x < width; x++)
     {
       if ((int)fread(tmp, sizeof(float), nc, stream) != nc)
         cout << "ReadFile(%s): file is too short" << endl;
@@ -148,10 +148,10 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
       }
       else
         cv::resize(img_ao_fmat_pyr[i-1], img_ao_fmat_pyr[i], cv::Size(), .5, .5, cv::INTER_LINEAR);
-	      
+
       img_ao_fmat_pyr[i].convertTo(img_ao_fmat_pyr[i], rpyrtype);
-	
-      if ( getgrad ) 
+
+      if ( getgrad )
       {
         cv::Sobel( img_ao_fmat_pyr[i], img_ao_dx_fmat_pyr[i], CV_32F, 1, 0, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         cv::Sobel( img_ao_fmat_pyr[i], img_ao_dy_fmat_pyr[i], CV_32F, 0, 1, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
@@ -159,20 +159,20 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
         img_ao_dy_fmat_pyr[i].convertTo(img_ao_dy_fmat_pyr[i], CV_32F);
       }
     }
-    
+
     // pad images
     for (int i=0; i<=lv_f; ++i)  // Construct image and gradient pyramides
     {
       copyMakeBorder(img_ao_fmat_pyr[i],img_ao_fmat_pyr[i],imgpadding,imgpadding,imgpadding,imgpadding,cv::BORDER_REPLICATE);  // Replicate border for image padding
       img_ao_pyr[i] = (float*)img_ao_fmat_pyr[i].data;
 
-      if ( getgrad ) 
+      if ( getgrad )
       {
         copyMakeBorder(img_ao_dx_fmat_pyr[i],img_ao_dx_fmat_pyr[i],imgpadding,imgpadding,imgpadding,imgpadding,cv::BORDER_CONSTANT , 0); // Zero padding for gradients
         copyMakeBorder(img_ao_dy_fmat_pyr[i],img_ao_dy_fmat_pyr[i],imgpadding,imgpadding,imgpadding,imgpadding,cv::BORDER_CONSTANT , 0);
 
         img_ao_dx_pyr[i] = (float*)img_ao_dx_fmat_pyr[i].data;
-        img_ao_dy_pyr[i] = (float*)img_ao_dy_fmat_pyr[i].data;      
+        img_ao_dy_pyr[i] = (float*)img_ao_dy_fmat_pyr[i].data;
       }
     }
 }
@@ -186,7 +186,7 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
 
     struct timeval tv_start_all, tv_end_all;
     gettimeofday(&tv_start_all, NULL);
-    
+
     cv::Mat img_tmp;
     int rpyrtype, nochannels, incoltype;
 #if (SELECTCHANNEL==1 | SELECTCHANNEL==2) // use Intensity or Gradient image
@@ -203,25 +203,25 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
     cv::Size sz = img_ao_mat.size();
     int width_org = sz.width;   // unpadded original image size
     int height_org = sz.height;  // unpadded original image size
-    
+
     // *** Parse rest of parameters, See oflow.h for definitions.
     int lv_f, lv_l, maxiter, miniter, patchsz, patnorm, costfct, tv_innerit, tv_solverit, verbosity;
     float mindprate, mindrrate, minimgerr, poverl, tv_alpha, tv_gamma, tv_delta, tv_sor;
     bool usefbcon, usetvref;
     //bool hasinfile; // initialization flow file
     //char *infile = nullptr;
-    
-    
+
+
         mindprate = 0.05; mindrrate = 0.95; minimgerr = 0.0;
         usefbcon = 0; patnorm = 1; costfct = 0;
         tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
         tv_innerit = 1; tv_solverit = 3; tv_sor = 1.6;
         verbosity = 0; // Default: Plot detailed timings
-        
+
         int fratio = 5; // For automatic selection of coarsest scale: 1/fratio * width = maximum expected motion magnitude in image. Set lower to restrict search space.
 
         int sel_oppoint = 0; // Default operating point
-        
+
         switch (sel_oppoint)
         {
             case 0:
@@ -260,12 +260,12 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
                 lv_l = std::max(lv_f-2,0); maxiter = 12; miniter = 12;
                 usetvref = 1;
                 break;
-                
+
         }
-    
-    
-    
-    
+
+
+
+
     // *** Pad image such that width and height are restless divisible on all scales (except last)
     int padw=0, padh=0;
     int scfct = pow(2,lv_f); // enforce restless division by this number on coarsest scale
@@ -280,7 +280,7 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
         copyMakeBorder(img_bo_mat,img_bo_mat,floor((float)padh/2.0f),ceil((float)padh/2.0f),floor((float)padw/2.0f),ceil((float)padw/2.0f),cv::BORDER_REPLICATE);
     }
     sz = img_ao_mat.size();  // padded image size, ensures divisibility by 2 on all scales (except last)
-    
+
     // Timing, image loading
     if (verbosity > 1)
     {
@@ -289,31 +289,31 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
         printf("TIME (Image loading     ) (ms): %3g\n", tt);
         gettimeofday(&tv_start_all, NULL);
     }
-    
-    
-    
-    
+
+
+
+
     //  *** Generate scale pyramides
     img_ao_mat.convertTo(img_ao_fmat, CV_32F); // convert to float
     img_bo_mat.convertTo(img_bo_fmat, CV_32F);
-    
+
     const float* img_ao_pyr[lv_f+1];
     const float* img_bo_pyr[lv_f+1];
     const float* img_ao_dx_pyr[lv_f+1];
     const float* img_ao_dy_pyr[lv_f+1];
     const float* img_bo_dx_pyr[lv_f+1];
     const float* img_bo_dy_pyr[lv_f+1];
-    
+
     cv::Mat img_ao_fmat_pyr[lv_f+1];
     cv::Mat img_bo_fmat_pyr[lv_f+1];
     cv::Mat img_ao_dx_fmat_pyr[lv_f+1];
     cv::Mat img_ao_dy_fmat_pyr[lv_f+1];
     cv::Mat img_bo_dx_fmat_pyr[lv_f+1];
     cv::Mat img_bo_dy_fmat_pyr[lv_f+1];
-    
+
     ConstructImgPyramide(img_ao_fmat, img_ao_fmat_pyr, img_ao_dx_fmat_pyr, img_ao_dy_fmat_pyr, img_ao_pyr, img_ao_dx_pyr, img_ao_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
     ConstructImgPyramide(img_bo_fmat, img_bo_fmat_pyr, img_bo_dx_fmat_pyr, img_bo_dy_fmat_pyr, img_bo_pyr, img_bo_dx_pyr, img_bo_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
-    
+
     // Timing, image gradients and pyramid
     if (verbosity > 1)
     {
@@ -321,8 +321,8 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
         double tt = (tv_end_all.tv_sec-tv_start_all.tv_sec)*1000.0f + (tv_end_all.tv_usec-tv_start_all.tv_usec)/1000.0f;
         printf("TIME (Pyramide+Gradients) (ms): %3g\n", tt);
     }
-    
-    
+
+
     //     // Read Initial Truth flow (if available)
     //     float * initptr = nullptr;
     //     cv::Mat flowinit;
@@ -347,10 +347,10 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
     //
     //       initptr = (float*)flowinit.data;
     //     }
-    
-    
-    
-    
+
+
+
+
     //  *** Run main optical flow / depth algorithm
     float sc_fct = pow(2,lv_l);
 #if (SELECTMODE==1)
@@ -358,7 +358,7 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
 #else
     cv::Mat flowout(sz.height / sc_fct , sz.width / sc_fct, CV_32FC1); // Depth
 #endif
-    
+
     OFC::OFClass ofc(img_ao_pyr, img_ao_dx_pyr, img_ao_dy_pyr,
                      img_bo_pyr, img_bo_dx_pyr, img_bo_dy_pyr,
                      patchsz,  // extra image padding to avoid border violation check
@@ -369,18 +369,18 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
                      usefbcon, costfct, nochannels, patnorm,
                      usetvref, tv_alpha, tv_gamma, tv_delta, tv_innerit, tv_solverit, tv_sor,
                      verbosity);
-    
+
     if (verbosity > 1) gettimeofday(&tv_start_all, NULL);
-    
-    
-    
+
+
+
     // *** Resize to original scale, if not run to finest level
     if (lv_l != 0)
     {
         flowout *= sc_fct;
         cv::resize(flowout, flowout, cv::Size(), sc_fct, sc_fct , cv::INTER_LINEAR);
     }
-    
+
     // If image was padded, remove padding before saving to file
     flowout = flowout(cv::Rect((int)floor((float)padw/2.0f),(int)floor((float)padh/2.0f),width_org,height_org));
 
@@ -391,7 +391,7 @@ cv::Mat optical_flow(cv::Mat img_ao_mat, cv::Mat img_bo_mat)
         printf("TIME (Saving flow file  ) (ms): %3g\n", tt);
     }
     return flowout;
-    
+
 }
 int main( int argc, char** argv )
 {
@@ -400,6 +400,6 @@ int main( int argc, char** argv )
 }
 
 
-    
+
 
 

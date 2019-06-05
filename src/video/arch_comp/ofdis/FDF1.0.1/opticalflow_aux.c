@@ -37,18 +37,18 @@ void image_warp(color_image_t *dst, image_t *mask, const color_image_t *src, con
 	        x2 = MINMAX_TA(x+1,src->width);
 	        y1 = MINMAX_TA(y,src->height);
 	        y2 = MINMAX_TA(y+1,src->height);
-	        dst->c1[offset] = 
+	        dst->c1[offset] =
 	            src->c1[y1*src->stride+x1]*(1.0f-dx)*(1.0f-dy) +
 	            src->c1[y1*src->stride+x2]*dx*(1.0f-dy) +
 	            src->c1[y2*src->stride+x1]*(1.0f-dx)*dy +
 	            src->c1[y2*src->stride+x2]*dx*dy;
           #if (SELECTCHANNEL==3)
-	        dst->c2[offset] = 
+	        dst->c2[offset] =
 	            src->c2[y1*src->stride+x1]*(1.0f-dx)*(1.0f-dy) +
 	            src->c2[y1*src->stride+x2]*dx*(1.0f-dy) +
 	            src->c2[y2*src->stride+x1]*(1.0f-dx)*dy +
 	            src->c2[y2*src->stride+x2]*dx*dy;
-	        dst->c3[offset] = 
+	        dst->c3[offset] =
 	            src->c3[y1*src->stride+x1]*(1.0f-dx)*(1.0f-dy) +
 	            src->c3[y1*src->stride+x2]*dx*(1.0f-dy) +
 	            src->c3[y2*src->stride+x1]*(1.0f-dx)*dy +
@@ -63,17 +63,17 @@ void image_warp(color_image_t *dst, image_t *mask, const color_image_t *src, con
 /* compute image first and second order spatio-temporal derivatives of a color image */
 #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // use single band image_delete
 void get_derivatives(const image_t *im1, const image_t *im2, const convolution_t *deriv,
-         image_t *dx, image_t *dy, image_t *dt, 
+         image_t *dx, image_t *dy, image_t *dt,
          image_t *dxx, image_t *dxy, image_t *dyy, image_t *dxt, image_t *dyt)
 #else
 void get_derivatives(const color_image_t *im1, const color_image_t *im2, const convolution_t *deriv,
-		     color_image_t *dx, color_image_t *dy, color_image_t *dt, 
+		     color_image_t *dx, color_image_t *dy, color_image_t *dt,
 		     color_image_t *dxx, color_image_t *dxy, color_image_t *dyy, color_image_t *dxt, color_image_t *dyt)
 #endif
 {
     // derivatives are computed on the mean of the first image and the warped second image
 #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)
-    image_t *tmp_im2 = image_new(im2->width,im2->height);    
+    image_t *tmp_im2 = image_new(im2->width,im2->height);
     v4sf *tmp_im2p = (v4sf*) tmp_im2->c1, *dtp = (v4sf*) dt->c1, *im1p = (v4sf*) im1->c1, *im2p = (v4sf*) im2->c1;
     const v4sf half = {0.5f,0.5f,0.5f,0.5f};
     int i=0;
@@ -81,7 +81,7 @@ void get_derivatives(const color_image_t *im1, const color_image_t *im2, const c
         *tmp_im2p = half * ( (*im2p) + (*im1p) );
         *dtp = (*im2p)-(*im1p);
         dtp+=1; im1p+=1; im2p+=1; tmp_im2p+=1;
-    }   
+    }
     // compute all other derivatives
     image_convolve_hv(dx, tmp_im2, deriv, NULL);
     image_convolve_hv(dy, tmp_im2, NULL, deriv);
@@ -93,7 +93,7 @@ void get_derivatives(const color_image_t *im1, const color_image_t *im2, const c
     // free memory
     image_delete(tmp_im2);
 #else
-    color_image_t *tmp_im2 = color_image_new(im2->width,im2->height);    
+    color_image_t *tmp_im2 = color_image_new(im2->width,im2->height);
     v4sf *tmp_im2p = (v4sf*) tmp_im2->c1, *dtp = (v4sf*) dt->c1, *im1p = (v4sf*) im1->c1, *im2p = (v4sf*) im2->c1;
     const v4sf half = {0.5f,0.5f,0.5f,0.5f};
     int i=0;
@@ -101,7 +101,7 @@ void get_derivatives(const color_image_t *im1, const color_image_t *im2, const c
         *tmp_im2p = half * ( (*im2p) + (*im1p) );
         *dtp = (*im2p)-(*im1p);
         dtp+=1; im1p+=1; im2p+=1; tmp_im2p+=1;
-    }   
+    }
     // compute all other derivatives
     color_image_convolve_hv(dx, tmp_im2, deriv, NULL);
     color_image_convolve_hv(dy, tmp_im2, NULL, deriv);
@@ -137,7 +137,7 @@ void compute_smoothness(image_t *dst_horiz, image_t *dst_vert, const image_t *uu
         *sp = qa / __builtin_ia32_sqrtps( (*uxp)*(*uxp) + (*uyp)*(*uyp) + (*vxp)*(*vxp) + (*vyp)*(*vyp) + epsmooth );
         sp+=1;uxp+=1; uyp+=1; vxp+=1; vyp+=1;
     }
-    image_delete(ux); image_delete(uy); image_delete(vx); image_delete(vy); 
+    image_delete(ux); image_delete(uy); image_delete(vx); image_delete(vy);
     // compute dst_horiz
     v4sf *dsthp = (v4sf*) dst_horiz->c1; sp = (v4sf*) smoothness->c1;
     float *sp_shift = (float*) memalign(16, stride*sizeof(float)); // aligned shifted copy of the current line
@@ -188,7 +188,7 @@ void sub_laplacian(image_t *dst, const image_t *src, const image_t *weight_horiz
         src_ptr += offsetline+1;
         weight_horiz_ptr += offsetline+1;
     }
-  
+
     v4sf *wvp = (v4sf*) weight_vert->c1, *srcp = (v4sf*) src->c1, *srcp_s = (v4sf*) (src->c1+src->stride), *dstp = (v4sf*) dst->c1, *dstp_s = (v4sf*) (dst->c1+src->stride);
     for(j=1+(src->height-1)*src->stride/4 ; --j ;){
         const v4sf tmp = (*wvp) * ((*srcp_s)-(*srcp));
@@ -202,7 +202,7 @@ void sub_laplacian(image_t *dst, const image_t *src, const image_t *weight_horiz
    a11 a12 a22 represents the 2x2 diagonal matrix, b1 and b2 the right hand side
    other (color) images are input */
 void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t *b2, image_t *mask, image_t *wx, image_t *wy, image_t *du, image_t *dv, image_t *uu, image_t *vv, color_image_t *Ix, color_image_t *Iy, color_image_t *Iz, color_image_t *Ixx, color_image_t *Ixy, color_image_t *Iyy, color_image_t *Ixz, color_image_t *Iyz, image_t *desc_weight, image_t *desc_flow_x, image_t *desc_flow_y, const float half_delta_over3, const float half_beta, const float half_gamma_over3){
- 
+
     const v4sf dnorm = {datanorm, datanorm, datanorm, datanorm};
     const v4sf hdover3 = {half_delta_over3, half_delta_over3, half_delta_over3, half_delta_over3};
     const v4sf epscolor = {epsilon_color, epsilon_color, epsilon_color, epsilon_color};
@@ -210,23 +210,23 @@ void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b
     const v4sf epsgrad = {epsilon_grad, epsilon_grad, epsilon_grad, epsilon_grad};
     const v4sf hbeta = {half_beta,half_beta,half_beta,half_beta};
     const v4sf epsdesc = {epsilon_desc,epsilon_desc,epsilon_desc,epsilon_desc};
-    
+
     v4sf *dup = (v4sf*) du->c1, *dvp = (v4sf*) dv->c1,
         *maskp = (v4sf*) mask->c1,
-        *a11p = (v4sf*) a11->c1, *a12p = (v4sf*) a12->c1, *a22p = (v4sf*) a22->c1, 
-        *b1p = (v4sf*) b1->c1, *b2p = (v4sf*) b2->c1, 
-        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1, 
-        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2, 
-        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3, 
+        *a11p = (v4sf*) a11->c1, *a12p = (v4sf*) a12->c1, *a22p = (v4sf*) a22->c1,
+        *b1p = (v4sf*) b1->c1, *b2p = (v4sf*) b2->c1,
+        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1,
+        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2,
+        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3,
         *uup = (v4sf*) uu->c1, *vvp = (v4sf*)vv->c1, *wxp = (v4sf*)wx->c1, *wyp = (v4sf*)wy->c1,
         *descflowxp = (v4sf*)desc_flow_x->c1, *descflowyp = (v4sf*)desc_flow_y->c1, *descweightp = (v4sf*)desc_weight->c1;
-            
+
     memset(a11->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(a12->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(a22->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(b1->c1 , 0, sizeof(float)*uu->height*uu->stride);
     memset(b2->c1 , 0, sizeof(float)*uu->height*uu->stride);
-              
+
     int i;
     for(i = 0 ; i<uu->height*uu->stride/4 ; i++){
         v4sf tmp, tmp2, tmp3, tmp4, tmp5, tmp6, n1, n2, n3, n4, n5, n6;
@@ -270,7 +270,7 @@ void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b
         tmp5 = *ixz3p + (*ixx3p) * (*dup) + (*ixy3p) * (*dvp);
         tmp6 = *iyz3p + (*ixy3p) * (*dup) + (*iyy3p) * (*dvp);
         tmp = (*maskp) * hgover3 / __builtin_ia32_sqrtps(tmp*tmp/n1 + tmp2*tmp2/n2 + tmp3*tmp3/n3 + tmp4*tmp4/n4 + tmp5*tmp5/n5 + tmp6*tmp6/n6 + epsgrad);
-        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;      
+        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;
         *a11p += tmp *(*ixx1p)*(*ixx1p) + tmp2*(*ixy1p)*(*ixy1p);
         *a12p += tmp *(*ixx1p)*(*ixy1p) + tmp2*(*ixy1p)*(*iyy1p);
         *a22p += tmp2*(*iyy1p)*(*iyy1p) + tmp *(*ixy1p)*(*ixy1p);
@@ -285,7 +285,7 @@ void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b
         *a12p += tmp5*(*ixx3p)*(*ixy3p) + tmp6*(*ixy3p)*(*iyy3p);
         *a22p += tmp6*(*iyy3p)*(*iyy3p) + tmp5*(*ixy3p)*(*ixy3p);
         *b1p -=  tmp5*(*ixx3p)*(*ixz3p) + tmp6*(*ixy3p)*(*iyz3p);
-        *b2p -=  tmp6*(*iyy3p)*(*iyz3p) + tmp5*(*ixy3p)*(*ixz3p);  
+        *b2p -=  tmp6*(*iyy3p)*(*iyz3p) + tmp5*(*ixy3p)*(*ixz3p);
         if(half_beta){ // dpsi_match
             tmp  = *uup - (*descflowxp);
             tmp2 = *vvp - (*descflowyp);
@@ -295,7 +295,7 @@ void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b
             *b1p -= tmp*((*wxp)-(*descflowxp));
             *b2p -= tmp*((*wyp)-(*descflowyp));
         }
-        dup+=1; dvp+=1; maskp+=1; a11p+=1; a12p+=1; a22p+=1; b1p+=1; b2p+=1; 
+        dup+=1; dvp+=1; maskp+=1; a11p+=1; a12p+=1; a22p+=1; b1p+=1; b2p+=1;
         ix1p+=1; iy1p+=1; iz1p+=1; ixx1p+=1; ixy1p+=1; iyy1p+=1; ixz1p+=1; iyz1p+=1;
         ix2p+=1; iy2p+=1; iz2p+=1; ixx2p+=1; ixy2p+=1; iyy2p+=1; ixz2p+=1; iyz2p+=1;
         ix3p+=1; iy3p+=1; iz3p+=1; ixx3p+=1; ixy3p+=1; iyy3p+=1; ixz3p+=1; iyz3p+=1;
@@ -319,25 +319,25 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
     const v4sf epsgrad = {epsilon_grad, epsilon_grad, epsilon_grad, epsilon_grad};
     //const v4sf hbeta = {half_beta,half_beta,half_beta,half_beta};
     //const v4sf epsdesc = {epsilon_desc,epsilon_desc,epsilon_desc,epsilon_desc};
-    
+
     v4sf *dup = (v4sf*) du->c1, *dvp = (v4sf*) dv->c1,
         *maskp = (v4sf*) mask->c1,
-        *a11p = (v4sf*) a11->c1, *a12p = (v4sf*) a12->c1, *a22p = (v4sf*) a22->c1, 
-        *b1p = (v4sf*) b1->c1, *b2p = (v4sf*) b2->c1, 
-        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1, 
+        *a11p = (v4sf*) a11->c1, *a12p = (v4sf*) a12->c1, *a22p = (v4sf*) a22->c1,
+        *b1p = (v4sf*) b1->c1, *b2p = (v4sf*) b2->c1,
+        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1,
         #if (SELECTCHANNEL==3)
-        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2, 
-        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3, 
+        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2,
+        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3,
         #endif
         *uup = (v4sf*) uu->c1, *vvp = (v4sf*)vv->c1, *wxp = (v4sf*)wx->c1, *wyp = (v4sf*)wy->c1;
-        
-            
+
+
     memset(a11->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(a12->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(a22->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(b1->c1 , 0, sizeof(float)*uu->height*uu->stride);
     memset(b2->c1 , 0, sizeof(float)*uu->height*uu->stride);
-              
+
     int i;
     for(i = 0 ; i<uu->height*uu->stride/4 ; i++){
         v4sf tmp, tmp2, n1, n2;
@@ -377,7 +377,7 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
             *b2p -=  tmp3 * (*iz3p) * (*iy3p);
             #endif
         }
-        
+
         // dpsi gradient
         n1 = (*ixx1p) * (*ixx1p) + (*ixy1p) * (*ixy1p) + dnorm;
         n2 = (*iyy1p) * (*iyy1p) + (*ixy1p) * (*ixy1p) + dnorm;
@@ -393,10 +393,10 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
         tmp5 = *ixz3p + (*ixx3p) * (*dup) + (*ixy3p) * (*dvp);
         tmp6 = *iyz3p + (*ixy3p) * (*dup) + (*iyy3p) * (*dvp);
         tmp = (*maskp) * hgover3 / __builtin_ia32_sqrtps(tmp*tmp/n1 + tmp2*tmp2/n2 + tmp3*tmp3/n3 + tmp4*tmp4/n4 + tmp5*tmp5/n5 + tmp6*tmp6/n6 + epsgrad);
-        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;      
+        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;
         #else
         tmp = (*maskp) * hgover3 / __builtin_ia32_sqrtps(3* tmp*tmp/n1 + 3* tmp2*tmp2/n2 + epsgrad);
-        tmp2 = tmp/n2; tmp /= n1;      
+        tmp2 = tmp/n2; tmp /= n1;
         #endif
         *a11p += tmp *(*ixx1p)*(*ixx1p) + tmp2*(*ixy1p)*(*ixy1p);
         *a12p += tmp *(*ixx1p)*(*ixy1p) + tmp2*(*ixy1p)*(*iyy1p);
@@ -413,20 +413,20 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
         *a12p += tmp5*(*ixx3p)*(*ixy3p) + tmp6*(*ixy3p)*(*iyy3p);
         *a22p += tmp6*(*iyy3p)*(*iyy3p) + tmp5*(*ixy3p)*(*ixy3p);
         *b1p -=  tmp5*(*ixx3p)*(*ixz3p) + tmp6*(*ixy3p)*(*iyz3p);
-        *b2p -=  tmp6*(*iyy3p)*(*iyz3p) + tmp5*(*ixy3p)*(*ixz3p);  
+        *b2p -=  tmp6*(*iyy3p)*(*iyz3p) + tmp5*(*ixy3p)*(*ixz3p);
         #endif
-        
-        
+
+
         #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // multiply system to make smoothing parameters same for RGB and single-channel image
-        *a11p *= 3;  
-        *a12p *= 3;  
-        *a22p *= 3;  
-        *b1p *=  3;  
-        *b2p *=  3;  
+        *a11p *= 3;
+        *a12p *= 3;
+        *a22p *= 3;
+        *b1p *=  3;
+        *b2p *=  3;
 
         #endif
 
-        dup+=1; dvp+=1; maskp+=1; a11p+=1; a12p+=1; a22p+=1; b1p+=1; b2p+=1; 
+        dup+=1; dvp+=1; maskp+=1; a11p+=1; a12p+=1; a22p+=1; b1p+=1; b2p+=1;
         ix1p+=1; iy1p+=1; iz1p+=1; ixx1p+=1; ixy1p+=1; iyy1p+=1; ixz1p+=1; iyz1p+=1;
         #if (SELECTCHANNEL==3)
         ix2p+=1; iy2p+=1; iz2p+=1; ixx2p+=1; ixy2p+=1; iyy2p+=1; ixz2p+=1; iyz2p+=1;
@@ -455,22 +455,22 @@ void compute_data_DE(image_t *a11, image_t *b1, image_t *mask, image_t *wx, imag
     const v4sf epsgrad = {epsilon_grad, epsilon_grad, epsilon_grad, epsilon_grad};
     //const v4sf hbeta = {half_beta,half_beta,half_beta,half_beta};
     //const v4sf epsdesc = {epsilon_desc,epsilon_desc,epsilon_desc,epsilon_desc};
-    
+
     v4sf *dup = (v4sf*) du->c1,
         *maskp = (v4sf*) mask->c1,
-        *a11p = (v4sf*) a11->c1,  
-        *b1p = (v4sf*) b1->c1, 
-        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1, 
+        *a11p = (v4sf*) a11->c1,
+        *b1p = (v4sf*) b1->c1,
+        *ix1p=(v4sf*)Ix->c1, *iy1p=(v4sf*)Iy->c1, *iz1p=(v4sf*)Iz->c1, *ixx1p=(v4sf*)Ixx->c1, *ixy1p=(v4sf*)Ixy->c1, *iyy1p=(v4sf*)Iyy->c1, *ixz1p=(v4sf*)Ixz->c1, *iyz1p=(v4sf*) Iyz->c1,
         #if (SELECTCHANNEL==3)
-        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2, 
-        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3, 
+        *ix2p=(v4sf*)Ix->c2, *iy2p=(v4sf*)Iy->c2, *iz2p=(v4sf*)Iz->c2, *ixx2p=(v4sf*)Ixx->c2, *ixy2p=(v4sf*)Ixy->c2, *iyy2p=(v4sf*)Iyy->c2, *ixz2p=(v4sf*)Ixz->c2, *iyz2p=(v4sf*) Iyz->c2,
+        *ix3p=(v4sf*)Ix->c3, *iy3p=(v4sf*)Iy->c3, *iz3p=(v4sf*)Iz->c3, *ixx3p=(v4sf*)Ixx->c3, *ixy3p=(v4sf*)Ixy->c3, *iyy3p=(v4sf*)Iyy->c3, *ixz3p=(v4sf*)Ixz->c3, *iyz3p=(v4sf*) Iyz->c3,
         #endif
         *uup = (v4sf*) uu->c1, *wxp = (v4sf*)wx->c1;
-        
-            
+
+
     memset(a11->c1, 0, sizeof(float)*uu->height*uu->stride);
     memset(b1->c1 , 0, sizeof(float)*uu->height*uu->stride);
-              
+
     int i;
     for(i = 0 ; i<uu->height*uu->stride/4 ; i++){
         v4sf tmp, tmp2, n1, n2;
@@ -516,10 +516,10 @@ void compute_data_DE(image_t *a11, image_t *b1, image_t *mask, image_t *wx, imag
         tmp5 = *ixz3p + (*ixx3p) * (*dup);
         tmp6 = *iyz3p + (*ixy3p) * (*dup);
         tmp = (*maskp) * hgover3 / __builtin_ia32_sqrtps(tmp*tmp/n1 + tmp2*tmp2/n2 + tmp3*tmp3/n3 + tmp4*tmp4/n4 + tmp5*tmp5/n5 + tmp6*tmp6/n6 + epsgrad);
-        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;      
+        tmp6 = tmp/n6; tmp5 = tmp/n5; tmp4 = tmp/n4; tmp3 = tmp/n3; tmp2 = tmp/n2; tmp /= n1;
         #else
         tmp = (*maskp) * hgover3 / __builtin_ia32_sqrtps(3* tmp*tmp/n1 + 3* tmp2*tmp2/n2 + epsgrad);
-        tmp2 = tmp/n2; tmp /= n1;      
+        tmp2 = tmp/n2; tmp /= n1;
         #endif
         *a11p += tmp *(*ixx1p)*(*ixx1p) + tmp2*(*ixy1p)*(*ixy1p);
         *b1p -=  tmp *(*ixx1p)*(*ixz1p) + tmp2*(*ixy1p)*(*iyz1p);
@@ -529,14 +529,14 @@ void compute_data_DE(image_t *a11, image_t *b1, image_t *mask, image_t *wx, imag
         *a11p += tmp5*(*ixx3p)*(*ixx3p) + tmp6*(*ixy3p)*(*ixy3p);
         *b1p -=  tmp5*(*ixx3p)*(*ixz3p) + tmp6*(*ixy3p)*(*iyz3p);
         #endif
-        
-        
+
+
         #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // multiply system to make smoothing parameters same for RGB and single-channel image
-        *a11p *= 3;  
-        *b1p *=  3;  
+        *a11p *= 3;
+        *b1p *=  3;
         #endif
 
-        dup+=1; maskp+=1; a11p+=1; b1p+=1; 
+        dup+=1; maskp+=1; a11p+=1; b1p+=1;
         ix1p+=1; iy1p+=1; iz1p+=1; ixx1p+=1; ixy1p+=1; iyy1p+=1; ixz1p+=1; iyz1p+=1;
         #if (SELECTCHANNEL==3)
         ix2p+=1; iy2p+=1; iz2p+=1; ixx2p+=1; ixy2p+=1; iyy2p+=1; ixz2p+=1; iyz2p+=1;

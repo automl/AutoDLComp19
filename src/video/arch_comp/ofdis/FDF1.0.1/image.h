@@ -35,7 +35,7 @@ typedef struct color_image_s
 } color_image_t;
 
 /* structure for color image pyramid */
-typedef struct color_image_pyramid_s 
+typedef struct color_image_pyramid_s
 {
   float scale_factor;          /* difference of scale between two levels */
   int min_size;                /* minimum size for width or height at the coarsest level */

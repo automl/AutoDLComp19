@@ -13,13 +13,12 @@ import matplotlib.pyplot as plt
 
 
 class NasWorker(Worker):
-
     def __init__(self, cfg, *args, **kwargs):
         super(NasWorker, self).__init__(*args, **kwargs)
         self.cfg = cfg
 
     def compute(self, config, budget, *args, **kwargs):
-        print('start compute')
+        print("start compute")
         self.cfg["train_epochs"] = budget
         configuration.map_config_space_object_to_configuration(config, cfg)
 
@@ -32,32 +31,38 @@ class NasWorker(Worker):
             valid_score = 0
             train_time = 0
 
-        print('end compute')
-        return ({'loss': -valid_score,
-                 'info': {'train_time': train_time, 'status': status}})
+        print("end compute")
+        return {
+            "loss": -valid_score,
+            "info": {"train_time": train_time, "status": status},
+        }
 
 
 def runBOHB(cfg):
-    run_id = '0'
+    run_id = "0"
 
     # assign random port in the 30000-40000 range to avoid using a blocked port because of a previous improper bohb shutdown
-    port = int(30000+random.random()*10000)
+    port = int(30000 + random.random() * 10000)
 
-    ns = hpns.NameServer(run_id=run_id, host='127.0.0.1', port=port)
+    ns = hpns.NameServer(run_id=run_id, host="127.0.0.1", port=port)
     ns.start()
 
-    w = NasWorker(cfg=cfg, nameserver='127.0.0.1', run_id=run_id, nameserver_port=port)
+    w = NasWorker(cfg=cfg, nameserver="127.0.0.1", run_id=run_id, nameserver_port=port)
     w.run(background=True)
 
-    result_logger = hpres.json_result_logger(directory=cfg["bohb_log_dir"], overwrite=True)
+    result_logger = hpres.json_result_logger(
+        directory=cfg["bohb_log_dir"], overwrite=True
+    )
 
-    bohb = BOHB(configspace=configuration.get_configspace(),
-                run_id=run_id,
-                min_budget=cfg["bohb_min_budget"],
-                max_budget=cfg["bohb_max_budget"],
-                nameserver='127.0.0.1',
-                nameserver_port=port,
-                result_logger=result_logger)
+    bohb = BOHB(
+        configspace=configuration.get_configspace(),
+        run_id=run_id,
+        min_budget=cfg["bohb_min_budget"],
+        max_budget=cfg["bohb_max_budget"],
+        nameserver="127.0.0.1",
+        nameserver_port=port,
+        result_logger=result_logger,
+    )
 
     res = bohb.run(n_iterations=cfg["bohb_iterations"])
     bohb.shutdown(shutdown_workers=True)
@@ -86,13 +91,13 @@ def visualizeBOHB(cfg):
     # We have access to all information: the config, the loss observed during
     # optimization, and all the additional information
     inc_valid_score = inc_run.loss
-    inc_config = id2conf[inc_id]['config']
-    inc_train_time = inc_run.info['train_time']
+    inc_config = id2conf[inc_id]["config"]
+    inc_train_time = inc_run.info["train_time"]
 
     # TODO: run on test dataset
-    print('Best found configuration:')
+    print("Best found configuration:")
     print(inc_config)
-    print('It achieved accuracies of %f (validation).' % (-inc_valid_score))
+    print("It achieved accuracies of %f (validation)." % (-inc_valid_score))
 
     # Let's plot the observed losses grouped by budget,
     hpvis.losses_over_time(all_runs)
@@ -114,7 +119,7 @@ def visualizeBOHB(cfg):
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cfg = configuration.get_configuration()
     res = runBOHB(cfg)
     visualizeBOHB(cfg)

@@ -15,8 +15,8 @@ from opencv_mat cimport *
 cdef extern from "run_dense.h":
     Mat optical_flow(Mat a, Mat b);
 
-cdef extern from "opencv2/opencv.hpp": 
-    cdef int CV_WINDOW_AUTOSIZE       
+cdef extern from "opencv2/opencv.hpp":
+    cdef int CV_WINDOW_AUTOSIZE
     cdef int CV_8UC3
     cdef int CV_8UC1
     cdef int CV_32FC1

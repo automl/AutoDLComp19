@@ -10,10 +10,10 @@ Run the following steps to download, install and demo the library:
   python setup.py build_ext -i
   python demo.py
 ```
-**Please update both the library and include dirs in the setup.py script to reflect your libraries pathes.** It is recommended that you compile and build the original C++ code first to make sure the needed libraries are installed correctly on your machine. 
+**Please update both the library and include dirs in the setup.py script to reflect your libraries pathes.** It is recommended that you compile and build the original C++ code first to make sure the needed libraries are installed correctly on your machine.
 
 The demo.py script passes two images filenames as strings to the C++ code which loads and computes the optical flow between the images. The C++ code return cv::Mat, recieved by python as numpy array. The numpy array contains optical flow information in "flo" format.
- 
+
 The following utils modules are provides to visualize and save the flo array into RGB image format
 
 * visualize_flo.py
@@ -28,7 +28,7 @@ I want to give credit to the following github repos
 The original OF_DIS C++ implementation provides handles for optical flow and depth from stereo. This python wrapper provides handle for optical flow only. This can be easily altered by changing the compiler preprocessor directives in the setup.py. Currently, it is set to SELECTMODE=1, SELECTCHANNEL=3
 
 
-# Original Readme # 
+# Original Readme #
 
 
 # Fast Optical Flow using Dense Inverse Search (DIS) #
@@ -52,17 +52,17 @@ Is you use the variational refinement, please additionally cite:
     BOOKTITLE = {{ICCV 2013 - IEEE International Conference on Computer Vision}},
     YEAR = {2013}} `
 
-  
-  
-  
+
+
+
 ## Compiling The C++ Code##
 
 The program was only tested under a 64-bit Linux distribution.
 SSE instructions from built-in X86 functions for GNU GCC were used.
 
-The following will build four binaries: 
+The following will build four binaries:
 Two for optical flow (`run_OF_*`) and two for depth from stereo (`run_DE_*`).
-For each problem, a fast variant operating on intensity images (`run_*_INT`) and 
+For each problem, a fast variant operating on intensity images (`run_*_INT`) and
 a slower variant operating on RGB images (`run_*_RGB`) is provided.
 
 ```
@@ -72,12 +72,12 @@ cmake ../
 make -j
 ```
 
-The code depends on Eigen3 and OpenCV. However, OpenCV is only used for image loading, 
+The code depends on Eigen3 and OpenCV. However, OpenCV is only used for image loading,
 scaling and gradient computation (`run_dense.cpp`). It can easily be replaced by other libraries.
-      
-      
-      
-      
+
+
+
+
 ## Usage ##
 The interface for all four binaries (`run_*_*`) is the same.
 
@@ -154,7 +154,7 @@ August 2016 	v1.0.1 - Minor Bugfix: Error in L1 and Huber error norm computation
 
 GPLv3: http://gplv3.fsf.org/
 
-All programs in this collection are free software: 
+All programs in this collection are free software:
 you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
