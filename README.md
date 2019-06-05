@@ -39,6 +39,14 @@ bash utils/setup_environment.sh
 1. If there is no autodl environment, installs it as specified in `utils/environment.yml`
 1. If there is an autodl environment and there are changes to `utils/environment.yml` performs updates
 
+To setup all tasks run
+
+```bash
+bash utils/setup_tasks.sh
+```
+
+This currently only does something on the meta cluster, where it symlinks `datasets/image` to the collected tfrecord datasets.
+
 ## Usage
 
 
