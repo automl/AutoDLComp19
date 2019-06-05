@@ -7,6 +7,7 @@ repos:
     -   id: check-docstring-first
     -   id: check-yaml
     -   id: debug-statements
+    -   id: trailing-whitespace
 
 -   repo: https://github.com/ambv/black
     rev: stable
@@ -31,6 +32,7 @@ repos:
     rev: 3.7.7
     hooks:
     - id: flake8
+      args: ['--exit-zero']
       additional_dependencies: [
         'flake8-blind-except',
         'flake8-comprehensions',
