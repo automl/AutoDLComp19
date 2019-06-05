@@ -7,6 +7,7 @@ repos:
     -   id: check-docstring-first
     -   id: check-yaml
     -   id: debug-statements
+    -   id: trailing-whitespace
 
 -   repo: https://github.com/ambv/black
     rev: stable
