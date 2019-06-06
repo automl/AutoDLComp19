@@ -44,13 +44,13 @@ This repository provides a PyTorch implementation of state-of-the-art models on 
 ## Results
 The performance with Pre-training on Kinetics:
 
-| method      | UCF101   |     SMv2     | EpicK-Object  | EpicK-Action  |
-| ----------  | -------  | ------------ | ------------- | ------------- |
-| TSM         |   92.7%  |     --       |    34.9%      |   53.6%       |
-| ECOfull(16F)|   92.1%  |     --       |    31.7%      |   58.0%       |
-| TSM+ECOfull |   -----  |     --       |    38.0%      |   60.3%       |
-| SlowFast    |   -----  |     --       |    -----      |   -----       |
-| Timeception |   -----  |     --       |    -----      |   -----       |
+| method      | UCF101   |     SMv2     | EpicK-Object  | EpicK-Action  |    HMDB51     |
+| ----------  | -------  | ------------ | ------------- | ------------- | ------------- |
+| TSM         |   92.7%  |     --       |    34.9%      |   53.6%       |   -----       |
+| ECOfull(16F)|   92.1%  |     --       |    31.7%      |   58.0%       |   -----       |
+| TSM+ECOfull |   -----  |     --       |    38.0%      |   60.3%       |   -----       |
+| SlowFast    |   -----  |     --       |    -----      |   -----       |   -----       |
+| Timeception |   -----  |     --       |    -----      |   -----       |   -----       |
 
 
 
