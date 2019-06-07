@@ -1,10 +1,11 @@
 import csv
 import os
-import time
 import wget
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 import multiprocessing as mp
+import urllib.parse
+import requests
+import re
+
 
 # path to the original autotag file
 AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
@@ -12,17 +13,18 @@ AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
 DATASET = '/media/dingsda/External/datasets/yfcc100m/yfcc100m_dataset'
 
 # path to the file containing all possible labels as a list
-LABEL_LIST = '/home/dingsda/Downloads/yfcc100m_label'
+LABEL_LIST = '/home/dingsda/autodl/data/yfcc100m/yfcc100m_label'
 # path to the file containing all video download links as a list
-DOWNLOAD_LIST = '/home/dingsda/Downloads/yfcc100m_download'
+DOWNLOAD_LIST = '/home/dingsda/autodl/data/yfcc100m/yfcc100m_download'
 # number of cpus, determines number of parallel processes when extracting the download links
-METADATA = '/home/dingsda/Downloads/yfcc100m_metadata'
+METADATA = '/home/dingsda/autodl/data/yfcc100m/yfcc100m_metadata'
 # path to the video download folder
-DOWNLOAD_FOLDER = '/home/dingsda/Downloads'
+DOWNLOAD_FOLDER = '/home/dingsda/autodl/data/yfcc100m'
 
 # guess what
-NUM_CPU = mp.cpu_count()
+NUM_PROCESSES = 64
 
+csv.field_size_limit(100000000)
 
 
 def get_download_links_parallel(dataset_path, download_list_path, num_processes):
@@ -59,14 +61,10 @@ def get_download_links(dataset_path, download_list_path, process_id=0, num_proce
                 id_last = row[1]
                 process_active = False
 
-    options = Options()
-    options.headless = True
-    browser = webdriver.Firefox(options=options)
-
     with open(download_list_path, 'a+') as csvfile_write, \
          open(dataset_path, 'r') as csvfile:
         writer = csv.writer(csvfile_write, delimiter='\t')
-        reader = csv.reader(csvfile, delimiter='\t')
+        reader = csv.reader(csvfile, delimiter='\t', quoting=csv.QUOTE_NONE)
 
         # find all labels and store them in label_dict
         for i, row in enumerate(reader):
@@ -92,15 +90,9 @@ def get_download_links(dataset_path, download_list_path, process_id=0, num_proce
 
                 # consider timeouts when loading the page, thus try again with increased timeout
                 try:
-                    save_download_url(browser, writer, video_url, t_wait*1, index, id)
-                except Exception:
-                    try:
-                        save_download_url(browser, writer, video_url, t_wait*3, index, id)
-                    except Exception:
-                        try:
-                            save_download_url(browser, writer, video_url, t_wait*9, index, id)
-                        except Exception as err:
-                            print(err)
+                    save_download_url(writer, video_url, index, id)
+                except Exception as err:
+                    print(err)
 
             # trigger processing
             if id == id_last:
@@ -108,15 +100,16 @@ def get_download_links(dataset_path, download_list_path, process_id=0, num_proce
 
 
 
-def save_download_url(browser, writer, video_url, wait_time, index, id):
+def save_download_url(writer, video_url, index, id):
     '''
     small helper function. Open URL and extract download URL from HTML tag
     '''
-    browser.get(video_url)
-    time.sleep(wait_time)
-    elem = browser.find_element_by_id('video_1_html5_api')
-    download_url = elem.get_attribute('src')
-    if download_url != '':
+    query = 'https://qdownloader.net/download?video=' + urllib.parse.quote_plus(video_url)
+    r = requests.get(query)
+    x = re.search(r"\"http\S+orig\S+\"", r.text)
+
+    if x:
+        download_url = x.group()[1:-1]
         writer.writerow([index, id, download_url])
 
 
@@ -243,10 +236,11 @@ def download_videos(download_list_path, download_folder):
 
 if __name__ == "__main__":
     #get_all_labels(AUTOTAGS, LABEL_LIST)
-    #get_download_links_parallel(DATASET, DOWNLOAD_LIST, NUM_CPU)
+    get_download_links_parallel(DATASET, DOWNLOAD_LIST, NUM_PROCESSES)
+    #get_download_links(DATASET, DOWNLOAD_LIST)
     #merge_download_links(DOWNLOAD_LIST, NUM_CPU)
     #get_metadata(DOWNLOAD_LIST, AUTOTAGS, LABEL_LIST, METADATA)
-    download_videos(DOWNLOAD_LIST, DOWNLOAD_FOLDER)
+    #download_videos(DOWNLOAD_LIST, DOWNLOAD_FOLDER)
 
 
 
