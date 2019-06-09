@@ -111,17 +111,22 @@ experiments/cluster_oe/*
 datasets/*
 
 # .miniconda
-bin/
-compiler_compat/
-conda-meta/
-condabin/
-shell/
-envs/
-etc/
-include/
-lib/
-pkgs/
-share/
-ssl/
-x86_64-conda_cos6-linux-gnu/
-LICENSE.txt
+.miniconda/bin/
+.miniconda/compiler_compat/
+.miniconda/conda-meta/
+.miniconda/condabin/
+.miniconda/shell/
+.miniconda/envs/
+.miniconda/etc/
+.miniconda/include/
+.miniconda/lib/
+.miniconda/pkgs/
+.miniconda/share/
+.miniconda/ssl/
+.miniconda/x86_64-conda_cos6-linux-gnu/
+.miniconda/LICENSE.txt
+
+
+# competition
+competition/sample_result_submission/*
+competition/scoring_output/*
