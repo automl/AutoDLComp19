@@ -60,6 +60,7 @@ Setting up installs pre-commit. Pre-commit allows to specify, configure and shar
 pre-commit install
 ```
 
+To commit without runnning pre-commit supply the `--no-verify` option to `git commit`.
 
 ## Usage
 
