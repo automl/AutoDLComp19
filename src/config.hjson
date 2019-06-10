@@ -1,12 +1,19 @@
 {
+  # General
+  modality: image
+
   # Preprocessing
-  default_image_size: [112, 112]
   default_num_frames: 10
   default_shuffle_buffer: 100
 
+  # Model construction
+  model: resnet18
+  pretrained_parameters: resnet18_imagenet_224
+
   # Execution
-  num_epochs_we_want_to_train: 1
+  num_epochs_we_want_to_train: 20
 
   # Training Hyperparameters
-  batch_size: 1000
+  batch_size: 64
+  lr: 1e-4
 }

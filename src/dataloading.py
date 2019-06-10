@@ -49,7 +49,7 @@ def _resize_space_axes(tensor_4d, new_row_count, new_col_count):
     return resized_images
 
 
-def _preprocess_tensor_4d(tensor_4d, default_num_frames, default_image_size):
+def _preprocess_tensor_4d(tensor_4d, config, image_size):
     """Preprocess a 4-D tensor (only when some dimensions are `None`, i.e.
     non-fixed). The output tensor wil have fixed, known shape.
     Args:
@@ -62,18 +62,11 @@ def _preprocess_tensor_4d(tensor_4d, default_num_frames, default_image_size):
     tensor_4d_shape = tensor_4d.shape
     utils.print_log("Tensor shape before preprocessing: {}".format(tensor_4d_shape))
 
+    # Frames
     if tensor_4d_shape[0] > 0 and tensor_4d_shape[0] < 10:
         num_frames = tensor_4d_shape[0]
     else:
-        num_frames = default_num_frames
-    if tensor_4d_shape[1] > 0:
-        new_row_count = tensor_4d_shape[1]
-    else:
-        new_row_count = default_image_size[0]
-    if tensor_4d_shape[2] > 0:
-        new_col_count = tensor_4d_shape[2]
-    else:
-        new_col_count = default_image_size[1]
+        num_frames = config.default_num_frames
 
     if not tensor_4d_shape[0] > 0:
         utils.print_log(
@@ -82,20 +75,29 @@ def _preprocess_tensor_4d(tensor_4d, default_num_frames, default_image_size):
             + "{}".format(num_frames)
         )
         tensor_4d = _crop_time_axis(tensor_4d, num_frames=num_frames)
-    if not tensor_4d_shape[1] > 0 or not tensor_4d_shape[2] > 0:
-        utils.print_log(
-            "Detected that examples have variable space size, will "
-            + "resize space axes to (new_row_count, new_col_count) = "
-            + "{}".format((new_row_count, new_col_count))
-        )
-        tensor_4d = _resize_space_axes(
-            tensor_4d, new_row_count=new_row_count, new_col_count=new_col_count
-        )
+
+    # Row and col
+    new_row_count = image_size[0]
+    new_col_count = image_size[1]
+
+    utils.print_log(
+        "Will resize space axes to (new_row_count, new_col_count) = "
+        + "{}".format((new_row_count, new_col_count))
+    )
+    tensor_4d = _resize_space_axes(
+        tensor_4d, new_row_count=new_row_count, new_col_count=new_col_count
+    )
+
+    # Channels
+    if tensor_4d_shape[3] == 1:
+        # TODO(Danny): Is this inefficient? Should this be done here?
+        tensor_4d = tf.image.grayscale_to_rgb(tensor_4d)
+
     utils.print_log("Tensor shape after preprocessing: {}".format(tensor_4d.shape))
     return tensor_4d
 
 
-def get_dataloader(tfdataset, config, train=False):
+def get_dataloader(tfdataset, config, image_size, train=False):
     """
     # PYTORCH
     This function takes a tensorflow dataset class and comvert it into a
@@ -104,12 +106,7 @@ def get_dataloader(tfdataset, config, train=False):
     is huge and training is done step/batch wise, rather than epochs.
     """
     tfdataset = tfdataset.map(
-        lambda *x: (
-            _preprocess_tensor_4d(
-                x[0], config.default_num_frames, config.default_image_size
-            ),
-            x[1],
-        )
+        lambda *x: (_preprocess_tensor_4d(x[0], config, image_size), x[1])
     )
     iterator = tfdataset.make_one_shot_iterator()
     next_element = iterator.get_next()
@@ -162,7 +159,7 @@ def get_torch_tensors(training_data_iterator):
     return images[:, 0, :, :, :].transpose(0, 3, 1, 2), np.argmax(labels, axis=1)
 
 
-def input_function(dataset, config, is_training):
+def input_function(dataset, config, image_size, is_training):
     """Given `dataset` received by the method `self.train` or `self.test`,
     prepare input to feed to model function.
 
@@ -175,12 +172,7 @@ def input_function(dataset, config, is_training):
     """
 
     dataset = dataset.map(
-        lambda *x: (
-            _preprocess_tensor_4d(
-                x[0], config.default_num_frames, config.default_image_size
-            ),
-            x[1],
-        )
+        lambda *x: (_preprocess_tensor_4d(x[0], config, image_size), x[1])
     )
 
     if is_training:

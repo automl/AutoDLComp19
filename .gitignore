@@ -130,3 +130,7 @@ datasets/*
 # competition
 competition/sample_result_submission/*
 competition/scoring_output/*
+
+
+# Pytorch
+*.pth

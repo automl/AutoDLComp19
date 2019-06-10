@@ -60,6 +60,13 @@ bash utils/setup_tasks.sh
 This currently only does something on the meta cluster, where it symlinks `datasets/image` to the collected tfrecord datasets.
 
 
+To setup all models (download pretrained weights), run
+```bash
+bash utils/setup_models.sh
+```
+This currently only downloads image models.
+
+
 Setting up installs pre-commit. Pre-commit allows to specify, configure and share git pre-commit hooks. Formatting and format checking is therefore performed when committing. Please ensure you installed it. When in doubt, from the project's root run:
 ```bash
 pre-commit install

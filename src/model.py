@@ -16,7 +16,6 @@ not exceed 300MB.
 import time
 
 import torch
-import torch.nn as nn
 import numpy as np
 
 # Import the challenge algorithm (model) API from algorithm.py
@@ -25,123 +24,54 @@ import algorithm
 import dataloading
 import utils
 
+import image.online_concrete
+import image.online_meta
+import image.models
 
-# Set seeds
-np.random.seed(42)
-torch.manual_seed(42)
-torch.cuda.manual_seed_all(42)
-# TODO(Danny) tensorflow
+# Disable tf device loggings
+import os
 
-# This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
-# algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
-# for your network do not vary
-# https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-# TODO(Danny): How should we handle this
-torch.backends.cudnn.benchmark = True
-
-
-# PYTORCH
-# Make pytorch model in torchModel class
-class torchModel(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(torchModel, self).__init__()
-        self.fc1 = nn.Linear(input_dim, int((input_dim + output_dim) / 2))
-        self.fc2 = nn.Linear(int((input_dim + output_dim) / 2), output_dim)
-        self.dropout = nn.Dropout(0.3)
-        self.relu = nn.ReLU()
-        self.log_softmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, x):
-        x = x.contiguous().view(x.size(0), -1)
-        x = self.fc1(x)
-        x = self.dropout(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.log_softmax(x)
-        return x
-
-
-def trainloop(pytorchmodel, train_data_iterator, steps):
-    """
-    # PYTORCH
-    Trainloop function does the actual training of the model
-    1) it gets the X, y from tensorflow dataset.
-    2) convert X, y to CUDA
-    3) trains the model with the Tesors for given no of steps.
-    """
-    criterion = nn.NLLLoss()
-    optimizer = torch.optim.Adam(pytorchmodel.parameters(), lr=1e-3)
-
-    for i in range(steps):
-        images, labels = dataloading.get_torch_tensors(train_data_iterator)
-        images = torch.Tensor(images)
-        labels = torch.Tensor(labels)
-
-        if torch.cuda.is_available():
-            images = images.float().cuda()
-            labels = labels.long().cuda()
-        else:
-            images = images.float()
-            labels = labels.long()
-        optimizer.zero_grad()
-
-        log_ps = pytorchmodel(images)
-        loss = criterion(log_ps, labels)
-        loss.backward()
-        optimizer.step()
-
-
-def testloop(pytorchmodel, dataloader, output_dim):
-    """
-    # PYTORCH
-    testloop uses testdata to test the pytorch model and return onehot prediciton
-    values.
-    """
-    preds = []
-    with torch.no_grad():
-        pytorchmodel.eval()
-        for [images] in dataloader:
-            if torch.cuda.is_available():
-                images = images.float().cuda()
-            else:
-                images = images.float()
-            log_ps = pytorchmodel(images)
-            ps = torch.exp(log_ps)
-            top_p, top_class = ps.topk(1, dim=1)
-            preds.append(top_class.cpu().numpy())
-    preds = np.concatenate(preds)
-    onehot_preds = np.squeeze(np.eye(output_dim)[preds.reshape(-1)])
-    return onehot_preds
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         super(Model, self).__init__(metadata)
+        # Set seeds
+        np.random.seed(42)
+        torch.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
+        # TODO(Danny) tensorflow
+
+        # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
+        # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
+        # for your network do not vary
+        # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
+        # TODO(Danny): How should we handle this
+        torch.backends.cudnn.benchmark = True
+
+        # TODO(Danny): Document what metadata_ contains
         self.no_more_training = False
         self.output_dim = self.metadata_.get_output_size()
-        self.num_examples_train = self.metadata_.size()
 
-        self.train_data_iterator = None
+        utils.print_log("Metadata={}".format(self.metadata_.__dict__))
 
         try:
             self.config = utils.Config("config.hjson")
         except FileNotFoundError:
             self.config = utils.Config("src/config.hjson")
 
-        # Compute input_dim for PyTorch Model
-        row_count, col_count = self.metadata_.get_matrix_size(0)
-        channel = self.metadata_.get_num_channels(0)
-        sequence_size = self.metadata_.get_sequence_size()
-        if row_count == -1 or col_count == -1:
-            row_count = self.config.default_image_size[0]
-            col_count = self.config.default_image_size[0]
-        input_dim = row_count * col_count * channel * sequence_size
+        utils.print_log("Config={}".format(self.config.__dict__))
 
-        # Getting an object for the PyTorch Model class for Model Class
-        # use CUDA if available
-        self.pytorchmodel = torchModel(input_dim, self.output_dim)
-        if torch.cuda.is_available():
-            self.pytorchmodel.cuda()
+        self.train_data_iterator = None
+        self.model_input_sizes = None
+        self.model = None
+
+        if self.config.modality == "image":
+            self.online_meta = image.online_meta.OnlineMeta(self.config, self.metadata_)
+            self.online_concrete = image.online_concrete
+        else:
+            raise  # TODO(Danny): Some error message
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -214,13 +144,28 @@ class Model(algorithm.Algorithm):
 
         train_start = time.time()
 
-        # PYTORCH
-        if not self.train_data_iterator:
+        # AUTODL START
+        self.model, model_input_sizes = self.online_meta.select_model()
+        # TODO(Danny): make initialiazation work here. Currently there is a problem since
+        # the last layer has a different shape than in the online parameters.
+        # self.model = self.online_meta.initialize_model(self.model)
+        unfrozen_parameters = self.online_meta.select_unfrozen_parameter(self.model)
+
+        model_input_sizes_changed = model_input_sizes != self.model_input_sizes
+        self.model_input_sizes = model_input_sizes
+        if not self.train_data_iterator or model_input_sizes_changed:
             self.train_data_iterator = dataloading.input_function(
-                dataset, self.config, is_training=True
+                dataset, self.config, self.model_input_sizes, is_training=True
             )
-        # Training loop inside
-        trainloop(self.pytorchmodel, self.train_data_iterator, steps=steps_to_train)
+        self.online_concrete.trainloop(
+            self.model,
+            unfrozen_parameters,
+            self.train_data_iterator,
+            self.config,
+            steps=steps_to_train,
+        )
+
+        # AUTODL END
         train_end = time.time()
 
         # Update for time budget managing
@@ -279,8 +224,13 @@ class Model(algorithm.Algorithm):
         utils.print_log("Begin testing...", msg_est)
 
         # PYTORCH
-        testloader = dataloading.get_dataloader(dataset, self.config, train=False)
-        predictions = testloop(self.pytorchmodel, testloader, self.output_dim)
+        # TODO(Danny): Only load testset once if it fits nicely in 24GB
+        testloader = dataloading.get_dataloader(
+            dataset, self.config, self.model_input_sizes, train=False
+        )
+        predictions = self.online_concrete.testloop(
+            self.model, testloader, self.output_dim
+        )
 
         test_end = time.time()
         # Update some variables for time management
