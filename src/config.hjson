@@ -1,0 +1,12 @@
+{
+  # Preprocessing
+  default_image_size: [112, 112]
+  default_num_frames: 10
+  default_shuffle_buffer: 100
+
+  # Execution
+  num_epochs_we_want_to_train: 1
+
+  # Training Hyperparameters
+  batch_size: 1000
+}

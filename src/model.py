@@ -61,32 +61,85 @@ class torchModel(nn.Module):
         return x
 
 
+def trainloop(pytorchmodel, train_data_iterator, steps):
+    """
+    # PYTORCH
+    Trainloop function does the actual training of the model
+    1) it gets the X, y from tensorflow dataset.
+    2) convert X, y to CUDA
+    3) trains the model with the Tesors for given no of steps.
+    """
+    criterion = nn.NLLLoss()
+    optimizer = torch.optim.Adam(pytorchmodel.parameters(), lr=1e-3)
+
+    for i in range(steps):
+        images, labels = dataloading.get_torch_tensors(train_data_iterator)
+        images = torch.Tensor(images)
+        labels = torch.Tensor(labels)
+
+        if torch.cuda.is_available():
+            images = images.float().cuda()
+            labels = labels.long().cuda()
+        else:
+            images = images.float()
+            labels = labels.long()
+        optimizer.zero_grad()
+
+        log_ps = pytorchmodel(images)
+        loss = criterion(log_ps, labels)
+        loss.backward()
+        optimizer.step()
+
+
+def testloop(pytorchmodel, dataloader, output_dim):
+    """
+    # PYTORCH
+    testloop uses testdata to test the pytorch model and return onehot prediciton
+    values.
+    """
+    preds = []
+    with torch.no_grad():
+        pytorchmodel.eval()
+        for [images] in dataloader:
+            if torch.cuda.is_available():
+                images = images.float().cuda()
+            else:
+                images = images.float()
+            log_ps = pytorchmodel(images)
+            ps = torch.exp(log_ps)
+            top_p, top_class = ps.topk(1, dim=1)
+            preds.append(top_class.cpu().numpy())
+    preds = np.concatenate(preds)
+    onehot_preds = np.squeeze(np.eye(output_dim)[preds.reshape(-1)])
+    return onehot_preds
+
+
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         super(Model, self).__init__(metadata)
         self.no_more_training = False
         self.output_dim = self.metadata_.get_output_size()
         self.num_examples_train = self.metadata_.size()
+
+        self.train_data_iterator = None
+
+        try:
+            self.config = utils.Config("config.hjson")
+        except FileNotFoundError:
+            self.config = utils.Config("src/config.hjson")
+
+        # Compute input_dim for PyTorch Model
         row_count, col_count = self.metadata_.get_matrix_size(0)
         channel = self.metadata_.get_num_channels(0)
         sequence_size = self.metadata_.get_sequence_size()
-
-        # Dataloading
-        self.train_data_iterator = None
-
-        # Attributes for preprocessing
-        self.default_image_size = (112, 112)
-        self.default_num_frames = 10
-        self.default_shuffle_buffer = 100
-
         if row_count == -1 or col_count == -1:
-            row_count = self.default_image_size[0]
-            col_count = self.default_image_size[0]
-        self.input_dim = row_count * col_count * channel * sequence_size
+            row_count = self.config.default_image_size[0]
+            col_count = self.config.default_image_size[0]
+        input_dim = row_count * col_count * channel * sequence_size
 
-        # getting an object for the PyTorch Model class for Model Class
+        # Getting an object for the PyTorch Model class for Model Class
         # use CUDA if available
-        self.pytorchmodel = torchModel(self.input_dim, self.output_dim)
+        self.pytorchmodel = torchModel(input_dim, self.output_dim)
         if torch.cuda.is_available():
             self.pytorchmodel.cuda()
 
@@ -102,104 +155,7 @@ class Model(algorithm.Algorithm):
         self.trained = False
         self.done_training = False
 
-        # PYTORCH
-        # Critical number for early stopping
-        self.num_epochs_we_want_to_train = 1
-
-        # no of examples at each step/batch
-        self.batch_size = 1000
-
-    def trainloop(self, criterion, optimizer, train_data_iterator, steps):
-        """
-        # PYTORCH
-        Trainloop function does the actual training of the model
-        1) it gets the X, y from tensorflow dataset.
-        2) convert X, y to CUDA
-        3) trains the model with the Tesors for given no of steps.
-        """
-
-        for i in range(steps):
-            images, labels = dataloading.get_torch_tensors(train_data_iterator)
-            images = torch.Tensor(images)
-            labels = torch.Tensor(labels)
-
-            if torch.cuda.is_available():
-                images = images.float().cuda()
-                labels = labels.long().cuda()
-            else:
-                images = images.float()
-                labels = labels.long()
-            optimizer.zero_grad()
-
-            log_ps = self.pytorchmodel(images)
-            loss = criterion(log_ps, labels)
-            loss.backward()
-            optimizer.step()
-
-    def train(self, dataset, remaining_time_budget=None):
-        steps_to_train = self.get_steps_to_train(remaining_time_budget)
-        if steps_to_train <= 0:
-            utils.print_log(
-                "Not enough time remaining for training. "
-                + "Estimated time for training per step: {:.2f}, ".format(
-                    self.estimated_time_per_step
-                )
-                + "but remaining time budget is: {:.2f}. ".format(remaining_time_budget)
-                + "Skipping..."
-            )
-            self.done_training = True
-        else:
-            msg_est = ""
-            if self.estimated_time_per_step:
-                msg_est = "estimated time for this: " + "{:.2f} sec.".format(
-                    steps_to_train * self.estimated_time_per_step
-                )
-            utils.print_log(
-                "Begin training for another {} steps...{}".format(steps_to_train, msg_est)
-            )
-
-            train_start = time.time()
-
-            # PYTORCH
-            if not self.train_data_iterator:
-
-                self.train_data_iterator = dataloading.input_function(
-                    dataset,
-                    self.default_num_frames,
-                    self.default_image_size,
-                    self.default_shuffle_buffer,
-                    self.batch_size,
-                    is_training=True,
-                )
-            # Training loop inside
-            criterion = nn.NLLLoss()
-            optimizer = torch.optim.Adam(self.pytorchmodel.parameters(), lr=1e-3)
-            self.trainloop(
-                criterion, optimizer, self.train_data_iterator, steps=steps_to_train
-            )
-            train_end = time.time()
-
-            # Update for time budget managing
-            train_duration = train_end - train_start
-            self.total_train_time += train_duration
-            self.cumulated_num_steps += steps_to_train
-            self.estimated_time_per_step = (
-                self.total_train_time / self.cumulated_num_steps
-            )
-            utils.print_log(
-                "{} steps trained. {:.2f} sec used. ".format(
-                    steps_to_train, train_duration
-                )
-                + "Now total steps trained: {}. ".format(self.cumulated_num_steps)
-                + "Total time used for training: {:.2f} sec. ".format(
-                    self.total_train_time
-                )
-                + "Current estimated time per step: {:.2e} sec.".format(
-                    self.estimated_time_per_step
-                )
-            )
-
-    def get_steps_to_train(self, remaining_time_budget):
+    def _get_steps_to_train(self, remaining_time_budget):
         """Get number of steps for training according to `remaining_time_budget`.
 
         The strategy is:
@@ -233,55 +189,82 @@ class Model(algorithm.Algorithm):
                 steps_to_train = 0
         return steps_to_train
 
-    def testloop(self, dataloader):
-        """
-        # PYTORCH
-        testloop uses testdata to test the pytorch model and return onehot prediciton
-        values.
-        """
-        preds = []
-        with torch.no_grad():
-            self.pytorchmodel.eval()
-            for [images] in dataloader:
-                if torch.cuda.is_available():
-                    images = images.float().cuda()
-                else:
-                    images = images.float()
-                log_ps = self.pytorchmodel(images)
-                ps = torch.exp(log_ps)
-                top_p, top_class = ps.topk(1, dim=1)
-                preds.append(top_class.cpu().numpy())
-        preds = np.concatenate(preds)
-        onehot_preds = np.squeeze(np.eye(self.output_dim)[preds.reshape(-1)])
-        return onehot_preds
+    def train(self, dataset, remaining_time_budget=None):
+        steps_to_train = self._get_steps_to_train(remaining_time_budget)
+        if steps_to_train <= 0:
+            utils.print_log(
+                "Not enough time remaining for training. "
+                + "Estimated time for training per step: {:.2f}, ".format(
+                    self.estimated_time_per_step
+                )
+                + "but remaining time budget is: {:.2f}. ".format(remaining_time_budget)
+                + "Skipping..."
+            )
+            self.done_training = True
+            return
 
-    def choose_to_stop_early(self):
+        msg_est = ""
+        if self.estimated_time_per_step:
+            msg_est = "estimated time for this: " + "{:.2f} sec.".format(
+                steps_to_train * self.estimated_time_per_step
+            )
+        utils.print_log(
+            "Begin training for another {} steps...{}".format(steps_to_train, msg_est)
+        )
+
+        train_start = time.time()
+
+        # PYTORCH
+        if not self.train_data_iterator:
+            self.train_data_iterator = dataloading.input_function(
+                dataset, self.config, is_training=True
+            )
+        # Training loop inside
+        trainloop(self.pytorchmodel, self.train_data_iterator, steps=steps_to_train)
+        train_end = time.time()
+
+        # Update for time budget managing
+        train_duration = train_end - train_start
+        self.total_train_time += train_duration
+        self.cumulated_num_steps += steps_to_train
+        self.estimated_time_per_step = self.total_train_time / self.cumulated_num_steps
+        utils.print_log(
+            "{} steps trained. {:.2f} sec used. ".format(steps_to_train, train_duration)
+            + "Now total steps trained: {}. ".format(self.cumulated_num_steps)
+            + "Total time used for training: {:.2f} sec. ".format(self.total_train_time)
+            + "Current estimated time per step: {:.2e} sec.".format(
+                self.estimated_time_per_step
+            )
+        )
+
+    def _choose_to_stop_early(self):
         """The criterion to stop further training (thus finish train/predict
         process).
         """
         # return self.cumulated_num_tests > 10 # Limit to make 10 predictions
         # return np.random.rand() < self.early_stop_proba
-        batch_size = self.batch_size
+        batch_size = self.config.batch_size
         num_examples = self.metadata_.size()
         num_epochs = self.cumulated_num_steps * batch_size / num_examples
         utils.print_log("Model already trained for {} epochs.".format(num_epochs))
 
         # Train for at least certain number of epochs then stop
-        return num_epochs > self.num_epochs_we_want_to_train
+        return num_epochs > self.config.num_epochs_we_want_to_train
 
     def test(self, dataset, remaining_time_budget=None):
         if self.done_training:
             return None
 
-        if self.choose_to_stop_early():
+        if self._choose_to_stop_early():
             utils.print_log("Oops! Choose to stop early for next call!")
             self.done_training = True
         test_begin = time.time()
-        if (
+        not_enough_time_for_test = (
             remaining_time_budget
             and self.estimated_time_test
             and self.estimated_time_test > remaining_time_budget
-        ):
+        )
+        if not_enough_time_for_test:
             utils.print_log(
                 "Not enough time for test. "
                 + "Estimated time for test: {:.2e}, ".format(self.estimated_time_test)
@@ -296,14 +279,8 @@ class Model(algorithm.Algorithm):
         utils.print_log("Begin testing...", msg_est)
 
         # PYTORCH
-        testloader = dataloading.get_dataloader(
-            dataset,
-            batch_size=self.batch_size,
-            default_num_frames=self.default_num_frames,
-            default_image_size=self.default_image_size,
-            train=False,
-        )
-        predictions = self.testloop(testloader)
+        testloader = dataloading.get_dataloader(dataset, self.config, train=False)
+        predictions = testloop(self.pytorchmodel, testloader, self.output_dim)
 
         test_end = time.time()
         # Update some variables for time management

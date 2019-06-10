@@ -95,9 +95,7 @@ def _preprocess_tensor_4d(tensor_4d, default_num_frames, default_image_size):
     return tensor_4d
 
 
-def get_dataloader(
-    tfdataset, batch_size, default_num_frames, default_image_size, train=False
-):
+def get_dataloader(tfdataset, config, train=False):
     """
     # PYTORCH
     This function takes a tensorflow dataset class and comvert it into a
@@ -107,7 +105,9 @@ def get_dataloader(
     """
     tfdataset = tfdataset.map(
         lambda *x: (
-            _preprocess_tensor_4d(x[0], default_num_frames, default_image_size),
+            _preprocess_tensor_4d(
+                x[0], config.default_num_frames, config.default_image_size
+            ),
             x[1],
         )
     )
@@ -130,7 +130,9 @@ def get_dataloader(
         features = torch.Tensor(features)
         labels = torch.Tensor(labels)
         dataset = data_utils.TensorDataset(features, labels)
-        loader = data_utils.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        loader = data_utils.DataLoader(
+            dataset, batch_size=config.batch_size, shuffle=True
+        )
     else:
         while True:
             try:
@@ -142,7 +144,7 @@ def get_dataloader(
         features = np.vstack(features)
         features = torch.Tensor(features)
         dataset = data_utils.TensorDataset(features)
-        loader = data_utils.DataLoader(dataset, batch_size=batch_size)
+        loader = data_utils.DataLoader(dataset, batch_size=config.batch_size)
     return loader
 
 
@@ -160,14 +162,7 @@ def get_torch_tensors(training_data_iterator):
     return images[:, 0, :, :, :].transpose(0, 3, 1, 2), np.argmax(labels, axis=1)
 
 
-def input_function(
-    dataset,
-    default_num_frames,
-    default_image_size,
-    default_shuffle_buffer,
-    batch_size,
-    is_training,
-):
+def input_function(dataset, config, is_training):
     """Given `dataset` received by the method `self.train` or `self.test`,
     prepare input to feed to model function.
 
@@ -181,18 +176,20 @@ def input_function(
 
     dataset = dataset.map(
         lambda *x: (
-            _preprocess_tensor_4d(x[0], default_num_frames, default_image_size),
+            _preprocess_tensor_4d(
+                x[0], config.default_num_frames, config.default_image_size
+            ),
             x[1],
         )
     )
 
     if is_training:
         # Shuffle input examples
-        dataset = dataset.shuffle(buffer_size=default_shuffle_buffer)
+        dataset = dataset.shuffle(buffer_size=config.default_shuffle_buffer)
         # Convert to RepeatDataset to train for several epochs
         dataset = dataset.repeat()
 
     # Set batch size
-    dataset = dataset.batch(batch_size=batch_size)
+    dataset = dataset.batch(batch_size=config.batch_size)
 
     return dataset.make_one_shot_iterator()

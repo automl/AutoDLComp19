@@ -12,3 +12,4 @@ dependencies:
   - pip:
     - pre-commit
     - tensorflow-gpu==1.13.1
+    - hjson
