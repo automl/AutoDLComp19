@@ -27,7 +27,12 @@ AutoDL Competition Scripts 2019
 │
 ├── src                           <<  Source code
 │   ├── video
-│   └── image
+│   ├── ...
+│   ├── image
+│   ├── config.hjson              <<  Execution parameters for model.py
+│   ├── dataloading.py            <<  Dataloading utilities
+│   ├── model.py                  <<  Main file for competition submission
+│   └── utils.py                  <<  Utility code
 │
 ├── submission                    <<  Submission scripts for clusters
 │
