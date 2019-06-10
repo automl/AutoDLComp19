@@ -5,38 +5,38 @@ AutoDL Competition Scripts 2019
 ## Project Structure
 
 ```
-├── .miniconda                    <<  Project-local miniconda installation
+├── .miniconda/                    <<  Project-local miniconda installation
 │
-├── competition                   <<  Competition source code for local test
-│   ├── ingestion_program         <<  Main execution library
-│   ├── sample_result_submission  <<  General output dir
-│   ├── sample_submission         <<  Example submission code
-│   │   └── model.py              <<  Pytorch version of model.py from competition
-│   ├── scoring_output            <<  Scoring output dir
-│   ├── scoring_program           <<  Source code to produce AUL score
-│   └── run_local_test.py         <<  Execute competition evaluation locally
+├── competition/                   <<  Competition source code for local test
+│   ├── ingestion_program/         <<  Main execution library
+│   ├── sample_result_submission/  <<  General output dir
+│   ├── sample_submission/         <<  Example submission code
+│   │   └── model.py               <<  Pytorch version of model.py from competition
+│   ├── scoring_output/            <<  Scoring output dir
+│   ├── scoring_program/           <<  Source code to produce AUL score
+│   └── run_local_test.py          <<  Execute competition evaluation locally
 │
-├── datasets                      <<  Raw and processed datasets
+├── datasets/                      <<  Raw and processed datasets
 │
-├── experiments                   <<  Logs and other files generated during runtime
-│   └── cluster_oe                <<  Output and error files from clusters
+├── experiments/                   <<  Logs and other files generated during runtime
+│   └── cluster_oe/                <<  Output and error files from clusters
 │
-├── models                        <<  Parameters obtained offline (e.g., pretrained)
+├── models/                        <<  Parameters obtained offline (e.g., pretrained)
 │
-├── reports                       <<  Analysis and results as tex, html, ...
+├── reports/                       <<  Analysis and results as tex, html, ...
 │
-├── src                           <<  Source code
-│   ├── video
+├── src/                           <<  Source code
+│   ├── video/
 │   ├── ...
-│   ├── image
-│   ├── config.hjson              <<  Execution parameters for model.py
-│   ├── dataloading.py            <<  Dataloading utilities
-│   ├── model.py                  <<  Main file for competition submission
-│   └── utils.py                  <<  Utility code
+│   ├── image/
+│   ├── config.hjson               <<  Execution parameters for model.py
+│   ├── dataloading.py             <<  Dataloading utilities
+│   ├── model.py                   <<  Main file for competition submission
+│   └── utils.py                   <<  Utility code
 │
-├── submission                    <<  Submission scripts for clusters
+├── submission/                    <<  Submission scripts for clusters
 │
-└── utils                         <<  General purpose scripts (formating, setup, ..)
+└── utils/                         <<  General purpose scripts (formating, setup, ..)
 ```
 
 
