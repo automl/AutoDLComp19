@@ -49,8 +49,8 @@ bash utils/setup_environment.sh
 
 1. If there is no miniconda installation, downloads the miniconda installer and installs it into `.miniconda`
 1. Updates conda
-1. If there is no autodl environment, installs it as specified in `utils/environment.yml`
-1. If there is an autodl environment and there are changes to `utils/environment.yml` performs updates
+1. If there is no autodl environment, installs it as specified in `utils/.environment.yml`
+1. If there is an autodl environment and there are changes to `utils/.environment.yml` performs updates
 
 To setup all tasks run
 ```bash

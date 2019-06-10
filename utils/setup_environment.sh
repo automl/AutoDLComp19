@@ -18,10 +18,10 @@ fi
 
 if [ -z "$(conda env list | grep autodl)" ]; then
     # Install environment from scratch
-    conda env create -f environment.yml
+    conda env create -f .environment.yml
 else
     # Install changes according to .yml file
-    conda env update -f environment.yml --prune
+    conda env update -f .environment.yml --prune
 fi
 conda activate autodl
 pre-commit install
