@@ -12,6 +12,7 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
     2) convert X, y to CUDA
     3) trains the model with the Tesors for given no of steps.
     """
+    model.train()
     criterion = nn.NLLLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr)
 
@@ -40,9 +41,9 @@ def testloop(model, dataloader, output_dim):
     testloop uses testdata to test the pytorch model and return onehot prediciton
     values.
     """
+    model.eval()
     preds = []
     with torch.no_grad():
-        model.eval()
         for [images] in dataloader:
             if torch.cuda.is_available():
                 images = images.float().cuda()
