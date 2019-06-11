@@ -56,6 +56,7 @@ class Model(algorithm.Algorithm):
 
         utils.print_log("Metadata={}".format(self.metadata_.__dict__))
 
+        # TODO(Danny): Check directory needed during submission
         try:
             self.config = utils.Config("config.hjson")
         except FileNotFoundError:
@@ -151,6 +152,8 @@ class Model(algorithm.Algorithm):
         # self.model = self.online_meta.initialize_model(self.model)
         unfrozen_parameters = self.online_meta.select_unfrozen_parameter(self.model)
 
+        # If the input size changes, the tensorflow dataloader has to be recreated to
+        # accomodate this
         model_input_sizes_changed = model_input_sizes != self.model_input_sizes
         self.model_input_sizes = model_input_sizes
         if not self.train_data_iterator or model_input_sizes_changed:

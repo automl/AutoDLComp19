@@ -34,7 +34,7 @@ AutoDL Competition Scripts 2019
 │   ├── model.py                   <<  Main file for competition submission
 │   └── utils.py                   <<  Utility code
 │
-├── submission/                    <<  Submission scripts for clusters
+├── submission/                    <<  Submission utilities
 │
 └── utils/                         <<  General purpose scripts (formating, setup, ..)
 ```

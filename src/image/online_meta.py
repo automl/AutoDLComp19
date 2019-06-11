@@ -76,7 +76,7 @@ class OnlineMeta:
 
     def _initialize_model(self, model):
         state_dict, self.model_input_size = models.get_parameters(
-            self.config.pretrained_parameters
+            self.config.pretrained_parameters, self.config
         )
         trainable_submodules_names, _ = _get_trainable_submodules(model)
 

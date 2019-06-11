@@ -1,6 +1,10 @@
 {
   # General
   modality: image
+  model_dir: models
+  active_model_files: [
+    resnet18-5c106cde
+  ]
 
   # Preprocessing
   default_num_frames: 10

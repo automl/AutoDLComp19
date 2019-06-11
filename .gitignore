@@ -131,6 +131,8 @@ datasets/*
 competition/sample_result_submission/*
 competition/scoring_output/*
 
+# Submission automation
+colab_submission/
 
 # Pytorch
 *.pth
