@@ -133,6 +133,7 @@ competition/scoring_output/*
 
 # Submission automation
 colab_submission/
+*.zip
 
 # Pytorch
 *.pth
