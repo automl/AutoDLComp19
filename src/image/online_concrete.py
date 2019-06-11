@@ -14,7 +14,7 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
     """
     model.train()
     criterion = nn.NLLLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.lr)
+    optimizer = torch.optim.Adam(unfrozen_parameters, lr=config.lr)
 
     for i in range(steps):
         images, labels = dataloading.get_torch_tensors(train_data_iterator)

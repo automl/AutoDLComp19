@@ -2,9 +2,12 @@
   # General
   modality: image
   model_dir: models
-  active_model_files: [
+  active_model_files: [  # For inclusion in colab_submission.zip
     resnet18-5c106cde
   ]
+
+  # Execution
+  num_epochs_we_want_to_train: 20
 
   # Preprocessing
   default_num_frames: 10
@@ -12,12 +15,16 @@
 
   # Model construction
   model: resnet18
-  pretrained_parameters: resnet18_imagenet_224
+  #
+  pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
 
-  # Execution
-  num_epochs_we_want_to_train: 20
+
+  # Finetuning
+  finetune_all: false
+  finetune_first_j: 0
+  finetune_last_k: 1  # This includes the final output layer
 
   # Training Hyperparameters
   batch_size: 64
-  lr: 1e-4
+  lr: 1e-3
 }
