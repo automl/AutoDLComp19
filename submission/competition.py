@@ -1,26 +1,29 @@
 import os
 import shutil
-import hjson
 import sys
-sys.path.append('.')
-from src.utils import Config
-import argparse
 
-if __name__ == '__main__':
+sys.path.append(".")
+from src.utils import Config  # noqa: E402
+import argparse  # noqa: E402
+
+if __name__ == "__main__":
     # TODO(Danny): Do not copy stuff, but add stuff to zip file 1 by 1 for space
     # efficiency
     # TODO(Danny): Add packaging of python libs
 
     # Construct base CLI, later add args dynamically from config file too
     parser = argparse.ArgumentParser()
-    parser.add_argument('--submission_dir', default="colab_submission")
-    parser.add_argument('--code_dir', default="src")
-    parser.add_argument('--zip_name', default="colab_submission")
+    parser.add_argument("--submission_dir", default=".colab_submission")
+    parser.add_argument("--code_dir", default="src")
+    parser.add_argument("--zip_name", default="colab_submission")
+    parser.add_argument(
+        "--no_clean_up", action="store_true", help="Do not delete submission dir"
+    )
 
     # Construct CLI dynamically from default config
     config = Config("src/config.hjson")  # Hardcode to circumvent argparse issue
     for key, value in config.__dict__.items():  # TODO(Danny): iter interface or smth
-        parser.add_argument('--' + key, default=value, type=type(value))
+        parser.add_argument("--" + key, default=value, type=type(value))
 
     # Overwrite config values with parsed values
     args = parser.parse_args()
@@ -44,8 +47,9 @@ if __name__ == '__main__':
     # Set model dir to correct value with respect to the submission
     config.model_dir = "."  # TODO(Danny): Check if this is correct for submission
 
-
     config.write(args.submission_dir + "/config.hjson")
 
-    # Zip everything
-    shutil.make_archive(args.zip_name, 'zip', args.submission_dir)
+    # Zip everything and clean up
+    shutil.make_archive(args.zip_name, "zip", args.submission_dir)
+    if not args.no_clean_up:
+        shutil.rmtree(args.submission_dir)  # TODO(Danny): Maybe wrap in try: finally:
