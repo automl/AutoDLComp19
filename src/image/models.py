@@ -1,6 +1,14 @@
 import torch
 import torchvision
-import utils
+
+try:
+    import utils
+except ImportError:
+    # This file is used as a script
+    # TODO(Danny): Nicer solution to this
+    import sys
+    sys.path.append("src")
+    import utils
 
 
 def download_all(config):
