@@ -53,6 +53,7 @@ class OnlineMeta:
 
     def select_model(self):
         if not self.model:
+            utils.print_log("Select the model architecture {}".format(self.config.model))
             model = models.models[self.config.model]
             model, self._initialize_model(model)
             # TODO(Danny): Use torchsummary
@@ -79,8 +80,6 @@ class OnlineMeta:
             self.config.pretrained_parameters, self.config
         )
         trainable_submodules_names, _ = _get_trainable_submodules(model)
-
-        print(state_dict.keys())
 
         model.load_state_dict(state_dict)
         return model  # , self.model_input_size

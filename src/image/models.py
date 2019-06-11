@@ -1,7 +1,7 @@
 import torch
 import torchvision
-import hjson
 import utils
+
 
 def download_all(config):
     resnet18_url = torchvision.models.resnet.model_urls["resnet18"]
@@ -12,6 +12,7 @@ models = {"resnet18": torchvision.models.resnet18()}
 
 
 def get_parameters(model_type, config):
+    utils.print_log("Loading {} parameters".format(model_type))
     if model_type == "resnet18_imagenet_224":
         input_size = (224, 224)
         resnet18_url = torchvision.models.resnet.model_urls["resnet18"]
