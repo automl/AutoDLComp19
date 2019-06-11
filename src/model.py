@@ -28,9 +28,9 @@ import image.online_concrete
 import image.online_meta
 import image.models
 
-# Disable tf device loggings
 import os
 
+# Disable tf device loggings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
@@ -123,7 +123,8 @@ class Model(algorithm.Algorithm):
     def _autodl(self, dataset, steps_to_train):
         self.model, model_input_sizes = self.online_meta.select_model()
         # TODO(Danny): make initialiazation work here. Currently there is a problem since
-        # the last layer has a different shape than in the online parameters.
+        # the last layer has a different shape than in the online parameters. Currently
+        # the model is initialized in select_model().
         # self.model = self.online_meta.initialize_model(self.model)
         unfrozen_parameters = self.online_meta.select_unfrozen_parameter(self.model)
 

@@ -9,6 +9,7 @@ def print_log(*content):
     print(*content)
 
 
+# TODO(Danny): write a nice __repr__ using e.g., pprint
 class Config:
     def __init__(self, config_path):
         with open(config_path) as config_file:

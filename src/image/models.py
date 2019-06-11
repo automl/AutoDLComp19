@@ -17,6 +17,7 @@ def get_parameters(model_type, config):
         input_size = (224, 224)
         resnet18_url = torchvision.models.resnet.model_urls["resnet18"]
         state_dict = torch.utils.model_zoo.load_url(resnet18_url, config.model_dir)
+        # TODO(Danny): also enforce preprocessing requirements for torchvision models
         return state_dict, input_size
     else:
         raise  # TODO(Danny): Error message
