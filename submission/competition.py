@@ -13,9 +13,9 @@ if __name__ == "__main__":
 
     # Construct base CLI, later add args dynamically from config file too
     parser = argparse.ArgumentParser()
-    parser.add_argument("--submission_dir", default=".colab_submission")
+    parser.add_argument("--submission_dir", default=".codalab_submission")
     parser.add_argument("--code_dir", default="src")
-    parser.add_argument("--zip_name", default="colab_submission")
+    parser.add_argument("--zip_name", default="codalab_submission")
     parser.add_argument(
         "--no_clean_up", action="store_true", help="Do not delete submission dir"
     )
@@ -44,9 +44,16 @@ if __name__ == "__main__":
             config.model_dir + "/" + model_name, args.submission_dir + "/" + model_name
         )
 
-    # Set model dir to correct value with respect to the submission
-    config.model_dir = "."  # TODO(Danny): Check if this is correct for submission
+    # Include extra packages
+    for extra_package in config.extra_packages:
+        shutil.copytree(
+            extra_package,
+            args.submission_dir + "/" + os.path.basename(extra_package),
+            ignore=ignore,
+        )
 
+    # Write
+    config.is_codalab_submission = True
     config.write(args.submission_dir + "/config.hjson")
 
     # Zip everything and clean up

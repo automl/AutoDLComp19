@@ -8,12 +8,8 @@ repos:
     -   id: debug-statements
     -   id: trailing-whitespace
 
--   repo: https://github.com/ambv/black
-    rev: stable
-    hooks:
-    - id: black
-      args: ["-l 90", "-tpy35"]
-      language_version: python3.7
+# TODO(Danny): implement yapf autoformater with facebook config
+#  + enable isort again and check for inconsistencies
 
 # Currently not working together with black
 #-   repo: https://github.com/pre-commit/mirrors-isort

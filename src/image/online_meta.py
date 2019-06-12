@@ -57,7 +57,7 @@ class OnlineMeta:
         if not self.model:
             utils.print_log("Select the model architecture {}".format(self.config.model))
             model = models.models[self.config.model]
-            model, self._initialize_model(model)
+            model = self._initialize_model(model)
             # TODO(Danny): Use torchsummary
             utils.print_log(
                 "Selected model before adapting last layer:\n {}".format(model)

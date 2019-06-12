@@ -2,7 +2,13 @@
   # General
   modality: image
   model_dir: models
-  active_model_files: [  # For inclusion in colab_submission.zip
+
+  # Codalab submission
+  is_codalab_submission: false
+  extra_packages: [
+    .miniconda/envs/autodl/lib/python3.5/site-packages/hjson
+  ]
+  active_model_files: [  # With respect to model_dir
     resnet18-5c106cde
   ]
 
@@ -15,9 +21,7 @@
 
   # Model construction
   model: resnet18
-  #
   pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
-
 
   # Finetuning
   finetune_all: false

@@ -56,11 +56,14 @@ class Model(algorithm.Algorithm):
 
         utils.print_log("Metadata={}".format(self.metadata_.__dict__))
 
-        # TODO(Danny): Check directory needed during submission
-        try:
-            self.config = utils.Config("config.hjson")
-        except FileNotFoundError:
-            self.config = utils.Config("src/config.hjson")
+        # Assume model.py and config.hjson are always in the same folder. Could possibly
+        # do this in a nicer fashion, but it must still run during the submission on
+        # codalab.
+        code_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config = utils.Config(code_dir + "/" + "config.hjson")
+        # During submission the models are in code_dir
+        if self.config.is_codalab_submission:
+            self.config.model_dir = code_dir
 
         utils.print_log("Config={}".format(self.config.__dict__))
 
