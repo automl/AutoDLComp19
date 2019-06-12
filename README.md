@@ -26,15 +26,19 @@ AutoDL Competition Scripts 2019
 ├── reports/                       <<  Analysis and results as tex, html, ...
 │
 ├── src/                           <<  Source code
-│   ├── video/
-│   ├── ...
 │   ├── image/
+│   │   ├── models.py              <<  Architectures and parameters
+│   │   ├── online_concrete.py     <<  Training and inference strategies
+│   │   └── online_meta.py         <<  Model/parameter selection, finetuining, ..
+│   ├── ...
+│   ├── video/
 │   ├── config.hjson               <<  Execution parameters for model.py
 │   ├── dataloading.py             <<  Dataloading utilities
 │   ├── model.py                   <<  Main file for competition submission
 │   └── utils.py                   <<  Utility code
 │
 ├── submission/                    <<  Submission utilities
+│   └── competition.py             <<  Automatic generation of competition submissions
 │
 └── utils/                         <<  General purpose scripts (formating, setup, ..)
 ```
@@ -77,10 +81,7 @@ To commit without runnning pre-commit supply the `--no-verify` option to `git co
 ## Usage
 
 
-Activating an environment without having the conda installation in your `PATH`:
-```bash
-source .miniconda/bin/activate autodl
-```
+### Running locally
 
 To run the competition evaluation locally run
 ```bash
@@ -94,11 +95,45 @@ python competition/run_local_test.py \
     --code_dir competition/sample_submission
 ```
 
+### Making a submission
+
+To create a submission `.zip` for the codalab platform run
+
+```bash
+python submission/competition.py
+```
+
+This uses the settings in `src/config.hjson` to determine the modality, lookup paths, finetuning strategy, pretrained_parameters and model to load, hyperparameters, etc. To change the settings, you can either edit `src/config.hjson` or via arguments:
+
+
+```bash
+python submission/competition.py --lr 1e-4
+```
+
+You need to specify which model parameter files you want to include in the submission. You can do this via editing the `active_model_files` attribute, e.g.,
+
+```json
+active_model_files: ["resnet18-5c106cde"]  # With respect to model_dir
+```
+
+To include a python package that is not included on the competition platform, edit the `extra_packages` attribute, e.g.,
+
+```json
+extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
+```
+
+
+### Miscellaneous
+
+Activating an environment without having the conda installation in your `PATH`:
+```bash
+source .miniconda/bin/activate autodl
+```
+
 To run the pre-commit scripts manually run
 ```bash
 bash utils/format.sh
 ```
-
 
 ## Deinstallation
 
