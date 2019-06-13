@@ -161,15 +161,17 @@ def get_torch_tensors(training_data_iterator):
 
 def input_function(dataset, config, list_of_transforms, is_training, is_validation, num_epochs, train_size=None,
                    default_shuffle_buffer=None):
-    """Given `dataset` received by the method `self.train` or `self.test`,
-    prepare input to feed to model function.
-
-    For more information on how to write an input function, see:
-      https://www.tensorflow.org/guide/custom_estimators#write_an_input_function
-
-    # PYTORCH
-    This function returns a tensorflow data iterator which is then converted to
-    PyTorch Tensors.
+    """
+    TensorFlow dataset iterator for AutoDL dataset.
+    :param dataset: TensorFlow dataset
+    :param config: local config file
+    :param list_of_transforms: List of functions to use for preprocessing in the order given.
+    :param is_training: Training phase?
+    :param is_validation: During training are we validating?
+    :param num_epochs: Number of epochs to train
+    :param train_size:
+    :param default_shuffle_buffer: size of the shuffle buffer
+    :return: tf data iterator
     """
     if train_size is not None and is_training:
         if is_validation:
