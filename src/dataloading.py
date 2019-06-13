@@ -159,7 +159,8 @@ def get_torch_tensors(training_data_iterator):
     return images[:, 0, :, :, :].transpose(0, 3, 1, 2), np.argmax(labels, axis=1)
 
 
-def input_function(dataset, config, image_size, is_training):
+def input_function(dataset, config, list_of_transforms, is_training, is_validation, num_epochs, train_size=None,
+                   default_shuffle_buffer=None):
     """Given `dataset` received by the method `self.train` or `self.test`,
     prepare input to feed to model function.
 
@@ -170,18 +171,29 @@ def input_function(dataset, config, image_size, is_training):
     This function returns a tensorflow data iterator which is then converted to
     PyTorch Tensors.
     """
+    if train_size is not None and is_training:
+        if is_validation:
+            # Skip the training elements in the dataset
+            # to get to the validation
+            dataset = dataset.skip(train_size)
+        else:
+            # Only keep the elements in training
+            dataset = dataset.take(train_size)
 
-    dataset = dataset.map(
-        lambda *x: (_preprocess_tensor_4d(x[0], config, image_size), x[1])
-    )
+    if not default_shuffle_buffer:
+        default_shuffle_buffer = config.default_shuffle_buffer
+
+    for transform_function in list_of_transforms:
+        dataset = dataset.map(transform_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if is_training:
         # Shuffle input examples
-        dataset = dataset.shuffle(buffer_size=config.default_shuffle_buffer)
+        dataset = dataset.shuffle(buffer_size=default_shuffle_buffer)
         # Convert to RepeatDataset to train for several epochs
-        dataset = dataset.repeat()
+        dataset = dataset.repeat(num_epochs)
 
-    # Set batch size
+    # Create batches
     dataset = dataset.batch(batch_size=config.batch_size)
-
+    # Prefetch next batches already
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset.make_one_shot_iterator()

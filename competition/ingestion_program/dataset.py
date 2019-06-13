@@ -110,16 +110,17 @@ class AutoDLDataset(object):
      on the features and labels.
   """
 
-    def __init__(self, dataset_name):
+    def __init__(self, dataset_name, num_parallel_readers=8):
         """Construct an AutoDL Dataset.
-
-    Args:
-      dataset_name: name of the dataset under the 'dataset_dir' flag.
-    """
+        Args:
+            dataset_name: name of the dataset under the 'dataset_dir' flag.
+            num_parallel_readers: Number of readers reading tfrecord files in parallel
+        """
         self.dataset_name_ = dataset_name
         self.metadata_ = AutoDLMetadata(dataset_name)
         self._create_dataset()
-        self.dataset_ = self.dataset_.map(self._parse_function)
+        self.dataset_ = self.dataset_.map(self._parse_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        self.num_parallel_readers = num_parallel_readers
 
     def get_dataset(self):
         """Returns a tf.data.dataset object."""
@@ -256,13 +257,20 @@ class AutoDLDataset(object):
         if not hasattr(self, "dataset_"):
             files = gfile.Glob(dataset_file_pattern(self.dataset_name_))
             if not files:
-                raise IOError(
-                    "Unable to find training files. data_pattern='"
-                    + dataset_file_pattern(self.dataset_name_)
-                    + "'."
-                )
+                raise IOError("Unable to find training files. data_pattern='" +
+                              dataset_file_pattern(self.dataset_name_) + "'.")
             # logging.info("Number of training files: %s.", str(len(files)))
-            self.dataset_ = tf.data.TFRecordDataset(files)
+            if len(files) > 1:
+                # Read in multiple tfrecord files and interleave them in parallel
+                files = tf.data.Dataset.from_tensor_slices(files)
+                dataset = files.interleave(
+                    tf.data.TFRecordDataset, cycle_length=self.num_parallel_readers,
+                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            else:
+                # Only a single tfrecord was given
+                dataset = tf.data.TFRecordDataset(files, num_parallel_reads=self.num_parallel_readers)
+
+            self.dataset_ = dataset
 
     def get_class_labels(self):
         """Get all class labels"""
