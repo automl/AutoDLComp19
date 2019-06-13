@@ -165,7 +165,7 @@ def input_function(dataset, config, list_of_transforms, is_training, is_validati
     TensorFlow dataset iterator for AutoDL dataset.
     :param dataset: TensorFlow dataset
     :param config: local config file
-    :param list_of_transforms: List of functions to use for preprocessing in the order given.
+    :param list_of_transforms: List of functions to use for preprocessing in the order given. For an example on how to write them please have a look at https://www.tensorflow.org/guide/datasets#decoding_image_data_and_resizing_it
     :param is_training: Training phase?
     :param is_validation: During training are we validating?
     :param num_epochs: Number of epochs to train
