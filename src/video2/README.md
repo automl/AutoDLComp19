@@ -16,7 +16,7 @@ This repository provides a PyTorch implementation of state-of-the-art models on 
 
 ## Prerequisites
 * [Python 3.5+](https://www.continuum.io/downloads)
-* [PyTorch 0.3.0](http://pytorch.org/)
+* [PyTorch 0.4.1](http://pytorch.org/)
 
 &nbsp;
 
