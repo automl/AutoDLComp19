@@ -125,13 +125,11 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200, job_id=0, task_id=0,
                                                                     overwrite)
 
     # Run ingestion and scoring at the same time
-    command_ingestion = """python {} --dataset_dir={} --code_dir={}
-    --time_budget={} --output_dir {} --score_dir {}""".format(
+    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir {} --score_dir {}".format(
         path_ingestion, dataset_dir, code_dir, time_budget,
         ingestion_output_dir, score_dir
     )
-    command_scoring = """python {} --solution_dir={} --time_budget={} 
-    --prediction_dir {} --score_dir {}""".format(
+    command_scoring = "python {} --solution_dir={} --time_budget={} --prediction_dir {} --score_dir {}".format(
         path_scoring, dataset_dir, time_budget,
         ingestion_output_dir,score_dir
     )
