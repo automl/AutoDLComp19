@@ -89,13 +89,29 @@ To run the competition evaluation locally run
 ```bash
 python competition/run_local_test.py \
     --dataset_dir datasets/DATASET \
-    --code_dir MODELY_PY_FOLDER
+    --code_dir MODELY_PY_FOLDER \
+    --job_id JOB_ID \
+    --task_id TASK_ID
 
 # E.g.,
 python competition/run_local_test.py \
     --dataset_dir datasets/public_data/Chucky \
-    --code_dir competition/sample_submission
+    --code_dir competition/sample_submission \
+    --job_id [SOME_INTEGER] \
+    --task_id [SOME_INTEGER]
 ```
+
+If you want to open an interactive job session on the cluster run from the login node:
+```bash
+srun -p meta_gpu-x --pty bash
+```
+Then you can activate your environment and run the above scripts.
+
+The script `submission/meta_cluster_array_job.sh` provides an examplefor running an array job. On the login node run:
+```bash
+sbatch submission/meta_cluster_array_job.sh
+```
+
 
 ### Making a submission
 
