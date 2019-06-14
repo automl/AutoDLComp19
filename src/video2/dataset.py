@@ -1,10 +1,10 @@
-import torch.utils.data as data
-
-from PIL import Image
 import os
 import os.path
+
 import numpy as np
+import torch.utils.data as data
 from numpy.random import randint
+from PIL import Image
 
 
 class VideoRecord(object):

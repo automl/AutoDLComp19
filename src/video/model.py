@@ -24,63 +24,52 @@ file called metadata (this just indicates your submission is a code submission
 and has nothing to do with the dataset metadata.
 """
 
-import tensorflow as tf
-import os
-
-tf.logging.set_verbosity(tf.logging.ERROR)
-
-# Import the challenge algorithm (model) API from algorithm.py
-import algorithm
-
-# Utility packages
-import time
 import datetime
-import numpy as np
-import torch
-import torch.nn as nn
-
+import logging
+import os
+import os.path
+import pickle
 # All importings by christopher (some may be unnescessary)
 # Imports ################################################################
 import sys
+# Utility packages
 import time
-import os.path
-
-# Import Keras
-from keras.layers import (
-    Dense,
-    Flatten,
-    Dropout,
-    ZeroPadding3D,
-    Input,
-    Activation,
-    BatchNormalization,
-    add,
-    Reshape,
-    GlobalAveragePooling2D,
-)
-from keras.models import Sequential, load_model, Model
-from keras.optimizers import Adam
-from keras.layers.convolutional import Conv3D, MaxPooling3D
-import tensorflow as tf
 
 # Imports for Bohb
 import numpy as np
-import datetime
-import logging
-import pickle
+import tensorflow as tf
+import torch
+import torch.nn as nn
 
-# HPOB
-from hpbandster.core.worker import Worker
-import hpbandster.core.nameserver as hpns
-import hpbandster.core.result as hpres
-from hpbandster.optimizers import BOHB
+# Import the challenge algorithm (model) API from algorithm.py
+import algorithm
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
+import hpbandster.core.nameserver as hpns
+import hpbandster.core.result as hpres
+# HPOB
+from hpbandster.core.worker import Worker
+from hpbandster.optimizers import BOHB
+# Import Keras
+from keras.layers import (Activation, BatchNormalization, Dense, Dropout,
+                          Flatten, GlobalAveragePooling2D, Input, Reshape,
+                          ZeroPadding3D, add)
+from keras.layers.convolutional import Conv3D, MaxPooling3D
+from keras.models import Model, Sequential, load_model
+from keras.optimizers import Adam
+from sklearn.linear_model import LinearRegression
+
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+
+
+
+
+
 
 ################################################################
 np.random.seed(42)
 
-from sklearn.linear_model import LinearRegression
 
 
 # Params ################################################################

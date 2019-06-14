@@ -1,7 +1,9 @@
+import functools
+
 import torch
 import torch.nn as nn
+
 import image.models as models
-import functools
 import utils
 
 

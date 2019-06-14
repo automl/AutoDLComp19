@@ -1,15 +1,14 @@
 import random
+import traceback
 
-from hpbandster.core.worker import Worker
-from hpbandster.optimizers import BOHB as BOHB
+import configuration
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 import hpbandster.visualization as hpvis
-import configuration
-import traceback
-import train_test
-
 import matplotlib.pyplot as plt
+import train_test
+from hpbandster.core.worker import Worker
+from hpbandster.optimizers import BOHB as BOHB
 
 
 class NasWorker(Worker):

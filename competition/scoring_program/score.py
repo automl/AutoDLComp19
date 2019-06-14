@@ -74,23 +74,24 @@ verbosity_level = "INFO"
 # Constant used for a missing score
 missing_score = -0.999999
 
-from libscores import ls, mvmean, read_array, tiedrank
-from os.path import join
-from sklearn.metrics import auc
-from sklearn.metrics import roc_auc_score
 import argparse
 import base64
 import logging
-import matplotlib
-
-matplotlib.use("Agg")  # Solve the Tkinter display issue of matplotlib.pyplot
-import matplotlib.pyplot as plt
-import numpy as np
 import os
-import psutil
 import sys
 import time
+from os.path import join
+
+import numpy as np
 import yaml
+
+import matplotlib
+import matplotlib.pyplot as plt
+import psutil
+from libscores import ls, mvmean, read_array, tiedrank
+from sklearn.metrics import auc, roc_auc_score
+
+matplotlib.use("Agg")  # Solve the Tkinter display issue of matplotlib.pyplot
 
 
 def get_logger(verbosity_level, use_error_log=False):

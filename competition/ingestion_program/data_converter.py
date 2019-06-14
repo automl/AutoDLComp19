@@ -12,10 +12,13 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS,
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
+import os
+
 import numpy as np
+
 from scipy.sparse import *
 from sklearn.datasets import load_svmlight_file
-import os
+
 
 # Note: to check for nan values np.any(map(np.isnan,X_train))
 def file_to_array(filename, verbose=False):

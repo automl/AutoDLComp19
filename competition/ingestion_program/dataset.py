@@ -17,15 +17,15 @@
 Reads data in the Tensorflow AutoDL standard format.
 """
 import os
-import tensorflow as tf
+
 import numpy as np
-import matplotlib.pyplot as plt
-from tensorflow import app
-from tensorflow import gfile
+import tensorflow as tf
 from google.protobuf import text_format
+from tensorflow import app, gfile
+
 import dataset_utils
-from data_pb2 import DataSpecification
-from data_pb2 import MatrixSpec
+import matplotlib.pyplot as plt
+from data_pb2 import DataSpecification, MatrixSpec
 
 
 def metadata_filename(dataset_name):

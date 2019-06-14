@@ -1,9 +1,8 @@
 import csv
-import os
 import multiprocessing as mp
+import os
 import subprocess
 from itertools import chain
-
 
 # path to the original autotag file
 AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
@@ -225,24 +224,3 @@ if __name__ == "__main__":
     link_and_download_parallel(DATASET, DOWNLOAD_LIST, DOWNLOAD_FOLDER, NUM_PROCESSES)
     #merge_download_links(DOWNLOAD_LIST, NUM_PROCESSES)
     #get_metadata(DOWNLOAD_LIST, AUTOTAGS, LABEL_LIST, METADATA)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

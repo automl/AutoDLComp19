@@ -2,6 +2,13 @@
 
 import argparse
 
+import numpy as np
+import torch
+import yaml
+from google.protobuf import text_format
+
+from . import caffe_pb2
+
 parser = argparse.ArgumentParser(description="Convert a Caffe model and its learned parameters to torch")
 parser.add_argument('model', help='network spec, usually a ProtoBuf text message')
 parser.add_argument('weights', help='network parameters, usually in a name like *.caffemodel ')
@@ -11,11 +18,6 @@ parser.add_argument('--model_version', help="the version of Caffe's model spec, 
 
 args = parser.parse_args()
 
-from . import caffe_pb2
-from google.protobuf import text_format
-import yaml
-import numpy as np
-import torch
 
 
 class CaffeVendor(object):

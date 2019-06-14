@@ -1,25 +1,26 @@
 import os
-import time
 import shutil
+import sys
+import time
+
 import torch
-import torchvision
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
+import torch.nn.parallel
 import torch.optim
+import torchvision
+from torch.nn.init import constant_, xavier_uniform_
 from torch.nn.utils import clip_grad_norm_
 
-from dataset import TSNDataSet
-from transforms import *
-from opts import parser
-import sys
-from torch.nn.init import constant_, xavier_uniform_
-from ops import dataset_config
 # GPU statistics
 import GPUtil
+from dataset import TSNDataSet
+from ops import dataset_config
+from ops.temporal_shift import make_temporal_pool
+from opts import parser
+from transforms import *
 
 GPUtil.showUtilization()
 
-from ops.temporal_shift import make_temporal_pool
 
 best_prec1 = 0
 

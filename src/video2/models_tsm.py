@@ -4,10 +4,10 @@
 # {jilin, songhan}@mit.edu, ganchuang@csail.mit.edu
 
 from torch import nn
+from torch.nn.init import constant_, normal_
 
 from ops.basic_ops import ConsensusModule
 from transforms import *
-from torch.nn.init import normal_, constant_
 
 
 class TSN(nn.Module):

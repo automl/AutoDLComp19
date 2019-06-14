@@ -1,8 +1,9 @@
-import tensorflow as tf
-import utils
 import numpy as np
-import torch.utils.data as data_utils
+import tensorflow as tf
 import torch
+import torch.utils.data as data_utils
+
+import utils
 
 
 def _crop_time_axis(tensor_4d, num_frames, begin_index=None):

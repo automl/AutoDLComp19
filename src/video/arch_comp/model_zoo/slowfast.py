@@ -13,11 +13,12 @@ Adapted code from:
     }.
 """
 
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from functools import partial
 
 __all__ = ["resnet50", "resnet101", "resnet152", "resnet200"]
 

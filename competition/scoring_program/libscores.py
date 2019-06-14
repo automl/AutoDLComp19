@@ -21,16 +21,20 @@
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
 import os
-from sys import stderr
-from sys import version
+import platform
+from functools import reduce
+from glob import glob
+from os import getcwd as pwd
+from sys import stderr, version
 
 import numpy as np
+
+import psutil
 import scipy as sp
 from sklearn import metrics
 from sklearn.preprocessing import *
 
 swrite = stderr.write
-from os import getcwd as pwd
 
 # get_installed_distributions has gone from pip v10
 try:
@@ -38,10 +42,6 @@ try:
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
 
-from glob import glob
-import platform
-import psutil
-from functools import reduce
 
 if os.name == "nt":
     filesep = "\\"

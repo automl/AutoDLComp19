@@ -1,4 +1,5 @@
 import argparse
+
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
 parser.add_argument('dataset', type=str)
 parser.add_argument('modality', type=str, choices=['RGB', 'Flow', 'RGBDiff'])

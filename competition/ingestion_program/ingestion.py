@@ -90,14 +90,14 @@ Previous updates:
 # Can be: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 verbosity_level = "INFO"
 
-# Some common useful packages
-from os.path import join
-from sys import path
 import argparse
 import logging
 import os
 import sys
 import time
+# Some common useful packages
+from os.path import join
+from sys import path
 
 
 def get_logger(verbosity_level, use_error_log=False):

@@ -1,8 +1,7 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import numpy as np
 
 
 class MaxPool3dSamePadding(nn.MaxPool3d):

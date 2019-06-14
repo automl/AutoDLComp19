@@ -20,21 +20,21 @@ Search for '# PYTORCH' to get directly to PyTorch Code.
 """
 
 
-import torch.utils.data as data_utils
-import torch
-import tensorflow as tf
-import numpy as np
-
-# Import the challenge algorithm (model) API from algorithm.py
-import algorithm
-
 # Other useful modules
 import datetime
 import time
 
+import numpy as np
+import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.utils.data as data_utils
+
+# Import the challenge algorithm (model) API from algorithm.py
+import algorithm
+
 np.random.seed(42)
 
-import torch.nn as nn
 
 # PYTORCH
 # Make pytorch model in torchModel class

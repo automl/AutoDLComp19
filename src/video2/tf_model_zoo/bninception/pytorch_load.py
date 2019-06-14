@@ -1,7 +1,8 @@
 import torch
-from torch import nn
-from .layer_factory import get_basic_layer, parse_expr
 import yaml
+from torch import nn
+
+from .layer_factory import get_basic_layer, parse_expr
 
 
 class BNInception(nn.Module):

@@ -1,6 +1,8 @@
-import os
 import csv
+import os
+
 import torch.utils.data as data
+
 import eioh
 
 

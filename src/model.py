@@ -13,22 +13,19 @@ To create a valid submission, zip model.py together with other necessary files
 such as Python modules/packages, pre-trained weights. The final zip file should
 not exceed 300MB.
 """
+import os
 import time
 
-import torch
 import numpy as np
+import torch
 
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
-
 import dataloading
-import utils
-
+import image.models
 import image.online_concrete
 import image.online_meta
-import image.models
-
-import os
+import utils
 
 # Disable tf device loggings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"

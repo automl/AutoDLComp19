@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+
+from model_zoo.i3d import InceptionI3dWrapper
 from model_zoo.slowfast import SlowFast50, SlowFast152
 from model_zoo.timeception import TimeceptionWrapper
-from model_zoo.i3d import InceptionI3dWrapper
 
 
 class ModelSelect(nn.Module):

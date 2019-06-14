@@ -24,18 +24,15 @@
 Definitio of Timeception as pytorch model.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import torch
 import torch.nn
-
-from torch.nn import Module, Conv3d, BatchNorm3d, MaxPool3d, ReLU
+from torch.nn import BatchNorm3d, Conv3d, MaxPool3d, Module, ReLU
 from torch.nn import functional as F
-from model_zoo.resnet_stub import resnet152, resnet50
+
+from model_zoo.resnet_stub import resnet50, resnet152
 
 
 def padding1d(tensor, filter):
