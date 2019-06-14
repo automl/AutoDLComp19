@@ -65,6 +65,31 @@ def get_path_to_ingestion_program(starting_kit_dir):
 def get_path_to_scoring_program(starting_kit_dir):
     return os.path.join(starting_kit_dir, "scoring_program", "score.py")
 
+def create_and_get_path_to_scoring_output(starting_kit_dir, job_id, task_id,
+                                          overwrite):
+    path = os.path.join(starting_kit_dir, "scoring_output",
+                        "EXP_"+str(job_id)+"_"+str(task_id))
+    if os.path.exists(path):
+        if overwrite:
+            remove_dir(path)
+        else:
+            raise Exception("Output directory already exists!\n")
+    else:
+        os.makedirs(path, exist_ok=False)
+    return path
+
+def create_and_get_path_to_result_submission(starting_kit_dir, job_id, task_id,
+                                            overwrite):
+    path = os.path.join(starting_kit_dir, "sample_result_submission",
+                        "EXP_"+str(job_id)+"_"+str(task_id))
+    if os.path.exists(path):
+        if overwrite:
+            remove_dir(path)
+        else:
+            raise Exception("Output directory already exists!\n")
+    else:
+        os.makedirs(path, exist_ok=False)
+    return path
 
 def remove_dir(output_dir):
     """Remove the directory `output_dir`.
@@ -86,18 +111,28 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, code_dir, time_budget=7200):
+def run_baseline(dataset_dir, code_dir, time_budget=7200, job_id=0, task_id=0,
+                overwrite=False):
     # Current directory containing this script
     starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
     path_ingestion = get_path_to_ingestion_program(starting_kit_dir)
     path_scoring = get_path_to_scoring_program(starting_kit_dir)
+    score_dir = create_and_get_path_to_scoring_output(starting_kit_dir, job_id,
+                                                      task_id, overwrite)
+    ingestion_output_dir = create_and_get_path_to_result_submission(starting_kit_dir,
+                                                                    job_id, task_id,
+                                                                    overwrite)
 
     # Run ingestion and scoring at the same time
-    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={}".format(
-        path_ingestion, dataset_dir, code_dir, time_budget
+    command_ingestion = """python {} --dataset_dir={} --code_dir={}
+    --time_budget={} --output_dir {} --score_dir {}""".format(
+        path_ingestion, dataset_dir, code_dir, time_budget,
+        ingestion_output_dir, score_dir
     )
-    command_scoring = "python {} --solution_dir={} --time_budget={}".format(
-        path_scoring, dataset_dir, time_budget
+    command_scoring = """python {} --solution_dir={} --time_budget={} 
+    --prediction_dir {} --score_dir {}""".format(
+        path_scoring, dataset_dir, time_budget,
+        ingestion_output_dir,score_dir
     )
 
     def run_ingestion():
@@ -108,10 +143,10 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200):
 
     ingestion_process = Process(name="ingestion", target=run_ingestion)
     scoring_process = Process(name="scoring", target=run_scoring)
-    ingestion_output_dir = os.path.join(starting_kit_dir, "sample_result_submission")
-    score_dir = os.path.join(starting_kit_dir, "scoring_output")
-    remove_dir(ingestion_output_dir)
-    remove_dir(score_dir)
+    #ingestion_output_dir = os.path.join(starting_kit_dir, "sample_result_submission")
+    #score_dir = os.path.join(starting_kit_dir, "scoring_output")
+    #remove_dir(ingestion_output_dir)
+    #remove_dir(score_dir)
     ingestion_process.start()
     scoring_process.start()
     detailed_results_page = os.path.join(
@@ -158,13 +193,36 @@ if __name__ == "__main__":
         "Time budget for running ingestion " + "(training + prediction).",
     )
 
+    tf.flags.DEFINE_integer(
+        "job_id",
+        0,
+        "determines the directory where to log scores",
+    )
+
+    tf.flags.DEFINE_integer(
+        "task_id",
+        0,
+        "index for different experiments on same dir",
+    )
+
+    tf.flags.DEFINE_bool(
+        "overwrite",
+        False,
+        "overwrite logs or not",
+    )
+
     FLAGS = tf.flags.FLAGS
     dataset_dir = FLAGS.dataset_dir
     code_dir = FLAGS.code_dir
     time_budget = FLAGS.time_budget
+    job_id = FLAGS.job_id
+    task_id = FLAGS.task_id
+    overwrite = FLAGS.overwrite
     logging.info("#" * 50)
     logging.info("Begin running local test using")
     logging.info("code_dir = {}".format(get_basename(code_dir)))
     logging.info("dataset_dir = {}".format(get_basename(dataset_dir)))
+    logging.info("job_id = {}".format(job_id))
+    logging.info("task_id = {}".format(task_id))
     logging.info("#" * 50)
-    run_baseline(dataset_dir, code_dir, time_budget)
+    run_baseline(dataset_dir, code_dir, time_budget, job_id, task_id, overwrite)
