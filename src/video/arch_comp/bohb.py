@@ -33,7 +33,10 @@ class NasWorker(Worker):
         print("end compute")
         return {
             "loss": -valid_score,
-            "info": {"train_time": train_time, "status": status},
+            "info": {
+                "train_time": train_time,
+                "status": status
+            },
         }
 
 

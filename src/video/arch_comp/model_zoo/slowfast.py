@@ -274,7 +274,9 @@ class SlowFast(nn.Module):
         if stride != 1 or self.fast_inplanes != planes * block.expansion:
             if shortcut_type == "A":
                 downsample = partial(
-                    downsample_basic_block, planes=planes * block.expansion, stride=stride
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride
                 )
             else:
                 downsample = nn.Sequential(
@@ -304,7 +306,9 @@ class SlowFast(nn.Module):
         if stride != 1 or self.slow_inplanes != planes * block.expansion:
             if shortcut_type == "A":
                 downsample = partial(
-                    downsample_basic_block, planes=planes * block.expansion, stride=stride
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride
                 )
             else:
                 downsample = nn.Sequential(

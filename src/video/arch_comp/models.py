@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 from model_zoo.i3d import InceptionI3dWrapper
 from model_zoo.slowfast import SlowFast50, SlowFast152
 from model_zoo.timeception import TimeceptionWrapper
@@ -38,9 +37,8 @@ class ModelSelect(nn.Module):
         """
 
         if (
-            self.model_type == "i3d"
-            or self.model_type == "slowfast50"
-            or self.model_type == "slowfast152"
+            self.model_type == "i3d" or self.model_type == "slowfast50" or
+            self.model_type == "slowfast152"
         ):
             x = x.permute([0, 4, 1, 2, 3])
         elif self.model_type == "timeception50" or self.model_type == "timeception152":

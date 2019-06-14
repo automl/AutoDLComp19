@@ -1,6 +1,5 @@
-import numpy as np
-
 import cv2
+import numpy as np
 
 
 def get_segment_array(video, segment_length=10, segment_count=10, cut_type="even"):

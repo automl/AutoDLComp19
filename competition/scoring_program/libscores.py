@@ -28,7 +28,6 @@ from os import getcwd as pwd
 from sys import stderr, version
 
 import numpy as np
-
 import psutil
 import scipy as sp
 from sklearn import metrics
@@ -42,12 +41,10 @@ try:
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
 
-
 if os.name == "nt":
     filesep = "\\"
 else:
     filesep = "/"
-
 
 # ========= Useful functions ==============
 
@@ -172,7 +169,7 @@ def tiedrank(a):
             newval = sa[k]
             if newval == oldval:
                 # moving average
-                R[k0 : k + 1] = R[k - 1] * (k - k0) / (k - k0 + 1) + R[k] / (k - k0 + 1)
+                R[k0:k + 1] = R[k - 1] * (k - k0) / (k - k0 + 1) + R[k] / (k - k0 + 1)
             else:
                 k0 = k
                 oldval = newval
@@ -260,8 +257,8 @@ def r2_regression(solution, prediction):
 
 def r2_metric(solution, prediction, task="regression"):
     """ 1 - Mean squared error divided by variance """
-    mse = mvmean((solution - prediction) ** 2)
-    var = mvmean((solution - mvmean(solution)) ** 2)
+    mse = mvmean((solution - prediction)**2)
+    var = mvmean((solution - mvmean(solution))**2)
     score = 1 - mse / var
     return mvmean(score)
 
@@ -636,8 +633,7 @@ def show_platform():
     mac_ver: %s
     memory: %s
     number of CPU: %s
-    """
-        % (
+    """ % (
             str(platform.dist()),
             linux_distribution,
             platform.system(),

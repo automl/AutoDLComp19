@@ -15,7 +15,6 @@
 import os
 
 import numpy as np
-
 from scipy.sparse import *
 from sklearn.datasets import load_svmlight_file
 
@@ -127,10 +126,8 @@ def tp_filter(X, Y, feat_num=1000, verbose=True):
     Only for binary classification and sparse matrices"""
 
     if (
-        issparse(X)
-        and len(Y.shape) == 1
-        and len(set(Y)) == 2
-        and (sum(Y) / Y.shape[0]) < 0.1
+        issparse(X) and len(Y.shape) == 1 and len(set(Y)) == 2 and
+        (sum(Y) / Y.shape[0]) < 0.1
     ):
         if verbose:
             print("========= Filtering features...")

@@ -22,12 +22,12 @@ This repository provides a PyTorch implementation of state-of-the-art models on 
 
 ## Usage
 
-#### 1. Config datasets and pretrained models 
-* Download pretrained models from this [link](https://drive.google.com/open?id=1bNUOYQhb4RF0TDKUNGCS3akypYtK92Ao). 
+#### 1. Config datasets and pretrained models
+* Download pretrained models from this [link](https://drive.google.com/open?id=1bNUOYQhb4RF0TDKUNGCS3akypYtK92Ao).
 * Config paths in ops/dataset_config.py and make sure that your list correctly address video folders
 * Modify path and parameters in run bash files.
 
-#### 3. Train 
+#### 3. Train
 ##### (i) Train
 - To finetune model on UCF101 using TSM method run:
 ```

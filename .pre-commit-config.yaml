@@ -1,46 +1,42 @@
 repos:
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.1.0
+    rev: v2.2.3
     hooks:
     -   id: check-merge-conflict
     -   id: check-yaml
     -   id: debug-statements
     -   id: trailing-whitespace
 
-# TODO(Danny): implement yapf autoformater with facebook config
-#  + enable isort again and check for inconsistencies
-
-# Currently not working together with black
-#-   repo: https://github.com/pre-commit/mirrors-isort
-#    rev: v4.3.20
-#    hooks:
-#    - id: isort
-
--   repo: https://github.com/humitos/mirrors-autoflake
-    rev: v1.1
+-   repo: https://github.com/pre-commit/mirrors-yapf
+    rev: v0.27.0
     hooks:
-    - id: autoflake
-      args: ['--in-place', '--remove-all-unused-imports']
+    -   id: yapf
+        args: ['--in-place --parallel']
+
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: v4.3.20
+    hooks:
+    -   id: isort
 
 -   repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.7
     hooks:
-    - id: flake8
-      args: ['--exit-zero']
-      language_version: python3
-      verbose: True
-      additional_dependencies: [
-        'flake8-blind-except',
-        'flake8-comprehensions',
-        'flake8-deprecated',
-        'flake8-docstrings',
-        'flake8-meiqia',
-        'flake8-mutable',
-        'flake8-pep3101',
-        'flake8-quotes',
-        'flake8-string-format',
-        'flake8-tidy-imports',
+    -   id: flake8
+        args: ['--exit-zero']
+        language_version: python3
+        verbose: True
+        additional_dependencies: [
+            'flake8-blind-except',
+            'flake8-comprehensions',
+            'flake8-deprecated',
+            'flake8-docstrings',
+            'flake8-meiqia',
+            'flake8-mutable',
+            'flake8-pep3101',
+            'flake8-quotes',
+            'flake8-string-format',
+            'flake8-tidy-imports',
       ]
 
 -   repo: meta

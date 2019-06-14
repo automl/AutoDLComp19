@@ -2,9 +2,8 @@ import glob
 import os
 from subprocess import call
 
-import numpy as np
-
 import cv2
+import numpy as np
 
 
 def load_video_file(file="./video.mp4"):

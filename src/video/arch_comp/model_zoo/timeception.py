@@ -19,20 +19,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ########################################################################
-
 """
 Definitio of Timeception as pytorch model.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import torch
 import torch.nn
-from torch.nn import BatchNorm3d, Conv3d, MaxPool3d, Module, ReLU
-from torch.nn import functional as F
-
 from model_zoo.resnet_stub import resnet50, resnet152
+from torch.nn import BatchNorm3d, Conv3d, MaxPool3d, Module, ReLU, functional as F
 
 
 def padding1d(tensor, filter):
@@ -47,7 +43,7 @@ def padding1d(tensor, filter):
         pad = [0, int(oddt)]
         tensor = F.pad(tensor, pad, mode=mode)
 
-    padding = (pt // it,)
+    padding = (pt // it, )
     return tensor, padding
 
 
@@ -572,6 +568,5 @@ if __name__ == "__main__":
     #
     # # the output is (32, 2480, 8, 7, 7)
     # print(tensor.size())
-
 
 # endregion

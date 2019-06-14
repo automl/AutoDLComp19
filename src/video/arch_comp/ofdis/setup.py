@@ -6,7 +6,6 @@ from distutils.core import setup
 from distutils.extension import Extension
 
 import numpy
-
 from Cython.Build import cythonize
 
 extra_compile_args = sysconfig.get_config_var("CFLAGS").split()

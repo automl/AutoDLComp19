@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # Modified by: Zhengying Liu, Isabelle Guyon
-
 """An example of code submission for the AutoDL challenge.
 
 It implements 3 compulsory methods: __init__, train, and test.
@@ -35,25 +34,25 @@ import sys
 # Utility packages
 import time
 
-# Imports for Bohb
-import numpy as np
-import tensorflow as tf
-import torch
-import torch.nn as nn
-
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
+# Imports for Bohb
+import numpy as np
+import tensorflow as tf
+import torch
+import torch.nn as nn
 # HPOB
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 # Import Keras
-from keras.layers import (Activation, BatchNormalization, Dense, Dropout,
-                          Flatten, GlobalAveragePooling2D, Input, Reshape,
-                          ZeroPadding3D, add)
+from keras.layers import (
+    Activation, BatchNormalization, Dense, Dropout, Flatten, GlobalAveragePooling2D,
+    Input, Reshape, ZeroPadding3D, add
+)
 from keras.layers.convolutional import Conv3D, MaxPooling3D
 from keras.models import Model, Sequential, load_model
 from keras.optimizers import Adam
@@ -61,16 +60,8 @@ from sklearn.linear_model import LinearRegression
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-
-
-
-
-
-
 ################################################################
 np.random.seed(42)
-
-
 
 # Params ################################################################
 # Nameserver params
@@ -547,16 +538,15 @@ class Model(algorithm.Algorithm):
 
         if not tensor_4d_shape[0] > 0 or True:
             logger.info(
-                "Detected that examples have variable sequence_size, will "
-                + "randomly crop a sequence with num_frames = "
-                + "{}".format(num_frames)
+                "Detected that examples have variable sequence_size, will " +
+                "randomly crop a sequence with num_frames = " + "{}".format(num_frames)
             )
             tensor_4d = crop_time_axis(tensor_4d, num_frames=num_frames)
         if not tensor_4d_shape[1] > 0 or not tensor_4d_shape[2] > 0 or True:
             logger.info(
-                "Detected that examples have variable space size, will "
-                + "resize space axes to (new_row_count, new_col_count) = "
-                + "{}".format((new_row_count, new_col_count))
+                "Detected that examples have variable space size, will " +
+                "resize space axes to (new_row_count, new_col_count) = " +
+                "{}".format((new_row_count, new_col_count))
             )
             tensor_4d = resize_space_axes(
                 tensor_4d, new_row_count=new_row_count, new_col_count=new_col_count
@@ -905,14 +895,12 @@ class AUTOMLWorker(Worker):
         neurons = CSH.UniformIntegerHyperparameter("neurons", 64, 300, log=True)
         dropout = CSH.UniformFloatHyperparameter("dropout", 0, 0.95, default_value=0.5)
         ##########################
-        cs.add_hyperparameters(
-            [
-                lr,
-                # weight_decay,
-                neurons,
-                dropout,
-            ]
-        )
+        cs.add_hyperparameters([
+            lr,
+            # weight_decay,
+            neurons,
+            dropout,
+        ])
         return cs
 
     def model_fn(self, features, labels, mode, params):
@@ -1014,9 +1002,11 @@ class AUTOMLWorker(Worker):
         # Add evaluation metrics (for EVAL mode)
         assert mode == tf.estimator.ModeKeys.EVAL
         eval_metric_ops = {
-            "accuracy": tf.metrics.accuracy(
-                labels=tf.argmax(input=labels, axis=1), predictions=predictions["classes"]
-            )
+            "accuracy":
+                tf.metrics.accuracy(
+                    labels=tf.argmax(input=labels, axis=1),
+                    predictions=predictions["classes"]
+                )
         }
         return tf.estimator.EstimatorSpec(
             mode=mode, loss=loss, eval_metric_ops=eval_metric_ops
@@ -1100,16 +1090,15 @@ class AUTOMLWorker(Worker):
 
         if not tensor_4d_shape[0] > 0 or True:
             logger.info(
-                "Detected that examples have variable sequence_size, will "
-                + "randomly crop a sequence with num_frames = "
-                + "{}".format(num_frames)
+                "Detected that examples have variable sequence_size, will " +
+                "randomly crop a sequence with num_frames = " + "{}".format(num_frames)
             )
             tensor_4d = crop_time_axis(tensor_4d, num_frames=num_frames)
         if not tensor_4d_shape[1] > 0 or not tensor_4d_shape[2] > 0:
             logger.info(
-                "Detected that examples have variable space size, will "
-                + "resize space axes to (new_row_count, new_col_count) = "
-                + "{}".format((new_row_count, new_col_count))
+                "Detected that examples have variable space size, will " +
+                "resize space axes to (new_row_count, new_col_count) = " +
+                "{}".format((new_row_count, new_col_count))
             )
             tensor_4d = resize_space_axes(
                 tensor_4d, new_row_count=new_row_count, new_col_count=new_col_count

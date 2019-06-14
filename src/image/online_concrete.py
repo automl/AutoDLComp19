@@ -1,8 +1,7 @@
+import dataloading
 import numpy as np
 import torch
 import torch.nn as nn
-
-import dataloading
 
 
 def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):

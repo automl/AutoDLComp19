@@ -51,7 +51,6 @@ class Unit3D(nn.Module):
         use_bias=False,
         name="unit_3d",
     ):
-
         """Initializes Unit3D module."""
         super(Unit3D, self).__init__()
 
@@ -69,7 +68,8 @@ class Unit3D(nn.Module):
             out_channels=self._output_channels,
             kernel_size=self._kernel_shape,
             stride=self._stride,
-            padding=0,  # we always want padding to be 0 here. We will dynamically pad based on input size in forward function
+            padding=
+            0,  # we always want padding to be 0 here. We will dynamically pad based on input size in forward function
             bias=self._use_bias,
         )
 

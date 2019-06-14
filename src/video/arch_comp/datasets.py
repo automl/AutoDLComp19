@@ -1,9 +1,8 @@
 import csv
 import os
 
-import torch.utils.data as data
-
 import eioh
+import torch.utils.data as data
 
 
 class Dataset:
@@ -149,7 +148,6 @@ class UCF101(data.Dataset):
 #     '''
 #     def __init__(self, data_dir):
 #         pass
-
 
 if __name__ == "__main__":
     ucf = Dataset(dataset="ucf101", data_dir="/home/dingsda/autodl/data/ucf101")

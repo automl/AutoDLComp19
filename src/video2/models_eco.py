@@ -1,16 +1,25 @@
+from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, xavier_uniform_
-
-from ops.basic_ops import ConsensusModule
 from transforms import *
 
 
 class TSN(nn.Module):
-    def __init__(self, num_class, num_segments, modality,
-                 base_model='resnet101', new_length=None,
-                 consensus_type='avg', before_softmax=True,
-                 dropout=0.8,
-                 crop_num=1, partial_bn=True, freeze_eco=False, freeze_interval=[2, 63, -1, -1]):
+    def __init__(
+        self,
+        num_class,
+        num_segments,
+        modality,
+        base_model='resnet101',
+        new_length=None,
+        consensus_type='avg',
+        before_softmax=True,
+        dropout=0.8,
+        crop_num=1,
+        partial_bn=True,
+        freeze_eco=False,
+        freeze_interval=[2, 63, -1, -1]
+    ):
         super(TSN, self).__init__()
         self.modality = modality
         self.num_segments = num_segments
@@ -28,7 +37,9 @@ class TSN(nn.Module):
         else:
             self.new_length = new_length
 
-        print(("""
+        print(
+            (
+                """
 Initializing TSN with base model: {}.
 TSN Configurations:
     input_modality:     {}
@@ -36,14 +47,18 @@ TSN Configurations:
     new_length:         {}
     consensus_module:   {}
     dropout_ratio:      {}
-        """.format(base_model, self.modality, self.num_segments, self.new_length, consensus_type, self.dropout)))
+        """.format(
+                    base_model, self.modality, self.num_segments, self.new_length,
+                    consensus_type, self.dropout
+                )
+            )
+        )
 
         self._prepare_base_model(base_model)
 
         # zc comments
         feature_dim = self._prepare_tsn(num_class)
         # modules = list(self.modules())
-
 
         if self.modality == 'Flow':
             print("Converting the ImageNet model to a flow init model")
@@ -67,18 +82,26 @@ TSN Configurations:
         self._freeze_interval = freeze_interval
 
     def _prepare_tsn(self, num_class):
-        feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
+        feature_dim = getattr(
+            self.base_model, self.base_model.last_layer_name
+        ).in_features
         # feature_dim_task2 = getattr(self.base_model, self.base_model.task2_layer_name).in_features
         if self.dropout == 0:
 
-            setattr(self.base_model, self.base_model.last_layer_name, nn.Linear(feature_dim, num_class))
+            setattr(
+                self.base_model, self.base_model.last_layer_name,
+                nn.Linear(feature_dim, num_class)
+            )
 
             self.new_fc = None
             self.new_fc3 = None
 
         else:
             print("0" * 100)
-            setattr(self.base_model, self.base_model.last_layer_name, nn.Dropout(p=self.dropout))
+            setattr(
+                self.base_model, self.base_model.last_layer_name,
+                nn.Dropout(p=self.dropout)
+            )
             self.new_fc = nn.Linear(feature_dim, num_class)
             # print(self.base_model)
 
@@ -86,9 +109,10 @@ TSN Configurations:
 
         std = 0.001
         if self.new_fc is None:
-            xavier_uniform_(getattr(self.base_model, self.base_model.last_layer_name).weight)
+            xavier_uniform_(
+                getattr(self.base_model, self.base_model.last_layer_name).weight
+            )
             constant_(getattr(self.base_model, self.base_model.last_layer_name).bias, 0)
-
 
         else:
             xavier_uniform_(self.new_fc.weight)
@@ -110,10 +134,13 @@ TSN Configurations:
                 self.input_std = [np.mean(self.input_std)]
             elif self.modality == 'RGBDiff':
                 self.input_mean = [0.485, 0.456, 0.406] + [0] * 3 * self.new_length
-                self.input_std = self.input_std + [np.mean(self.input_std) * 2] * 3 * self.new_length
+                self.input_std = self.input_std + [
+                    np.mean(self.input_std) * 2
+                ] * 3 * self.new_length
         elif base_model == 'C3DRes18':
             import tf_model_zoo
-            self.base_model = getattr(tf_model_zoo, base_model)(num_segments=self.num_segments)
+            self.base_model = getattr(tf_model_zoo,
+                                      base_model)(num_segments=self.num_segments)
             self.base_model.last_layer_name = 'fc8'
             self.input_size = 112
             self.input_mean = [104, 117, 128]
@@ -126,7 +153,8 @@ TSN Configurations:
 
         elif base_model == 'ECO' or base_model == 'ECOfull':
             import tf_model_zoo
-            self.base_model = getattr(tf_model_zoo, base_model)(num_segments=self.num_segments)
+            self.base_model = getattr(tf_model_zoo,
+                                      base_model)(num_segments=self.num_segments)
             self.base_model.last_layer_name = 'fc_final'
             self.input_size = 224
             self.input_mean = [104, 117, 128]
@@ -137,10 +165,10 @@ TSN Configurations:
             elif self.modality == 'RGBDiff':
                 self.input_mean = self.input_mean * (1 + self.new_length)
 
-
         elif base_model == 'BN2to1D':
             import tf_model_zoo
-            self.base_model = getattr(tf_model_zoo, base_model)(num_segments=self.num_segments)
+            self.base_model = getattr(tf_model_zoo,
+                                      base_model)(num_segments=self.num_segments)
             self.base_model.last_layer_name = 'fc'
             self.input_size = 224
             self.input_mean = [104, 117, 128]
@@ -169,19 +197,31 @@ TSN Configurations:
         super(TSN, self).train(mode)
         count = 0
         if self._enable_freeze_eco:
-            print("Freezing all layers in ECO except the first one and last layers for regression.")
+            print(
+                "Freezing all layers in ECO except the first one and last layers for regression."
+            )
             for m in self.base_model.modules():
                 # print(m)
-                if (not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and not isinstance(m, nn.AvgPool2d)
-                    and not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)):
+                if (
+                    not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
+                    not isinstance(m, nn.AvgPool2d) and
+                    not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
+                ):
                     count += 1
                     # print("000"*30)
                     # print(count)
                     assert len(
-                        self._freeze_interval) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
-                        len(self._freeze_interval), self._freeze_interval)
-                    if (count >= self._freeze_interval[0] and count <= self._freeze_interval[1]) or (
-                            count >= self._freeze_interval[2] and count <= self._freeze_interval[3]):
+                        self._freeze_interval
+                    ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
+                        len(self._freeze_interval), self._freeze_interval
+                    )
+                    if (
+                        count >= self._freeze_interval[0] and
+                        count <= self._freeze_interval[1]
+                    ) or (
+                        count >= self._freeze_interval[2] and
+                        count <= self._freeze_interval[3]
+                    ):
                         m.eval()
                         print("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
@@ -261,18 +301,41 @@ TSN Configurations:
                     bn.extend(list(m.parameters()))
             elif len(m._modules) == 0:
                 if len(list(m.parameters())) > 0:
-                    raise ValueError("New atomic module type: {}. Need to give it a learning policy".format(type(m)))
+                    raise ValueError(
+                        "New atomic module type: {}. Need to give it a learning policy".
+                        format(type(m))
+                    )
         return [
-            {'params': first_3d_conv_weight, 'lr_mult': 5 if self.modality == 'Flow' else 1, 'decay_mult': 1,
-             'name': "first_3d_conv_weight"},
-            {'params': first_3d_conv_bias, 'lr_mult': 10 if self.modality == 'Flow' else 2, 'decay_mult': 0,
-             'name': "first_3d_conv_bias"},
-            {'params': normal_weight, 'lr_mult': 1, 'decay_mult': 1,
-             'name': "normal_weight"},
-            {'params': normal_bias, 'lr_mult': 2, 'decay_mult': 0,
-             'name': "normal_bias"},
-            {'params': bn, 'lr_mult': 1, 'decay_mult': 0,
-             'name': "BN scale/shift"},
+            {
+                'params': first_3d_conv_weight,
+                'lr_mult': 5 if self.modality == 'Flow' else 1,
+                'decay_mult': 1,
+                'name': "first_3d_conv_weight"
+            },
+            {
+                'params': first_3d_conv_bias,
+                'lr_mult': 10 if self.modality == 'Flow' else 2,
+                'decay_mult': 0,
+                'name': "first_3d_conv_bias"
+            },
+            {
+                'params': normal_weight,
+                'lr_mult': 1,
+                'decay_mult': 1,
+                'name': "normal_weight"
+            },
+            {
+                'params': normal_bias,
+                'lr_mult': 2,
+                'decay_mult': 0,
+                'name': "normal_bias"
+            },
+            {
+                'params': bn,
+                'lr_mult': 1,
+                'decay_mult': 0,
+                'name': "BN scale/shift"
+            },
         ]
 
     def get_optim_policies_BN2to1D(self):
@@ -326,22 +389,53 @@ TSN Configurations:
                     bn.extend(list(m.parameters()))
             elif len(m._modules) == 0:
                 if len(list(m.parameters())) > 0:
-                    raise ValueError("New atomic module type: {}. Need to give it a learning policy".format(type(m)))
+                    raise ValueError(
+                        "New atomic module type: {}. Need to give it a learning policy".
+                        format(type(m))
+                    )
         return [
-            {'params': first_conv_weight, 'lr_mult': 5 if self.modality == 'Flow' else 1, 'decay_mult': 1,
-             'name': "first_conv_weight"},
-            {'params': first_conv_bias, 'lr_mult': 10 if self.modality == 'Flow' else 2, 'decay_mult': 0,
-             'name': "first_conv_bias"},
-            {'params': normal_weight, 'lr_mult': 1, 'decay_mult': 1,
-             'name': "normal_weight"},
-            {'params': normal_bias, 'lr_mult': 2, 'decay_mult': 0,
-             'name': "normal_bias"},
-            {'params': last_conv_weight, 'lr_mult': 5, 'decay_mult': 1,
-             'name': "last_conv_weight"},
-            {'params': last_conv_bias, 'lr_mult': 10, 'decay_mult': 0,
-             'name': "last_conv_bias"},
-            {'params': bn, 'lr_mult': 1, 'decay_mult': 0,
-             'name': "BN scale/shift"},
+            {
+                'params': first_conv_weight,
+                'lr_mult': 5 if self.modality == 'Flow' else 1,
+                'decay_mult': 1,
+                'name': "first_conv_weight"
+            },
+            {
+                'params': first_conv_bias,
+                'lr_mult': 10 if self.modality == 'Flow' else 2,
+                'decay_mult': 0,
+                'name': "first_conv_bias"
+            },
+            {
+                'params': normal_weight,
+                'lr_mult': 1,
+                'decay_mult': 1,
+                'name': "normal_weight"
+            },
+            {
+                'params': normal_bias,
+                'lr_mult': 2,
+                'decay_mult': 0,
+                'name': "normal_bias"
+            },
+            {
+                'params': last_conv_weight,
+                'lr_mult': 5,
+                'decay_mult': 1,
+                'name': "last_conv_weight"
+            },
+            {
+                'params': last_conv_bias,
+                'lr_mult': 10,
+                'decay_mult': 0,
+                'name': "last_conv_bias"
+            },
+            {
+                'params': bn,
+                'lr_mult': 1,
+                'decay_mult': 0,
+                'name': "BN scale/shift"
+            },
         ]
 
     def forward(self, input, *feature_name):
@@ -356,7 +450,10 @@ TSN Configurations:
         # print(input.view((-1, sample_len) + input.size()[-2:]).size())
         if self.base_model_name == "C3DRes18":
             before_permute = input.view((-1, sample_len) + input.size()[-2:])
-            input_var = torch.transpose(before_permute.view((-1, self.num_segments) + before_permute.size()[1:]), 1, 2)
+            input_var = torch.transpose(
+                before_permute.view((-1, self.num_segments) + before_permute.size()[1:]),
+                1, 2
+            )
         else:
             input_var = input.view((-1, sample_len) + input.size()[-2:])
 
@@ -365,7 +462,9 @@ TSN Configurations:
 
         else:
             if feature_name:
-                feature_out, base_out2, base_out = self.base_model(input_var, feature_name)
+                feature_out, base_out2, base_out = self.base_model(
+                    input_var, feature_name
+                )
 
             else:
                 base_out = self.base_model(input_var)
@@ -392,7 +491,6 @@ TSN Configurations:
                 else:
                     return output
 
-
             else:
                 # base_out.size(): [32, 3, 101], [batch_size, num_segments, num_class] respectively
                 base_out = base_out.view((-1, self.num_segments) + base_out.size()[1:])
@@ -403,7 +501,14 @@ TSN Configurations:
 
     def _get_diff(self, input, keep_rgb=False):
         input_c = 3 if self.modality in ["RGB", "RGBDiff"] else 2
-        input_view = input.view((-1, self.num_segments, self.new_length + 1, input_c,) + input.size()[2:])
+        input_view = input.view(
+            (
+                -1,
+                self.num_segments,
+                self.new_length + 1,
+                input_c,
+            ) + input.size()[2:]
+        )
         if keep_rgb:
             new_data = input_view.clone()
         else:
@@ -411,9 +516,13 @@ TSN Configurations:
 
         for x in reversed(list(range(1, self.new_length + 1))):
             if keep_rgb:
-                new_data[:, :, x, :, :, :] = input_view[:, :, x, :, :, :] - input_view[:, :, x - 1, :, :, :]
+                new_data[:, :, x, :, :, :
+                        ] = input_view[:, :, x, :, :, :] - input_view[:, :, x -
+                                                                      1, :, :, :]
             else:
-                new_data[:, :, x - 1, :, :, :] = input_view[:, :, x, :, :, :] - input_view[:, :, x - 1, :, :, :]
+                new_data[:, :, x - 1, :, :, :
+                        ] = input_view[:, :, x, :, :, :] - input_view[:, :, x -
+                                                                      1, :, :, :]
 
         return new_data
 
@@ -422,23 +531,34 @@ TSN Configurations:
         # Torch models are usually defined in a hierarchical way.
         # nn.modules.children() return all sub modules in a DFS manner
         modules = list(self.base_model.modules())
-        first_conv_idx = list(filter(lambda x: isinstance(modules[x], nn.Conv2d), list(range(len(modules)))))[0]
+        first_conv_idx = list(
+            filter(
+                lambda x: isinstance(modules[x], nn.Conv2d), list(range(len(modules)))
+            )
+        )[0]
         conv_layer = modules[first_conv_idx]
         container = modules[first_conv_idx - 1]
 
         # modify parameters, assume the first blob contains the convolution kernels
         params = [x.clone() for x in conv_layer.parameters()]
         kernel_size = params[0].size()
-        new_kernel_size = kernel_size[:1] + (2 * self.new_length,) + kernel_size[2:]
-        new_kernels = params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size).contiguous()
+        new_kernel_size = kernel_size[:1] + (2 * self.new_length, ) + kernel_size[2:]
+        new_kernels = params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size
+                                                                     ).contiguous()
 
-        new_conv = nn.Conv2d(2 * self.new_length, conv_layer.out_channels,
-                             conv_layer.kernel_size, conv_layer.stride, conv_layer.padding,
-                             bias=True if len(params) == 2 else False)
+        new_conv = nn.Conv2d(
+            2 * self.new_length,
+            conv_layer.out_channels,
+            conv_layer.kernel_size,
+            conv_layer.stride,
+            conv_layer.padding,
+            bias=True if len(params) == 2 else False
+        )
         new_conv.weight.data = new_kernels
         if len(params) == 2:
             new_conv.bias.data = params[1].data  # add bias if neccessary
-        layer_name = list(container.state_dict().keys())[0][:-7]  # remove .weight suffix to get the layer name
+        layer_name = list(container.state_dict().keys()
+                         )[0][:-7]  # remove .weight suffix to get the layer name
 
         # replace the first convlution layer
         setattr(container, layer_name, new_conv)
@@ -449,7 +569,9 @@ TSN Configurations:
         # Torch models are usually defined in a hierarchical way.
         # nn.modules.children() return all sub modules in a DFS manner
         modules = list(self.base_model.modules())
-        first_conv_idx = filter(lambda x: isinstance(modules[x], nn.Conv2d), list(range(len(modules))))[0]
+        first_conv_idx = filter(
+            lambda x: isinstance(modules[x], nn.Conv2d), list(range(len(modules)))
+        )[0]
         conv_layer = modules[first_conv_idx]
         container = modules[first_conv_idx - 1]
 
@@ -457,22 +579,34 @@ TSN Configurations:
         params = [x.clone() for x in conv_layer.parameters()]
         kernel_size = params[0].size()
         if not keep_rgb:
-            new_kernel_size = kernel_size[:1] + (3 * self.new_length,) + kernel_size[2:]
-            new_kernels = params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size).contiguous()
+            new_kernel_size = kernel_size[:1] + (3 * self.new_length, ) + kernel_size[2:]
+            new_kernels = params[0].data.mean(dim=1, keepdim=True
+                                             ).expand(new_kernel_size).contiguous()
         else:
-            new_kernel_size = kernel_size[:1] + (3 * self.new_length,) + kernel_size[2:]
+            new_kernel_size = kernel_size[:1] + (3 * self.new_length, ) + kernel_size[2:]
             new_kernels = torch.cat(
-                (params[0].data, params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size).contiguous()),
-                1)
-            new_kernel_size = kernel_size[:1] + (3 + 3 * self.new_length,) + kernel_size[2:]
+                (
+                    params[0].data,
+                    params[0].data.mean(dim=1,
+                                        keepdim=True).expand(new_kernel_size).contiguous()
+                ), 1
+            )
+            new_kernel_size = kernel_size[:1] + (3 +
+                                                 3 * self.new_length, ) + kernel_size[2:]
 
-        new_conv = nn.Conv2d(new_kernel_size[1], conv_layer.out_channels,
-                             conv_layer.kernel_size, conv_layer.stride, conv_layer.padding,
-                             bias=True if len(params) == 2 else False)
+        new_conv = nn.Conv2d(
+            new_kernel_size[1],
+            conv_layer.out_channels,
+            conv_layer.kernel_size,
+            conv_layer.stride,
+            conv_layer.padding,
+            bias=True if len(params) == 2 else False
+        )
         new_conv.weight.data = new_kernels
         if len(params) == 2:
             new_conv.bias.data = params[1].data  # add bias if neccessary
-        layer_name = list(container.state_dict().keys())[0][:-7]  # remove .weight suffix to get the layer name
+        layer_name = list(container.state_dict().keys()
+                         )[0][:-7]  # remove .weight suffix to get the layer name
 
         # replace the first convolution layer
         setattr(container, layer_name, new_conv)
@@ -488,11 +622,23 @@ TSN Configurations:
 
     def get_augmentation(self):
         if self.modality == 'RGB':
-            return torchvision.transforms.Compose([GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
-                                                   GroupRandomHorizontalFlip(is_flow=False)])
+            return torchvision.transforms.Compose(
+                [
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                    GroupRandomHorizontalFlip(is_flow=False)
+                ]
+            )
         elif self.modality == 'Flow':
-            return torchvision.transforms.Compose([GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
-                                                   GroupRandomHorizontalFlip(is_flow=True)])
+            return torchvision.transforms.Compose(
+                [
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
+                    GroupRandomHorizontalFlip(is_flow=True)
+                ]
+            )
         elif self.modality == 'RGBDiff':
-            return torchvision.transforms.Compose([GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
-                                                   GroupRandomHorizontalFlip(is_flow=False)])
+            return torchvision.transforms.Compose(
+                [
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
+                    GroupRandomHorizontalFlip(is_flow=False)
+                ]
+            )

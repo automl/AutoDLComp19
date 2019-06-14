@@ -6,8 +6,13 @@ from .layer_factory import get_basic_layer, parse_expr
 
 
 class ECO(nn.Module):
-    def __init__(self, model_path='tf_model_zoo/ECO/ECO.yaml', num_classes=101,
-                 num_segments=4, pretrained_parts='both'):
+    def __init__(
+        self,
+        model_path='tf_model_zoo/ECO/ECO.yaml',
+        num_classes=101,
+        num_segments=4,
+        pretrained_parts='both'
+    ):
 
         super(ECO, self).__init__()
 
@@ -25,11 +30,12 @@ class ECO(nn.Module):
         for l in layers:
             out_var, op, in_var = parse_expr(l['expr'])
             if op != 'Concat' and op != 'Eltwise':
-                id, out_name, module, out_channel, in_name = get_basic_layer(l,
-                                                                             3 if len(self._channel_dict) == 0 else
-                                                                             self._channel_dict[in_var[0]],
-                                                                             conv_bias=True if op == 'Conv3d' else True,
-                                                                             num_segments=num_segments)
+                id, out_name, module, out_channel, in_name = get_basic_layer(
+                    l,
+                    3 if len(self._channel_dict) == 0 else self._channel_dict[in_var[0]],
+                    conv_bias=True if op == 'Conv3d' else True,
+                    num_segments=num_segments
+                )
 
                 # print("id {} out0 {} mod {} out_channel{} invars {}".format(id, out_name, module, out_channel, in_name))
                 # print("0"*100)
@@ -50,7 +56,6 @@ class ECO(nn.Module):
         data_dict[self._op_list[0][-1]] = input
 
         def get_hook(name):
-
             def hook(m, grad_in, grad_out):
                 print(name, grad_out[0].data.abs().mean())
 
@@ -64,7 +69,10 @@ class ECO(nn.Module):
                 if op[0] == 'res3a_2':
                     inception_3c_output = data_dict['inception_3c_double_3x3_1_bn']
                     inception_3c_transpose_output = torch.transpose(
-                        inception_3c_output.view((-1, self.num_segments) + inception_3c_output.size()[1:]), 1, 2)
+                        inception_3c_output.
+                        view((-1, self.num_segments) + inception_3c_output.size()[1:]), 1,
+                        2
+                    )
                     data_dict[op[2]] = getattr(self, op[0])(inception_3c_transpose_output)
                 else:
                     data_dict[op[2]] = getattr(self, op[0])(data_dict[op[-1]])
@@ -77,7 +85,8 @@ class ECO(nn.Module):
                 # print("@"*50)
             elif op[1] == 'Eltwise':
                 try:
-                    data_dict[op[2]] = torch.add(data_dict[op[-1][0]], 1, data_dict[op[-1][1]])
+                    data_dict[op[2]
+                             ] = torch.add(data_dict[op[-1][0]], 1, data_dict[op[-1][1]])
                 except:
                     for x in op[-1]:
                         print(x, data_dict[x].size())
@@ -106,6 +115,7 @@ class ECO(nn.Module):
         if feature_name:
             # print(feature_name[0][0])
             feature_output = data_dict[feature_name[0][0]].squeeze()
-            return feature_output, data_dict[self._op_list[-1][2]], data_dict[self._op_list[-2][2]]
+            return feature_output, data_dict[self._op_list[-1][2]
+                                            ], data_dict[self._op_list[-2][2]]
         else:
             return data_dict[self._op_list[-1][2]], data_dict[self._op_list[-2][2]]

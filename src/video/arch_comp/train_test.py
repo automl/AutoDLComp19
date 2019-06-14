@@ -1,12 +1,11 @@
 import time
 
+import models
 import numpy as np
+import preprocessing as prep
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-import models
-import preprocessing as prep
 from datasets import Dataset
 
 

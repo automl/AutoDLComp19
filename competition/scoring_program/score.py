@@ -62,7 +62,6 @@ Previous updates:
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 ################################################################################
 
-
 ################################################################################
 # User defined constants
 ################################################################################
@@ -82,12 +81,11 @@ import sys
 import time
 from os.path import join
 
-import numpy as np
-import yaml
-
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import psutil
+import yaml
 from libscores import ls, mvmean, read_array, tiedrank
 from sklearn.metrics import auc, roc_auc_score
 
@@ -145,8 +143,8 @@ def autodl_auc(solution, prediction, valid_columns_only=True):
         valid_columns = get_valid_columns(solution)
         if len(valid_columns) < solution.shape[-1]:
             logger.warning(
-                "Some columns in solution have only one class, "
-                + "ignoring these columns for evaluation."
+                "Some columns in solution have only one class, " +
+                "ignoring these columns for evaluation."
             )
         solution = solution[:, valid_columns].copy()
         prediction = prediction[:, valid_columns].copy()
@@ -226,8 +224,8 @@ def get_solution(solution_dir):
     solution_names = sorted(ls(os.path.join(solution_dir, "*.solution")))
     if len(solution_names) != 1:  # Assert only one file is found
         logger.warning(
-            "{} solution files found: {}! ".format(len(solution_names), solution_names)
-            + "Return `None` as solution."
+            "{} solution files found: {}! ".format(len(solution_names), solution_names) +
+            "Return `None` as solution."
         )
         return None
     solution_file = solution_names[0]
@@ -240,8 +238,8 @@ def get_task_name(solution_dir):
     solution_names = sorted(ls(os.path.join(solution_dir, "*.solution")))
     if len(solution_names) != 1:  # Assert only one file is found
         logger.warning(
-            "{} solution files found: {}! ".format(len(solution_names), solution_names)
-            + "Return `None` as task name."
+            "{} solution files found: {}! ".format(len(solution_names), solution_names) +
+            "Return `None` as task name."
         )
         return None
     solution_file = solution_names[0]
@@ -289,8 +287,8 @@ def auc_step(X, Y):
     """Compute area under curve using step function (in 'post' mode)."""
     if len(X) != len(Y):
         raise ValueError(
-            "The length of X and Y should be equal but got "
-            + "{} and {} !".format(len(X), len(Y))
+            "The length of X and Y should be equal but got " +
+            "{} and {} !".format(len(X), len(Y))
         )
     area = 0
     for i in range(len(X) - 1):
@@ -343,42 +341,36 @@ def plot_learning_curve(
     le = len(timestamps)
     if not le == len(scores):
         raise ValueError(
-            "The number of timestamps {} ".format(le)
-            + "should be equal to the number of "
-            + "scores {}!".format(len(scores))
+            "The number of timestamps {} ".format(le) +
+            "should be equal to the number of " + "scores {}!".format(len(scores))
         )
     for i in range(le):
         if i < le - 1 and not timestamps[i] <= timestamps[i + 1]:
             raise ValueError(
-                "The timestamps should be increasing! But got "
-                + "[{}, {}] ".format(timestamps[i], timestamps[i + 1])
-                + "at index [{}, {}].".format(i, i + 1)
+                "The timestamps should be increasing! But got " +
+                "[{}, {}] ".format(timestamps[i], timestamps[i + 1]) +
+                "at index [{}, {}].".format(i, i + 1)
             )
         if timestamps[i] < start_time:
             raise ValueError(
-                "The timestamp {} at index {}".format(timestamps[i], i)
-                + " is earlier than start time {}!".format(start_time)
+                "The timestamp {} at index {}".format(timestamps[i], i) +
+                " is earlier than start time {}!".format(start_time)
             )
     timestamps = [t for t in timestamps if t <= time_budget + start_time]
     if len(timestamps) < le:
         logger.warning(
-            "Some predictions are made after the time budget! "
-            + "Ignoring all predictions from the index {}.".format(len(timestamps))
+            "Some predictions are made after the time budget! " +
+            "Ignoring all predictions from the index {}.".format(len(timestamps))
         )
-        scores = scores[: len(timestamps)]
+        scores = scores[:len(timestamps)]
     if transform is None:
         t0 = 60
         # default transformation
         transform = lambda t: transform_time(t, time_budget, t0=t0)
         xlabel = (
-            "Transformed time: "
-            + r"$\tilde{t} = \frac{\log (1 + t / t_0)}{ \log (1 + T / t_0)}$ "
-            + " ($T = "
-            + str(int(time_budget))
-            + "$, "
-            + " $t_0 = "
-            + str(int(t0))
-            + "$)"
+            "Transformed time: " +
+            r"$\tilde{t} = \frac{\log (1 + t / t_0)}{ \log (1 + T / t_0)}$ " + " ($T = " +
+            str(int(time_budget)) + "$, " + " $t_0 = " + str(int(t0)) + "$)"
         )
     else:
         xlabel = "Transformed time: " + r"$\tilde{t}$"
@@ -464,8 +456,8 @@ def draw_learning_curve(
         prediction = read_array(prediction_file)  # numpy array
         if solution.shape != prediction.shape:
             raise ValueError(
-                "Bad prediction shape: {}. ".format(prediction.shape)
-                + "Expected shape: {}".format(solution.shape)
+                "Bad prediction shape: {}. ".format(prediction.shape) +
+                "Expected shape: {}".format(solution.shape)
             )
         scores.append(scoring_function(solution, prediction))
         try:  # if only one class present in y_true. ROC AUC score is not defined in that case.
@@ -541,9 +533,8 @@ def init_scores_html(detailed_results_filepath):
     with open(detailed_results_filepath, "a") as html_file:
         html_file.write(html_head)
         html_file.write(
-            "Starting training process... <br> Please be patient. "
-            + "Learning curves will be generated when first "
-            + "predictions are made."
+            "Starting training process... <br> Please be patient. " +
+            "Learning curves will be generated when first " + "predictions are made."
         )
         html_file.write(html_end)
 
@@ -635,8 +626,8 @@ def get_timestamps(prediction_dir):
         return start_time, timestamps
     else:
         logger.warning(
-            "No 'start.txt' file found in the prediction directory "
-            + "{}. Return `None` as timestamps."
+            "No 'start.txt' file found in the prediction directory " +
+            "{}. Return `None` as timestamps."
         )
         return None
 
@@ -713,16 +704,15 @@ if __name__ == "__main__":
         "--prediction_dir",
         type=str,
         default=default_prediction_dir,
-        help="Directory storing the predictions. It should"
-        + "contain e.g. [start.txt, adult.predict_0, "
-        + "adult.predict_1, ..., end.txt].",
+        help="Directory storing the predictions. It should" +
+        "contain e.g. [start.txt, adult.predict_0, " + "adult.predict_1, ..., end.txt].",
     )
     parser.add_argument(
         "--score_dir",
         type=str,
         default=default_score_dir,
-        help="Directory storing the scoring output "
-        + "e.g. `scores.txt` and `detailed_results.html`.",
+        help="Directory storing the scoring output " +
+        "e.g. `scores.txt` and `detailed_results.html`.",
     )
     parser.add_argument(
         "--time_budget",
@@ -760,15 +750,15 @@ if __name__ == "__main__":
         ingestion_info = get_ingestion_info(prediction_dir)
         if not ingestion_info is None:
             logger.info(
-                "Detected the start of ingestion after {} ".format(i)
-                + "seconds. Start scoring."
+                "Detected the start of ingestion after {} ".format(i) +
+                "seconds. Start scoring."
             )
             break
         time.sleep(1)
     else:
         raise IngestionError(
-            "[-] Failed: scoring didn't detected the start of "
-            + "ingestion after {} seconds.".format(wait_time)
+            "[-] Failed: scoring didn't detected the start of " +
+            "ingestion after {} seconds.".format(wait_time)
         )
 
     # Get ingestion start time
@@ -781,8 +771,8 @@ if __name__ == "__main__":
     if "time_budget" in ingestion_info:
         if not time_budget == ingestion_info["time_budget"]:
             logger.warning(
-                "Different time budgets passed to ingestion and "
-                + "scoring. Use that of ingestion."
+                "Different time budgets passed to ingestion and " +
+                "scoring. Use that of ingestion."
             )
             time_budget = ingestion_info["time_budget"]
 
@@ -809,9 +799,9 @@ if __name__ == "__main__":
         while time.time() < ingestion_start + time_budget:
             if not ingestion_is_alive(prediction_dir):
                 logger.info(
-                    "Detected ingestion program had stopped running "
-                    + "because an 'end.txt' file is written by ingestion. "
-                    + "Stop scoring now."
+                    "Detected ingestion program had stopped running " +
+                    "because an 'end.txt' file is written by ingestion. " +
+                    "Stop scoring now."
                 )
                 break
             time.sleep(1)
@@ -828,8 +818,8 @@ if __name__ == "__main__":
                 ]
                 prediction_files_so_far += new_prediction_files
                 logger.info(
-                    "[+] New prediction found. Now number of predictions "
-                    + "made = {}".format(num_preds_new)
+                    "[+] New prediction found. Now number of predictions " +
+                    "made = {}".format(num_preds_new)
                 )
                 prediction_files_so_far += new_prediction_files
                 scores_so_far += new_scores
@@ -853,8 +843,8 @@ if __name__ == "__main__":
                 time_limit_exceeded = True
                 terminate_process(ingestion_pid)
                 logger.info(
-                    "Detected time budget is used up. Killed ingestion and "
-                    + "terminating scoring..."
+                    "Detected time budget is used up. Killed ingestion and " +
+                    "terminating scoring..."
                 )
     except Exception as e:
         scoring_success = False
@@ -878,21 +868,21 @@ if __name__ == "__main__":
     end_filepath = os.path.join(prediction_dir, "end.txt")
     if not scoring_success:
         logger.error(
-            "[-] Some error occurred in scoring program. "
-            + "Please see output/error log of Scoring Step."
+            "[-] Some error occurred in scoring program. " +
+            "Please see output/error log of Scoring Step."
         )
     elif not os.path.isfile(end_filepath):
         if time_limit_exceeded:
             logger.error(
-                "[-] Ingestion program exceeded time budget. "
-                + "Predictions made so far will be used for evaluation."
+                "[-] Ingestion program exceeded time budget. " +
+                "Predictions made so far will be used for evaluation."
             )
         else:  # Less probable to fall in this case
             if is_process_alive(ingestion_pid):
                 terminate_process(ingestion_pid)
             logger.error(
-                "[-] No 'end.txt' file is produced by ingestion. "
-                + "Ingestion or scoring may have not terminated normally."
+                "[-] No 'end.txt' file is produced by ingestion. " +
+                "Ingestion or scoring may have not terminated normally."
             )
     else:
         with open(end_filepath, "r") as f:
@@ -901,17 +891,16 @@ if __name__ == "__main__":
 
         if end_info_dict["ingestion_success"] == 0:
             logger.error(
-                "[-] Some error occurred in ingestion program. "
-                + "Please see output/error log of Ingestion Step."
+                "[-] Some error occurred in ingestion program. " +
+                "Please see output/error log of Ingestion Step."
             )
         else:
             logger.info(
-                "[+] Successfully finished scoring! "
-                + "Scoring duration: {:.2f} sec. ".format(time.time() - scoring_start)
-                + "Ingestion duration: {:.2f} sec. ".format(ingestion_duration)
-                + "The score of your algorithm on the task '{}' is: {:.6f}.".format(
-                    basename, score
-                )
+                "[+] Successfully finished scoring! " +
+                "Scoring duration: {:.2f} sec. ".format(time.time() - scoring_start) +
+                "Ingestion duration: {:.2f} sec. ".format(ingestion_duration) +
+                "The score of your algorithm on the task '{}' is: {:.6f}.".
+                format(basename, score)
             )
 
     logger.info("[Scoring terminated]")

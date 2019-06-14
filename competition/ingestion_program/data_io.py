@@ -28,12 +28,11 @@ from shutil import copy2
 from sys import getsizeof, stderr, version
 from zipfile import ZIP_DEFLATED, ZipFile
 
-import numpy as np
-import yaml
-
 import data_converter
+import numpy as np
 import pandas as pd
 import psutil
+import yaml
 from scipy.sparse import *  # used in data_binary_sparse
 
 try:
@@ -41,13 +40,11 @@ try:
 except ImportError:
     pass
 
-
 # get_installed_distributions has gone from pip v10
 try:
     from pip._internal.utils.misc import get_installed_distributions as lib
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
-
 
 # ================ Small auxiliary functions =================
 
@@ -78,9 +75,8 @@ def read_as_df(basename, type="train"):
         print("Number of classes = %d" % classnum)
         # Here we add the target values as a last column, this is convenient to use seaborn
         # Look at http://seaborn.pydata.org/tutorial/axis_grids.html for other ideas
-        label_range = np.arange(
-            classnum
-        ).transpose()  # This is just a column vector [[0], [1], [2]]
+        label_range = np.arange(classnum).transpose(
+        )  # This is just a column vector [[0], [1], [2]]
         numerical_target = Y.dot(
             label_range
         )  # This is a column vector of dim patnum with numerical categories
@@ -164,8 +160,8 @@ def zipdir(archivename, basedir):
             for fn in files:
                 if not fn.endswith(".zip"):
                     absfn = os.path.join(root, fn)
-                    zfn = absfn[len(basedir) :]  # XXX: relative path
-                    assert absfn[: len(basedir)] == basedir
+                    zfn = absfn[len(basedir):]  # XXX: relative path
+                    assert absfn[:len(basedir)] == basedir
                     if zfn[0] == os.sep:
                         zfn = zfn[1:]
                     z.write(absfn, zfn)

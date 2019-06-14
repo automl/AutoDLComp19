@@ -1,9 +1,8 @@
 import functools
 
+import image.models as models
 import torch
 import torch.nn as nn
-
-import image.models as models
 import utils
 
 
@@ -82,19 +81,17 @@ class OnlineMeta:
         # Compute frozen / unfrozen modules using first_j and last_k configparameters
         submodules_names, submodules = _get_ordered_trainable_submodules(model)
 
-        first_j = submodules[0 : self.config.finetune_first_j]
-        first_j_names = submodules_names[0 : self.config.finetune_first_j]
-        last_k = submodules[-self.config.finetune_last_k :]
-        last_k_names = submodules_names[-self.config.finetune_last_k :]
+        first_j = submodules[0:self.config.finetune_first_j]
+        first_j_names = submodules_names[0:self.config.finetune_first_j]
+        last_k = submodules[-self.config.finetune_last_k:]
+        last_k_names = submodules_names[-self.config.finetune_last_k:]
 
         unfrozen_modules = first_j + last_k
         unfrozen_modules_names = first_j_names + last_k_names
-        frozen_modules = submodules[
-            self.config.finetune_first_j : -self.config.finetune_last_k
-        ]
-        frozen_modules_names = submodules_names[
-            self.config.finetune_first_j : -self.config.finetune_last_k
-        ]
+        frozen_modules = submodules[self.config.
+                                    finetune_first_j:-self.config.finetune_last_k]
+        frozen_modules_names = submodules_names[self.config.finetune_first_j:-self.config.
+                                                finetune_last_k]
 
         utils.print_log(
             "Selected the unfrozen modules:\n{}".format(unfrozen_modules_names)
