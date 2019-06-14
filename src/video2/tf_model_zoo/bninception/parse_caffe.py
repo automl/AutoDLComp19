@@ -2,20 +2,29 @@
 
 import argparse
 
-parser = argparse.ArgumentParser(description="Convert a Caffe model and its learned parameters to torch")
-parser.add_argument('model', help='network spec, usually a ProtoBuf text message')
-parser.add_argument('weights', help='network parameters, usually in a name like *.caffemodel ')
-parser.add_argument('--model_yaml', help="translated model spec yaml file")
-parser.add_argument('--dump_weights', help="translated model parameters to be used by torch")
-parser.add_argument('--model_version', help="the version of Caffe's model spec, usually 2", default=2)
-
-args = parser.parse_args()
-
-from . import caffe_pb2
-from google.protobuf import text_format
-import yaml
 import numpy as np
 import torch
+import yaml
+from google.protobuf import text_format
+
+from . import caffe_pb2
+
+parser = argparse.ArgumentParser(
+    description="Convert a Caffe model and its learned parameters to torch"
+)
+parser.add_argument('model', help='network spec, usually a ProtoBuf text message')
+parser.add_argument(
+    'weights', help='network parameters, usually in a name like *.caffemodel '
+)
+parser.add_argument('--model_yaml', help="translated model spec yaml file")
+parser.add_argument(
+    '--dump_weights', help="translated model parameters to be used by torch"
+)
+parser.add_argument(
+    '--model_version', help="the version of Caffe's model spec, usually 2", default=2
+)
+
+args = parser.parse_args()
 
 
 class CaffeVendor(object):
@@ -114,8 +123,12 @@ class CaffeVendor(object):
             blob_dict['{}.weight'.format(layer_name)] = torch.from_numpy(blobs[0])
             blob_dict['{}.bias'.format(layer_name)] = torch.from_numpy(blobs[1])
             if op == 'BN':
-                blob_dict['{}.running_mean'.format(layer_name)] = torch.from_numpy(blobs[2])
-                blob_dict['{}.running_var'.format(layer_name)] = torch.from_numpy(blobs[3])
+                blob_dict['{}.running_mean'.format(layer_name)] = torch.from_numpy(
+                    blobs[2]
+                )
+                blob_dict['{}.running_var'.format(layer_name)] = torch.from_numpy(
+                    blobs[3]
+                )
 
         expr = expr_temp.format(top=','.join(tops), input=','.join(bottoms), op=op)
 
@@ -135,10 +148,7 @@ class CaffeVendor(object):
 
     @property
     def info(self):
-        return {
-            'name': self._name,
-            'layers': [x.name for x in self._layers]
-        }
+        return {'name': self._name, 'layers': [x.name for x in self._layers]}
 
     @property
     def yaml(self):

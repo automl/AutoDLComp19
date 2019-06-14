@@ -1,9 +1,8 @@
 import csv
-import os
 import multiprocessing as mp
+import os
 import subprocess
 from itertools import chain
-
 
 # path to the original autotag file
 AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
@@ -25,13 +24,18 @@ NUM_PROCESSES = 64
 csv.field_size_limit(100000000)
 
 
-def link_and_download_parallel(dataset_path, download_list_path, download_folder, num_processes):
+def link_and_download_parallel(
+    dataset_path, download_list_path, download_folder, num_processes
+):
     '''
     does the same as extract_download_links(), but in parallel
     '''
     p_list = []
     for i in range(num_processes):
-        p = mp.Process(target=link_and_download, args=(dataset_path, download_list_path, download_folder, i, num_processes))
+        p = mp.Process(
+            target=link_and_download,
+            args=(dataset_path, download_list_path, download_folder, i, num_processes)
+        )
         p.start()
         p_list.append(p)
 
@@ -39,8 +43,9 @@ def link_and_download_parallel(dataset_path, download_list_path, download_folder
         p.join()
 
 
-
-def link_and_download(dataset_path, download_list_path, download_folder, process_id=0, num_processes=1):
+def link_and_download(
+    dataset_path, download_list_path, download_folder, process_id=0, num_processes=1
+):
     '''
     extract the download links from the yfcc100m dataset and store them in a file
     '''
@@ -73,7 +78,7 @@ def link_and_download(dataset_path, download_list_path, download_folder, process
                 continue
 
             # use non-conflicting indices for every process
-            if (i+process_id)%num_processes != 0:
+            if (i + process_id) % num_processes != 0:
                 continue
 
             # main step: load video in browser, extract download link and store it
@@ -94,10 +99,8 @@ def link_and_download(dataset_path, download_list_path, download_folder, process
                 process_active = True
 
 
-
 def save_video_url(writer, index, id, video_url):
     writer.writerow([index, id, video_url])
-
 
 
 def download_video(video_url, download_folder, id):
@@ -105,11 +108,12 @@ def download_video(video_url, download_folder, id):
     if os.path.isfile(filename_target):
         print('File already exists: ' + filename_target)
 
-    subprocess.call(['youtube-dl', '-q', '-o', filename_target, '-f', 'iphone_wifi', video_url])
+    subprocess.call(
+        ['youtube-dl', '-q', '-o', filename_target, '-f', 'iphone_wifi', video_url]
+    )
 
     if not os.path.isfile(filename_target):
         raise Exception('File not downloaded properly: ' + filename_target)
-
 
 
 def merge_download_links(download_list_path, num_processes):
@@ -128,7 +132,7 @@ def merge_download_links(download_list_path, num_processes):
                 download_list.append((row[0], row[1], row[2]))
 
     # sort ist in ascending id order. Important for get_metadata()
-    download_list.sort(key = lambda x: int(x[0]))
+    download_list.sort(key=lambda x: int(x[0]))
 
     # write combined download links to single file
     with open(download_list_path, 'w+') as csvfile_write:
@@ -139,7 +143,6 @@ def merge_download_links(download_list_path, num_processes):
             id = elem[1]
             video_url = elem[2]
             writer.writerow([index, id, video_url])
-
 
 
 def get_all_labels(autotags_path, label_list_path):
@@ -153,7 +156,7 @@ def get_all_labels(autotags_path, label_list_path):
         reader = csv.reader(csvfile, delimiter='\t')
         for i, row in enumerate(reader):
             # write a short progress message
-            if i%1e6 == 0:
+            if i % 1e6 == 0:
                 print(i)
 
             # find all labels
@@ -170,7 +173,6 @@ def get_all_labels(autotags_path, label_list_path):
         writer = csv.writer(csvfile_write, delimiter='\t')
         for i, item in enumerate(label_list):
             writer.writerow([i, item])
-
 
 
 def get_metadata(download_path, autotags_path, label_list_path, metadata_path):
@@ -211,13 +213,14 @@ def get_metadata(download_path, autotags_path, label_list_path, metadata_path):
 
                         if len(name) > 0:
                             prob = pair.split(':')[1]
-                            meta_list.append((int(label_dict[name]),prob))
+                            meta_list.append((int(label_dict[name]), prob))
 
                     meta_list.sort()
 
-                    writer_metadata.writerow([d_id] + list(chain.from_iterable(meta_list)))
+                    writer_metadata.writerow(
+                        [d_id] + list(chain.from_iterable(meta_list))
+                    )
                     break
-
 
 
 if __name__ == "__main__":
@@ -225,24 +228,3 @@ if __name__ == "__main__":
     link_and_download_parallel(DATASET, DOWNLOAD_LIST, DOWNLOAD_FOLDER, NUM_PROCESSES)
     #merge_download_links(DOWNLOAD_LIST, NUM_PROCESSES)
     #get_metadata(DOWNLOAD_LIST, AUTOTAGS, LABEL_LIST, METADATA)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -13,11 +13,12 @@ Adapted code from:
     }.
 """
 
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from functools import partial
 
 __all__ = ["resnet50", "resnet101", "resnet152", "resnet200"]
 
@@ -273,7 +274,9 @@ class SlowFast(nn.Module):
         if stride != 1 or self.fast_inplanes != planes * block.expansion:
             if shortcut_type == "A":
                 downsample = partial(
-                    downsample_basic_block, planes=planes * block.expansion, stride=stride
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride
                 )
             else:
                 downsample = nn.Sequential(
@@ -303,7 +306,9 @@ class SlowFast(nn.Module):
         if stride != 1 or self.slow_inplanes != planes * block.expansion:
             if shortcut_type == "A":
                 downsample = partial(
-                    downsample_basic_block, planes=planes * block.expansion, stride=stride
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride
                 )
             else:
                 downsample = nn.Sequential(

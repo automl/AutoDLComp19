@@ -1,12 +1,18 @@
 import torch
-from torch import nn
-from .layer_factory import get_basic_layer, parse_expr
 import yaml
+from torch import nn
+
+from .layer_factory import get_basic_layer, parse_expr
 
 
 class ECOfull(nn.Module):
-    def __init__(self, model_path='tf_model_zoo/ECOfull/ECOfull.yaml', num_classes=101,
-                 num_segments=4, pretrained_parts='both'):
+    def __init__(
+        self,
+        model_path='tf_model_zoo/ECOfull/ECOfull.yaml',
+        num_classes=101,
+        num_segments=4,
+        pretrained_parts='both'
+    ):
 
         super(ECOfull, self).__init__()
 
@@ -24,11 +30,12 @@ class ECOfull(nn.Module):
         for l in layers:
             out_var, op, in_var = parse_expr(l['expr'])
             if op != 'Concat' and op != 'Eltwise':
-                id, out_name, module, out_channel, in_name = get_basic_layer(l,
-                                                                             3 if len(self._channel_dict) == 0 else
-                                                                             self._channel_dict[in_var[0]],
-                                                                             conv_bias=True if op == 'Conv3d' else True,
-                                                                             num_segments=num_segments)
+                id, out_name, module, out_channel, in_name = get_basic_layer(
+                    l,
+                    3 if len(self._channel_dict) == 0 else self._channel_dict[in_var[0]],
+                    conv_bias=True if op == 'Conv3d' else True,
+                    num_segments=num_segments
+                )
 
                 self._channel_dict[out_name] = out_channel
                 setattr(self, id, module)
@@ -47,7 +54,6 @@ class ECOfull(nn.Module):
         data_dict[self._op_list[0][-1]] = input
 
         def get_hook(name):
-
             def hook(m, grad_in, grad_out):
                 print(name, grad_out[0].data.abs().mean())
 
@@ -59,7 +65,9 @@ class ECOfull(nn.Module):
                 if op[0] == 'res3a_2' or op[0] == 'global_pool2D_reshape_consensus':
                     layer_output = data_dict[op[-1]]
                     layer_transpose_output = torch.transpose(
-                        layer_output.view((-1, self.num_segments) + layer_output.size()[1:]), 1, 2)
+                        layer_output.
+                        view((-1, self.num_segments) + layer_output.size()[1:]), 1, 2
+                    )
                     data_dict[op[2]] = getattr(self, op[0])(layer_transpose_output)
                 else:
                     data_dict[op[2]] = getattr(self, op[0])(data_dict[op[-1]])
@@ -69,7 +77,8 @@ class ECOfull(nn.Module):
                 data_dict[op[2]] = getattr(self, op[0])(x.view(x.size(0), -1))
             elif op[1] == 'Eltwise':
                 try:
-                    data_dict[op[2]] = torch.add(data_dict[op[-1][0]], 1, data_dict[op[-1][1]])
+                    data_dict[op[2]
+                             ] = torch.add(data_dict[op[-1][0]], 1, data_dict[op[-1][1]])
                 except:
                     for x in op[-1]:
                         print(x, data_dict[x].size())

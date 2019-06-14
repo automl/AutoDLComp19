@@ -1,30 +1,29 @@
 import os
-import time
 import shutil
-import torch
-import torchvision
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-import torch.optim
-from torch.nn.utils import clip_grad_norm_
-
-from dataset import TSNDataSet
-from transforms import *
-from opts import parser
 import sys
-from torch.nn.init import constant_, xavier_uniform_
-from ops import dataset_config
+import time
+
 # GPU statistics
 import GPUtil
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn.parallel
+import torch.optim
+import torchvision
+from dataset import TSNDataSet
+from ops import dataset_config
+from ops.temporal_shift import make_temporal_pool
+from opts import parser
+from torch.nn.init import constant_, xavier_uniform_
+from torch.nn.utils import clip_grad_norm_
+from transforms import *
 
 GPUtil.showUtilization()
 
-from ops.temporal_shift import make_temporal_pool
-
 best_prec1 = 0
 
-
 # =========== TruncatedTopkEntropyLoss =============================
+
 
 def main():
     global args, best_prec1
@@ -43,28 +42,41 @@ def main():
         print("- {}: {}".format(key, args_dict[key]))
     print("------------------------------------")
 
-    num_class, args.train_list, args.val_list, args.root_path, prefix = dataset_config.return_dataset(args.dataset,
-                                                                                                      args.modality)
+    num_class, args.train_list, args.val_list, args.root_path, prefix = dataset_config.return_dataset(
+        args.dataset, args.modality
+    )
     if args.arch == "ECO" or args.arch == "ECOfull":
         from models_eco import TSN
-        model = TSN(num_class, args.num_segments, args.modality,
-                    base_model=args.arch,
-                    consensus_type=args.consensus_type, dropout=args.dropout, partial_bn=not args.no_partialbn,
-                    freeze_eco=args.freeze_eco)
+        model = TSN(
+            num_class,
+            args.num_segments,
+            args.modality,
+            base_model=args.arch,
+            consensus_type=args.consensus_type,
+            dropout=args.dropout,
+            partial_bn=not args.no_partialbn,
+            freeze_eco=args.freeze_eco
+        )
 
     elif "resnet" in args.arch:
         from models_tsm import TSN
-        model = TSN(num_class, args.num_segments, args.modality,
-                    base_model=args.arch,
-                    consensus_type=args.consensus_type,
-                    dropout=args.dropout,
-                    img_feature_dim=args.img_feature_dim,
-                    partial_bn=not args.no_partialbn,
-                    pretrain=args.pretrain,
-                    is_shift=args.shift, shift_div=args.shift_div, shift_place=args.shift_place,
-                    fc_lr5=not (args.finetune_model and args.dataset in args.finetune_model),
-                    temporal_pool=args.temporal_pool,
-                    non_local=args.non_local)
+        model = TSN(
+            num_class,
+            args.num_segments,
+            args.modality,
+            base_model=args.arch,
+            consensus_type=args.consensus_type,
+            dropout=args.dropout,
+            img_feature_dim=args.img_feature_dim,
+            partial_bn=not args.no_partialbn,
+            pretrain=args.pretrain,
+            is_shift=args.shift,
+            shift_div=args.shift_div,
+            shift_place=args.shift_place,
+            fc_lr5=not (args.finetune_model and args.dataset in args.finetune_model),
+            temporal_pool=args.temporal_pool,
+            non_local=args.non_local
+        )
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -81,7 +93,9 @@ def main():
 
     train_augmentation = model.get_augmentation()
 
-    model = torch.nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count()))).cuda()
+    model = torch.nn.DataParallel(
+        model, device_ids=list(range(torch.cuda.device_count()))
+    ).cuda()
 
     # model = torch.nn.DataParallel(model, device_ids=args.gpus).cuda()
 
@@ -93,15 +107,22 @@ def main():
             checkpoint = torch.load(args.resume)
             # if not checkpoint['lr']:
             if "lr" not in checkpoint.keys():
-                args.lr = input("No 'lr' attribute found in resume model, please input the 'lr' manually: ")
+                args.lr = input(
+                    "No 'lr' attribute found in resume model, please input the 'lr' manually: "
+                )
                 args.lr = float(args.lr)
             else:
                 args.lr = checkpoint['lr']
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
-            print(("=> loaded checkpoint '{}' (epoch: {}, lr: {})"
-                   .format(args.resume, checkpoint['epoch'], args.lr)))
+            print(
+                (
+                    "=> loaded checkpoint '{}' (epoch: {}, lr: {})".format(
+                        args.resume, checkpoint['epoch'], args.lr
+                    )
+                )
+            )
         else:
             print(("=> no checkpoint found at '{}'".format(args.resume)))
     else:
@@ -172,36 +193,54 @@ def main():
         data_length = 5
 
     train_loader = torch.utils.data.DataLoader(
-        TSNDataSet("", args.train_list, num_segments=args.num_segments,
-                   new_length=data_length,
-                   modality=args.modality,
-                   image_tmpl=prefix,
-                   transform=torchvision.transforms.Compose([
-                       train_augmentation,
-                       Stack(roll=True),
-                       ToTorchFormatTensor(div=False),
-                       normalize,
-                   ])),
-        batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True)
+        TSNDataSet(
+            "",
+            args.train_list,
+            num_segments=args.num_segments,
+            new_length=data_length,
+            modality=args.modality,
+            image_tmpl=prefix,
+            transform=torchvision.transforms.Compose(
+                [
+                    train_augmentation,
+                    Stack(roll=True),
+                    ToTorchFormatTensor(div=False),
+                    normalize,
+                ]
+            )
+        ),
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.workers,
+        pin_memory=True
+    )
 
     val_loader = torch.utils.data.DataLoader(
-        TSNDataSet("", args.val_list, num_segments=args.num_segments,
-                   new_length=data_length,
-                   modality=args.modality,
-                   image_tmpl=prefix,
-                   random_shift=False,
-                   transform=torchvision.transforms.Compose([
-                       GroupScale(int(scale_size)),
-                       GroupCenterCrop(crop_size),
-                       Stack(roll=True),
-                       ToTorchFormatTensor(div=False),
-                       # Stack(roll=(args.arch == 'C3DRes18') or (args.arch == 'ECO') or (args.arch == 'ECOfull') or (args.arch == 'ECO_2FC')),
-                       # ToTorchFormatTensor(div=(args.arch != 'C3DRes18') and (args.arch != 'ECO') and (args.arch != 'ECOfull') and (args.arch != 'ECO_2FC')),
-                       normalize,
-                   ])),
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+        TSNDataSet(
+            "",
+            args.val_list,
+            num_segments=args.num_segments,
+            new_length=data_length,
+            modality=args.modality,
+            image_tmpl=prefix,
+            random_shift=False,
+            transform=torchvision.transforms.Compose(
+                [
+                    GroupScale(int(scale_size)),
+                    GroupCenterCrop(crop_size),
+                    Stack(roll=True),
+                    ToTorchFormatTensor(div=False),
+                    # Stack(roll=(args.arch == 'C3DRes18') or (args.arch == 'ECO') or (args.arch == 'ECOfull') or (args.arch == 'ECO_2FC')),
+                    # ToTorchFormatTensor(div=(args.arch != 'C3DRes18') and (args.arch != 'ECO') and (args.arch != 'ECOfull') and (args.arch != 'ECO_2FC')),
+                    normalize,
+                ]
+            )
+        ),
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.workers,
+        pin_memory=True
+    )
 
     # define loss function (criterion) and optimizer
     if args.loss_type == 'nll':
@@ -212,13 +251,22 @@ def main():
         raise ValueError("Unknown loss type")
 
     for group in policies:
-        print(('group: {} has {} params, lr_mult: {}, decay_mult: {}'.format(
-            group['name'], len(group['params']), group['lr_mult'], group['decay_mult'])))
+        print(
+            (
+                'group: {} has {} params, lr_mult: {}, decay_mult: {}'.format(
+                    group['name'], len(group['params']), group['lr_mult'],
+                    group['decay_mult']
+                )
+            )
+        )
 
-    optimizer = torch.optim.SGD(policies,
-                                args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay, nesterov=args.nesterov)
+    optimizer = torch.optim.SGD(
+        policies,
+        args.lr,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay,
+        nesterov=args.nesterov
+    )
 
     if args.evaluate:
         validate(val_loader, model, criterion, 0)
@@ -234,7 +282,7 @@ def main():
         if saturate_cnt == args.num_saturate:
             exp_num = exp_num + 1
             saturate_cnt = 0
-            print("- Learning rate decreases by a factor of '{}'".format(10 ** (exp_num)))
+            print("- Learning rate decreases by a factor of '{}'".format(10**(exp_num)))
         adjust_learning_rate(optimizer, epoch, args.lr_steps, exp_num)
 
         # train for one epoch
@@ -242,7 +290,9 @@ def main():
 
         # evaluate on validation set
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
-            prec1 = validate(val_loader, model, criterion, (epoch + 1) * len(train_loader))
+            prec1 = validate(
+                val_loader, model, criterion, (epoch + 1) * len(train_loader)
+            )
 
             # remember best prec@1 and save checkpoint
             is_best = prec1 > best_prec1
@@ -253,13 +303,15 @@ def main():
 
             print("- Validation Prec@1 saturates for {} epochs.".format(saturate_cnt))
             best_prec1 = max(prec1, best_prec1)
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_prec1': best_prec1,
-                'lr': optimizer.param_groups[-1]['lr'],
-            }, is_best)
+            save_checkpoint(
+                {
+                    'epoch': epoch + 1,
+                    'arch': args.arch,
+                    'state_dict': model.state_dict(),
+                    'best_prec1': best_prec1,
+                    'lr': optimizer.param_groups[-1]['lr'],
+                }, is_best
+            )
 
 
 def init_ECO(model_dict):
@@ -277,10 +329,18 @@ def init_ECO(model_dict):
             print(("=> loading model-finetune: '{}'".format(args.finetune_model)))
         else:
             pretrained_dict = torch.load("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
-            print(("=> loading model-finetune-url: '{}'".format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")))
+            print(
+                (
+                    "=> loading model-finetune-url: '{}'".
+                    format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
+                )
+            )
 
-        new_state_dict = {k: v for k, v in pretrained_dict['state_dict'].items() if
-                          (k in model_dict) and (v.size() == model_dict[k].size())}
+        new_state_dict = {
+            k: v
+            for k, v in pretrained_dict['state_dict'].items()
+            if (k in model_dict) and (v.size() == model_dict[k].size())
+        }
         print("*" * 50)
         print("Start finetuning ..")
 
@@ -291,11 +351,18 @@ def init_C3DRes18(model_dict):
     if args.pretrained_parts == "scratch":
         new_state_dict = {}
     elif args.pretrained_parts == "3D":
-        pretrained_dict = torch.load("pretrained_models/C3DResNet18_rgb_16F_kinetics_v1.pth.tar")
-        new_state_dict = {k: v for k, v in pretrained_dict['state_dict'].items() if
-                          (k in model_dict) and (v.size() == model_dict[k].size())}
+        pretrained_dict = torch.load(
+            "pretrained_models/C3DResNet18_rgb_16F_kinetics_v1.pth.tar"
+        )
+        new_state_dict = {
+            k: v
+            for k, v in pretrained_dict['state_dict'].items()
+            if (k in model_dict) and (v.size() == model_dict[k].size())
+        }
     else:
-        raise ValueError('For C3DRes18, "--pretrained_parts" can only be chosen from [scratch, 3D]')
+        raise ValueError(
+            'For C3DRes18, "--pretrained_parts" can only be chosen from [scratch, 3D]'
+        )
 
     return new_state_dict
 
@@ -360,20 +427,37 @@ def train(train_loader, model, criterion, optimizer, epoch):
             optimizer.zero_grad()
             loss_summ = 0
             # if i % args.print_freq == 0:
-            print(('Epoch: [{0}][{1}/{2}], lr: {lr:.7f}\t'
-                   'Time {batch_time.val:.2f} ({batch_time.avg:.2f})\t'
-                   'UTime {end_time:} \t'
-                   'Data {data_time.val:.2f} ({data_time.avg:.2f})\t'
-                   'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
-                   'Prec@1 {top1.val:.2f} ({top1.avg:.2f})\t'
-                   'Prec@5 {top5.val:.2f} ({top5.avg:.2f})'.format(
-                epoch, i, len(train_loader), batch_time=batch_time, end_time=end_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5, lr=optimizer.param_groups[-1]['lr'])))
+            print(
+                (
+                    'Epoch: [{0}][{1}/{2}], lr: {lr:.7f}\t'
+                    'Time {batch_time.val:.2f} ({batch_time.avg:.2f})\t'
+                    'UTime {end_time:} \t'
+                    'Data {data_time.val:.2f} ({data_time.avg:.2f})\t'
+                    'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
+                    'Prec@1 {top1.val:.2f} ({top1.avg:.2f})\t'
+                    'Prec@5 {top5.val:.2f} ({top5.avg:.2f})'.format(
+                        epoch,
+                        i,
+                        len(train_loader),
+                        batch_time=batch_time,
+                        end_time=end_time,
+                        data_time=data_time,
+                        loss=losses,
+                        top1=top1,
+                        top5=top5,
+                        lr=optimizer.param_groups[-1]['lr']
+                    )
+                )
+            )
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm_(model.parameters(), args.clip_gradient)
             if total_norm > args.clip_gradient:
-                print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
+                print(
+                    "clipping gradient: {} with coef {}".format(
+                        total_norm, args.clip_gradient / total_norm
+                    )
+                )
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -420,25 +504,45 @@ def validate(val_loader, model, criterion, iter, logger=None):
         end = time.time()
 
         if i % args.print_freq == 0:
-            print(('Test: [{0}/{1}]\t'
-                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                i, len(val_loader), batch_time=batch_time, loss=losses,
-                top1=top1, top5=top5)))
+            print(
+                (
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                    'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                        i,
+                        len(val_loader),
+                        batch_time=batch_time,
+                        loss=losses,
+                        top1=top1,
+                        top5=top5
+                    )
+                )
+            )
 
-    print(('Testing Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'
-           .format(top1=top1, top5=top5, loss=losses)))
+    print(
+        (
+            'Testing Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'
+            .format(top1=top1, top5=top5, loss=losses)
+        )
+    )
 
     return top1.avg
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    filename = '_'.join((args.snapshot_pref, args.modality.lower(), "epoch", str(state['epoch']), filename))
+    filename = '_'.join(
+        (
+            args.snapshot_pref, args.modality.lower(), "epoch", str(state['epoch']),
+            filename
+        )
+    )
     torch.save(state, filename)
     if is_best:
-        best_name = '_'.join((args.snapshot_pref, args.modality.lower(), 'model_best.pth.tar'))
+        best_name = '_'.join(
+            (args.snapshot_pref, args.modality.lower(), 'model_best.pth.tar')
+        )
         shutil.copyfile(filename, best_name)
 
 
@@ -464,7 +568,7 @@ class AverageMeter(object):
 def adjust_learning_rate(optimizer, epoch, lr_steps, exp_num):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     # decay = 0.1 ** (sum(epoch >= np.array(lr_steps)))
-    decay = 0.1 ** (exp_num)
+    decay = 0.1**(exp_num)
     lr = args.lr * decay
     decay = args.weight_decay
     for param_group in optimizer.param_groups:
@@ -472,7 +576,7 @@ def adjust_learning_rate(optimizer, epoch, lr_steps, exp_num):
         param_group['weight_decay'] = decay * param_group['decay_mult']
 
 
-def accuracy(output, target, topk=(1,)):
+def accuracy(output, target, topk=(1, )):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)

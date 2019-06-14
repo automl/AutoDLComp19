@@ -1,12 +1,17 @@
 import torch
-from torch import nn
-from .layer_factory import get_basic_layer, parse_expr
 import yaml
+from torch import nn
+
+from .layer_factory import get_basic_layer, parse_expr
 
 
 class BNInception(nn.Module):
-    def __init__(self, model_path='tf_model_zoo/bninception/bn_inception.yaml', num_classes=101,
-                 weight_url='https://yjxiong.blob.core.windows.net/models/bn_inception-9f5701afb96c8044.pth'):
+    def __init__(
+        self,
+        model_path='tf_model_zoo/bninception/bn_inception.yaml',
+        num_classes=101,
+        weight_url='https://yjxiong.blob.core.windows.net/models/bn_inception-9f5701afb96c8044.pth'
+    ):
         super(BNInception, self).__init__()
 
         manifest = yaml.load(open(model_path))
@@ -19,10 +24,11 @@ class BNInception(nn.Module):
         for l in layers:
             out_var, op, in_var = parse_expr(l['expr'])
             if op != 'Concat':
-                id, out_name, module, out_channel, in_name = get_basic_layer(l,
-                                                                             3 if len(self._channel_dict) == 0 else
-                                                                             self._channel_dict[in_var[0]],
-                                                                             conv_bias=True)
+                id, out_name, module, out_channel, in_name = get_basic_layer(
+                    l,
+                    3 if len(self._channel_dict) == 0 else self._channel_dict[in_var[0]],
+                    conv_bias=True
+                )
 
                 self._channel_dict[out_name] = out_channel
                 setattr(self, id, module)
@@ -39,7 +45,6 @@ class BNInception(nn.Module):
         data_dict[self._op_list[0][-1]] = input
 
         def get_hook(name):
-
             def hook(m, grad_in, grad_out):
                 print(name, grad_out[0].data.abs().mean())
 
@@ -63,6 +68,12 @@ class BNInception(nn.Module):
 
 
 class InceptionV3(BNInception):
-    def __init__(self, model_path='model_zoo/bninception/inceptionv3.yaml', num_classes=101,
-                 weight_url='https://yjxiong.blob.core.windows.net/models/inceptionv3-cuhk-0e09b300b493bc74c.pth'):
-        super(InceptionV3, self).__init__(model_path=model_path, weight_url=weight_url, num_classes=num_classes)
+    def __init__(
+        self,
+        model_path='model_zoo/bninception/inceptionv3.yaml',
+        num_classes=101,
+        weight_url='https://yjxiong.blob.core.windows.net/models/inceptionv3-cuhk-0e09b300b493bc74c.pth'
+    ):
+        super(InceptionV3, self).__init__(
+            model_path=model_path, weight_url=weight_url, num_classes=num_classes
+        )

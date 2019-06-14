@@ -1,13 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
+import sysconfig
 # from __future__ import unicode_literals
 from distutils.core import setup
-from Cython.Build import cythonize
 from distutils.extension import Extension
+
 import numpy
-import sysconfig
+from Cython.Build import cythonize
 
 extra_compile_args = sysconfig.get_config_var("CFLAGS").split()
 extra_compile_args += [

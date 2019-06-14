@@ -1,5 +1,4 @@
 # Modified by: Shangeth Rajaa, ZhengYing, Isabelle Guyon
-
 """An example of code submission for the AutoDL challenge in PyTorch.
 
 It implements 3 compulsory methods: __init__, train, and test.
@@ -13,26 +12,28 @@ To create a valid submission, zip model.py together with other necessary files
 such as Python modules/packages, pre-trained weights. The final zip file should
 not exceed 300MB.
 """
-
 """
 Search for '# PYTORCH' to get directly to PyTorch Code.
 """
-
-import torch.utils.data as data_utils
-import torch
-import tensorflow as tf
-import numpy as np
-
-# Import the challenge algorithm (model) API from algorithm.py
-import algorithm
 
 # Other useful modules
 import datetime
 import time
 
+# Import the challenge algorithm (model) API from algorithm.py
+import algorithm
+# AK : TRY USING A TRANSFER LEARNING MODEL
+# Imports
+import numpy as np
+import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.utils.data as data_utils
+import torchvision
+from torchvision import models
+
 np.random.seed(42)
 
-import torch.nn as nn
 
 # PYTORCH
 # Make pytorch model in torchModel class
@@ -55,18 +56,9 @@ class torchModel(nn.Module):
         return x
 
 
-# AK : TRY USING A TRANSFER LEARNING MODEL
-# Imports
-import numpy as np
-import torch
-import torch.nn as nn
-import torchvision
-from torchvision import models
-
-import time
-
 print("PyTorch Version: ", torch.__version__)
 print("Torchvision Version: ", torchvision.__version__)
+
 
 # TORCHVISION IMPLEMENTATION OF PRETRAINED MODELS - TAKEN FROM THE TUTORIALS PAGE
 class ImageNetModels:
@@ -253,16 +245,15 @@ class Model(algorithm.Algorithm):
 
         if not tensor_4d_shape[0] > 0:
             print_log(
-                "Detected that examples have variable sequence_size, will "
-                + "randomly crop a sequence with num_frames = "
-                + "{}".format(num_frames)
+                "Detected that examples have variable sequence_size, will " +
+                "randomly crop a sequence with num_frames = " + "{}".format(num_frames)
             )
             tensor_4d = crop_time_axis(tensor_4d, num_frames=num_frames)
         # if not tensor_4d_shape[1] > 0 or not tensor_4d_shape[2] > 0:
         print_log(
-            "Detected that examples have variable space size, will "
-            + "resize space axes to (new_row_count, new_col_count) = "
-            + "{}".format((new_row_count, new_col_count))
+            "Detected that examples have variable space size, will " +
+            "resize space axes to (new_row_count, new_col_count) = " +
+            "{}".format((new_row_count, new_col_count))
         )
         tensor_4d = resize_space_axes(tensor_4d, new_row_count, new_col_count)
         print_log("Tensor shape after preprocessing: {}".format(tensor_4d.shape))
@@ -387,12 +378,11 @@ class Model(algorithm.Algorithm):
         steps_to_train = self.get_steps_to_train(remaining_time_budget)
         if steps_to_train <= 0:
             print_log(
-                "Not enough time remaining for training. "
-                + "Estimated time for training per step: {:.2f}, ".format(
-                    self.estimated_time_per_step
-                )
-                + "but remaining time budget is: {:.2f}. ".format(remaining_time_budget)
-                + "Skipping..."
+                "Not enough time remaining for training. " +
+                "Estimated time for training per step: {:.2f}, ".
+                format(self.estimated_time_per_step) +
+                "but remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
+                "Skipping..."
             )
             self.done_training = True
         else:
@@ -402,7 +392,9 @@ class Model(algorithm.Algorithm):
                     steps_to_train * self.estimated_time_per_step
                 )
             print_log(
-                "Begin training for another {} steps...{}".format(steps_to_train, msg_est)
+                "Begin training for another {} steps...{}".format(
+                    steps_to_train, msg_est
+                )
             )
 
             train_start = time.time()
@@ -423,16 +415,13 @@ class Model(algorithm.Algorithm):
                 self.total_train_time / self.cumulated_num_steps
             )
             print_log(
-                "{} steps trained. {:.2f} sec used. ".format(
-                    steps_to_train, train_duration
-                )
-                + "Now total steps trained: {}. ".format(self.cumulated_num_steps)
-                + "Total time used for training: {:.2f} sec. ".format(
-                    self.total_train_time
-                )
-                + "Current estimated time per step: {:.2e} sec.".format(
-                    self.estimated_time_per_step
-                )
+                "{} steps trained. {:.2f} sec used. ".
+                format(steps_to_train, train_duration) +
+                "Now total steps trained: {}. ".format(self.cumulated_num_steps) +
+                "Total time used for training: {:.2f} sec. ".
+                format(self.total_train_time) +
+                "Current estimated time per step: {:.2e} sec.".
+                format(self.estimated_time_per_step)
             )
 
     def get_steps_to_train(self, remaining_time_budget):
@@ -457,13 +446,13 @@ class Model(algorithm.Algorithm):
             else:
                 tentative_estimated_time_test = 50  # conservative estimation for test
             max_steps = int(
-                (remaining_time_budget - tentative_estimated_time_test)
-                / self.estimated_time_per_step
+                (remaining_time_budget - tentative_estimated_time_test) /
+                self.estimated_time_per_step
             )
             max_steps = max(max_steps, 1)
             if self.cumulated_num_tests < np.log(max_steps) / np.log(2):
                 steps_to_train = int(
-                    2 ** self.cumulated_num_tests
+                    2**self.cumulated_num_tests
                 )  # Double steps_to_train after each test
             else:
                 steps_to_train = 0
@@ -513,15 +502,14 @@ class Model(algorithm.Algorithm):
             self.done_training = True
         test_begin = time.time()
         if (
-            remaining_time_budget
-            and self.estimated_time_test
-            and self.estimated_time_test > remaining_time_budget
+            remaining_time_budget and self.estimated_time_test and
+            self.estimated_time_test > remaining_time_budget
         ):
             print_log(
-                "Not enough time for test. "
-                + "Estimated time for test: {:.2e}, ".format(self.estimated_time_test)
-                + "But remaining time budget is: {:.2f}. ".format(remaining_time_budget)
-                + "Stop train/predict process by returning None."
+                "Not enough time for test. " +
+                "Estimated time for test: {:.2e}, ".format(self.estimated_time_test) +
+                "But remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
+                "Stop train/predict process by returning None."
             )
             return None
 
@@ -541,13 +529,11 @@ class Model(algorithm.Algorithm):
         self.cumulated_num_tests += 1
         self.estimated_time_test = self.total_test_time / self.cumulated_num_tests
         print_log(
-            "[+] Successfully made one prediction. {:.2f} sec used. ".format(
-                test_duration
-            )
-            + "Total time used for testing: {:.2f} sec. ".format(self.total_test_time)
-            + "Current estimated time for test: {:.2e} sec.".format(
-                self.estimated_time_test
-            )
+            "[+] Successfully made one prediction. {:.2f} sec used. ".
+            format(test_duration) +
+            "Total time used for testing: {:.2f} sec. ".format(self.total_test_time) +
+            "Current estimated time for test: {:.2e} sec.".
+            format(self.estimated_time_test)
         )
         return predictions
 
@@ -555,6 +541,7 @@ class Model(algorithm.Algorithm):
 ##############################################################################
 #### Above 3 methods (__init__, train, test) should always be implemented ####
 ##############################################################################
+
 
 #### Can contain other functions too
 def print_log(*content):

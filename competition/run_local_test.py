@@ -40,11 +40,12 @@ verbosity_level = "INFO"
 
 import logging
 import os
-import tensorflow as tf
-import time
 import shutil  # for deleting a whole directory
+import time
 import webbrowser
 from multiprocessing import Process
+
+import tensorflow as tf
 
 logging.basicConfig(
     level=getattr(logging, verbosity_level),

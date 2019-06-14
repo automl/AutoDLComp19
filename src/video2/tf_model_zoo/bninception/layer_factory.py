@@ -22,13 +22,17 @@ def get_basic_layer(info, channels=None, conv_bias=False):
 
 def build_conv(attr, channels=None, conv_bias=False):
     out_channels = attr['num_output']
-    ks = attr['kernel_size'] if 'kernel_size' in attr else (attr['kernel_h'], attr['kernel_w'])
+    ks = attr['kernel_size'] if 'kernel_size' in attr else (
+        attr['kernel_h'], attr['kernel_w']
+    )
     if 'pad' in attr or 'pad_w' in attr and 'pad_h' in attr:
         padding = attr['pad'] if 'pad' in attr else (attr['pad_h'], attr['pad_w'])
     else:
         padding = 0
     if 'stride' in attr or 'stride_w' in attr and 'stride_h' in attr:
-        stride = attr['stride'] if 'stride' in attr else (attr['stride_h'], attr['stride_w'])
+        stride = attr['stride'] if 'stride' in attr else (
+            attr['stride_h'], attr['stride_w']
+        )
     else:
         stride = 1
 
@@ -41,11 +45,13 @@ def build_pooling(attr, channels=None, conv_bias=False):
     method = attr['mode']
     pad = attr['pad'] if 'pad' in attr else 0
     if method == 'max':
-        pool = nn.MaxPool2d(attr['kernel_size'], attr['stride'], pad,
-                            ceil_mode=True)  # all Caffe pooling use ceil model
+        pool = nn.MaxPool2d(
+            attr['kernel_size'], attr['stride'], pad, ceil_mode=True
+        )  # all Caffe pooling use ceil model
     elif method == 'ave':
-        pool = nn.AvgPool2d(attr['kernel_size'], attr['stride'], pad,
-                            ceil_mode=True)  # all Caffe pooling use ceil model
+        pool = nn.AvgPool2d(
+            attr['kernel_size'], attr['stride'], pad, ceil_mode=True
+        )  # all Caffe pooling use ceil model
     else:
         raise ValueError("Unknown pooling method: {}".format(method))
 

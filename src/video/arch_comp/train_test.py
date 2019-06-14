@@ -1,11 +1,12 @@
-from datasets import Dataset
-import preprocessing as prep
-import models
-import torch.optim as optim
-import torch.nn as nn
-import torch
-import numpy as np
 import time
+
+import models
+import numpy as np
+import preprocessing as prep
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from datasets import Dataset
 
 
 def split_up_epochs(epochs):

@@ -1,8 +1,8 @@
-import tensorflow as tf
-import utils
 import numpy as np
-import torch.utils.data as data_utils
+import tensorflow as tf
 import torch
+import torch.utils.data as data_utils
+import utils
 
 
 def _crop_time_axis(tensor_4d, num_frames, begin_index=None):
@@ -70,9 +70,8 @@ def _preprocess_tensor_4d(tensor_4d, config, image_size):
 
     if not tensor_4d_shape[0] > 0:
         utils.print_log(
-            "Detected that examples have variable sequence_size, will "
-            + "randomly crop a sequence with num_frames = "
-            + "{}".format(num_frames)
+            "Detected that examples have variable sequence_size, will " +
+            "randomly crop a sequence with num_frames = " + "{}".format(num_frames)
         )
         tensor_4d = _crop_time_axis(tensor_4d, num_frames=num_frames)
 
@@ -81,8 +80,8 @@ def _preprocess_tensor_4d(tensor_4d, config, image_size):
     new_col_count = image_size[1]
 
     utils.print_log(
-        "Will resize space axes to (new_row_count, new_col_count) = "
-        + "{}".format((new_row_count, new_col_count))
+        "Will resize space axes to (new_row_count, new_col_count) = " +
+        "{}".format((new_row_count, new_col_count))
     )
     tensor_4d = _resize_space_axes(
         tensor_4d, new_row_count=new_row_count, new_col_count=new_col_count

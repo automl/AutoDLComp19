@@ -35,7 +35,7 @@ class TemporalShift(nn.Module):
         else:
             out = torch.zeros_like(x)
             out[:, :-1, :fold] = x[:, 1:, :fold]  # shift left
-            out[:, 1:, fold: 2 * fold] = x[:, :-1, fold: 2 * fold]  # shift right
+            out[:, 1:, fold:2 * fold] = x[:, :-1, fold:2 * fold]  # shift right
             out[:, :, 2 * fold:] = x[:, :, 2 * fold:]  # not shift
 
         return out.view(nt, c, h, w)
@@ -53,8 +53,8 @@ class InplaceShift(torch.autograd.Function):
         buffer[:, :-1] = input.data[:, 1:, :fold]
         input.data[:, :, :fold] = buffer
         buffer.zero_()
-        buffer[:, 1:] = input.data[:, :-1, fold: 2 * fold]
-        input.data[:, :, fold: 2 * fold] = buffer
+        buffer[:, 1:] = input.data[:, :-1, fold:2 * fold]
+        input.data[:, :, fold:2 * fold] = buffer
         return input
 
     @staticmethod
@@ -66,8 +66,8 @@ class InplaceShift(torch.autograd.Function):
         buffer[:, 1:] = grad_output.data[:, :-1, :fold]
         grad_output.data[:, :, :fold] = buffer
         buffer.zero_()
-        buffer[:, :-1] = grad_output.data[:, 1:, fold: 2 * fold]
-        grad_output.data[:, :, fold: 2 * fold] = buffer
+        buffer[:, :-1] = grad_output.data[:, 1:, fold:2 * fold]
+        grad_output.data[:, :, fold:2 * fold] = buffer
         return grad_output, None
 
 
@@ -103,6 +103,7 @@ def make_temporal_shift(net, n_segment, n_div=8, place='blockres', temporal_pool
     import torchvision
     if isinstance(net, torchvision.models.ResNet):
         if place == 'block':
+
             def make_block_temporal(stage, this_segment):
                 blocks = list(stage.children())
                 print('=> Processing stage with {} blocks'.format(len(blocks)))
@@ -125,7 +126,9 @@ def make_temporal_shift(net, n_segment, n_div=8, place='blockres', temporal_pool
                 print('=> Processing stage with {} blocks residual'.format(len(blocks)))
                 for i, b in enumerate(blocks):
                     if i % n_round == 0:
-                        blocks[i].conv1 = TemporalShift(b.conv1, n_segment=this_segment, n_div=n_div)
+                        blocks[i].conv1 = TemporalShift(
+                            b.conv1, n_segment=this_segment, n_div=n_div
+                        )
                 return nn.Sequential(*blocks)
 
             net.layer1 = make_block_temporal(net.layer1, n_segment_list[0])
@@ -167,8 +170,8 @@ if __name__ == '__main__':
             x2 = x1.clone()
             y1 = tsm1(x1)
             y2 = tsm2(x2)
-            grad1 = torch.autograd.grad((y1 ** 2).mean(), [x1])[0]
-            grad2 = torch.autograd.grad((y2 ** 2).mean(), [x2])[0]
+            grad1 = torch.autograd.grad((y1**2).mean(), [x1])[0]
+            grad2 = torch.autograd.grad((y2**2).mean(), [x2])[0]
             assert torch.norm(grad1 - grad2).item() < 1e-5
 
     print('=> Testing GPU...')
@@ -190,7 +193,7 @@ if __name__ == '__main__':
             x2 = x1.clone()
             y1 = tsm1(x1)
             y2 = tsm2(x2)
-            grad1 = torch.autograd.grad((y1 ** 2).mean(), [x1])[0]
-            grad2 = torch.autograd.grad((y2 ** 2).mean(), [x2])[0]
+            grad1 = torch.autograd.grad((y1**2).mean(), [x1])[0]
+            grad2 = torch.autograd.grad((y2**2).mean(), [x2])[0]
             assert torch.norm(grad1 - grad2).item() < 1e-5
     print('Test passed.')

@@ -1,5 +1,6 @@
-import numpy as np
 import sys
+
+import numpy as np
 
 
 def makeColorwheel():
@@ -27,28 +28,28 @@ def makeColorwheel():
     col += RY
 
     # YG
-    colorwheel[col : YG + col, 0] = 255 - np.floor(255 * np.arange(0, YG, 1) / YG)
-    colorwheel[col : YG + col, 1] = 255
+    colorwheel[col:YG + col, 0] = 255 - np.floor(255 * np.arange(0, YG, 1) / YG)
+    colorwheel[col:YG + col, 1] = 255
     col += YG
 
     # GC
-    colorwheel[col : GC + col, 1] = 255
-    colorwheel[col : GC + col, 2] = np.floor(255 * np.arange(0, GC, 1) / GC)
+    colorwheel[col:GC + col, 1] = 255
+    colorwheel[col:GC + col, 2] = np.floor(255 * np.arange(0, GC, 1) / GC)
     col += GC
 
     # CB
-    colorwheel[col : CB + col, 1] = 255 - np.floor(255 * np.arange(0, CB, 1) / CB)
-    colorwheel[col : CB + col, 2] = 255
+    colorwheel[col:CB + col, 1] = 255 - np.floor(255 * np.arange(0, CB, 1) / CB)
+    colorwheel[col:CB + col, 2] = 255
     col += CB
 
     # BM
-    colorwheel[col : BM + col, 2] = 255
-    colorwheel[col : BM + col, 0] = np.floor(255 * np.arange(0, BM, 1) / BM)
+    colorwheel[col:BM + col, 2] = 255
+    colorwheel[col:BM + col, 0] = np.floor(255 * np.arange(0, BM, 1) / BM)
     col += BM
 
     # MR
-    colorwheel[col : MR + col, 2] = 255 - np.floor(255 * np.arange(0, MR, 1) / MR)
-    colorwheel[col : MR + col, 0] = 255
+    colorwheel[col:MR + col, 2] = 255 - np.floor(255 * np.arange(0, MR, 1) / MR)
+    colorwheel[col:MR + col, 0] = 255
     return colorwheel
 
 
@@ -66,7 +67,7 @@ def computeColor(u, v):
     v[nan_v] = 0
 
     ncols = colorwheel.shape[0]
-    radius = np.sqrt(u ** 2 + v ** 2)
+    radius = np.sqrt(u**2 + v**2)
     a = np.arctan2(-v, -u) / np.pi
     fk = (a + 1) / 2 * (ncols - 1)  # -1~1 maped to 1~ncols
     k0 = fk.astype(np.uint8)  # 1, 2, ..., ncols

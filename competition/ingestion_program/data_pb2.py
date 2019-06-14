@@ -3,17 +3,16 @@
 
 import sys
 
+from google.protobuf import (
+    descriptor as _descriptor, descriptor_pb2, message as _message,
+    reflection as _reflection, symbol_database as _symbol_database
+)
+
 _b = sys.version_info[0] < 3 and (lambda x: x) or (lambda x: x.encode("latin1"))
-from google.protobuf import descriptor as _descriptor
-from google.protobuf import message as _message
-from google.protobuf import reflection as _reflection
-from google.protobuf import symbol_database as _symbol_database
-from google.protobuf import descriptor_pb2
 
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
-
 
 DESCRIPTOR = _descriptor.FileDescriptor(
     name="data.proto",
@@ -23,7 +22,6 @@ DESCRIPTOR = _descriptor.FileDescriptor(
         '\n\ndata.proto\x12\x06\x61utodl"\x1f\n\nDenseValue\x12\x11\n\x05value\x18\x01 \x03(\x02\x42\x02\x10\x01"6\n\x0bSparseEntry\x12\x0b\n\x03row\x18\x01 \x01(\x05\x12\x0b\n\x03\x63ol\x18\x02 \x01(\x05\x12\r\n\x05value\x18\x03 \x01(\x02"#\n\nCompressed\x12\x15\n\rencoded_image\x18\x01 \x01(\x0c"1\n\x0bSparseValue\x12"\n\x05\x65ntry\x18\x01 \x03(\x0b\x32\x13.autodl.SparseEntry"\xac\x02\n\nMatrixSpec\x12\x11\n\tcol_count\x18\x01 \x01(\x05\x12\x11\n\trow_count\x18\x02 \x01(\x05\x12\x17\n\x0fis_sequence_col\x18\x03 \x01(\x08\x12\x17\n\x0fis_sequence_row\x18\x04 \x01(\x08\x12\x18\n\x10has_locality_col\x18\x05 \x01(\x08\x12\x18\n\x10has_locality_row\x18\x06 \x01(\x08\x12\x30\n\x06\x66ormat\x18\x08 \x01(\x0e\x32\x19.autodl.MatrixSpec.Format:\x05\x44\x45NSE\x12\x15\n\tis_sparse\x18\x07 \x01(\x08\x42\x02\x18\x01\x12\x18\n\x0cnum_channels\x18\t \x01(\x05:\x02-1"/\n\x06\x46ormat\x12\t\n\x05\x44\x45NSE\x10\x00\x12\n\n\x06SPARSE\x10\x01\x12\x0e\n\nCOMPRESSED\x10\x02"\xc0\x01\n\x06Matrix\x12%\n\x06sparse\x18\x01 \x01(\x0b\x32\x13.autodl.SparseValueH\x00\x12#\n\x05\x64\x65nse\x18\x02 \x01(\x0b\x32\x12.autodl.DenseValueH\x00\x12(\n\ncompressed\x18\x05 \x01(\x0b\x32\x12.autodl.CompressedH\x00\x12 \n\x04spec\x18\x03 \x01(\x0b\x32\x12.autodl.MatrixSpec\x12\x14\n\x0c\x62undle_index\x18\x04 \x01(\x05\x42\x08\n\x06values"F\n\x0cMatrixBundle\x12\x1e\n\x06matrix\x18\x01 \x03(\x0b\x32\x0e.autodl.Matrix\x12\x16\n\x0esequence_index\x18\x02 \x01(\x05"B\n\x05Input\x12$\n\x06\x62undle\x18\x01 \x03(\x0b\x32\x14.autodl.MatrixBundle\x12\x13\n\x0bis_sequence\x18\x02 \x01(\x08"%\n\x05Label\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05score\x18\x02 \x01(\x02"&\n\x06Output\x12\x1c\n\x05label\x18\x01 \x03(\x0b\x32\r.autodl.Label"R\n\x06Sample\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x1c\n\x05input\x18\x02 \x01(\x0b\x32\r.autodl.Input\x12\x1e\n\x06output\x18\x03 \x01(\x0b\x32\x0e.autodl.Output"\xa3\x03\n\x11\x44\x61taSpecification\x12\'\n\x0bmatrix_spec\x18\x01 \x03(\x0b\x32\x12.autodl.MatrixSpec\x12\x13\n\x0bis_sequence\x18\x02 \x01(\x08\x12\x12\n\noutput_dim\x18\x03 \x01(\x05\x12J\n\x12label_to_index_map\x18\x04 \x03(\x0b\x32..autodl.DataSpecification.LabelToIndexMapEntry\x12N\n\x14\x66\x65\x61ture_to_index_map\x18\x05 \x03(\x0b\x32\x30.autodl.DataSpecification.FeatureToIndexMapEntry\x12\x18\n\rsequence_size\x18\x06 \x01(\x05:\x01\x31\x12\x14\n\x0csample_count\x18\x07 \x01(\x05\x1a\x36\n\x14LabelToIndexMapEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a\x38\n\x16\x46\x65\x61tureToIndexMapEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01'
     ),
 )
-
 
 _MATRIXSPEC_FORMAT = _descriptor.EnumDescriptor(
     name="Format",
@@ -47,7 +45,6 @@ _MATRIXSPEC_FORMAT = _descriptor.EnumDescriptor(
     serialized_end=500,
 )
 _sym_db.RegisterEnumDescriptor(_MATRIXSPEC_FORMAT)
-
 
 _DENSEVALUE = _descriptor.Descriptor(
     name="DenseValue",
@@ -88,7 +85,6 @@ _DENSEVALUE = _descriptor.Descriptor(
     serialized_start=22,
     serialized_end=53,
 )
-
 
 _SPARSEENTRY = _descriptor.Descriptor(
     name="SparseEntry",
@@ -164,7 +160,6 @@ _SPARSEENTRY = _descriptor.Descriptor(
     serialized_end=109,
 )
 
-
 _COMPRESSED = _descriptor.Descriptor(
     name="Compressed",
     full_name="autodl.Compressed",
@@ -203,7 +198,6 @@ _COMPRESSED = _descriptor.Descriptor(
     serialized_end=146,
 )
 
-
 _SPARSEVALUE = _descriptor.Descriptor(
     name="SparseValue",
     full_name="autodl.SparseValue",
@@ -241,7 +235,6 @@ _SPARSEVALUE = _descriptor.Descriptor(
     serialized_start=148,
     serialized_end=197,
 )
-
 
 _MATRIXSPEC = _descriptor.Descriptor(
     name="MatrixSpec",
@@ -427,7 +420,6 @@ _MATRIXSPEC = _descriptor.Descriptor(
     serialized_end=500,
 )
 
-
 _MATRIX = _descriptor.Descriptor(
     name="Matrix",
     full_name="autodl.Matrix",
@@ -546,7 +538,6 @@ _MATRIX = _descriptor.Descriptor(
     serialized_end=695,
 )
 
-
 _MATRIXBUNDLE = _descriptor.Descriptor(
     name="MatrixBundle",
     full_name="autodl.MatrixBundle",
@@ -602,7 +593,6 @@ _MATRIXBUNDLE = _descriptor.Descriptor(
     serialized_start=697,
     serialized_end=767,
 )
-
 
 _INPUT = _descriptor.Descriptor(
     name="Input",
@@ -660,7 +650,6 @@ _INPUT = _descriptor.Descriptor(
     serialized_end=835,
 )
 
-
 _LABEL = _descriptor.Descriptor(
     name="Label",
     full_name="autodl.Label",
@@ -717,7 +706,6 @@ _LABEL = _descriptor.Descriptor(
     serialized_end=874,
 )
 
-
 _OUTPUT = _descriptor.Descriptor(
     name="Output",
     full_name="autodl.Output",
@@ -755,7 +743,6 @@ _OUTPUT = _descriptor.Descriptor(
     serialized_start=876,
     serialized_end=914,
 )
-
 
 _SAMPLE = _descriptor.Descriptor(
     name="Sample",
@@ -830,7 +817,6 @@ _SAMPLE = _descriptor.Descriptor(
     serialized_start=916,
     serialized_end=998,
 )
-
 
 _DATASPECIFICATION_LABELTOINDEXMAPENTRY = _descriptor.Descriptor(
     name="LabelToIndexMapEntry",
@@ -1114,12 +1100,10 @@ _SAMPLE.fields_by_name["output"].message_type = _OUTPUT
 _DATASPECIFICATION_LABELTOINDEXMAPENTRY.containing_type = _DATASPECIFICATION
 _DATASPECIFICATION_FEATURETOINDEXMAPENTRY.containing_type = _DATASPECIFICATION
 _DATASPECIFICATION.fields_by_name["matrix_spec"].message_type = _MATRIXSPEC
+_DATASPECIFICATION.fields_by_name["label_to_index_map"
+                                 ].message_type = _DATASPECIFICATION_LABELTOINDEXMAPENTRY
 _DATASPECIFICATION.fields_by_name[
-    "label_to_index_map"
-].message_type = _DATASPECIFICATION_LABELTOINDEXMAPENTRY
-_DATASPECIFICATION.fields_by_name[
-    "feature_to_index_map"
-].message_type = _DATASPECIFICATION_FEATURETOINDEXMAPENTRY
+    "feature_to_index_map"].message_type = _DATASPECIFICATION_FEATURETOINDEXMAPENTRY
 DESCRIPTOR.message_types_by_name["DenseValue"] = _DENSEVALUE
 DESCRIPTOR.message_types_by_name["SparseEntry"] = _SPARSEENTRY
 DESCRIPTOR.message_types_by_name["Compressed"] = _COMPRESSED
@@ -1136,7 +1120,7 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 DenseValue = _reflection.GeneratedProtocolMessageType(
     "DenseValue",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_DENSEVALUE,
         __module__="data_pb2"
@@ -1147,7 +1131,7 @@ _sym_db.RegisterMessage(DenseValue)
 
 SparseEntry = _reflection.GeneratedProtocolMessageType(
     "SparseEntry",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_SPARSEENTRY,
         __module__="data_pb2"
@@ -1158,7 +1142,7 @@ _sym_db.RegisterMessage(SparseEntry)
 
 Compressed = _reflection.GeneratedProtocolMessageType(
     "Compressed",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_COMPRESSED,
         __module__="data_pb2"
@@ -1169,7 +1153,7 @@ _sym_db.RegisterMessage(Compressed)
 
 SparseValue = _reflection.GeneratedProtocolMessageType(
     "SparseValue",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_SPARSEVALUE,
         __module__="data_pb2"
@@ -1180,7 +1164,7 @@ _sym_db.RegisterMessage(SparseValue)
 
 MatrixSpec = _reflection.GeneratedProtocolMessageType(
     "MatrixSpec",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_MATRIXSPEC,
         __module__="data_pb2"
@@ -1191,7 +1175,7 @@ _sym_db.RegisterMessage(MatrixSpec)
 
 Matrix = _reflection.GeneratedProtocolMessageType(
     "Matrix",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_MATRIX,
         __module__="data_pb2"
@@ -1202,7 +1186,7 @@ _sym_db.RegisterMessage(Matrix)
 
 MatrixBundle = _reflection.GeneratedProtocolMessageType(
     "MatrixBundle",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_MATRIXBUNDLE,
         __module__="data_pb2"
@@ -1213,7 +1197,7 @@ _sym_db.RegisterMessage(MatrixBundle)
 
 Input = _reflection.GeneratedProtocolMessageType(
     "Input",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_INPUT,
         __module__="data_pb2"
@@ -1224,7 +1208,7 @@ _sym_db.RegisterMessage(Input)
 
 Label = _reflection.GeneratedProtocolMessageType(
     "Label",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_LABEL,
         __module__="data_pb2"
@@ -1235,7 +1219,7 @@ _sym_db.RegisterMessage(Label)
 
 Output = _reflection.GeneratedProtocolMessageType(
     "Output",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_OUTPUT,
         __module__="data_pb2"
@@ -1246,7 +1230,7 @@ _sym_db.RegisterMessage(Output)
 
 Sample = _reflection.GeneratedProtocolMessageType(
     "Sample",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         DESCRIPTOR=_SAMPLE,
         __module__="data_pb2"
@@ -1257,11 +1241,11 @@ _sym_db.RegisterMessage(Sample)
 
 DataSpecification = _reflection.GeneratedProtocolMessageType(
     "DataSpecification",
-    (_message.Message,),
+    (_message.Message, ),
     dict(
         LabelToIndexMapEntry=_reflection.GeneratedProtocolMessageType(
             "LabelToIndexMapEntry",
-            (_message.Message,),
+            (_message.Message, ),
             dict(
                 DESCRIPTOR=_DATASPECIFICATION_LABELTOINDEXMAPENTRY,
                 __module__="data_pb2"
@@ -1270,7 +1254,7 @@ DataSpecification = _reflection.GeneratedProtocolMessageType(
         ),
         FeatureToIndexMapEntry=_reflection.GeneratedProtocolMessageType(
             "FeatureToIndexMapEntry",
-            (_message.Message,),
+            (_message.Message, ),
             dict(
                 DESCRIPTOR=_DATASPECIFICATION_FEATURETOINDEXMAPENTRY,
                 __module__="data_pb2"
@@ -1285,7 +1269,6 @@ DataSpecification = _reflection.GeneratedProtocolMessageType(
 _sym_db.RegisterMessage(DataSpecification)
 _sym_db.RegisterMessage(DataSpecification.LabelToIndexMapEntry)
 _sym_db.RegisterMessage(DataSpecification.FeatureToIndexMapEntry)
-
 
 _DENSEVALUE.fields_by_name["value"].has_options = True
 _DENSEVALUE.fields_by_name["value"]._options = _descriptor._ParseOptions(

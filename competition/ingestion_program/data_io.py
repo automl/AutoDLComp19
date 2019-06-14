@@ -13,40 +13,38 @@
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
 from __future__ import print_function
-from sys import getsizeof, stderr
-from itertools import chain
+
+import csv
+import os
+import platform
+import shutil
 from collections import deque
+from contextlib import closing
+from glob import glob as ls
+from itertools import chain
+from os import getcwd as pwd
+from os.path import isfile
+from shutil import copy2
+from sys import getsizeof, stderr, version
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import data_converter
+import numpy as np
+import pandas as pd
+import psutil
+import yaml
+from scipy.sparse import *  # used in data_binary_sparse
 
 try:
     from reprlib import repr
 except ImportError:
     pass
 
-import numpy as np
-import pandas as pd
-import os
-import shutil
-from scipy.sparse import *  # used in data_binary_sparse
-from zipfile import ZipFile, ZIP_DEFLATED
-from contextlib import closing
-import data_converter
-from sys import stderr
-from sys import version
-from glob import glob as ls
-from os import getcwd as pwd
-from os.path import isfile
-
 # get_installed_distributions has gone from pip v10
 try:
     from pip._internal.utils.misc import get_installed_distributions as lib
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
-
-import yaml
-from shutil import copy2
-import csv
-import psutil
-import platform
 
 # ================ Small auxiliary functions =================
 
@@ -77,9 +75,8 @@ def read_as_df(basename, type="train"):
         print("Number of classes = %d" % classnum)
         # Here we add the target values as a last column, this is convenient to use seaborn
         # Look at http://seaborn.pydata.org/tutorial/axis_grids.html for other ideas
-        label_range = np.arange(
-            classnum
-        ).transpose()  # This is just a column vector [[0], [1], [2]]
+        label_range = np.arange(classnum).transpose(
+        )  # This is just a column vector [[0], [1], [2]]
         numerical_target = Y.dot(
             label_range
         )  # This is a column vector of dim patnum with numerical categories
@@ -163,8 +160,8 @@ def zipdir(archivename, basedir):
             for fn in files:
                 if not fn.endswith(".zip"):
                     absfn = os.path.join(root, fn)
-                    zfn = absfn[len(basedir) :]  # XXX: relative path
-                    assert absfn[: len(basedir)] == basedir
+                    zfn = absfn[len(basedir):]  # XXX: relative path
+                    assert absfn[:len(basedir)] == basedir
                     if zfn[0] == os.sep:
                         zfn = zfn[1:]
                     z.write(absfn, zfn)

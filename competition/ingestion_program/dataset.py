@@ -11,21 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoDL datasets.
 
 Reads data in the Tensorflow AutoDL standard format.
 """
 import os
-import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
-from tensorflow import app
-from tensorflow import gfile
-from google.protobuf import text_format
+
 import dataset_utils
-from data_pb2 import DataSpecification
-from data_pb2 import MatrixSpec
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from data_pb2 import DataSpecification, MatrixSpec
+from google.protobuf import text_format
+from tensorflow import app, gfile
 
 
 def metadata_filename(dataset_name):
@@ -148,25 +146,23 @@ class AutoDLDataset(object):
         sequence_features = {}
         for i in range(self.metadata_.get_bundle_size()):
             if self.metadata_.is_sparse(i):
-                sequence_features[
-                    self._feature_key(i, "sparse_col_index")
-                ] = tf.VarLenFeature(tf.int64)
-                sequence_features[
-                    self._feature_key(i, "sparse_row_index")
-                ] = tf.VarLenFeature(tf.int64)
-                sequence_features[
-                    self._feature_key(i, "sparse_value")
-                ] = tf.VarLenFeature(tf.float32)
+                sequence_features[self._feature_key(i, "sparse_col_index")
+                                 ] = tf.VarLenFeature(tf.int64)
+                sequence_features[self._feature_key(i, "sparse_row_index")
+                                 ] = tf.VarLenFeature(tf.int64)
+                sequence_features[self._feature_key(i,
+                                                    "sparse_value")] = tf.VarLenFeature(
+                                                        tf.float32
+                                                    )
             elif self.metadata_.is_compressed(i):
                 sequence_features[self._feature_key(i, "compressed")] = tf.VarLenFeature(
                     tf.string
                 )
             else:
-                sequence_features[
-                    self._feature_key(i, "dense_input")
-                ] = tf.FixedLenSequenceFeature(
-                    self.metadata_.get_tensor_size(i), dtype=tf.float32
-                )
+                sequence_features[self._feature_key(i, "dense_input")
+                                 ] = tf.FixedLenSequenceFeature(
+                                     self.metadata_.get_tensor_size(i), dtype=tf.float32
+                                 )
         contexts, features = tf.parse_single_sequence_example(
             sequence_example_proto,
             context_features={
@@ -189,10 +185,9 @@ class AutoDLDataset(object):
                 f = features[key_dense]
                 if not fixed_matrix_size:
                     raise ValueError(
-                        "To parse dense data, the tensor shape should "
-                        + "be known but got {} instead...".format(
-                            (sequence_size, row_count, col_count)
-                        )
+                        "To parse dense data, the tensor shape should " +
+                        "be known but got {} instead...".
+                        format((sequence_size, row_count, col_count))
                     )
                 f = tf.reshape(f, [sequence_size, row_count, col_count, num_channels])
                 sample.append(f)
@@ -241,7 +236,7 @@ class AutoDLDataset(object):
 
         labels = tf.sparse_to_dense(
             contexts["label_index"].values,
-            (self.metadata_.get_output_size(),),
+            (self.metadata_.get_output_size(), ),
             contexts["label_score"].values,
             validate_indices=False,
         )
@@ -257,9 +252,8 @@ class AutoDLDataset(object):
             files = gfile.Glob(dataset_file_pattern(self.dataset_name_))
             if not files:
                 raise IOError(
-                    "Unable to find training files. data_pattern='"
-                    + dataset_file_pattern(self.dataset_name_)
-                    + "'."
+                    "Unable to find training files. data_pattern='" +
+                    dataset_file_pattern(self.dataset_name_) + "'."
                 )
             # logging.info("Number of training files: %s.", str(len(files)))
             self.dataset_ = tf.data.TFRecordDataset(files)
