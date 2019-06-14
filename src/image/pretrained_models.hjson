@@ -1,0 +1,21 @@
+{
+  # General
+  modality: image
+  model_dir: models
+
+  active_model_files: [  # With respect to model_dir
+    resnet18-5c106cde
+  ]
+
+  # Model construction
+  models: [
+    resnet18
+    resnet101
+    resnet152
+    densenet161
+    densenet201
+    inception_v3_google
+    ]
+
+  pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
+}
