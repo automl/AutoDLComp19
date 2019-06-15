@@ -101,6 +101,8 @@ python competition/run_local_test.py \
     --task_id [SOME_INTEGER]
 ```
 
+If you want to overwrite the output dir (for repeated local testing for example), supply the `--overwrite` flag.
+
 If you want to open an interactive job session on the cluster run from the login node:
 ```bash
 srun -p meta_gpu-x --pty bash
