@@ -1,5 +1,6 @@
 import torch
 import torchvision
+import utils
 
 models = {"resnet18": torchvision.models.resnet18()}
 
@@ -14,4 +15,3 @@ def get_parameters(model_type, config):
         return state_dict, input_size
     else:
         raise  # TODO(Danny): Error message
-
