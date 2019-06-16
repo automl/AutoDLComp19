@@ -3,9 +3,9 @@ import os
 import shutil
 import sys
 
+sys.path.append(".")  # isort:skip
 from src.utils import Config  # noqa: E402
 
-sys.path.append(".")
 
 if __name__ == "__main__":
     # TODO(Danny): Do not copy stuff, but add stuff to zip file 1 by 1 for space
