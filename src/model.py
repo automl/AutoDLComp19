@@ -227,7 +227,7 @@ class Model(algorithm.Algorithm):
             dataset, self.config, self.model_input_sizes, train=False
         )
         predictions = self.online_concrete.testloop(
-            self.model, testloader, self.output_dim
+            self.model, testloader, self.output_dim, self.config
         )
 
         test_end = time.time()

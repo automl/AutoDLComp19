@@ -35,14 +35,11 @@ def _get_ordered_trainable_submodules(module):
 
 
 def _adapt_last_layer(model, output_dim):
-    # TODO(Danny): make this less complicated
     trainable_submodules_names, _ = _get_ordered_trainable_submodules(model)
     last_layer_name = trainable_submodules_names[-1]
     last_layer = _recursive_getattr(model, last_layer_name)
     num_ftrs = last_layer.in_features
-
     _recursive_setattr(model, last_layer_name, nn.Linear(num_ftrs, output_dim))
-    model = nn.Sequential(model, nn.LogSoftmax(dim=1))
     return model
 
 
@@ -81,17 +78,19 @@ class OnlineMeta:
         # Compute frozen / unfrozen modules using first_j and last_k configparameters
         submodules_names, submodules = _get_ordered_trainable_submodules(model)
 
-        first_j = submodules[0:self.config.finetune_first_j]
-        first_j_names = submodules_names[0:self.config.finetune_first_j]
-        last_k = submodules[-self.config.finetune_last_k:]
-        last_k_names = submodules_names[-self.config.finetune_last_k:]
+        # For readability
+        finetune_last_k = self.config.finetune_last_k
+        finetune_first_j = self.config.finetune_first_j
+
+        first_j = submodules[0:finetune_first_j]
+        first_j_names = submodules_names[0:finetune_first_j]
+        last_k = submodules[-finetune_last_k:]
+        last_k_names = submodules_names[-finetune_last_k:]
 
         unfrozen_modules = first_j + last_k
         unfrozen_modules_names = first_j_names + last_k_names
-        frozen_modules = submodules[self.config.
-                                    finetune_first_j:-self.config.finetune_last_k]
-        frozen_modules_names = submodules_names[self.config.finetune_first_j:-self.config.
-                                                finetune_last_k]
+        frozen_modules = submodules[finetune_first_j:-finetune_last_k]
+        frozen_modules_names = submodules_names[finetune_first_j:-finetune_last_k]
 
         utils.print_log(
             "Selected the unfrozen modules:\n{}".format(unfrozen_modules_names)

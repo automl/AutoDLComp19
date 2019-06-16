@@ -13,20 +13,19 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
     3) trains the model with the Tesors for given no of steps.
     """
     model.train()
-    criterion = nn.NLLLoss()
+    # TODO(Danny): Experiment with per-class weighting to compensate for unbalanced data
+    criterion = nn.BCEWithLogitsLoss(pos_weight=None)
     optimizer = torch.optim.Adam(unfrozen_parameters, lr=config.lr)
 
     for i in range(steps):
         images, labels = dataloading.get_torch_tensors(train_data_iterator)
-        images = torch.Tensor(images)
-        labels = torch.Tensor(labels)
+        images = torch.Tensor(images).float()
+        labels = torch.Tensor(labels).float()
 
         if torch.cuda.is_available():
-            images = images.float().cuda()
-            labels = labels.long().cuda()
-        else:
-            images = images.float()
-            labels = labels.long()
+            images = images.cuda()
+            labels = labels.cuda()
+
         optimizer.zero_grad()
 
         log_ps = model(images)
@@ -35,24 +34,33 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
         optimizer.step()
 
 
-def testloop(model, dataloader, output_dim):
+def testloop(model, dataloader, output_dim, config):
     """
     # PYTORCH
     testloop uses testdata to test the pytorch model and return onehot prediciton
     values.
     """
     model.eval()
-    preds = []
+    predictions = []
     with torch.no_grad():
         for [images] in dataloader:
+            images = images.float()
             if torch.cuda.is_available():
-                images = images.float().cuda()
-            else:
-                images = images.float()
-            log_ps = model(images)
-            ps = torch.exp(log_ps)
-            top_p, top_class = ps.topk(1, dim=1)
-            preds.append(top_class.cpu().numpy())
-    preds = np.concatenate(preds)
-    onehot_preds = np.squeeze(np.eye(output_dim)[preds.reshape(-1)])
-    return onehot_preds
+                images = images.cuda()
+
+            probabilities = torch.sigmoid(model(images))
+
+            # Get a mask indicating the maximum probability for each image
+            # ORIGINAL: top_p, top_class = probabilities.topk(1, dim=1)
+            prediction = torch.zeros_like(probabilities, dtype=torch.uint8)
+            prediction[torch.arange(len(probabilities)), probabilities.argmax(dim=1)] = 1
+
+            # Add predictions which are over a probability threshold
+            if config.use_prediction_thresholding:
+                probabilities_over_threshold = probabilities > config.prediction_threshold
+                prediction = torch.max(prediction, probabilities_over_threshold)
+            predictions.append(prediction.cpu().numpy())
+
+    # Flatten over batches as scoring.py is batch agnostic
+    # ORIGINAL: return np.squeeze(np.eye(output_dim)[predictions.reshape(-1)])
+    return np.concatenate(predictions)

@@ -13,7 +13,7 @@
   ]
 
   # Execution
-  num_epochs_we_want_to_train: 20
+  num_epochs_we_want_to_train: 40
 
   # Preprocessing
   default_num_frames: 10
@@ -24,9 +24,13 @@
   pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
 
   # Finetuning
-  finetune_all: false
+  finetune_all: true
   finetune_first_j: 0
   finetune_last_k: 1  # This includes the final output layer
+
+  # Predictions
+  use_prediction_thresholding: true
+  prediction_threshold: 0.6
 
   # Training Hyperparameters
   batch_size: 64

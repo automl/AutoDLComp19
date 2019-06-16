@@ -155,7 +155,7 @@ def get_torch_tensors(training_data_iterator):
     next_iter = training_data_iterator.get_next()
     sess = tf.Session()
     images, labels = sess.run(next_iter)
-    return images[:, 0, :, :, :].transpose(0, 3, 1, 2), np.argmax(labels, axis=1)
+    return images[:, 0, :, :, :].transpose(0, 3, 1, 2), labels
 
 
 def input_function(dataset, config, image_size, is_training):
