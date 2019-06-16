@@ -66,10 +66,11 @@ def get_path_to_ingestion_program(starting_kit_dir):
 def get_path_to_scoring_program(starting_kit_dir):
     return os.path.join(starting_kit_dir, "scoring_program", "score.py")
 
-def create_and_get_path_to_scoring_output(starting_kit_dir, job_id, task_id,
-                                          overwrite):
-    path = os.path.join(starting_kit_dir, "scoring_output",
-                        "EXP_"+str(job_id)+"_"+str(task_id))
+
+def create_and_get_path_to_scoring_output(starting_kit_dir, job_id, task_id, overwrite):
+    path = os.path.join(
+        starting_kit_dir, "scoring_output", "EXP_" + str(job_id) + "_" + str(task_id)
+    )
     if os.path.exists(path):
         if overwrite:
             remove_dir(path)
@@ -79,10 +80,14 @@ def create_and_get_path_to_scoring_output(starting_kit_dir, job_id, task_id,
         os.makedirs(path, exist_ok=False)
     return path
 
-def create_and_get_path_to_result_submission(starting_kit_dir, job_id, task_id,
-                                            overwrite):
-    path = os.path.join(starting_kit_dir, "sample_result_submission",
-                        "EXP_"+str(job_id)+"_"+str(task_id))
+
+def create_and_get_path_to_result_submission(
+    starting_kit_dir, job_id, task_id, overwrite
+):
+    path = os.path.join(
+        starting_kit_dir, "sample_result_submission",
+        "EXP_" + str(job_id) + "_" + str(task_id)
+    )
     if os.path.exists(path):
         if overwrite:
             remove_dir(path)
@@ -91,6 +96,7 @@ def create_and_get_path_to_result_submission(starting_kit_dir, job_id, task_id,
     else:
         os.makedirs(path, exist_ok=False)
     return path
+
 
 def remove_dir(output_dir):
     """Remove the directory `output_dir`.
@@ -112,26 +118,27 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, code_dir, time_budget=7200, job_id=0, task_id=0,
-                overwrite=False):
+def run_baseline(
+    dataset_dir, code_dir, time_budget=7200, job_id=0, task_id=0, overwrite=False
+):
     # Current directory containing this script
     starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
     path_ingestion = get_path_to_ingestion_program(starting_kit_dir)
     path_scoring = get_path_to_scoring_program(starting_kit_dir)
-    score_dir = create_and_get_path_to_scoring_output(starting_kit_dir, job_id,
-                                                      task_id, overwrite)
-    ingestion_output_dir = create_and_get_path_to_result_submission(starting_kit_dir,
-                                                                    job_id, task_id,
-                                                                    overwrite)
+    score_dir = create_and_get_path_to_scoring_output(
+        starting_kit_dir, job_id, task_id, overwrite
+    )
+    ingestion_output_dir = create_and_get_path_to_result_submission(
+        starting_kit_dir, job_id, task_id, overwrite
+    )
 
     # Run ingestion and scoring at the same time
     command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir {} --score_dir {}".format(
-        path_ingestion, dataset_dir, code_dir, time_budget,
-        ingestion_output_dir, score_dir
+        path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir,
+        score_dir
     )
     command_scoring = "python {} --solution_dir={} --time_budget={} --prediction_dir {} --score_dir {}".format(
-        path_scoring, dataset_dir, time_budget,
-        ingestion_output_dir,score_dir
+        path_scoring, dataset_dir, time_budget, ingestion_output_dir, score_dir
     )
 
     def run_ingestion():
@@ -148,9 +155,7 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200, job_id=0, task_id=0,
     #remove_dir(score_dir)
     ingestion_process.start()
     scoring_process.start()
-    detailed_results_page = os.path.join(
-        starting_kit_dir, "scoring_output", "detailed_results.html"
-    )
+    detailed_results_page = os.path.join(score_dir, "detailed_results.html")
     detailed_results_page = os.path.abspath(detailed_results_page)
 
     # Open detailed results page in a browser
