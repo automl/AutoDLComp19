@@ -1,8 +1,11 @@
 import csv
+import glob
 import multiprocessing as mp
 import os
 import subprocess
+import sys
 from itertools import chain
+from subprocess import call
 
 # path to the original autotag file
 AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
@@ -11,30 +14,27 @@ DATASET = '/media/dingsda/External/datasets/yfcc100m/yfcc100m_dataset'
 
 # path to the file containing all possible labels as a list
 LABEL_LIST = '/media/dingsda/External/download/log/yfcc100m_label'
-# path to the file containing all video download links as a list
-DOWNLOAD_LIST = '/media/dingsda/External/download/log/yfcc100m_download'
 # number of cpus, determines number of parallel processes when extracting the download links
 METADATA = '/media/dingsda/External/download/log/yfcc100m_metadata'
 # path to the video download folder
 DOWNLOAD_FOLDER = '/media/dingsda/External/download/mp4'
+# path to the frame download folder
+FRAME_FOLDER = '/media/dingsda/External/download/frame'
 
 # guess what
-NUM_PROCESSES = 64
+NUM_PROCESSES = 16
 
 csv.field_size_limit(100000000)
 
 
-def link_and_download_parallel(
-    dataset_path, download_list_path, download_folder, num_processes
-):
+def download_parallel(dataset_path, download_folder, num_processes):
     '''
     does the same as extract_download_links(), but in parallel
     '''
     p_list = []
     for i in range(num_processes):
         p = mp.Process(
-            target=link_and_download,
-            args=(dataset_path, download_list_path, download_folder, i, num_processes)
+            target=download, args=(dataset_path, download_folder, i, num_processes)
         )
         p.start()
         p_list.append(p)
@@ -43,28 +43,11 @@ def link_and_download_parallel(
         p.join()
 
 
-def link_and_download(
-    dataset_path, download_list_path, download_folder, process_id=0, num_processes=1
-):
+def download(dataset_path, download_folder, process_id=0, num_processes=1):
     '''
     extract the download links from the yfcc100m dataset and store them in a file
     '''
-    download_list_path = download_list_path + str(process_id)
-
-    process_active = True
-    id_last = ''
-
-    # load file containing all download links and find id of last processed video
-    if os.path.isfile(download_list_path):
-        with open(download_list_path, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter='\t')
-            for row in reader:
-                id_last = row[1]
-                process_active = False
-
-    with open(download_list_path, 'a+') as csvfile_write, \
-         open(dataset_path, 'r') as csvfile:
-        writer = csv.writer(csvfile_write, delimiter='\t')
+    with open(dataset_path, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter='\t', quoting=csv.QUOTE_NONE)
 
         # find all labels and store them in label_dict
@@ -82,67 +65,53 @@ def link_and_download(
                 continue
 
             # main step: load video in browser, extract download link and store it
-            index = row[0]
             id = row[1]
-            if process_active == True:
+            filename = os.path.join(download_folder, id + '.mp4')
+
+            # do not download files twice
+            if os.path.isfile(filename):
+                print('File already downloaded: ' + filename)
+                continue
+
+            try:
                 video_url = row[15]
                 print('Found video: ' + video_url)
-
-                try:
-                    download_video(video_url, download_folder, id)
-                    save_video_url(writer=writer, index=index, id=id, video_url=video_url)
-                except Exception as err:
-                    print(err)
-
-            # trigger processing
-            if id == id_last:
-                process_active = True
+                download_video(video_url, filename)
+            except Exception as err:
+                print('-----------------')
+                print(err)
+                print('-----------------')
 
 
 def save_video_url(writer, index, id, video_url):
     writer.writerow([index, id, video_url])
 
 
-def download_video(video_url, download_folder, id):
-    filename_target = os.path.join(download_folder, id + '.mp4')
-    if os.path.isfile(filename_target):
-        print('File already exists: ' + filename_target)
+def download_video(video_url, filename):
 
-    subprocess.call(
-        ['youtube-dl', '-q', '-o', filename_target, '-f', 'iphone_wifi', video_url]
-    )
+    if os.path.isfile(filename):
+        print('File already exists: ' + filename)
 
-    if not os.path.isfile(filename_target):
-        raise Exception('File not downloaded properly: ' + filename_target)
+    subprocess.call(['youtube-dl', '-q', '-o', filename, '-f', 'iphone_wifi', video_url])
+    if os.path.isfile(filename):
+        return
 
+    print('second try')
+    subprocess.call(['youtube-dl', '-q', '-o', filename, '-f', '288p', video_url])
+    if os.path.isfile(filename):
+        return
 
-def merge_download_links(download_list_path, num_processes):
-    '''
-    merge multiple files containing download links into a single file
-    '''
-    download_list = []
+    print('third try')
+    subprocess.call(['youtube-dl', '-q', '-o', filename, '-f', '360p', video_url])
+    if os.path.isfile(filename):
+        return
 
-    # copy download links from individual files
-    for i in range(num_processes):
-        file_path = download_list_path + str(i)
-        with open(file_path, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter='\t')
+    print('fourth try')
+    subprocess.call(['youtube-dl', '-q', '-o', filename, video_url])
+    if os.path.isfile(filename):
+        return
 
-            for row in reader:
-                download_list.append((row[0], row[1], row[2]))
-
-    # sort ist in ascending id order. Important for get_metadata()
-    download_list.sort(key=lambda x: int(x[0]))
-
-    # write combined download links to single file
-    with open(download_list_path, 'w+') as csvfile_write:
-        writer = csv.writer(csvfile_write, delimiter='\t')
-
-        for elem in download_list:
-            index = elem[0]
-            id = elem[1]
-            video_url = elem[2]
-            writer.writerow([index, id, video_url])
+    raise Exception('File not downloaded properly: ' + filename)
 
 
 def get_all_labels(autotags_path, label_list_path):
@@ -175,9 +144,63 @@ def get_all_labels(autotags_path, label_list_path):
             writer.writerow([i, item])
 
 
-def get_metadata(download_path, autotags_path, label_list_path, metadata_path):
+def convert_to_frames_parallel(download_folder, frame_folder, num_processes):
     '''
-    merge all information into a metadata file
+    does the same as extract_download_links(), but in parallel
+    '''
+    p_list = []
+    for i in range(num_processes):
+        p = mp.Process(
+            target=convert_to_frames,
+            args=(download_folder, frame_folder, i, num_processes)
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def convert_to_frames(download_folder, frame_folder, process_id=0, num_processes=1):
+    '''
+    convert videos to frame level
+    '''
+    # recursively parse root_dir
+    for i, file_path in enumerate(glob.iglob(download_folder + "**/**", recursive=True)):
+        file_name = os.path.basename(file_path)
+        file_base = os.path.splitext(file_name)[0]
+        file_ext = os.path.splitext(file_name)[1]
+
+        dest_folder = os.path.join(frame_folder, file_base)
+        dest_folder_temp = os.path.join(frame_folder, file_base + '_temp')
+
+        # use non-conflicting indices for every process
+        if (i + process_id) % num_processes != 0:
+            continue
+
+        if os.path.exists(dest_folder):
+            continue
+
+        # only convert files with specific ending
+        if file_ext == ".mp4":
+            try:
+                print(dest_folder)
+                if not os.path.exists(dest_folder_temp):
+                    os.mkdir(dest_folder_temp)
+                dest = os.path.join(dest_folder_temp, "%04d.jpg")
+                call(["ffmpeg", "-y", "-i", file_path, dest])
+                os.rename(dest_folder_temp, dest_folder)
+            except Exception as err:
+                print('-----------------')
+                print(err)
+                print('-----------------')
+
+
+def get_metadata(
+    autotags_path, dataset_path, frame_folder, label_list_path, metadata_path
+):
+    '''
+    create metadata based on downloaded files
     '''
     label_dict = {}
 
@@ -188,19 +211,32 @@ def get_metadata(download_path, autotags_path, label_list_path, metadata_path):
             label_name = row[1]
             label_dict[label_name] = label_id
 
-    with open(download_path, 'r') as csvfile_download, \
+    with open(dataset_path, 'r') as csvfile_dataset, \
          open(autotags_path, 'r') as csvfile_autotags, \
          open(metadata_path, 'w+') as csvfile_metadata:
-        reader_download = csv.reader(csvfile_download, delimiter='\t')
-        reader_autotags = csv.reader(csvfile_autotags, delimiter='\t')
-        writer_metadata = csv.writer(csvfile_metadata, delimiter='\t')
 
-        # iterate over found videos
-        for d_row in reader_download:
+        d_reader = csv.reader(csvfile_dataset, delimiter='\t', quoting=csv.QUOTE_NONE)
+        a_reader = csv.reader(csvfile_autotags, delimiter='\t', quoting=csv.QUOTE_NONE)
+        m_writer = csv.writer(csvfile_metadata, delimiter='\t')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e5 == 0:
+                print(i)
+
+            # if download path ends with '.jpg', ignore it
+            if os.path.splitext(d_row[16])[1] == '.jpg':
+                continue
+
             d_id = d_row[1]
+            folder_name = os.path.join(frame_folder, d_id)
 
+            if not os.path.isdir(folder_name):
+                continue
+
+            autotags_found = False
             # iterate over autotags
-            for a_row in reader_autotags:
+            for a_row in a_reader:
                 a_id = a_row[0]
 
                 # if indices match, extract metadata
@@ -217,14 +253,23 @@ def get_metadata(download_path, autotags_path, label_list_path, metadata_path):
 
                     meta_list.sort()
 
-                    writer_metadata.writerow(
-                        [d_id] + list(chain.from_iterable(meta_list))
-                    )
+                    m_writer.writerow([d_id] + list(chain.from_iterable(meta_list)))
+                    autotags_found = True
                     break
+
+            if not autotags_found:
+                print('No autotags found: ' + str(filename))
 
 
 if __name__ == "__main__":
-    #get_all_labels(AUTOTAGS, LABEL_LIST)
-    link_and_download_parallel(DATASET, DOWNLOAD_LIST, DOWNLOAD_FOLDER, NUM_PROCESSES)
-    #merge_download_links(DOWNLOAD_LIST, NUM_PROCESSES)
-    #get_metadata(DOWNLOAD_LIST, AUTOTAGS, LABEL_LIST, METADATA)
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        convert_to_frames(
+            DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2])
+        )
+    else:
+        #get_all_labels(AUTOTAGS, LABEL_LIST)
+        #download_parallel(DATASET, DOWNLOAD_FOLDER, NUM_PROCESSES)
+        convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
+        #get_metadata(AUTOTAGS, DATASET, DOWNLOAD_FOLDER, LABEL_LIST, METADATA)
