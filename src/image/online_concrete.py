@@ -2,6 +2,7 @@ import dataloading
 import numpy as np
 import torch
 import torch.nn as nn
+from apex import amp
 
 
 def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
@@ -17,6 +18,9 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
     criterion = nn.BCEWithLogitsLoss(pos_weight=None)
     optimizer = torch.optim.Adam(unfrozen_parameters, lr=config.lr)
 
+    # Mixed precision monkey patch
+    model, optimizer = amp.initialize(model, optimizer, opt_level=config.mixed_precision)
+
     for i in range(steps):
         images, labels = dataloading.get_torch_tensors(train_data_iterator)
         images = torch.Tensor(images).float()
@@ -30,7 +34,9 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
 
         log_ps = model(images)
         loss = criterion(log_ps, labels)
-        loss.backward()
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+        # loss.backward()
         optimizer.step()
 
 
