@@ -3,6 +3,12 @@ channels:
   - pytorch
 dependencies:
   - python=3.5
+  - scipy
+  - scikit-learn
+  - pandas
+  - psutil
+  - yaml
+  - matplotlib
   - pytorch=1.0.1
   - cudatoolkit=10.0
   - torchvision=0.2.2
