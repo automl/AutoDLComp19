@@ -5,7 +5,7 @@ import torch.nn as nn
 from apex import amp
 
 
-def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
+def trainloop(model, optimizer, train_data_iterator, config, steps):
     """
     # PYTORCH
     Trainloop function does the actual training of the model
@@ -16,10 +16,6 @@ def trainloop(model, unfrozen_parameters, train_data_iterator, config, steps):
     model.train()
     # TODO(Danny): Experiment with per-class weighting to compensate for unbalanced data
     criterion = nn.BCEWithLogitsLoss(pos_weight=None)
-    optimizer = torch.optim.Adam(unfrozen_parameters, lr=config.lr)
-
-    # Mixed precision monkey patch
-    model, optimizer = amp.initialize(model, optimizer, opt_level=config.mixed_precision)
 
     for i in range(steps):
         images, labels = dataloading.get_torch_tensors(train_data_iterator)

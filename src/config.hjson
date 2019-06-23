@@ -40,7 +40,10 @@
   prediction_threshold: 0.6
 
   # Training Hyperparameters
-  mixed_precision: "O0" # See https://nvidia.github.io/apex/amp.html#opt-levels
+  # See https://nvidia.github.io/apex/amp.html#opt-levels
+  mixed_precision: {
+    opt_level: "O1" # Only O1 working as we recreate the optimizer over and over
+  }
   batch_size: 64
   lr: 1e-3
 }

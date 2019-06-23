@@ -119,12 +119,7 @@ class Model(algorithm.Algorithm):
         return steps_to_train
 
     def _autodl(self, dataset, steps_to_train):
-        self.model, model_input_sizes = self.online_meta.select_model()
-        # TODO(Danny): make initialiazation work here. Currently there is a problem since
-        # the last layer has a different shape than in the online parameters. Currently
-        # the model is initialized in select_model().
-        # self.model = self.online_meta.initialize_model(self.model)
-        unfrozen_parameters = self.online_meta.select_unfrozen_parameter(self.model)
+        self.model, self.optimizer, model_input_sizes = self.online_meta.select_model()
 
         # If the input size changes, the tensorflow dataloader has to be recreated to
         # accomodate this
@@ -136,7 +131,7 @@ class Model(algorithm.Algorithm):
             )
         self.online_concrete.trainloop(
             self.model,
-            unfrozen_parameters,
+            self.optimizer,
             self.train_data_iterator,
             self.config,
             steps=steps_to_train,
