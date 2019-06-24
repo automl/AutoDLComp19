@@ -20,7 +20,8 @@
   ]
 
   # Execution
-  num_epochs_we_want_to_train: 40
+  num_epochs_we_want_to_train: 200
+  dataset_split_ratio: [0.9, 0.1]
 
   # Preprocessing
   default_num_frames: 10
@@ -44,6 +45,6 @@
   mixed_precision: {
     opt_level: "O1" # Only O1 working as we recreate the optimizer over and over
   }
-  batch_size: 64
+  batch_size: 128
   lr: 1e-3
 }

@@ -1,10 +1,15 @@
 import functools
+import sys
 
 import image.models as models
 import torch
 import torch.nn as nn
 import utils
-from apex import amp
+
+try:
+    from apex import amp
+except Exception:
+    pass
 
 
 def _recursive_getattr(obj, attr, *args):
@@ -79,7 +84,7 @@ class OnlineMeta:
             optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
 
             # Mixed precision monkey patch
-        if not self.amped:
+        if not self.amped and 'apex' in sys.modules:
             self.model, self.optimizer = amp.initialize(
                 model, optimizer, **self.config.mixed_precision
             )
