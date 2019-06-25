@@ -1,11 +1,12 @@
 import csv
-import glob
-import multiprocessing as mp
 import os
+import multiprocessing as mp
 import subprocess
+import glob
 import sys
+import shutil
 from itertools import chain
-from subprocess import call
+
 
 # path to the original autotag file
 AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
@@ -17,14 +18,23 @@ LABEL_LIST = '/media/dingsda/External/download/log/yfcc100m_label'
 # number of cpus, determines number of parallel processes when extracting the download links
 METADATA = '/media/dingsda/External/download/log/yfcc100m_metadata'
 # path to the video download folder
-DOWNLOAD_FOLDER = '/media/dingsda/External/download/mp4'
+DOWNLOAD_FOLDER = '/media/dingsda/External/download/mp4_yfcc100m'
 # path to the frame download folder
-FRAME_FOLDER = '/media/dingsda/External/download/frame'
+FRAME_FOLDER = '/media/dingsda/External/download/frames_yfcc100m'
 
 # guess what
-NUM_PROCESSES = 16
+NUM_PROCESSES = 1
+
+# desired width/height of resulting images
+WIDTH_DES = 320.0
+HEIGHT_DES = 240.0
+
+# minimum duration of the video in s
+DURATION_MIN = 0
 
 csv.field_size_limit(100000000)
+
+
 
 
 def download_parallel(dataset_path, download_folder, num_processes):
@@ -33,14 +43,13 @@ def download_parallel(dataset_path, download_folder, num_processes):
     '''
     p_list = []
     for i in range(num_processes):
-        p = mp.Process(
-            target=download, args=(dataset_path, download_folder, i, num_processes)
-        )
+        p = mp.Process(target=download, args=(dataset_path, download_folder, i, num_processes))
         p.start()
         p_list.append(p)
 
     for p in p_list:
         p.join()
+
 
 
 def download(dataset_path, download_folder, process_id=0, num_processes=1):
@@ -61,7 +70,7 @@ def download(dataset_path, download_folder, process_id=0, num_processes=1):
                 continue
 
             # use non-conflicting indices for every process
-            if (i + process_id) % num_processes != 0:
+            if (i+process_id)%num_processes != 0:
                 continue
 
             # main step: load video in browser, extract download link and store it
@@ -83,15 +92,13 @@ def download(dataset_path, download_folder, process_id=0, num_processes=1):
                 print('-----------------')
 
 
+
 def save_video_url(writer, index, id, video_url):
     writer.writerow([index, id, video_url])
 
 
+
 def download_video(video_url, filename):
-
-    if os.path.isfile(filename):
-        print('File already exists: ' + filename)
-
     subprocess.call(['youtube-dl', '-q', '-o', filename, '-f', 'iphone_wifi', video_url])
     if os.path.isfile(filename):
         return
@@ -114,6 +121,7 @@ def download_video(video_url, filename):
     raise Exception('File not downloaded properly: ' + filename)
 
 
+
 def get_all_labels(autotags_path, label_list_path):
     '''
     extract all 1570 labels from the autotags and write them to a file together with their index
@@ -125,7 +133,7 @@ def get_all_labels(autotags_path, label_list_path):
         reader = csv.reader(csvfile, delimiter='\t')
         for i, row in enumerate(reader):
             # write a short progress message
-            if i % 1e6 == 0:
+            if i%1e6 == 0:
                 print(i)
 
             # find all labels
@@ -150,10 +158,7 @@ def convert_to_frames_parallel(download_folder, frame_folder, num_processes):
     '''
     p_list = []
     for i in range(num_processes):
-        p = mp.Process(
-            target=convert_to_frames,
-            args=(download_folder, frame_folder, i, num_processes)
-        )
+        p = mp.Process(target=convert_to_frames, args=(download_folder, frame_folder, i, num_processes))
         p.start()
         p_list.append(p)
 
@@ -161,21 +166,22 @@ def convert_to_frames_parallel(download_folder, frame_folder, num_processes):
         p.join()
 
 
+
 def convert_to_frames(download_folder, frame_folder, process_id=0, num_processes=1):
     '''
     convert videos to frame level
     '''
     # recursively parse root_dir
-    for i, file_path in enumerate(glob.iglob(download_folder + "**/**", recursive=True)):
+    for i, file_path in enumerate(sorted(glob.iglob(download_folder + "**/**", recursive=True))):
         file_name = os.path.basename(file_path)
         file_base = os.path.splitext(file_name)[0]
         file_ext = os.path.splitext(file_name)[1]
 
         dest_folder = os.path.join(frame_folder, file_base)
-        dest_folder_temp = os.path.join(frame_folder, file_base + '_temp')
+        dest_folder_temp = os.path.join(frame_folder, file_base+'_temp')
 
         # use non-conflicting indices for every process
-        if (i + process_id) % num_processes != 0:
+        if (i+process_id)%num_processes != 0:
             continue
 
         if os.path.exists(dest_folder):
@@ -185,20 +191,46 @@ def convert_to_frames(download_folder, frame_folder, process_id=0, num_processes
         if file_ext == ".mp4":
             try:
                 print(dest_folder)
+
+                width = subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "stream=width", "-of", "csv=p=0:s=x", file_path])
+                height = subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "stream=height", "-of", "csv=p=0:s=x", file_path])
+                duration = subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "stream=duration", "-of", "csv=p=0:s=x", file_path])
+                width = float(width)
+                height = float(height)
+                duration = float(duration.decode('utf-8').split('\n')[0])
+
+                if duration < DURATION_MIN:
+                    print('video too short: ' + file_name + ' ' + str(duration))
+                    continue
+
                 if not os.path.exists(dest_folder_temp):
                     os.mkdir(dest_folder_temp)
+
+                frac = width/height
+                frac_des = WIDTH_DES/HEIGHT_DES
+
+                reshape_command = ""
+                if frac > frac_des: # image is wider than usual
+                    if height > HEIGHT_DES: # reduce image size
+                        reshape_command = "-vf scale=-1:" + str(int(height))
+                else: # image is higher than usual
+                    if width > WIDTH_DES:   # reduce image size
+                        reshape_command = "-vf scale=" + str(int(width)) + ":-1"
+
                 dest = os.path.join(dest_folder_temp, "%04d.jpg")
-                call(["ffmpeg", "-y", "-i", file_path, dest])
+                command = "ffmpeg -v error -i " + file_path + " -y -r 5 " + reshape_command + " " + dest
+                os.system(command)
                 os.rename(dest_folder_temp, dest_folder)
             except Exception as err:
                 print('-----------------')
                 print(err)
+                if os.path.exists(dest_folder_temp):
+                    shutil.rmtree(dest_folder_temp)
                 print('-----------------')
 
 
-def get_metadata(
-    autotags_path, dataset_path, frame_folder, label_list_path, metadata_path
-):
+
+def get_metadata(autotags_path, dataset_path, frame_folder, label_list_path, metadata_path):
     '''
     create metadata based on downloaded files
     '''
@@ -221,7 +253,7 @@ def get_metadata(
 
         for i, d_row in enumerate(d_reader):
             # write a short progress message
-            if i % 1e5 == 0:
+            if i % 1e6 == 0:
                 print(i)
 
             # if download path ends with '.jpg', ignore it
@@ -249,7 +281,7 @@ def get_metadata(
 
                         if len(name) > 0:
                             prob = pair.split(':')[1]
-                            meta_list.append((int(label_dict[name]), prob))
+                            meta_list.append((int(label_dict[name]),prob))
 
                     meta_list.sort()
 
@@ -258,18 +290,18 @@ def get_metadata(
                     break
 
             if not autotags_found:
-                print('No autotags found: ' + str(filename))
+                print('No autotags found: ' + str(folder_name))
+
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
-        convert_to_frames(
-            DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2])
-        )
+        convert_to_frames(DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
     else:
         #get_all_labels(AUTOTAGS, LABEL_LIST)
         #download_parallel(DATASET, DOWNLOAD_FOLDER, NUM_PROCESSES)
-        convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
-        #get_metadata(AUTOTAGS, DATASET, DOWNLOAD_FOLDER, LABEL_LIST, METADATA)
+        #convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
+        get_metadata(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA)
+
