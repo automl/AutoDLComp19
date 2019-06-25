@@ -82,11 +82,12 @@ class OnlineMeta:
             self.model = model
         if not self.optimizer:
             optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
+            self.optimizer = optimizer
 
             # Mixed precision monkey patch
         if not self.amped and 'apex' in sys.modules:
             self.model, self.optimizer = amp.initialize(
-                model, optimizer, **self.config.mixed_precision
+                self.model, self.optimizer, **self.config.mixed_precision
             )
             self.amped = True
         self.freeze_layers(self.model)
