@@ -26,4 +26,4 @@ pre-commit install
 
 eval "$(conda shell.bash hook)"
 conda activate autodl
-echo "$(time utils/install_apex.sh)"
+echo "$(time . utils/install_apex.sh)"
