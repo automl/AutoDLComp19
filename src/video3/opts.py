@@ -8,7 +8,8 @@ parser.add_argument('dataset', type=str, choices=['ucf101',
                                                   'hmdb51',
                                                   'kinetics',
                                                   'epickitchen_verb',
-                                                  'epickitchen_noun', ])
+                                                  'epickitchen_noun',
+                                                  'yfcc100m'])
 parser.add_argument('modality', type=str, choices=['RGB', 'Flow', 'RGBDiff'])
 parser.add_argument(
     '--working_directory',

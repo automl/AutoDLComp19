@@ -7,7 +7,6 @@ import os
 
 ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
 
-
 def return_epickitchen_noun(modality):
     filename_categories = 352
     if modality == 'RGB':
@@ -118,6 +117,18 @@ def return_kinetics(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
+def return_yfcc100m(modality):
+    filename_categories = 1570
+    if modality == 'RGB':
+        root_data = ROOT_DATASET + 'yfcc100m/'
+        filename_imglist_train = root_data + 'train.txt'
+        filename_imglist_val = root_data + 'test.txt'
+        prefix = '{:04d}.jpg'
+    else:
+        raise NotImplementedError('no such modality:' + modality)
+    return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
+
+
 def return_dataset(dataset, modality):
     dict_single = {
         'jhmdb21': return_jhmdb21,
@@ -128,6 +139,7 @@ def return_dataset(dataset, modality):
         'kinetics': return_kinetics,
         'epickitchen_verb': return_epickitchen_verb,
         'epickitchen_noun': return_epickitchen_noun,
+        'yfcc100m': return_yfcc100m,
     }
     if dataset in dict_single:
         file_categories, file_imglist_train, file_imglist_val, root_data, prefix = dict_single[dataset](  # noqa: E501
