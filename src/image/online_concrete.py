@@ -22,17 +22,17 @@ def split_ratio_to_lengths(quota, ratiolist):
     restquota = quota
     for ratio in ratios.tolist():
         size = int(np.round(quota * ratio))
-        assert size <= restquota
+        size = size if size <= restquota else restquota
         dsetsizes.append(size)
         restquota -= size
     return dsetsizes
 
 
-def accuracy(y_predicted, y_true, y_true_is_onehot=False):
+def accuracy(num_classes, y_predicted, y_true, y_true_is_onehot=False):
     """ Caculate accuracy of the prediction given the truth
     """
-    y_predicted = np.argmax(np.array(y_predicted).reshape(-1, 10), axis=-1)
-    y_true = np.argmax(np.array(y_true).reshape(-1, 10), axis=-1) \
+    y_predicted = np.argmax(np.array(y_predicted).reshape(-1, num_classes), axis=-1)
+    y_true = np.argmax(np.array(y_true).reshape(-1, num_classes), axis=-1) \
         if y_true_is_onehot \
         else np.array(y_true).reshape(-1)
     return np.sum(np.equal(y_true, y_predicted)) / len(y_true)
@@ -86,7 +86,9 @@ def trainloop(model, optimizer, tfdataset, tfmeta, config, steps, model_input_si
                     loss.backward()
                 optimizer.step()
                 t_loss += loss.data.cpu() * images.shape[0]
-                t_acc += accuracy(log_ps.data.cpu(), labels.cpu(), True) * images.shape[0]
+                t_acc += accuracy(
+                    tfmeta.metadata_.output_dim, log_ps.data.cpu(), labels.cpu(), True
+                ) * images.shape[0]
                 t_numel += images.shape[0]
             except tf.errors.OutOfRangeError:
                 break
@@ -126,7 +128,9 @@ def trainloop(model, optimizer, tfdataset, tfmeta, config, steps, model_input_si
                 # Scale the accuracy/loss to the batchsize and later divide it by number of
                 # elements so unequal size batches don't scew the accuracy
                 v_loss += loss.data.cpu() * images.shape[0]
-                v_acc += accuracy(log_ps.data.cpu(), labels.cpu(), True) * images.shape[0]
+                v_acc += accuracy(
+                    tfmeta.metadata_.output_dim, log_ps.data.cpu(), labels.cpu(), True
+                ) * images.shape[0]
                 v_numel += images.shape[0]
             except tf.errors.OutOfRangeError:
                 break
