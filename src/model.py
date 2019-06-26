@@ -17,7 +17,6 @@ import time
 
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
-import dataloading
 import image.models
 import image.online_concrete
 import image.online_meta
@@ -216,11 +215,8 @@ class Model(algorithm.Algorithm):
 
         # PYTORCH
         # TODO(Danny): Only load testset once if it fits nicely in 24GB
-        testloader = dataloading.get_dataloader(
-            dataset, self.config, self.model_input_sizes, train=False
-        )
         predictions = self.online_concrete.testloop(
-            self.model, testloader, self.output_dim, self.config
+            self.model, dataset, self.model_input_sizes, self.output_dim, self.config
         )
 
         test_end = time.time()

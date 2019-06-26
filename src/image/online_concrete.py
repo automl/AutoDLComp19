@@ -145,7 +145,7 @@ def trainloop(model, optimizer, tfdataset, tfmeta, config, steps, model_input_si
     ]
 
 
-def testloop(model, dataloader, output_dim, config):
+def testloop(model, tfdataset, model_input_sizes, output_dim, config):
     """
     # PYTORCH
     testloop uses testdata to test the pytorch model and return onehot prediciton
@@ -153,35 +153,45 @@ def testloop(model, dataloader, output_dim, config):
     """
     model.eval()
     predictions = []
-    # t_acc = 0
-    # t_numel = 0
-    with torch.no_grad():
-        for images, labels in dataloader:
-            images = images.float()
-            if torch.cuda.is_available():
-                images = images.cuda()
 
-            log_ps = model(images)
+    testset = tfdataset.prefetch(2)
+    testiterator = dataloading.input_function(testset, config, model_input_sizes, False)
+    next_element = testiterator.get_next()
 
-            probabilities = torch.sigmoid(log_ps)
+    t_start = time.time()
+    with tf.Session() as sess:
+        # for _ in range(steps):
+        while True:
+            try:
+                x, y = sess.run(next_element)
+                images = torch.Tensor(x[:, 0, :, :, :].transpose(0, 3, 1, 2))
+                # labels = torch.Tensor(y)
 
-            # Get a mask indicating the maximum probability for each image
-            # ORIGINAL: top_p, top_class = probabilities.topk(1, dim=1)
-            prediction = torch.zeros_like(probabilities, dtype=torch.uint8)
-            prediction[torch.arange(len(probabilities)), probabilities.argmax(dim=1)] = 1
+                if torch.cuda.is_available():
+                    images = images.cuda()
 
-            # Add predictions which are over a probability threshold
-            if config.use_prediction_thresholding:
-                probabilities_over_threshold = probabilities > config.prediction_threshold
-                prediction = torch.max(prediction, probabilities_over_threshold)
-            predictions.append(prediction.cpu().numpy())
+                log_ps = model(images)
 
-    #         t_acc += accuracy(log_ps.cpu(), labels) * images.shape[0]
-    #         t_numel += images.shape[0]
+                probabilities = torch.sigmoid(log_ps)
 
-    # print("###################################")
-    # print(t_acc / t_numel)
-    # print("###################################")
-    # Flatten over batches as scoring.py is batch agnostic
-    # ORIGINAL: return np.squeeze(np.eye(output_dim)[predictions.reshape(-1)])
+                # Get a mask indicating the maximum probability for each image
+                # ORIGINAL: top_p, top_class = probabilities.topk(1, dim=1)
+                prediction = torch.zeros_like(probabilities, dtype=torch.uint8)
+                prediction[torch.arange(len(probabilities)),
+                           probabilities.argmax(dim=1)] = 1
+
+                # Add predictions which are over a probability threshold
+                if config.use_prediction_thresholding:
+                    probabilities_over_threshold = probabilities > config.prediction_threshold
+                    prediction = torch.max(prediction, probabilities_over_threshold)
+                predictions.append(prediction.cpu().numpy())
+
+                # Scale the accuracy/loss to the batchsize and later divide it by number of
+                # elements so unequal size batches don't scew the accuracy
+            except tf.errors.OutOfRangeError:
+                break
+    t_stop = time.time()
+    print("# TEST ###############################")
+    print("Time:\t{}s".format(t_stop - t_start))
+    print("###################################")
     return np.concatenate(predictions)
