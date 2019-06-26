@@ -8,12 +8,6 @@
   extra_packages: [
     .miniconda/envs/autodl/lib/python3.5/site-packages/hjson
     .miniconda/envs/autodl/lib/python3.5/site-packages/amp_C.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex-0.1-py3.5.egg-info
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex_C.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/syncbn.cpython-35m-x86_64-linux-gnu.so
   ]
   active_model_files: [  # With respect to model_dir
     resnet18-5c106cde
@@ -40,11 +34,21 @@
   use_prediction_thresholding: true
   prediction_threshold: 0.6
 
-  # Training Hyperparameters
-  # See https://nvidia.github.io/apex/amp.html#opt-levels
-  mixed_precision: {
-    opt_level: "O1" # Only O1 working as we recreate the optimizer over and over
+  # Mixed Precision
+  include_mixed_precision: true # Tells the competition.py to include the mixed precision package or not
+  mixed_precision_package: [
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex-0.1-py3.5.egg-info
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex_C.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/syncbn.cpython-35m-x86_64-linux-gnu.so
+  ]
+  mixed_precision_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
+    opt_level: "O1" # O0 is normal learning and apex does nothing
   }
+
+  # Training Hyperparameters
   batch_size: 128
   lr: 1e-3
 }
