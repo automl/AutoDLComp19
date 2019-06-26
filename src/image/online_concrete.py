@@ -54,6 +54,7 @@ def trainloop(model, optimizer, tfdataset, tfmeta, config, steps, model_input_si
     )
     trainset = tfdataset.take(train_val_sizes[0])
     valset = tfdataset.skip(train_val_sizes[0])
+
     # Prepare dataset for training
     trainset = trainset.prefetch(2)
     trainiterator = dataloading.input_function(trainset, config, model_input_sizes, True)

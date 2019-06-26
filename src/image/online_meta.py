@@ -87,7 +87,7 @@ class OnlineMeta:
             # Mixed precision monkey patch
         if not self.amped and 'apex' in sys.modules:
             self.model, self.optimizer = amp.initialize(
-                self.model, self.optimizer, **self.config.mixed_precision
+                self.model, self.optimizer, **self.config.mixed_precision_args
             )
             self.amped = True
         self.freeze_layers(self.model)
