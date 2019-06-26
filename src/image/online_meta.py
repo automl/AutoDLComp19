@@ -1,9 +1,15 @@
 import functools
+import sys
 
 import image.models as models
 import torch
 import torch.nn as nn
 import utils
+
+try:
+    from apex import amp
+except Exception:
+    pass
 
 
 def _recursive_getattr(obj, attr, *args):
@@ -47,6 +53,8 @@ class OnlineMeta:
     def __init__(self, config, metadata_):
         self.config = config
         self.model = None
+        self.optimizer = None
+        self.amped = False
 
         # TODO(Danny): Document what metadata_ contains
         self.output_dim = metadata_.get_output_size()
@@ -66,13 +74,30 @@ class OnlineMeta:
             )
             if torch.cuda.is_available():
                 model.cuda()
+
+            # TODO(Danny): make initialiazation work here. Currently there is a problem since
+            # the last layer has a different shape than in the online parameters. Currently
+            # the model is initialized in select_model().
+            # self.model = self.initialize_model(self.model)
             self.model = model
+        if not self.optimizer:
+            optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
+            self.optimizer = optimizer
 
-        return self.model, self.model_input_size
+            # Mixed precision monkey patch
+        if not self.amped and 'apex' in sys.modules:
+            self.model, self.optimizer = amp.initialize(
+                self.model, self.optimizer, **self.config.mixed_precision
+            )
+            self.amped = True
+        self.freeze_layers(self.model)
+        return self.model, self.optimizer, self.model_input_size
 
-    def select_unfrozen_parameter(self, model):
+    def freeze_layers(self, model):
         if self.config.finetune_all:
             utils.print_log("Selected all modules to be unfrozen")
+            for p in model.parameters():
+                p.requires_grad = True
             return model.parameters()
 
         # Compute frozen / unfrozen modules using first_j and last_k configparameters

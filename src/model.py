@@ -83,6 +83,7 @@ class Model(algorithm.Algorithm):
         self.estimated_time_test = None
         self.trained = False
         self.done_training = False
+        self.dataset_metadata = metadata
 
     def _get_steps_to_train(self, remaining_time_budget):
         """Get number of steps for training according to `remaining_time_budget`.
@@ -118,28 +119,20 @@ class Model(algorithm.Algorithm):
                 steps_to_train = 0
         return steps_to_train
 
-    def _autodl(self, dataset, steps_to_train):
-        self.model, model_input_sizes = self.online_meta.select_model()
-        # TODO(Danny): make initialiazation work here. Currently there is a problem since
-        # the last layer has a different shape than in the online parameters. Currently
-        # the model is initialized in select_model().
-        # self.model = self.online_meta.initialize_model(self.model)
-        unfrozen_parameters = self.online_meta.select_unfrozen_parameter(self.model)
+    def _autodl(self, dataset, dataset_metadata, steps_to_train):
+        self.model, self.optimizer, model_input_sizes = self.online_meta.select_model()
 
         # If the input size changes, the tensorflow dataloader has to be recreated to
         # accomodate this
-        model_input_sizes_changed = model_input_sizes != self.model_input_sizes
         self.model_input_sizes = model_input_sizes
-        if not self.train_data_iterator or model_input_sizes_changed:
-            self.train_data_iterator = dataloading.input_function(
-                dataset, self.config, self.model_input_sizes, is_training=True
-            )
-        self.online_concrete.trainloop(
+        return self.online_concrete.trainloop(
             self.model,
-            unfrozen_parameters,
-            self.train_data_iterator,
+            self.optimizer,
+            dataset,
+            dataset_metadata,
             self.config,
-            steps=steps_to_train,
+            steps_to_train,
+            model_input_sizes,
         )
 
     def train(self, dataset, remaining_time_budget=None):
@@ -165,7 +158,7 @@ class Model(algorithm.Algorithm):
         )
 
         train_start = time.time()
-        self._autodl(dataset, steps_to_train)
+        self._autodl(dataset, self.dataset_metadata, steps_to_train)
         train_end = time.time()
 
         # Update for time budget managing

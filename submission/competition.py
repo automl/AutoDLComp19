@@ -3,9 +3,9 @@ import os
 import shutil
 import sys
 
-sys.path.append(".")  # isort:skip
 from src.utils import Config  # noqa: E402
 
+sys.path.append(".")  # isort:skip
 
 if __name__ == "__main__":
     # TODO(Danny): Do not copy stuff, but add stuff to zip file 1 by 1 for space
@@ -52,6 +52,15 @@ if __name__ == "__main__":
             args.submission_dir + "/" + os.path.basename(extra_package),
             ignore=ignore,
         )
+
+    if config.include_mixed_precision:
+        # Include extra packages
+        for pkg in config.mixed_precision_package:
+            shutil.copytree(
+                pkg,
+                args.submission_dir + "/" + os.path.basename(pkg),
+                ignore=ignore,
+            )
 
     # Write
     config.is_codalab_submission = True

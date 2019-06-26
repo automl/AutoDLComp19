@@ -112,35 +112,23 @@ def get_dataloader(tfdataset, config, image_size, train=False):
     sess = tf.Session()
     features = []
     labels = []
-    if train:
-        while True:
-            try:
-                x, y = sess.run(next_element)
-                x = x.transpose(0, 3, 1, 2)
-                y = y.argmax()
-                features.append(x)
-                labels.append(y)
-            except tf.errors.OutOfRangeError:
-                break
-        features = np.vstack(features)
-        features = torch.Tensor(features)
-        labels = torch.Tensor(labels)
-        dataset = data_utils.TensorDataset(features, labels)
-        loader = data_utils.DataLoader(
-            dataset, batch_size=config.batch_size, shuffle=True
-        )
-    else:
-        while True:
-            try:
-                x, _ = sess.run(next_element)
-                x = x.transpose(0, 3, 1, 2)
-                features.append(x)
-            except tf.errors.OutOfRangeError:
-                break
-        features = np.vstack(features)
-        features = torch.Tensor(features)
-        dataset = data_utils.TensorDataset(features)
-        loader = data_utils.DataLoader(dataset, batch_size=config.batch_size)
+    while True:
+        try:
+            x, y = sess.run(next_element)
+            x = x.transpose(0, 3, 1, 2)
+            y = y.argmax()
+            features.append(x)
+            labels.append(y)
+        except tf.errors.OutOfRangeError:
+            break
+    features = np.vstack(features)
+    features = torch.Tensor(features)
+    labels = torch.Tensor(labels)
+    dataset = data_utils.TensorDataset(features, labels)
+    loader = data_utils.DataLoader(
+        dataset, batch_size=config.batch_size, shuffle=True
+    ) if train \
+        else data_utils.DataLoader(dataset, batch_size=config.batch_size)
     return loader
 
 
@@ -155,7 +143,7 @@ def get_torch_tensors(training_data_iterator):
     next_iter = training_data_iterator.get_next()
     sess = tf.Session()
     images, labels = sess.run(next_iter)
-    return images[:, 0, :, :, :].transpose(0, 3, 1, 2), labels
+    return torch.Tensor(images[:, 0, :, :, :].transpose(0, 3, 1, 2)), torch.Tensor(labels)
 
 
 def input_function(dataset, config, image_size, is_training):
@@ -178,7 +166,7 @@ def input_function(dataset, config, image_size, is_training):
         # Shuffle input examples
         dataset = dataset.shuffle(buffer_size=config.default_shuffle_buffer)
         # Convert to RepeatDataset to train for several epochs
-        dataset = dataset.repeat()
+        # dataset = dataset.repeat()
 
     # Set batch size
     dataset = dataset.batch(batch_size=config.batch_size)
