@@ -4,6 +4,7 @@ from PIL import Image
 import os
 import os.path
 import numpy as np
+import torch
 from numpy.random import randint
 
 
@@ -20,15 +21,16 @@ class VideoRecord(object):
         return int(self._data[1])
 
     @property
-    def label(self):
-        return int(self._data[2])
+    def labels(self):
+        return self._data[2:]
 
 
 class TSNDataSet(data.Dataset):
     def __init__(self, root_path, list_file,
                  num_segments=3, new_length=1, modality='RGB',
                  image_tmpl='img_{:05d}.jpg', transform=None,
-                 force_grayscale=False, random_shift=True, test_mode=False):
+                 force_grayscale=False, random_shift=True, test_mode=False,
+                 classification_type='multiclass', num_labels=None):
 
         self.root_path = root_path
         self.list_file = list_file
@@ -39,6 +41,9 @@ class TSNDataSet(data.Dataset):
         self.transform = transform
         self.random_shift = random_shift
         self.test_mode = test_mode
+        self.classification_type = classification_type
+        self.num_labels = num_labels
+
 
         if self.modality == 'RGBDiff':
             self.new_length += 1  # Diff needs one more image to calculate diff
@@ -60,7 +65,7 @@ class TSNDataSet(data.Dataset):
         for x in open(self.list_file):
             data = x.strip().split(' ')
             path = '{}{}'.format(self.root_path, data[0]).replace('//', '/')
-            self.video_list.append(VideoRecord([path, data[1], data[2]]))
+            self.video_list.append(VideoRecord([path] + data[1:]))
 
     def _sample_indices(self, record):
         """
@@ -117,7 +122,17 @@ class TSNDataSet(data.Dataset):
                     p += 1
 
         process_data = self.transform(images)
-        return process_data, record.label
+
+        if self.classification_type == 'multiclass':
+            label = int(record.labels[0])
+        elif self.classification_type == 'multilabel':
+            label = torch.zeros([self.num_labels])
+            for idx, perc in zip(record.labels[::2], record.labels[1::2]):
+                label[int(idx)] = float(perc)
+        else:
+            raise NotImplementedError('unknown classification type: ' + str(self.classification_type))
+
+        return process_data, label
 
     def __len__(self):
         return len(self.video_list)

@@ -21,7 +21,8 @@ METADATA = '/media/dingsda/External/download/log/yfcc100m_metadata'
 DOWNLOAD_FOLDER = '/media/dingsda/External/download/mp4_yfcc100m'
 # path to the frame download folder
 FRAME_FOLDER = '/media/dingsda/External/download/frames_yfcc100m'
-
+# folder where the splits should be placed
+SPLIT_FOLDER = '/media/dingsda/External/download/log/'
 # guess what
 NUM_PROCESSES = 1
 
@@ -31,6 +32,9 @@ HEIGHT_DES = 240.0
 
 # minimum duration of the video in s
 DURATION_MIN = 0
+
+# test ratio (1/N)
+TEST_RATIO = 5
 
 csv.field_size_limit(100000000)
 
@@ -230,7 +234,7 @@ def convert_to_frames(download_folder, frame_folder, process_id=0, num_processes
 
 
 
-def get_metadata(autotags_path, dataset_path, frame_folder, label_list_path, metadata_path):
+def create_metadata(autotags_path, dataset_path, frame_folder, label_list_path, metadata_path):
     '''
     create metadata based on downloaded files
     '''
@@ -249,7 +253,7 @@ def get_metadata(autotags_path, dataset_path, frame_folder, label_list_path, met
 
         d_reader = csv.reader(csvfile_dataset, delimiter='\t', quoting=csv.QUOTE_NONE)
         a_reader = csv.reader(csvfile_autotags, delimiter='\t', quoting=csv.QUOTE_NONE)
-        m_writer = csv.writer(csvfile_metadata, delimiter='\t')
+        m_writer = csv.writer(csvfile_metadata, delimiter=' ')
 
         for i, d_row in enumerate(d_reader):
             # write a short progress message
@@ -265,6 +269,8 @@ def get_metadata(autotags_path, dataset_path, frame_folder, label_list_path, met
 
             if not os.path.isdir(folder_name):
                 continue
+
+            num_frames = len(next(os.walk(folder_name))[2])
 
             autotags_found = False
             # iterate over autotags
@@ -285,12 +291,32 @@ def get_metadata(autotags_path, dataset_path, frame_folder, label_list_path, met
 
                     meta_list.sort()
 
-                    m_writer.writerow([d_id] + list(chain.from_iterable(meta_list)))
+                    m_writer.writerow(['/frames/'+d_id+'/', str(num_frames)] + list(chain.from_iterable(meta_list)))
                     autotags_found = True
                     break
 
             if not autotags_found:
                 print('No autotags found: ' + str(folder_name))
+
+
+
+def create_splits(metadata_path, split_folder):
+    train_file = os.path.join(split_folder, 'train.txt')
+    test_file = os.path.join(split_folder, 'test.txt')
+
+    with open(metadata_path, 'r') as f_metadata, \
+         open(train_file, 'w+') as f_train, \
+         open(test_file, 'w+') as f_test:
+
+        for i, line in enumerate(f_metadata):
+            # write a short progress message
+            if i % 1e3 == 0:
+                print(i)
+
+            if i % TEST_RATIO == 0:  # write every n-th line to test file
+                f_test.write(line)
+            else:
+                f_train.write(line)
 
 
 
@@ -303,5 +329,6 @@ if __name__ == "__main__":
         #get_all_labels(AUTOTAGS, LABEL_LIST)
         #download_parallel(DATASET, DOWNLOAD_FOLDER, NUM_PROCESSES)
         #convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
-        get_metadata(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA)
+        #create_metadata(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA)
+        create_splits(METADATA, SPLIT_FOLDER)
 

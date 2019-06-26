@@ -95,6 +95,12 @@ class ChallengeWorker(Worker):
         elif parser_args.modality in ['Flow', 'RGBDiff']:
             data_length = 5
 
+        if parser_args.dataset == 'yfcc100m' or \
+            parser_args.dataset == 'youtube8m':
+            classification_type = 'multilabel'
+        else:
+            classification_type = 'multiclass'
+
         self.train_loader = torch.utils.data.DataLoader(
             TSNDataSet(parser_args.root_path,
                        parser_args.train_list,
@@ -102,6 +108,8 @@ class ChallengeWorker(Worker):
                        new_length=data_length,
                        modality=parser_args.modality,
                        image_tmpl=parser_args.prefix,
+                       classification_type=classification_type,
+                       num_labels=parser_args.num_class,
                        transform=torchvision.transforms.Compose([
                            train_augmentation,
                            Stack(roll=True),
@@ -455,7 +463,7 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
         data_time.update(time.time() - end)
 
         # target size: [batch_size]
-        target = target.cuda(async=True)  # noqa: W606
+        target = target.cuda(non_blocking=True)  # noqa: W606
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
@@ -531,7 +539,7 @@ def validate(val_loader, model, criterion, logger=None):
         # discard final batch
         if i == int(len(val_loader) * parser_args.val_perc) - 1:
             break
-        target = target.cuda(async=True)  # noqa: W606
+        target = target.cuda(non_blocking=True)  # noqa: W606
         input_var = input
         target_var = target
         # show gpu usage all 20. batches
