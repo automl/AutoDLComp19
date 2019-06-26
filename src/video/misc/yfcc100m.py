@@ -34,7 +34,7 @@ HEIGHT_DES = 240.0
 DURATION_MIN = 0
 
 # test ratio (1/N)
-TESTRATIO = 5
+TEST_RATIO = 5
 
 csv.field_size_limit(100000000)
 
@@ -313,7 +313,7 @@ def create_splits(metadata_path, split_folder):
             if i % 1e3 == 0:
                 print(i)
 
-            if i % TESTRATIO == 0:  # write every n-th line to test file
+            if i % TEST_RATIO == 0:  # write every n-th line to test file
                 f_test.write(line)
             else:
                 f_train.write(line)
