@@ -1,13 +1,13 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import multiprocessing as mp
 import csv
+import multiprocessing as mp
 import os
-import sys
-import subprocess
-import shutil
 import random
+import shutil
+import subprocess
+import sys
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 TRAIN_LABELS = '/media/dingsda/External/datasets/youtube8m/train_labels.csv'
 VALID_LABELS = '/media/dingsda/External/datasets/youtube8m/validate_labels.csv'
@@ -52,6 +52,7 @@ def read_video_links(link_path):
             v_li[video] = link
     return v_li
 
+
 def avg_number_of_labels_per_video(v_l):
     avg_num = np.zeros([len(v_l)])
 
@@ -86,10 +87,11 @@ def plot_abs_number_of_labels(abs_num):
 
 
 def keep_elem():
-    if np.random.rand() < PERC:
-        return True
-
-    return False
+    # if np.random.rand() < PERC:
+    #     return True
+    #
+    # return False
+    return True
 
 
 def write_selected_video_links(v_la_n, v_li, slink_path):
@@ -103,7 +105,7 @@ def write_selected_video_links(v_la_n, v_li, slink_path):
                 file.write(video + ' ' + v_li[video])
 
 
-def select_videos(label_path, link_path, slink_path, bias):
+def select_videos(label_path, link_path, slink_path):
     v_la = read_video_labels(label_path)
     v_li = read_video_links(link_path)
     abs_num = abs_number_of_labels(v_la)
@@ -125,10 +127,18 @@ def select_videos(label_path, link_path, slink_path, bias):
 ##############################################
 
 
-def download_and_convert_parallel(slink_path, download_folder, video_folder, failed_folder, temp_folder, num_processes):
+def download_and_convert_parallel(
+    slink_path, download_folder, video_folder, failed_folder, temp_folder, num_processes
+):
     p_list = []
     for i in range(num_processes):
-        p = mp.Process(target=download_and_convert, args=(slink_path, download_folder, video_folder, failed_folder, temp_folder, i, num_processes))
+        p = mp.Process(
+            target=download_and_convert,
+            args=(
+                slink_path, download_folder, video_folder, failed_folder, temp_folder, i,
+                num_processes
+            )
+        )
         p.start()
         p_list.append(p)
 
@@ -136,12 +146,20 @@ def download_and_convert_parallel(slink_path, download_folder, video_folder, fai
         p.join()
 
 
-def download_and_convert(slink_path, download_folder, video_folder, failed_folder, temp_folder, process_id=0, num_processes=1):
+def download_and_convert(
+    slink_path,
+    download_folder,
+    video_folder,
+    failed_folder,
+    temp_folder,
+    process_id=0,
+    num_processes=1
+):
     with open(slink_path, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=' ', quoting=csv.QUOTE_NONE)
 
         for i, row in enumerate(reader):
-            if (i+process_id)%num_processes != 0:
+            if (i + process_id) % num_processes != 0:
                 continue
 
             video_id = row[0]
@@ -195,5 +213,5 @@ if __name__ == "__main__":
     # else:
     #     download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, NUM_PROCESSES)
 
-    select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS, TRAIN_BIAS)
-    select_videos(VALID_LABELS, VALID_LINKS, VALID_SLINKS, VALID_BIAS)
+    select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
+    select_videos(VALID_LABELS, VALID_LINKS, VALID_SLINKS)
