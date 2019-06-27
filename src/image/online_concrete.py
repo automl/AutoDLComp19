@@ -138,7 +138,7 @@ def trainloop(model, optimizer, tfdataset, tfmeta, config, steps, model_input_si
     print("# VALIDATION #########################")
     print(
         "Loss:\t{}\nAcc:\t{}\nTime:\t{}s".format(
-            t_loss / t_numel, t_acc / t_numel, t_stop - t_start
+            v_loss / v_numel, v_acc / v_numel, v_stop - v_start
         )
     )
     print("###################################")
