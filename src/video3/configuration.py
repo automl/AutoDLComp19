@@ -30,7 +30,7 @@ def get_configspace(model_name):
     # neurons = CSH.UniformIntegerHyperparameter("neurons", 64, 300, log=True)
     ##########################
 
-    if model_name == 'ECO' or model_name == 'ECOfull':
+    if model_name == 'ECO' or model_name == 'ECOfull' or model_name == 'Dummy':
         dropout = CSH.CategoricalHyperparameter('dropout', choices=[0.])
         cs.add_hyperparameters([lr,
                                 # weight_decay,

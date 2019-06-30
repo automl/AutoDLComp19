@@ -9,20 +9,24 @@ from itertools import chain
 
 
 # path to the original autotag file
-AUTOTAGS = '/home/dingsda/Downloads/yfcc100m_autotags'
+AUTOTAGS = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_autotags'
 # path to the original dataset file
-DATASET = '/media/dingsda/External/datasets/yfcc100m/yfcc100m_dataset'
+DATASET = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_dataset'
 
 # path to the file containing all possible labels as a list
-LABEL_LIST = '/media/dingsda/External/download/log/yfcc100m_label'
+LABEL_LIST = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_label'
 # number of cpus, determines number of parallel processes when extracting the download links
-METADATA = '/media/dingsda/External/download/log/yfcc100m_metadata'
+METADATA = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_metadata'
 # path to the video download folder
-DOWNLOAD_FOLDER = '/media/dingsda/External/download/mp4_yfcc100m'
+DOWNLOAD_FOLDER = '/media/dingsda/External/datasets/yfcc100m/download'
 # path to the frame download folder
-FRAME_FOLDER = '/media/dingsda/External/download/frames_yfcc100m'
+FRAME_FOLDER = '/media/dingsda/External/datasets/yfcc100m/frames'
+# path to the frame download folder
+DELETE_FRAME_FOLDER = '/media/dingsda/External/datasets/yfcc100m/frame'
 # folder where the splits should be placed
-SPLIT_FOLDER = '/media/dingsda/External/download/log/'
+SPLIT_FOLDER = '/media/dingsda/External/datasets/yfcc100m'
+
+
 # guess what
 NUM_PROCESSES = 1
 
@@ -320,11 +324,47 @@ def create_splits(metadata_path, split_folder):
 
 
 
+def delete_frame_folder_parallel(metadata_path, delete_frame_folder, num_processes):
+    '''
+    does the same as extract_download_links(), but in parallel
+    '''
+    p_list = []
+    for i in range(num_processes):
+        p = mp.Process(target=delete_frame_folder, args=(metadata_path, delete_frame_folder, i, num_processes))
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+
+def delete_frame_folder(metadata_path, delete_frame_folder, process_id, num_processes):
+    with open(metadata_path, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=' ', quoting=csv.QUOTE_NONE)
+        for i, row in enumerate(reader):
+            if i % 1e4 == 0:
+                print(i)
+
+            # use non-conflicting indices for every process
+            if (i+process_id)%num_processes != 0:
+                continue
+
+            video_id = row[0].split('/')[2]
+            delete_folder = os.path.join(delete_frame_folder, video_id)
+
+            if os.path.isdir(delete_folder):
+                shutil.rmtree(delete_folder)
+                print('deleted folder: ' + delete_folder)
+
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
-        convert_to_frames(DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
+        #convert_to_frames(DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
+        delete_frame_folder(METADATA, DELETE_FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
     else:
         #get_all_labels(AUTOTAGS, LABEL_LIST)
         #download_parallel(DATASET, DOWNLOAD_FOLDER, NUM_PROCESSES)

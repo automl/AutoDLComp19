@@ -45,7 +45,7 @@ class ChallengeWorker(Worker):
         ############################################################
         # Model choosing
         model = ()
-        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
+        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull" or parser_args.arch == 'Dummy':
             from models_eco import TSN
             model = TSN(parser_args.num_class,
                         parser_args.num_segments,
@@ -155,7 +155,7 @@ class ChallengeWorker(Worker):
         # Parameters
         budget_counter = budget
         ############################################################
-        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
+        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull" or parser_args.arch == 'Dummy':
             from models_eco import TSN
             model = TSN(parser_args.num_class,
                         parser_args.num_segments,
@@ -454,8 +454,9 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
     # budget is in range 0-1 so a perentage to scale one epoche
     # and discard final batch because it may not be full
     stop_batch = int((budget * len(train_loader))) - 1
-
+    print('got here')
     for i, (input, target) in enumerate(train_loader):
+        print('training ' + str(i))
         # break at budget
         if i == stop_batch:
             break

@@ -5,7 +5,9 @@
 
 import os
 
-ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
+#ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
+ROOT_DATASET = '/media/dingsda/External/datasets/'
+
 
 def return_epickitchen_noun(modality):
     filename_categories = 352
@@ -86,13 +88,13 @@ def return_jhmdb21(modality):
     filename_categories = 21
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'JHMDB21'
-        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1'
+        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1/'
         filename_imglist_train = root_lists + 'rgb_train.txt'
         filename_imglist_val = root_lists + 'rgb_test.txt'
-        prefix = '{:05d}.jpg'
+        prefix = 'img_{:05d}.jpg'
     elif modality == 'Flow':
         root_data = ROOT_DATASET + 'JHMDB21'
-        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1'
+        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1/'
         filename_imglist_train = root_lists + 'flow_train.txt'
         filename_imglist_val = root_lists + 'flow_test.txt'
         prefix = '{:04d}.jpg'

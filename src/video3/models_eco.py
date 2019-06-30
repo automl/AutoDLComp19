@@ -189,6 +189,14 @@ TSN Configurations:
             self.input_size = 299
             self.input_mean = [0.5]
             self.input_std = [0.5]
+
+        elif 'Dummy' == base_model:
+            import tf_model_zoo
+            self.base_model = getattr(tf_model_zoo, base_model)()
+            self.base_model.last_layer_name = 'fc'
+            self.input_size = 112
+            self.input_mean = [104, 117, 128]
+            self.input_std = [1]
         else:
             raise ValueError('Unknown base model: {}'.format(base_model))
 

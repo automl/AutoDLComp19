@@ -9,25 +9,25 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-TRAIN_LABELS = '/media/dingsda/External/datasets/youtube8m/train_labels.csv'
-VALID_LABELS = '/media/dingsda/External/datasets/youtube8m/validate_labels.csv'
-TEST_LABES = '/media/dingsda/External/datasets/youtube8m/test_labels.csv'
+BASE_FOLDER = '/media/dingsda/External/datasets/youtube8m/'
 
-TRAIN_LINKS = '/media/dingsda/External/datasets/youtube8m/unique_train_links.txt'
-VALID_LINKS = '/media/dingsda/External/datasets/youtube8m/unique_val_links.txt'
+TRAIN_LABELS = os.path.join(BASE_FOLDER, 'train_labels.csv')
+VALID_LABELS = os.path.join(BASE_FOLDER, 'validate_labels.csv')
+TEST_LABES = os.path.join(BASE_FOLDER, 'test_labels.csv')
 
-TRAIN_SLINKS = '/media/dingsda/External/datasets/youtube8m/train_selected_links.csv'
-VALID_SLINKS = '/media/dingsda/External/datasets/youtube8m/validate_selected_links.csv'
+TRAIN_LINKS = os.path.join(BASE_FOLDER, 'unique_train_links.txt')
+VALID_LINKS = os.path.join(BASE_FOLDER, 'unique_val_links.txt')
 
-DOWNLOAD_FOLDER = '/media/dingsda/External/datasets/youtube8m/download'
-VIDEO_FOLDER = '/media/dingsda/External/datasets/youtube8m/videos'
-FAILED_FOLDER = '/media/dingsda/External/datasets/youtube8m/failed'
-TEMP_FOLDER = '/media/dingsda/External/datasets/youtube8m/temp'
+TRAIN_SLINKS = os.path.join(BASE_FOLDER, 'train_selected_links.csv')
+VALID_SLINKS = os.path.join(BASE_FOLDER, 'validate_selected_links.csv')
+
+DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
+VIDEO_FOLDER = os.path.join(BASE_FOLDER, 'videos')
+FAILED_FOLDER = os.path.join(BASE_FOLDER, 'failed')
+TEMP_FOLDER = os.path.join(BASE_FOLDER, 'temp')
 
 # percentage of how many files to store in the subset
 PERC = 1
-
-NUM_PROCESSES = 8
 
 
 def read_video_labels(label_path):
@@ -128,10 +128,11 @@ def select_videos(label_path, link_path, slink_path):
 
 
 def download_and_convert_parallel(
-    slink_path, download_folder, video_folder, failed_folder, temp_folder, num_processes
+    slink_path, download_folder, video_folder, failed_folder, temp_folder,
+    process_start, process_end, num_processes
 ):
     p_list = []
-    for i in range(num_processes):
+    for i in range(process_start, process_end):
         p = mp.Process(
             target=download_and_convert,
             args=(
@@ -155,6 +156,10 @@ def download_and_convert(
     process_id=0,
     num_processes=1
 ):
+    for folder in [download_folder, video_folder, failed_folder, temp_folder]:
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+
     with open(slink_path, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=' ', quoting=csv.QUOTE_NONE)
 
@@ -174,8 +179,10 @@ def download_and_convert(
 
             try:
                 video_url = row[1]
-                print('Found video: ' + video_url)
+                #print('Found video: ' + video_url)
+                print('download')
                 download_video(video_url, download_name)
+                print('convert')
                 convert_video(download_name, video_name, temp_name)
             except Exception as err:
                 print('-----------------')
@@ -206,12 +213,11 @@ def convert_video(download_name, video_name, temp_name):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) > 1:
-    #     for arg in sys.argv[1:]:
-    #         print(arg)
-    #     download_and_convert(TRAIN_SLINKS, DOWNLOAD_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
-    # else:
-    #     download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, NUM_PROCESSES)
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
-    select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
-    select_videos(VALID_LABELS, VALID_LINKS, VALID_SLINKS)
+    # select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
+    # select_videos(VALID_LABELS, VALID_LINKS, VALID_SLINKS)
+

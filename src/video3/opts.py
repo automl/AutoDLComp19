@@ -33,7 +33,8 @@ parser.add_argument(
         'resnet50',
         'resnet101',
         'ECO',
-        'ECOfull'])
+        'ECOfull',
+        'Dummy'])
 parser.add_argument('--num_segments', type=int, default=3)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])
