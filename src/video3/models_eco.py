@@ -2,6 +2,7 @@ from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, xavier_uniform_
 from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
+from tf_model_zoo.compression_layers import Conv1dP, Conv2dP, Conv3dP, LinearP
 import numpy as np
 import torch
 import torchvision
@@ -274,14 +275,14 @@ TSN Configurations:
         for m in self.modules():
             # (conv1d or conv2d) 1st layer's params will be append to list: first_conv_weight & first_conv_bias, total num 1 respectively(1 conv2d)
             # (conv1d or conv2d or Linear) from 2nd layers' params will be append to list: normal_weight & normal_bias, total num 69 respectively(68 Conv2d + 1 Linear)
-            if isinstance(m, torch.nn.Conv2d):
+            if isinstance(m, torch.nn.Conv2d) or isinstance(m, Conv2dP):
                 ps = list(m.parameters())
                 conv_2d_cnt += 1
                 normal_weight.append(ps[0])
                 if len(ps) == 2:
                     normal_bias.append(ps[1])
 
-            elif isinstance(m, torch.nn.Conv3d):
+            elif isinstance(m, torch.nn.Conv3d) or isinstance(m, Conv3dP):
                 ps = list(m.parameters())
                 conv_3d_cnt += 1
                 if conv_3d_cnt == 1:
@@ -293,7 +294,7 @@ TSN Configurations:
                     if len(ps) == 2:
                         normal_bias.append(ps[1])
 
-            elif isinstance(m, torch.nn.Linear):
+            elif isinstance(m, torch.nn.Linear) or isinstance(m, LinearP):
                 ps = list(m.parameters())
                 normal_weight.append(ps[0])
                 if len(ps) == 2:
@@ -365,7 +366,8 @@ TSN Configurations:
         for m in self.modules():
             # (conv1d or conv2d) 1st layer's params will be append to list: first_conv_weight & first_conv_bias, total num 1 respectively(1 conv2d)
             # (conv1d or conv2d or Linear) from 2nd layers' params will be append to list: normal_weight & normal_bias, total num 69 respectively(68 Conv2d + 1 Linear)
-            if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Conv1d):
+            if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Conv1d) or\
+               isinstance(m, Conv2dP) or isinstance(m, Conv1dP):
                 ps = list(m.parameters())
                 conv_cnt += 1
                 if conv_cnt == 1:
@@ -376,12 +378,12 @@ TSN Configurations:
                     normal_weight.append(ps[0])
                     if len(ps) == 2:
                         normal_bias.append(ps[1])
-            elif isinstance(m, torch.nn.Conv3d):
+            elif isinstance(m, torch.nn.Conv3d) or isinstance(m, Conv3dP):
                 ps = list(m.parameters())
                 last_conv_weight.append(ps[0])
                 if len(ps) == 2:
                     last_conv_bias.append(ps[1])
-            elif isinstance(m, torch.nn.Linear):
+            elif isinstance(m, torch.nn.Linear) or isinstance(m, LinearP):
                 ps = list(m.parameters())
                 normal_weight.append(ps[0])
                 if len(ps) == 2:

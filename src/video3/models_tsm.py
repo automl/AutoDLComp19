@@ -7,6 +7,7 @@ from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, normal_
 from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
+from tf_model_zoo.compression_layers import Conv1dP, Conv2dP, Conv3dP, LinearP
 import numpy as np
 import torch
 import torchvision
@@ -223,9 +224,8 @@ class TSN(nn.Module):
         conv_cnt = 0
         bn_cnt = 0
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv2d) or isinstance(
-                m, torch.nn.Conv1d
-            ) or isinstance(m, torch.nn.Conv3d):
+            if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.Conv3d) or \
+               isinstance(m, Conv2dP) or isinstance(m, Conv1dP) or isinstance(m, Conv3dP):
                 ps = list(m.parameters())
                 conv_cnt += 1
                 if conv_cnt == 1:
@@ -236,7 +236,7 @@ class TSN(nn.Module):
                     normal_weight.append(ps[0])
                     if len(ps) == 2:
                         normal_bias.append(ps[1])
-            elif isinstance(m, torch.nn.Linear):
+            elif isinstance(m, torch.nn.Linear) or isinstance(m, LinearP):
                 ps = list(m.parameters())
                 if self.fc_lr5:
                     lr5_weight.append(ps[0])

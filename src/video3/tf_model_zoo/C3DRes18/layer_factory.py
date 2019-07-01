@@ -1,4 +1,6 @@
 from torch import nn
+from tf_model_zoo.compression_layers import Conv2dP, Conv3dP, LinearP
+
 
 LAYER_BUILDER_DICT = dict()
 
@@ -37,7 +39,7 @@ def build_conv(attr, channels=None, conv_bias=False):
     else:
         stride = 1
 
-    conv = nn.Conv2d(channels, out_channels, ks, stride, padding, bias=conv_bias)
+    conv = Conv2dP(channels, out_channels, ks, stride, padding, bias=conv_bias)
 
     return conv, out_channels
 
@@ -68,7 +70,7 @@ def build_bn(attr, channels=None, conv_bias=False):
 
 
 def build_linear(attr, channels=None, conv_bias=False):
-    return nn.Linear(channels, attr['num_output']), channels
+    return LinearP(channels, attr['num_output']), channels
 
 
 def build_dropout(attr, channels=None, conv_bias=False):
@@ -94,7 +96,7 @@ def build_conv3d(attr, channels=None, conv_bias=False):
     else:
         stride = 1
 
-    conv = nn.Conv3d(channels, out_channels, ks, stride, padding, bias=conv_bias)
+    conv = Conv3dP(channels, out_channels, ks, stride, padding, bias=conv_bias)
 
     return conv, out_channels
 

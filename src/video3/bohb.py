@@ -23,10 +23,10 @@ from torch.nn.init import constant_, xavier_uniform_
 # GPU/CPU statistics
 import GPUtil
 import psutil
+from tf_model_zoo.compression_layers import *
 
 ##########################################################
 parser_args = parser.parse_args()
-
 
 class ChallengeWorker(Worker):
     def __init__(self, **kwargs):
@@ -45,7 +45,7 @@ class ChallengeWorker(Worker):
         ############################################################
         # Model choosing
         model = ()
-        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull" or parser_args.arch == 'Dummy':
+        if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
             from models_eco import TSN
             model = TSN(parser_args.num_class,
                         parser_args.num_segments,
@@ -76,6 +76,15 @@ class ChallengeWorker(Worker):
                 fc_lr5=fc_lr5_temp,
                 temporal_pool=parser_args.temporal_pool,
                 non_local=parser_args.non_local)
+        elif  parser_args.arch == 'Dummy':
+            from models_eco import TSN
+            model = TSN(parser_args.num_class,
+                        parser_args.num_segments,
+                        parser_args.modality,
+                        base_model=parser_args.arch,
+                        consensus_type=parser_args.consensus_type,
+                        dropout=parser_args.dropout,
+                        partial_bn=not parser_args.no_partialbn)
 
         ############################################################
         # Data loading code
@@ -454,9 +463,14 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
     # budget is in range 0-1 so a perentage to scale one epoche
     # and discard final batch because it may not be full
     stop_batch = int((budget * len(train_loader))) - 1
-    print('got here')
+
+    prune_ratio = 0.9
+    prune_start = 10
+    prune_end = 100
+    prune_min_nonzero = 1000
+    init_model_pruning(model, prune_start, prune_end, prune_ratio, prune_min_nonzero)
+
     for i, (input, target) in enumerate(train_loader):
-        print('training ' + str(i))
         # break at budget
         if i == stop_batch:
             break
@@ -469,6 +483,7 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
         target_var = torch.autograd.Variable(target)
 
         # compute output, output size: [batch_size, num_class]
+
         output = model(input_var)
 
         loss = criterion(output, target_var)
@@ -513,6 +528,14 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
                 if parser_args.print:
                     print("clipping gradient: {} with coef {}".format(
                         total_norm, parser_args.clip_gradient / total_norm))
+
+        # model compression
+        print(i)
+        prune_model(model, i)
+        for module in model.modules():
+            if isinstance(module, Compression):
+                print('compression rate: ' + str(module.get_compression_ratio()))
+
 
         # measure elapsed time
         batch_time.update(time.time() - end)
