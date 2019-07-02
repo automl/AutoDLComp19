@@ -25,6 +25,7 @@ import GPUtil
 import psutil
 from tf_model_zoo.compression_layers import *
 
+
 ##########################################################
 parser_args = parser.parse_args()
 
