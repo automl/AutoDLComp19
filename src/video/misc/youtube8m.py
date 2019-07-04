@@ -5,15 +5,17 @@ import random
 import shutil
 import subprocess
 import sys
+import cv2
+import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 BASE_FOLDER = '/media/dingsda/External/datasets/youtube8m/'
 
+
 TRAIN_LABELS = os.path.join(BASE_FOLDER, 'train_labels.csv')
 VALID_LABELS = os.path.join(BASE_FOLDER, 'validate_labels.csv')
-TEST_LABES = os.path.join(BASE_FOLDER, 'test_labels.csv')
 
 TRAIN_LINKS = os.path.join(BASE_FOLDER, 'unique_train_links.txt')
 VALID_LINKS = os.path.join(BASE_FOLDER, 'unique_val_links.txt')
@@ -21,10 +23,15 @@ VALID_LINKS = os.path.join(BASE_FOLDER, 'unique_val_links.txt')
 TRAIN_SLINKS = os.path.join(BASE_FOLDER, 'train_selected_links.csv')
 VALID_SLINKS = os.path.join(BASE_FOLDER, 'validate_selected_links.csv')
 
+TRAIN_FILE = os.path.join(BASE_FOLDER, 'train.txt')
+VALID_FILE = os.path.join(BASE_FOLDER, 'test.txt')
+
 DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
 VIDEO_FOLDER = os.path.join(BASE_FOLDER, 'videos')
 FAILED_FOLDER = os.path.join(BASE_FOLDER, 'failed')
 TEMP_FOLDER = os.path.join(BASE_FOLDER, 'temp')
+FRAME_FOLDER = os.path.join(BASE_FOLDER, 'frames')
+
 
 # percentage of how many files to store in the subset
 PERC = 1
@@ -212,12 +219,153 @@ def convert_video(download_name, video_name, temp_name):
     os.remove(download_name)
 
 
+
+def convert_to_frames_parallel(output_path, video_folder, frame_folder, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=convert_to_frames,
+            args=(output_path, video_folder, frame_folder, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+
+def convert_to_frames(output_path, video_folder, frame_folder, process_id=0, num_processes=1):
+    '''
+    convert videos to frame level
+    '''
+    # recursively parse root_dir
+
+    print('process id ' + str(process_id))
+    print('num processes ' + str(num_processes))
+
+    with open(output_path, 'r') as csvfile_output:
+
+        reader = csv.reader(csvfile_output, delimiter=' ', quoting=csv.QUOTE_NONE)
+
+        for i, d_row in enumerate(reader):
+            video_id = d_row[0].split('/')[-1]
+
+            file_path = os.path.join(video_folder, video_id)
+
+            file_name = os.path.basename(file_path)
+            file_base = os.path.splitext(file_name)[0]
+            file_ext = os.path.splitext(file_name)[1]
+
+            dest_folder = os.path.join(frame_folder, file_base)
+            dest_folder_temp = os.path.join(frame_folder, file_base+'_temp')
+
+            # use non-conflicting indices for every process
+            if (i+process_id)%num_processes != 0:
+                continue
+
+            if os.path.exists(dest_folder):
+                continue
+
+            # only convert files with specific ending
+            if file_ext == ".mp4":
+                try:
+                    print(dest_folder)
+
+                    if not os.path.exists(dest_folder_temp):
+                        os.mkdir(dest_folder_temp)
+
+                    dest = os.path.join(dest_folder_temp, "%04d.jpg")
+                    command = "ffmpeg -v error -i " + file_path + " -y " + dest
+                    os.system(command)
+                    os.rename(dest_folder_temp, dest_folder)
+                except Exception as err:
+                    print('-----------------')
+                    print(err)
+                    if os.path.exists(dest_folder_temp):
+                        shutil.rmtree(dest_folder_temp)
+                    print('-----------------')
+
+
+def create_metadata_parallel(label_path, video_folder, output_path, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=create_metadata,
+            args=(
+                label_path, video_folder, output_path, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def create_metadata(label_path, video_folder, output_path, process_id=0, num_processes=1):
+    output_path = output_path + '_' + str(process_id)
+
+    with open(label_path, 'r') as csvfile_dataset, \
+         open(output_path, 'w+') as csvfile_output:
+
+        d_reader = csv.reader(csvfile_dataset, delimiter=',', quoting=csv.QUOTE_NONE)
+        o_writer = csv.writer(csvfile_output, delimiter=' ')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e5 == 0:
+                print(i)
+
+            if (i + process_id) % num_processes != 0:
+                continue
+
+            video_id = d_row[0]
+            file_path = os.path.join(video_folder, str(video_id)+'.mp4')
+
+            if not os.path.isfile(file_path):
+                continue
+
+            try:
+                cap = cv2.VideoCapture(file_path)
+                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+                print(file_path)
+
+                meta_list = []
+                for label in d_row[1].split(' '):
+                    meta_list.append(label)
+                    meta_list.append(1)
+
+                o_writer.writerow(['/videos/' + video_id + '.mp4', str(frame_count)] + meta_list)
+            except Exception as err:
+                print('-----------------')
+                print(err)
+                print('-----------------')
+
+
+def merge_metadata(output_path):
+    split_files = glob.glob(output_path + '_*')
+
+    with open(output_path,'w+') as wf:
+        for f in split_files:
+            with open(f,'r') as fd:
+                shutil.copyfileobj(fd, wf)
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
-        download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        convert_to_frames_parallel(TRAIN_FILE, VIDEO_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+
+        #download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+
+    # merge_metadata(TRAIN_FILE)
 
     # select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
     # select_videos(VALID_LABELS, VALID_LINKS, VALID_SLINKS)
+
+    #convert_to_frames(TRAIN_FILE, VIDEO_FOLDER, FRAME_FOLDER)
 
