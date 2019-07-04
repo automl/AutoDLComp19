@@ -25,10 +25,10 @@ pretrained_model="./pretrained_models/ECOfull_py_model.pth.tar"
 dataset_name="ucf101"
 netType="ECOfull_py"
 batch_size=12
-learning_rate=0.0001
+learning_rate=0.001
 num_segments=16
 consensus_type=identity #{avg, identity}
-dropout=0.3
+dropout=0.8
 iter_size=5
 num_workers=3
 
