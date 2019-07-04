@@ -78,6 +78,17 @@ def main():
             non_local=args.non_local
         )
 
+    elif args.arch == "ECOfull_py":
+        from models_ecopy import ECOfull
+
+        model = ECOfull(
+            num_classes=num_class,
+            num_segments=args.num_segments,
+            modality=args.modality,
+            freeze_eco=args.freeze_eco,
+            freeze_interval=args.freeze_interval
+        ).cuda()
+
     crop_size = model.crop_size
     scale_size = model.scale_size
     input_mean = model.input_mean
@@ -126,7 +137,7 @@ def main():
         else:
             print(("=> no checkpoint found at '{}'".format(args.resume)))
     else:
-        if args.arch == "ECO" or args.arch == "ECOfull":
+        if args.arch == "ECO" or args.arch == "ECOfull" or args.arch == "ECOfull_py":
             new_state_dict = init_ECO(model_dict)
             un_init_dict_keys = [k for k in model_dict.keys() if k not in new_state_dict]
             print("un_init_dict_keys: ", un_init_dict_keys)
@@ -420,6 +431,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if i == 10 or i == 100:
             GPUtil.showUtilization(all=True)
 
+        if args.clip_gradient is not None:
+            total_norm = clip_grad_norm_(model.parameters(), args.clip_gradient)
+            if total_norm > args.clip_gradient:
+                print(
+                    "clipping gradient: {} with coef {}".format(
+                        total_norm, args.clip_gradient / total_norm
+                    )
+                )
         if (i + 1) % args.iter_size == 0:
             # scale down gradients when iter size is functioning
 
@@ -450,20 +469,12 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 )
             )
 
-        if args.clip_gradient is not None:
-            total_norm = clip_grad_norm_(model.parameters(), args.clip_gradient)
-            if total_norm > args.clip_gradient:
-                print(
-                    "clipping gradient: {} with coef {}".format(
-                        total_norm, args.clip_gradient / total_norm
-                    )
-                )
-
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
         localtime = time.localtime()
         end_time = time.strftime("%Y/%m/%d-%H:%M:%S", localtime)
+        del input_var, target_var
 
 
 def validate(val_loader, model, criterion, iter, logger=None):
@@ -477,7 +488,7 @@ def validate(val_loader, model, criterion, iter, logger=None):
 
     # switch to evaluate mode
     model.eval()
-
+    torch.set_grad_enabled(False)
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
         # discard final batch
