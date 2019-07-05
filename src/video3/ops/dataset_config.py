@@ -5,9 +5,7 @@
 
 import os
 
-#ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
-ROOT_DATASET = '/media/dingsda/External/datasets/'  # '/data/jilin/'
-
+ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
 
 def return_epickitchen_noun(modality):
     filename_categories = 352

@@ -1,9 +1,5 @@
 import torch.utils.data as data
 
-from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.ops as ops
-import nvidia.dali.types as types
-
 from PIL import Image
 import os
 import os.path
@@ -140,49 +136,3 @@ class TSNDataSet(data.Dataset):
 
     def __len__(self):
         return len(self.video_list)
-
-
-class VideoDataSet():
-    def __init__(self, root_path, list_file, num_segments=3, batch_size=1,
-                 num_threads=1, device_id=0, shuffle=True,
-                 classification_type='multiclass', num_labels=None):
-        self.root_path = root_path
-        self.list_file = list_file
-        self.num_segments = num_segments
-        self.classification_type = classification_type
-        self.num_labels = num_labels
-        self.batch_size = batch_size
-
-        self._parse_list()
-        data = [elem.path for elem in self.video_list]
-        self.pipe = VideoPipe(batch_size=batch_size, sequence_length=num_segments,
-                              num_threads=num_threads, device_id=0, data=data, shuffle=shuffle)
-        self.pipe.build()
-
-
-    def _parse_list(self):
-        self.video_list = []
-        for x in open(self.list_file):
-            data = x.strip().split(' ')
-            path = '{}{}'.format(self.root_path, data[0]).replace('//', '/')
-            self.video_list.append(VideoRecord([path] + data[1:]))
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return (self.pipe.run()
-
-
-class VideoPipe(Pipeline):
-    def __init__(self, batch_size, sequence_length, num_threads, device_id, data, shuffle):
-        super(VideoPipe, self).__init__(batch_size, num_threads, device_id, seed=16)
-        self.input = ops.VideoReader(device="gpu", filenames=data, sequence_length=sequence_length,
-                                     shard_id=0, num_shards=1,
-                                     random_shuffle=shuffle, initial_fill=16)
-
-    def define_graph(self):
-        output = self.input(name="Reader")
-        return output
-
-
