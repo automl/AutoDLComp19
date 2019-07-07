@@ -8,28 +8,31 @@ import shutil
 from itertools import chain
 
 
+BASE_FOLDER = '/media/dingsda/External/datasets/yfcc100m/'
+
 # path to the original autotag file
-AUTOTAGS = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_autotags'
+AUTOTAGS = os.path.join(BASE_FOLDER,'unzip/yfcc100m_autotags')
 # path to the original dataset file
-DATASET = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_dataset'
+DATASET = os.path.join(BASE_FOLDER,'unzip/yfcc100m_dataset')
 
 # path to the file containing all possible labels as a list
-LABEL_LIST = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_label'
+LABEL_LIST = os.path.join(BASE_FOLDER,'log/yfcc100m_label')
 # overall resulting file with images+labels
-METADATA = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_metadata'
+METADATA = os.path.join(BASE_FOLDER,'log/yfcc100m_images_metadata')
 # path to the video download folder
-IMAGE_FOLDER = '/media/dingsda/External/datasets/yfcc100m/images'
+IMAGE_FOLDER = os.path.join(BASE_FOLDER,'images/')
 # path to the video download folder
-TEMP_FOLDER = '/media/dingsda/External/datasets/yfcc100m/temp'
+TEMP_FOLDER = os.path.join(BASE_FOLDER,'temp/')
 # path to the video download folder
-FAILED_FOLDER = '/media/dingsda/External/datasets/yfcc100m/failed'
+FAILED_FOLDER = os.path.join(BASE_FOLDER,'failed/')
 
 # guess what
 NUM_PROCESSES = 8
 
 csv.field_size_limit(100000000)
 
-
+# test ratio (1/N)
+TEST_RATIO = 5
 
 
 def download_parallel(dataset_path, image_folder, temp_folder, failed_folder, num_processes):
@@ -91,12 +94,100 @@ def download(dataset_path, image_folder, temp_folder, failed_folder, process_id=
                         os.mknod(failed_name)
 
 
+def create_metadata(autotags_path, dataset_path, image_folder, label_list_path, metadata_path):
+    '''
+    create metadata based on downloaded files
+    '''
+    label_dict = {}
+
+    with open(label_list_path, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        for row in reader:
+            label_id = row[0]
+            label_name = row[1]
+            label_dict[label_name] = label_id
+
+    with open(dataset_path, 'r') as csvfile_dataset, \
+         open(autotags_path, 'r') as csvfile_autotags, \
+         open(metadata_path, 'w+') as csvfile_metadata:
+
+        d_reader = csv.reader(csvfile_dataset, delimiter='\t', quoting=csv.QUOTE_NONE)
+        a_reader = csv.reader(csvfile_autotags, delimiter='\t', quoting=csv.QUOTE_NONE)
+        m_writer = csv.writer(csvfile_metadata, delimiter=' ')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e5 == 0:
+                print(i)
+
+            # if download path ends with '.jpg', ignore it
+            if os.path.splitext(d_row[16])[1] != '.jpg':
+                continue
+
+            d_id = d_row[1]
+            file_name = os.path.join(image_folder, d_id+'.jpg')
+
+            if not os.path.isfile(file_name):
+                continue
+
+            print(file_name)
+
+            autotags_found = False
+            # iterate over autotags
+            for a_row in a_reader:
+                a_id = a_row[0]
+
+                # if indices match, extract metadata
+                if d_id == a_id:
+                    meta_list = []
+
+                    # find all labels
+                    for pair in a_row[1].split(','):
+                        name = pair.split(':')[0]
+
+                        if len(name) > 0:
+                            prob = pair.split(':')[1]
+                            meta_list.append((int(label_dict[name]),prob))
+
+                    meta_list.sort()
+
+                    m_writer.writerow(['/images/'+d_id+'.jpg'] + list(chain.from_iterable(meta_list)))
+                    autotags_found = True
+                    break
+
+            if not autotags_found:
+                print('No autotags found: ' + str(file_name))
+
+
+def create_splits(metadata_path, base_folder):
+    train_file = os.path.join(base_folder, 'train.txt')
+    test_file = os.path.join(base_folder, 'test.txt')
+
+    with open(metadata_path, 'r') as f_metadata, \
+         open(train_file, 'w+') as f_train, \
+         open(test_file, 'w+') as f_test:
+
+        for i, line in enumerate(f_metadata):
+            # write a short progress message
+            if i % 1e3 == 0:
+                print(i)
+
+            if i % TEST_RATIO == 0:  # write every n-th line to test file
+                f_test.write(line)
+            else:
+                f_train.write(line)
+
+
+
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            print(arg)
-        download(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
-    else:
-        download_parallel(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, NUM_PROCESSES)
+    # if len(sys.argv) > 1:
+    #     for arg in sys.argv[1:]:
+    #         print(arg)
+    #     download(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
+    # else:
+    #     download_parallel(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, NUM_PROCESSES)
+
+    create_metadata(AUTOTAGS, DATASET, IMAGE_FOLDER, LABEL_LIST, METADATA)
 

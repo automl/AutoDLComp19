@@ -7,24 +7,25 @@ import sys
 import shutil
 from itertools import chain
 
+BASE_FOLDER = '/media/dingsda/External/datasets/yfcc100m/'
 
 # path to the original autotag file
-AUTOTAGS = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_autotags'
+AUTOTAGS = os.path.join(BASE_FOLDER, 'unzip/yfcc100m_autotags')
 # path to the original dataset file
-DATASET = '/media/dingsda/External/datasets/yfcc100m/unzip/yfcc100m_dataset'
+DATASET = os.path.join(BASE_FOLDER, 'unzip/yfcc100m_dataset')
 
 # path to the file containing all possible labels as a list
-LABEL_LIST = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_label'
+LABEL_LIST = os.path.join(BASE_FOLDER, 'yfcc100m_label')
 # number of cpus, determines number of parallel processes when extracting the download links
-METADATA = '/media/dingsda/External/datasets/yfcc100m/log/yfcc100m_metadata'
+METADATA = os.path.join(BASE_FOLDER, 'yfcc100m_metadata')
 # path to the video download folder
-DOWNLOAD_FOLDER = '/media/dingsda/External/datasets/yfcc100m/download'
+DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
 # path to the frame download folder
-FRAME_FOLDER = '/media/dingsda/External/datasets/yfcc100m/frames'
+FRAME_FOLDER = os.path.join(BASE_FOLDER, 'frames')
 # path to the frame download folder
-DELETE_FRAME_FOLDER = '/media/dingsda/External/datasets/yfcc100m/frame'
-# folder where the splits should be placed
-SPLIT_FOLDER = '/media/dingsda/External/datasets/yfcc100m'
+DELETE_FRAME_FOLDER = os.path.join(BASE_FOLDER, 'frame')
+# folder where the videos for DALI should be placed
+DALI_FOLDER = os.path.join(BASE_FOLDER, 'dali')
 
 
 # guess what
@@ -304,9 +305,9 @@ def create_metadata(autotags_path, dataset_path, frame_folder, label_list_path, 
 
 
 
-def create_splits(metadata_path, split_folder):
-    train_file = os.path.join(split_folder, 'train.txt')
-    test_file = os.path.join(split_folder, 'test.txt')
+def create_splits(metadata_path, base_folder):
+    train_file = os.path.join(base_folder, 'train.txt')
+    test_file = os.path.join(base_folder, 'test.txt')
 
     with open(metadata_path, 'r') as f_metadata, \
          open(train_file, 'w+') as f_train, \
@@ -358,17 +359,84 @@ def delete_frame_folder(metadata_path, delete_frame_folder, process_id, num_proc
                 print('deleted folder: ' + delete_folder)
 
 
+def dali_parallel(download_folder, dali_folder, dataset_path, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=dali,
+            args=(download_folder, dali_folder, dataset_path, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def dali(download_folder, dali_folder, dataset_path, process_id=0, num_processes=1):
+    if not os.path.isdir(dali_folder):
+        os.mkdir(dali_folder)
+
+    with open(dataset_path, 'r') as csvfile_dataset:
+        d_reader = csv.reader(csvfile_dataset, delimiter='\t', quoting=csv.QUOTE_NONE)
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e5 == 0:
+                print(i)
+
+            if (i + process_id) % num_processes != 0:
+                continue
+
+            video_id = d_row[1]
+            file_path = os.path.join(download_folder, str(video_id)+'.mp4')
+
+            if not os.path.isfile(file_path):
+                continue
+
+            print(file_path)
+
+            video_folder_new = os.path.join(dali_folder, video_id)
+            file_path_new = os.path.join(video_folder_new, str(video_id)+'.mp4')
+
+            if not os.path.isdir(video_folder_new):
+                os.mkdir(video_folder_new)
+
+            shutil.move(file_path, file_path_new)
+
+
+
+def dali_replace_paths(metadata_path):
+    output_path_new = metadata_path + '_new'
+    with open(metadata_path, 'r') as csvfile, \
+        open(output_path_new, 'w+') as csvfile_new:
+            reader = csv.reader(csvfile, delimiter=' ', quoting=csv.QUOTE_NONE)
+            writer = csv.writer(csvfile_new, delimiter=' ')
+
+            for i, row in enumerate(reader):
+                if i % 1e5 == 0:
+                    print(i)
+
+                row[0] = row[0].split('/')[2][:-4]
+                writer.writerow(row)
+
+
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
         #convert_to_frames(DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
-        delete_frame_folder(METADATA, DELETE_FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
+        #delete_frame_folder(METADATA, DELETE_FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
+        #dali_parallel(DOWNLOAD_FOLDER, DALI_FOLDER, DATASET, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        pass
     else:
         #get_all_labels(AUTOTAGS, LABEL_LIST)
         #download_parallel(DATASET, DOWNLOAD_FOLDER, NUM_PROCESSES)
         #convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
         #create_metadata(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA)
-        create_splits(METADATA, SPLIT_FOLDER)
+        #create_splits(METADATA, BASE_FOLDER)
+        create_splits(METADATA, BASE_FOLDER)
 

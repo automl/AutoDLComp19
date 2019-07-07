@@ -13,7 +13,6 @@ import numpy as np
 
 BASE_FOLDER = '/media/dingsda/External/datasets/youtube8m/'
 
-
 TRAIN_LABELS = os.path.join(BASE_FOLDER, 'train_labels.csv')
 VALID_LABELS = os.path.join(BASE_FOLDER, 'validate_labels.csv')
 
@@ -28,6 +27,7 @@ VALID_FILE = os.path.join(BASE_FOLDER, 'test.txt')
 
 DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
 VIDEO_FOLDER = os.path.join(BASE_FOLDER, 'videos')
+DALI_FOLDER = os.path.join(BASE_FOLDER, 'dali')
 FAILED_FOLDER = os.path.join(BASE_FOLDER, 'failed')
 TEMP_FOLDER = os.path.join(BASE_FOLDER, 'temp')
 FRAME_FOLDER = os.path.join(BASE_FOLDER, 'frames')
@@ -322,7 +322,8 @@ def create_metadata(label_path, video_folder, output_path, process_id=0, num_pro
                 continue
 
             video_id = d_row[0]
-            file_path = os.path.join(video_folder, str(video_id)+'.mp4')
+            file_path = os.path.join(video_folder, str(video_id))
+            file_path = os.path.join(file_path, str(video_id) + '.mp4')
 
             if not os.path.isfile(file_path):
                 continue
@@ -338,7 +339,7 @@ def create_metadata(label_path, video_folder, output_path, process_id=0, num_pro
                     meta_list.append(label)
                     meta_list.append(1)
 
-                o_writer.writerow(['/videos/' + video_id + '.mp4', str(frame_count)] + meta_list)
+                o_writer.writerow([video_id, str(frame_count)] + meta_list)
             except Exception as err:
                 print('-----------------')
                 print(err)
@@ -354,14 +355,78 @@ def merge_metadata(output_path):
                 shutil.copyfileobj(fd, wf)
 
 
+def dali_parallel(video_folder, dali_folder, label_path, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=dali,
+            args=(video_folder, dali_folder, label_path, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def dali(video_folder, dali_folder, label_path, process_id=0, num_processes=1):
+    if not os.path.isdir(dali_folder):
+        os.mkdir(dali_folder)
+
+    with open(label_path, 'r') as csvfile_dataset:
+        d_reader = csv.reader(csvfile_dataset, delimiter=',', quoting=csv.QUOTE_NONE)
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e5 == 0:
+                print(i)
+
+            if (i + process_id) % num_processes != 0:
+                continue
+
+            video_id = d_row[0]
+            file_path = os.path.join(video_folder, str(video_id)+'.mp4')
+
+            if not os.path.isfile(file_path):
+                continue
+
+            print(file_path)
+
+            video_folder_new = os.path.join(dali_folder, video_id)
+            file_path_new = os.path.join(video_folder_new, str(video_id)+'.mp4')
+
+            if not os.path.isdir(video_folder_new):
+                os.mkdir(video_folder_new)
+
+            shutil.move(file_path, file_path_new)
+
+
+def dali_replace_paths(output_path):
+    output_path_new = output_path + '_new'
+    with open(output_path, 'r') as csvfile, \
+        open(output_path_new, 'w+') as csvfile_new:
+            reader = csv.reader(csvfile, delimiter=' ', quoting=csv.QUOTE_NONE)
+            writer = csv.writer(csvfile_new, delimiter=' ')
+
+            for i, row in enumerate(reader):
+                if i % 1e5 == 0:
+                    print(i)
+
+                row[0] = row[0].split('/')[2][:-4]
+                writer.writerow(row)
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
-        convert_to_frames_parallel(TRAIN_FILE, VIDEO_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
-
+        #dali_parallel(VIDEO_FOLDER, DALI_FOLDER, TRAIN_LABELS, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        #convert_to_frames_parallel(TRAIN_FILE, VIDEO_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        pass
         #download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
+    dali_replace_paths(VALID_FILE)
     # merge_metadata(TRAIN_FILE)
 
     # select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
