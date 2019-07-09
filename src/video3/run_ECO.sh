@@ -21,7 +21,6 @@ val_perc=0.0001
 dataset_name="somethingv2"
 netType="ECOfull"
 batch_size=2 #43
-gpus='0 1 2 3' # ATTENTION: Has to be set manualy to not affect other jobs!!!
 num_segments=8
 consensus_type=avg #{avg, identity}
 iter_size=4
@@ -37,7 +36,7 @@ learning_rate=0.001
 #############################################
 # Folders
 mainFolder="experiments/"
-subFolder="run_TSM_${dataset_name}_${optimizer}_finetune_r1/"
+subFolder="run_ECO_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
@@ -55,42 +54,42 @@ if [ "x${checkpointIter}" != "x" ]; then
     lastCheckpoint="${subFolder}${snap_pref}_rgb_epoch_${checkpointIter}_checkpoint.pth.tar"
     echo "Continuing from checkpoint ${lastCheckpoint}"
 
-python3 -u ${main} ${dataset_name} RGB \
-  --arch ${netType} \
-  --num_segments ${num_segments} \
-  --gd 50 --lr ${learning_rate} \
-  --num_saturate 4 \
-  --epochs 80 \
-  -b ${batch_size} \
-  -i ${iter_size} \
-  -j ${num_workers} \
-  --dropout ${dropout} \
-  --snapshot_pref ${mainFolder}${subFolder} \
-  --consensus_type ${consensus_type} \
-  --eval-freq 1 \
-  --no_partialbn \
-  --freeze_eco \
-  --freeze_interval 2 50 0 0 \
-  --nesterov "True" \
-  --resume ${mainFolder}${lastCheckpoint} \
-  --working_directory ${mainFolder} \
-  --optimizer ${optimizer} \
-  --bohb_iterations ${bohb_iterations} \
-  --min_budget ${min_budget} \
-  --max_budget ${max_budget} \
-  --eta ${eta} \
-  --val_perc ${val_perc} \
-  --bohb_workers ${bohb_workers}  \
-  2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
+    python3 -u main.py ${dataset_name} RGB \
+    --arch ${netType} \
+    --num_segments ${num_segments} \
+    --gd 50 \
+    --lr ${learning_rate} --num_saturate 4 \
+    --epochs 80 \
+    -b ${batch_size} \
+    -i ${iter_size} \
+    -j ${num_workers} \
+    --dropout ${dropout} \
+    --snapshot_pref ${mainFolder}${subFolder} \
+    --consensus_type ${consensus_type} \
+    --eval-freq 1 \
+    --no_partialbn \
+    --freeze_eco \
+    --freeze_interval 2 50 0 0 \
+    --nesterov "True" \
+    --resume ${mainFolder}${lastCheckpoint} \
+    --working_directory ${mainFolder} \
+    --optimizer ${optimizer} \
+    --bohb_iterations ${bohb_iterations} \
+    --min_budget ${min_budget} \
+    --max_budget ${max_budget} \
+    --eta ${eta} \
+    --val_perc ${val_perc} \
+    --bohb_workers ${bohb_workers}  \
+    2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 else
      echo "Training with initialization"
 
-  python3 -u ${main} ${dataset_name} RGB \
+    python3 -u main.py ${dataset_name} RGB \
     --arch ${netType} \
     --num_segments ${num_segments} \
-    --gd 50 --lr ${learning_rate} \
-    --num_saturate 4 \
+    --gd 50 \
+    --lr ${learning_rate} --num_saturate 4 \
     --epochs 80 \
     -b ${batch_size} \
     -i ${iter_size} \
@@ -107,11 +106,11 @@ else
     --working_directory ${mainFolder}${subFolder} \
     --optimizer ${optimizer} \
     --bohb_iterations ${bohb_iterations} \
+    --bohb_workers ${bohb_workers}  \
     --min_budget ${min_budget} \
     --max_budget ${max_budget} \
     --eta ${eta} \
     --val_perc ${val_perc} \
-    --bohb_workers ${bohb_workers}  \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 fi

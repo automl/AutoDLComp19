@@ -21,7 +21,6 @@ val_perc=0.0001
 dataset_name="somethingv2"
 netType="resnet50"
 batch_size=2 #43
-gpus='0 1 2 3' # ATTENTION: Has to be set manualy to not affect other jobs!!!
 num_segments=16
 consensus_type=avg #{avg, identity}
 iter_size=4
@@ -36,8 +35,8 @@ dropout=0.8
 learning_rate=0.001
 #############################################
 # Folders
-mainFolder="experiments"
-subFolder="run_TSM_${dataset_name}_${optimizer}_finetune_r1/"
+mainFolder="experiments/"
+subFolder="run_TSM_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
@@ -65,7 +64,6 @@ if [ "x${checkpointIter}" != "x" ]; then
     -i ${iter_size} \
     -j ${num_workers}  \
     --dropout ${dropout} \
-    --gpus ${gpus} \
     --snapshot_pref ${mainFolder}${subFolder} \
     --shift --shift_div=8 --shift_place=blockres \
     --dense_sample --consensus_type ${consensus_type} \
@@ -98,7 +96,6 @@ else
     -i ${iter_size} \
     -j ${num_workers}  \
     --dropout ${dropout} \
-    --gpus ${gpus} \
     --snapshot_pref ${mainFolder}${subFolder} \
     --shift --shift_div=8 --shift_place=blockres \
     --dense_sample --consensus_type ${consensus_type} \
