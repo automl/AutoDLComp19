@@ -19,7 +19,7 @@ val_perc=0.0001
 #############################################
 #--- training hyperparams ---
 dataset_name="somethingv2"
-netType="netType="ECOfull""
+netType="resnet50"
 batch_size=2 #43
 gpus='0 1 2 3' # ATTENTION: Has to be set manualy to not affect other jobs!!!
 num_segments=16

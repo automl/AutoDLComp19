@@ -36,7 +36,7 @@ dropout=0.8
 learning_rate=0.001
 #############################################
 # Folders
-mainFolder="experiments"
+mainFolder="experiments/"
 subFolder="run_TSM_${dataset_name}_${optimizer}_finetune_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
@@ -113,8 +113,6 @@ else
     --val_perc ${val_perc} \
     --bohb_workers ${bohb_workers}  \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
-
-python3 -u ${main} ${dataset_name} RGB --arch ${netType} --num_segments ${num_segments} --gd 50 --lr ${learning_rate} --num_saturate 4 --epochs 80 -b ${batch_size} -i ${iter_size} -j ${num_workers} --dropout ${dropout} --snapshot_pref ${mainFolder}${subFolder} --consensus_type ${consensus_type} --eval-freq 1  --no_partialbn --freeze_eco --freeze_interval 2 50 0 0 --nesterov "True" --working_directory ${mainFolder} --optimizer ${optimizer} --bohb_iterations ${bohb_iterations} --min_budget ${min_budget} --max_budget ${max_budget} --eta ${eta} --val_perc ${val_perc} --bohb_workers ${bohb_workers}  2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 fi
 #####################################################################
