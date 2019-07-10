@@ -6,7 +6,7 @@ from hpbandster.core.worker import Worker
 # Project
 from ops.temporal_shift import make_temporal_pool
 from ops import dataset_config
-from dataset import TSNDataSet
+from dataset_reza import TSNDataSet
 from transforms import Stack, ToTorchFormatTensor, GroupScale
 from transforms import GroupCenterCrop, IdentityTransform, GroupNormalize
 # from transforms import GroupMultiScaleCrop
@@ -25,12 +25,14 @@ import GPUtil
 import psutil
 
 ##########################################################
-parser_args = parser.parse_args()
+#parser_args = parser.parse_args()
 
 
 class ChallengeWorker(Worker):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, parser_args, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parser_args = parser_args
+
         ############################################################
         # Global settings from main.py
         self.best_prec1 = 0
@@ -151,6 +153,7 @@ class ChallengeWorker(Worker):
         ############################################################
         # Initialisation
         start_time = time.time()
+        parser_args = self.parser_args
         ############################################################
         # Parameters
         budget_counter = budget
@@ -271,7 +274,7 @@ class ChallengeWorker(Worker):
                 ###########
                 # ECO
                 if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
-                    new_state_dict = init_ECO(model_dict)
+                    new_state_dict = init_ECO(parser_args, model_dict)
                     un_init_dict_keys = [k for k in model_dict.keys() if k
                                          not in new_state_dict]
                     if parser_args.print:
@@ -351,7 +354,7 @@ class ChallengeWorker(Worker):
         cudnn.benchmark = True
 
         if parser_args.evaluate:
-            validate(self.val_loader, model, criterion, 0)
+            validate(parser_args, self.val_loader, model, criterion, 0)
             return
 
         saturate_cnt = 0
@@ -377,13 +380,13 @@ class ChallengeWorker(Worker):
                 if parser_args.print:
                     print("- Learning rate decreases by a factor"
                           " of '{}'".format(10 ** (exp_num)))
-            adjust_learning_rate(
-                optimizer, epoch, parser_args.lr_steps, exp_num)
+            adjust_learning_rate(parser_args, optimizer, epoch, parser_args.lr_steps, exp_num)
 
             # train for one epoch
             budget_counter -= 1
             train_budget = 1 if budget_counter > 1 else budget_counter
-            _ = train(self.train_loader,
+            _ = train(parser_args,
+                      self.train_loader,
                       model,
                       criterion,
                       optimizer,
@@ -407,13 +410,14 @@ class ChallengeWorker(Worker):
                     saturate_cnt))
             if self.best_prec1 < prec1:
                 self.best_prec1 = prec1
-                save_checkpoint({
-                    'epoch': epoch + 1,
-                    'arch': parser_args.arch,
-                    'state_dict': model.state_dict(),
-                    'best_prec1': self.best_prec1,
-                    'lr': optimizer.param_groups[-1]['lr'],
-                }, is_best)
+                save_checkpoint(
+                    parser_args,
+                    {'epoch': epoch + 1,
+                     'arch': parser_args.arch,
+                     'state_dict': model.state_dict(),
+                     'best_prec1': self.best_prec1,
+                     'lr': optimizer.param_groups[-1]['lr'],
+                    }, is_best)
 
         return {
             "loss": 100. - prec1,
@@ -426,7 +430,7 @@ class ChallengeWorker(Worker):
         }
 
 
-def train(train_loader, model, criterion, optimizer, epoch, budget):
+def train(parser_args, train_loader, model, criterion, optimizer, epoch, budget):
     """ Function to train model on train loader with criterion and optimizer
         for budget epochs """
     # Batch and total averaging
@@ -522,7 +526,7 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
     return end_time
 
 
-def validate(val_loader, model, criterion, logger=None):
+def validate(parser_args, val_loader, model, criterion, logger=None):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -600,7 +604,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def adjust_learning_rate(optimizer, epoch, lr_steps, exp_num):
+def adjust_learning_rate(parser_args, optimizer, epoch, lr_steps, exp_num):
     """Sets the learning rate to the initial LR decayed
        by 10 every 30 epochs"""
     # decay = 0.1 ** (sum(epoch >= np.array(lr_steps)))
@@ -628,7 +632,7 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
-def init_ECO(model_dict):
+def init_ECO(parser_args, model_dict):
     # weight_url_2d = ('https://yjxiong.blob.core.windows.net/'
     #                  'ssn-models/bninception_rgb_kinetics_init'
     #                  '-d4ee618d3399.pth')
@@ -663,24 +667,7 @@ def init_ECO(model_dict):
     return new_state_dict
 
 
-def init_C3DRes18(model_dict):
-    if parser_args.pretrained_parts == "scratch":
-        new_state_dict = {}
-    elif parser_args.pretrained_parts == "3D":
-        pretrained_dict = torch.load(
-            "pretrained_models/C3DResNet18_rgb_16F_kinetics_v1.pth.tar")
-        new_state_dict = {
-            k: v for k, v in pretrained_dict['state_dict'].items() if
-            (k in model_dict) and (v.size() == model_dict[k].size())}
-    else:
-        raise ValueError(
-            'For C3DRes18, "--pretrained_parts"'
-            ' can only be chosen from [scratch, 3D]')
-
-    return new_state_dict
-
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(parser_args, state, is_best, filename='checkpoint.pth.tar'):
     filename = '_'.join(
         (parser_args.snapshot_pref, parser_args.modality.lower(),
          "epoch", str(state['epoch']), filename))

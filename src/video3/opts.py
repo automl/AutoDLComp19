@@ -1,16 +1,16 @@
 import argparse
 
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
-parser.add_argument('dataset', type=str, choices=['ucf101',
-                                                  'jhmdb21',
-                                                  'jester',
-                                                  'somethingv2',
-                                                  'hmdb51',
-                                                  'kinetics',
-                                                  'epickitchen_verb',
-                                                  'epickitchen_noun',
-                                                  'yfcc100m'])
-parser.add_argument('modality', type=str, choices=['RGB', 'Flow', 'RGBDiff'])
+parser.add_argument('--dataset', type=str, default='ucf101', choices=['ucf101',
+                                                                      'jhmdb21',
+                                                                      'jester',
+                                                                      'somethingv2',
+                                                                      'hmdb51',
+                                                                      'kinetics',
+                                                                      'epickitchen_verb',
+                                                                      'epickitchen_noun',
+                                                                      'yfcc100m'])
+parser.add_argument('--modality', type=str, default='RGB', choices=['RGB', 'Flow', 'RGBDiff'])
 parser.add_argument(
     '--working_directory',
     default='.',
@@ -28,7 +28,7 @@ parser.add_argument('--val_perc', type=float,
 parser.add_argument(
     '--arch',
     type=str,
-    default="resnet101",
+    default="resnet50",
     choices=[
         'resnet50',
         'resnet101',

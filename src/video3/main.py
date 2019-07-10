@@ -55,6 +55,7 @@ def main():
     workers = []
     for i in range(parser_args.bohb_workers):
         w = ChallengeWorker(
+            parser_args=parser_args,
             # Nameserver params
             run_id=run_id, host=host, nameserver=ns_host,
             nameserver_port=ns_port, id=i,
