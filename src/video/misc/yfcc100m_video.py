@@ -6,6 +6,7 @@ import glob
 import sys
 import shutil
 from itertools import chain
+import cv2
 
 BASE_FOLDER = '/media/dingsda/External/datasets/yfcc100m/'
 
@@ -16,8 +17,10 @@ DATASET = os.path.join(BASE_FOLDER, 'unzip/yfcc100m_dataset')
 
 # path to the file containing all possible labels as a list
 LABEL_LIST = os.path.join(BASE_FOLDER, 'yfcc100m_label')
-# number of cpus, determines number of parallel processes when extracting the download links
-METADATA = os.path.join(BASE_FOLDER, 'yfcc100m_metadata')
+# store information for the data loader
+METADATA_FRAMES = os.path.join(BASE_FOLDER, 'yfcc100m_metadata_frames')
+# store information for the data loader
+METADATA_DALI = os.path.join(BASE_FOLDER, 'yfcc100m_metadata_dali')
 # path to the video download folder
 DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
 # path to the frame download folder
@@ -239,7 +242,7 @@ def convert_to_frames(download_folder, frame_folder, process_id=0, num_processes
 
 
 
-def create_metadata(autotags_path, dataset_path, frame_folder, label_list_path, metadata_path):
+def create_metadata_from_frames(autotags_path, dataset_path, frame_folder, label_list_path, metadata_path):
     '''
     create metadata based on downloaded files
     '''
@@ -277,6 +280,8 @@ def create_metadata(autotags_path, dataset_path, frame_folder, label_list_path, 
 
             num_frames = len(next(os.walk(folder_name))[2])
 
+            print(folder_name)
+
             autotags_found = False
             # iterate over autotags
             for a_row in a_reader:
@@ -305,9 +310,115 @@ def create_metadata(autotags_path, dataset_path, frame_folder, label_list_path, 
 
 
 
-def create_splits(metadata_path, base_folder):
-    train_file = os.path.join(base_folder, 'train.txt')
-    test_file = os.path.join(base_folder, 'test.txt')
+def create_metadata_from_videos_parallel(autotags_path, dataset_path, dali_folder, label_list_path, metadata_path, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=create_metadata_from_videos,
+            args=(autotags_path, dataset_path, dali_folder, label_list_path, metadata_path, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+
+def create_metadata_from_videos(autotags_path, dataset_path, dali_folder, label_list_path, metadata_path, process_id, num_processes):
+    '''
+    create metadata based on downloaded files
+    '''
+    label_dict = {}
+    metadata_path = metadata_path + '_' + str(process_id)
+
+    with open(label_list_path, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        for row in reader:
+            label_id = row[0]
+            label_name = row[1]
+            label_dict[label_name] = label_id
+
+    with open(dataset_path, 'r') as csvfile_dataset, \
+         open(autotags_path, 'r') as csvfile_autotags, \
+         open(metadata_path, 'w+') as csvfile_metadata:
+
+        d_reader = csv.reader(csvfile_dataset, delimiter='\t', quoting=csv.QUOTE_NONE)
+        a_reader = csv.reader(csvfile_autotags, delimiter='\t', quoting=csv.QUOTE_NONE)
+        m_writer = csv.writer(csvfile_metadata, delimiter=' ')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e6 == 0:
+                print(i)
+
+            if (i + process_id) % num_processes != 0:
+                continue
+
+            # if download path ends with '.jpg', ignore it
+            if os.path.splitext(d_row[16])[1] == '.jpg':
+                continue
+
+            d_id = d_row[1]
+            video_name = os.path.join(dali_folder, d_id)
+            video_name = os.path.join(video_name, d_id + '.mp4')
+
+            if not os.path.isfile(video_name):
+                continue
+
+            try:
+                cap = cv2.VideoCapture(video_name)
+                num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            except Exception as err:
+                print('-----------------')
+                print(err)
+                print('-----------------')
+                continue
+
+            print(video_name)
+
+            autotags_found = False
+            # iterate over autotags
+            for a_row in a_reader:
+                a_id = a_row[0]
+
+                # if indices match, extract metadata
+                if d_id == a_id:
+                    meta_list = []
+
+                    # find all labels
+                    for pair in a_row[1].split(','):
+                        name = pair.split(':')[0]
+
+                        if len(name) > 0:
+                            prob = pair.split(':')[1]
+                            meta_list.append((int(label_dict[name]),prob))
+
+                    meta_list.sort()
+
+                    m_writer.writerow(['/dali/'+d_id+'/'+d_id+'.mp4', str(num_frames)] + list(chain.from_iterable(meta_list)))
+                    autotags_found = True
+                    break
+
+            if not autotags_found:
+                print('No autotags found: ' + str(video_name))
+
+
+
+def merge_metadata_from_videos(metadata_path):
+    split_files = glob.glob(metadata_path + '_*')
+
+    with open(metadata_path,'w+') as wf:
+        for f in split_files:
+            with open(f,'r') as fd:
+                shutil.copyfileobj(fd, wf)
+
+
+
+def create_splits(metadata_path, base_folder, appendix):
+    train_file = os.path.join(base_folder, 'train' + appendix + '.txt')
+    test_file = os.path.join(base_folder, 'test' + appendix + '.txt')
 
     with open(metadata_path, 'r') as f_metadata, \
          open(train_file, 'w+') as f_train, \
@@ -431,6 +542,8 @@ if __name__ == "__main__":
         #convert_to_frames(DOWNLOAD_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
         #delete_frame_folder(METADATA, DELETE_FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
         #dali_parallel(DOWNLOAD_FOLDER, DALI_FOLDER, DATASET, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        #create_metadata_from_videos_parallel(AUTOTAGS, DATASET, DALI_FOLDER, LABEL_LIST, METADATA_DALI, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        create_metadata_from_frames(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA_FRAMES)
         pass
     else:
         #get_all_labels(AUTOTAGS, LABEL_LIST)
@@ -438,5 +551,6 @@ if __name__ == "__main__":
         #convert_to_frames_parallel(DOWNLOAD_FOLDER, FRAME_FOLDER, NUM_PROCESSES)
         #create_metadata(AUTOTAGS, DATASET, FRAME_FOLDER, LABEL_LIST, METADATA)
         #create_splits(METADATA, BASE_FOLDER)
-        create_splits(METADATA, BASE_FOLDER)
+        #create_splits(METADATA, BASE_FOLDER)
+        pass
 
