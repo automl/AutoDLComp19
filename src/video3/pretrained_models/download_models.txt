@@ -1,3 +1,6 @@
 Download the pretrained models from the following link:
 
 https://drive.google.com/open?id=1bNUOYQhb4RF0TDKUNGCS3akypYtK92Ao
+
+and
+https://yjxiong.blob.core.windows.net/ssn-models/bninception_rgb_kinetics_init-d4ee618d3399.pth

@@ -6,13 +6,14 @@
 import os
 
 #ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
-ROOT_DATASET = '/media/dingsda/External/datasets/'
+ROOT_DATASET = '/home/dingsda/autodl/datasets/'
+
 
 def return_epickitchen_noun(modality):
     filename_categories = 352
     if modality == 'RGB':
-        root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/'
-        root_lists = ROOT_DATASET + 'epic_kitchens/lists'
+        root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/classifier/'
+        root_lists = ROOT_DATASET + 'epic_kitchens/lists/'
         filename_imglist_train = root_lists + 'video_noun_train.txt'
         filename_imglist_val = root_lists + 'video_noun_val.txt'
         prefix = 'img_{:04d}.jpg'
@@ -22,8 +23,8 @@ def return_epickitchen_noun(modality):
 def return_epickitchen_verb(modality):
     filename_categories = 125
     if modality == 'RGB':
-        root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/'
-        root_lists = ROOT_DATASET + 'epic_kitchens/lists'
+        root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/classifier/'
+        root_lists = ROOT_DATASET + 'epic_kitchens/lists/'
         filename_imglist_train = root_lists + 'video_action_train.txt'
         filename_imglist_val = root_lists + 'video_action_val.txt'
         prefix = 'img_{:04d}.jpg'
@@ -34,7 +35,7 @@ def return_epickitchen_verb(modality):
 def return_ucf101(modality):
     filename_categories = 101
     if modality == 'RGB':
-        root_data = ROOT_DATASET + 'UCF101/denseflow_rgb/'
+        root_data = ROOT_DATASET + 'UCF101/'
         filename_imglist_train = ROOT_DATASET + 'UCF101/ucf101_split1_train.txt'   # noqa: E501
         filename_imglist_val = ROOT_DATASET + 'UCF101/ucf101_RGB_split1_test.txt'  # noqa: E501
         prefix = 'img_{:05d}.jpg'
@@ -87,13 +88,13 @@ def return_jhmdb21(modality):
     filename_categories = 21
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'JHMDB21'
-        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1'
+        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1/'
         filename_imglist_train = root_lists + 'rgb_train.txt'
         filename_imglist_val = root_lists + 'rgb_test.txt'
-        prefix = '{:05d}.jpg'
+        prefix = 'img_{:05d}.jpg'
     elif modality == 'Flow':
         root_data = ROOT_DATASET + 'JHMDB21'
-        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1'
+        root_lists = ROOT_DATASET + 'JHMDB21/lists/split1/'
         filename_imglist_train = root_lists + 'flow_train.txt'
         filename_imglist_val = root_lists + 'flow_test.txt'
         prefix = '{:04d}.jpg'
@@ -112,7 +113,7 @@ def return_kinetics(modality):
         root_data = ROOT_DATASET + 'kinetics400/'
         filename_imglist_train = 'kinetics400/kinetics_train_rgb_5fps.txt'
         filename_imglist_val = 'kinetics400/kinetics_val_rgb_5fps.txt'
-        prefix = 'img_{:05d}.jpg'
+        prefix = 'img_{:04d}.jpg'
     else:
         raise NotImplementedError('no such modality:' + modality)
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501

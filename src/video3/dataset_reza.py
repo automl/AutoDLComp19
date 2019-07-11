@@ -55,6 +55,7 @@ class TSNDataSet(data.Dataset):
             return [Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')]
         elif self.modality == 'Flow':
             x_img = Image.open(os.path.join(directory, self.image_tmpl.format('x', idx))).convert('L')
+            # x_img = x_img.cuda()
             y_img = Image.open(os.path.join(directory, self.image_tmpl.format('y', idx))).convert('L')
 
             return [x_img, y_img]
@@ -117,6 +118,7 @@ class TSNDataSet(data.Dataset):
             p = int(seg_ind)
             for i in range(self.new_length):
                 seg_imgs = self._load_image(record.path, p)
+                seg_imgs = seg_imgs
                 images.extend(seg_imgs)
                 if p < record.num_frames:
                     p += 1

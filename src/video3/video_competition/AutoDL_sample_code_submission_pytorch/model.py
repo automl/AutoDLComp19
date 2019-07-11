@@ -27,8 +27,9 @@ import torch.utils.data
 from ops.temporal_shift import make_temporal_pool
 from pytorch_dataset import PytorchDataset
 from torch.nn.init import constant_, xavier_uniform_
-from models_eco import TSN
+from ops.load_models import load_model, load_optimizer, load_loss_criterion
 import bohb
+import configuration
 from opts import parser
 
 
@@ -47,9 +48,15 @@ class ParserMock():
   # mock class for handing over the correct arguments
   def __init__(self):
     self._parser_args = parser.parse_known_args()[0]
-    setattr(self._parser_args, 'finetune_model', '/home/dingsda/autodl/AutoDLComp19/src/video3/video_competition/models/TSM_kinetics_RGB_resnet50_shift8_blockres_avg_segment8_e100_dense.pth')
+    setattr(self._parser_args, 'finetune_model', '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar')
     setattr(self._parser_args, 'arch', 'resnet50')
     setattr(self._parser_args, 'batch-size', 1)
+    setattr(self._parser_args, 'modality', 'RGB')
+    setattr(self._parser_args, 'classification_type', 'multiclass')
+    setattr(self._parser_args, 'shift', True)
+    setattr(self._parser_args, 'shift_div', 9)
+    setattr(self._parser_args, 'shift_place', 'blockres')
+    setattr(self._parser_args, 'dense_sample', True)
 
 
   def set_attr(self, attr, val):
@@ -77,9 +84,12 @@ class Model(algorithm.Algorithm):
     parser = ParserMock()
     parser.set_attr('num_class', self.output_dim)
     parser.set_attr('print', True)
+
     self.parser_args = parser.parse_args()
-    self.pytorchmodel, self.optimizer, self.criterion = \
-      self.load_model_loss_optimizer(self.parser_args)
+    self.config = configuration.get_configspace(model_name=self.parser_args.arch).get_default_configuration()
+    self.pytorchmodel = load_model(self.parser_args, self.config)
+    self.optimizer = load_optimizer(self.parser_args, self.config, self.pytorchmodel)
+    self.criterion = load_loss_criterion(self.parser_args)
 
     if torch.cuda.is_available(): self.pytorchmodel.cuda()
 
@@ -104,150 +114,6 @@ class Model(algorithm.Algorithm):
 
     # no of examples at each step/batch
     self.batch_size = 1
-
-  def load_model_loss_optimizer(self, parser_args):
-    #######################
-    # Specify model
-    if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
-      from models_eco import TSN
-      model = TSN(parser_args.num_class,
-                  parser_args.num_segments,
-                  parser_args.modality,
-                  base_model=parser_args.arch,
-                  consensus_type=parser_args.consensus_type,
-                  dropout=parser_args.dropout,
-                  partial_bn=not parser_args.no_partialbn,
-                  freeze_eco=parser_args.freeze_eco)
-    elif "resnet" in parser_args.arch:
-      from models_tsm import TSN
-      fc_lr5_temp = not (
-              parser_args.finetune_model
-              and parser_args.dataset in parser_args.finetune_model)
-      model = TSN(
-        parser_args.num_class,
-        parser_args.num_segments,
-        parser_args.modality,
-        base_model=parser_args.arch,
-        consensus_type=parser_args.consensus_type,
-        dropout=parser_args.dropout,
-        img_feature_dim=parser_args.img_feature_dim,
-        partial_bn=not parser_args.no_partialbn,
-        pretrain=parser_args.pretrain,
-        is_shift=parser_args.shift,
-        shift_div=parser_args.shift_div,
-        shift_place=parser_args.shift_place,
-        fc_lr5=fc_lr5_temp,
-        temporal_pool=parser_args.temporal_pool,
-        non_local=parser_args.non_local)
-    else:
-      raise ValueError('Unknown model: ' + str(parser_args.arch))
-
-    policies = model.get_optim_policies()
-    model_dict = model.state_dict()
-
-    if parser_args.loss_type == 'nll':
-      criterion = torch.nn.CrossEntropyLoss().cuda()
-      if parser_args.print:
-        print("Using CrossEntropyLoss")
-    else:
-      raise ValueError("Unknown loss type")
-
-    if parser_args.optimizer == 'SGD':
-      optimizer = torch.optim.SGD(policies,
-                                  parser_args.lr,
-                                  momentum=parser_args.momentum,
-                                  weight_decay=parser_args.weight_decay,
-                                  nesterov=parser_args.nesterov)
-    if parser_args.optimizer == 'Adam':
-      optimizer = torch.optim.Adam(policies,
-                                   parser_args.lr)
-
-    model = torch.nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count()))).cuda()
-
-    #######################
-    # Load pretrained
-    try:
-      ###########
-      # ECO
-      if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
-        new_state_dict = bohb.init_ECO(parser_args, model_dict)
-        un_init_dict_keys = [k for k in model_dict.keys() if k
-                             not in new_state_dict]
-        if parser_args.print:
-          print("un_init_dict_keys: ", un_init_dict_keys)
-          print("\n------------------------------------")
-
-        for k in un_init_dict_keys:
-          new_state_dict[k] = torch.DoubleTensor(
-            model_dict[k].size()).zero_()
-          if 'weight' in k:
-            if 'bn' in k:
-              if parser_args.print:
-                print("{} init as: 1".format(k))
-              constant_(new_state_dict[k], 1)
-            else:
-              if parser_args.print:
-                print("{} init as: xavier".format(k))
-              xavier_uniform_(new_state_dict[k])
-          elif 'bias' in k:
-            if parser_args.print:
-              print("{} init as: 0".format(k))
-            constant_(new_state_dict[k], 0)
-        if parser_args.print:
-          print("------------------------------------")
-        model.load_state_dict(new_state_dict)
-      ###########
-      # Resnets
-      if "resnet" in parser_args.arch:
-        if parser_args.print:
-          print(("=> fine-tuning from '{}'".format(
-            parser_args.finetune_model)))
-        sd = torch.load(parser_args.finetune_model)
-        sd = sd['state_dict']
-        model_dict = model.state_dict()
-        replace_dict = []
-        for k, v in sd.items():
-          if k not in model_dict and k.replace(
-                  '.net', '') in model_dict:
-            if parser_args.print:
-              print('=> Load after remove .net: ', k)
-            replace_dict.append((k, k.replace('.net', '')))
-        for k, v in model_dict.items():
-          if k not in sd and k.replace('.net', '') in sd:
-            if parser_args.print:
-              print('=> Load after adding .net: ', k)
-            replace_dict.append((k.replace('.net', ''), k))
-
-        for k, k_new in replace_dict:
-          sd[k_new] = sd.pop(k)
-        keys1 = set(list(sd.keys()))
-        keys2 = set(list(model_dict.keys()))
-        set_diff = (keys1 - keys2) | (keys2 - keys1)
-        if parser_args.print:
-          print(
-            '#### Notice: keys that failed to load: {}'.format(
-              set_diff))
-        if parser_args.dataset not in parser_args.finetune_model:
-          if parser_args.print:
-            print('=> New dataset, do not load fc weights')
-          sd = {k: v for k, v in sd.items() if 'fc' not in k}
-        if (parser_args.modality == 'Flow'
-                and 'Flow' not in parser_args.finetune_model):
-          sd = {k: v for k,
-                         v in sd.items() if 'conv1.weight' not in k}
-        model_dict.update(sd)
-        model.load_state_dict(model_dict)
-    except Exception as err:
-      print(err)
-      print('Failed to load pretrained, that sucks')
-
-    if parser_args.temporal_pool and not parser_args.resume:
-      make_temporal_pool(
-        model.module.base_model,
-        parser_args.num_segments)
-
-    return model, optimizer, criterion
-
 
   def train(self, dataset, remaining_time_budget=None):
     print('TRAINING')
@@ -278,7 +144,7 @@ class Model(algorithm.Algorithm):
       #self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
       train_epoch = 1
       train_budget = 1
-      bohb.train(self.parser_args, self.trainloader, self.pytorchmodel, self.criterion, self.optimizer, train_epoch, train_budget)
+      bohb.train(self.trainloader, self.pytorchmodel, self.criterion, self.optimizer, train_epoch, train_budget, self.parser_args)
 
       train_end = time.time()
 

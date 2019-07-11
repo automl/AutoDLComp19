@@ -17,7 +17,6 @@ def get_configspace(model_name):
         neurons:                   200 to 1000; 500; (log, int)
         dropout:            0.25 to 0.95; 0.5; (float)
     """
-    # TODO: implement config spaces for models
     cs = CS.ConfigurationSpace()
     ################################################################
     # TRAINING
@@ -30,8 +29,9 @@ def get_configspace(model_name):
     # neurons = CSH.UniformIntegerHyperparameter("neurons", 64, 300, log=True)
     ##########################
 
-    if model_name == 'ECO' or model_name == 'ECOfull':
-        dropout = CSH.CategoricalHyperparameter('dropout', choices=[0.])
+    if 'ECO' in model_name:
+        dropout = CSH.UniformFloatHyperparameter(
+            "dropout", 0., 0.95, default_value=0.5)
         cs.add_hyperparameters([lr,
                                 # weight_decay,
                                 # neurons,
