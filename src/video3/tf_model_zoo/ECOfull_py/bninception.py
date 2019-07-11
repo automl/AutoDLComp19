@@ -1812,3 +1812,17 @@ def bninception():
     """
     model = BNInception()
     return model
+    
+    
+    
+    
+def test():
+    x = torch.FloatTensor(64, 3, 224, 224).cuda()
+    model = BNInception_full_pre(num_classes=1000).cuda()
+    from torchsummary import summary
+    logit = model(x)
+    print(model)
+    print(summary(model, (3, 224, 224)))
+
+if __name__ == '__main__':
+    test()

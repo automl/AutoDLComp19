@@ -56,14 +56,14 @@ class SqueezeExcite(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         # in Paper Linear in Tf implementation conv2d but 1x1xchannels
         # is like a fully connected layer and dropout can be applied
-        self.conv_reduce = nn.Linear(inplanes, hidden_dim, bias=False)
-        self.conv_expand = nn.Linear(hidden_dim, inplanes, bias=False)
+        self.conv_reduce = nn.Linear(inplanes, hidden_dim, bias=True)
+        self.conv_expand = nn.Linear(hidden_dim, inplanes, bias=True)
         #self.conv_reduce = nn.Conv2d(inplanes, hidden_dim,
         #                     kernel_size=(1, 1), stride=(1, 1), # )
-        #                     bias=False)
+        #                     bias=True)
         #self.conv_expand = nn.Conv2d(hidden_dim, inplanes,
         #                     kernel_size=(1, 1), stride=(1, 1), # )
-        #                     bias=False)
+        #                     bias=True)
         self.sigmoid = nn.Sigmoid()
         self.prob = 1 - prob
     def forward(self, x):
@@ -89,21 +89,21 @@ class InvertedResidual(nn.Module):
             self.conv2 = nn.Conv2d(inplanes*expand, inplanes*expand, 
                                    kernel_size=kernel_size, stride=stride,
                                    padding=kernel_size//2, groups=inplanes*expand,
-                                   bias=False)
+                                   bias=True)
             self.bn2 = nn.BatchNorm2d(inplanes*expand, momentum=0.1, eps=1e-5)
             self.se = SqueezeExcite(inplanes*expand, se_ratio)
-            self.conv3 = nn.Conv2d(inplanes*expand, planes, kernel_size=1, bias=False)
+            self.conv3 = nn.Conv2d(inplanes*expand, planes, kernel_size=1, bias=True)
             self.bn3 = nn.BatchNorm2d(planes, momentum=0.1, eps=1e-5)
         else:
-            self.conv1 = nn.Conv2d(inplanes, inplanes*expand, kernel_size=1, bias=False)
+            self.conv1 = nn.Conv2d(inplanes, inplanes*expand, kernel_size=1, bias=True)
             self.bn1 = nn.BatchNorm2d(inplanes*expand, momentum=0.1, eps=1e-5)
             self.conv2 = nn.Conv2d(inplanes*expand, inplanes*expand, 
                                    kernel_size=kernel_size, stride=stride,
                                    padding=kernel_size//2, groups=inplanes*expand,
-                                   bias=False)
+                                   bias=True)
             self.bn2 = nn.BatchNorm2d(inplanes*expand, momentum=0.1, eps=1e-5)
             self.se = SqueezeExcite(inplanes*expand, se_ratio, prob)
-            self.conv3 = nn.Conv2d(inplanes*expand, planes, kernel_size=1, bias=False)
+            self.conv3 = nn.Conv2d(inplanes*expand, planes, kernel_size=1, bias=True)
             self.bn3 = nn.BatchNorm2d(planes, momentum=0.1, eps=1e-5)
 
 
@@ -172,25 +172,21 @@ class Flatten(nn.Module):
 
 
 class EfficientNet(nn.Module):
-    """ Efficientnet implementation 
-    endpoint in  Name         , dimension
-                 'reduction_1', 112, 
-                 'reduction_2', 56,
-                 'reduction_3', 28,
-                 'reduction_4', 14,
-                 'reduction_5', 7
+    """ Efficientnet implementation for single usage (arch='fullefficientnet')
+    or for eco usage if arch='lite' and
+    endpoint in dimension [112, 56, 28, 14, 7]
     returns endpoint of dim dimension
-    return_endpoints == True returns logits and endpoints
+    if arch = 'full' returns also op of last pooling
         
     """
     
     def __init__(self, num_classes=1000, width_coef=1., depth_coef=1., scale=1.,
                  dropout_ratio=0.2, pl=0.5, 
-                 endpoint=None, return_endpoints=False):
+                 endpoint=None, arch='fullEfficientnet'):
 
         super(EfficientNet, self).__init__()
         self.endpoint = endpoint
-        self.return_endpoints = return_endpoints
+        self.arch = arch
         
         # Efficientnet parameters
         channels = [32, 16, 24, 40, 80, 112, 192, 320, 1280]
@@ -208,10 +204,10 @@ class EfficientNet(nn.Module):
         # Tracker of depth for stochastic depth
         sum_layer = sum(repeats)
 
-        self.upsample = Upsample(scale)
+        #self.upsample = Upsample(scale)
         self.stage1 = nn.Sequential(
             nn.Conv2d(3, channels[0], kernel_size=3, stride=2,
-                      padding=1, bias=False),
+                      padding=1, bias=True),
             nn.BatchNorm2d(channels[0], momentum=0.1, eps=1e-05,
                            affine=True, track_running_stats=True)) 
         se_ratio=4
@@ -220,34 +216,30 @@ class EfficientNet(nn.Module):
                              stride=strides[0], expand=expands[0],
                              se_ratio=se_ratio, sum_layer=sum_layer,
                              count_layer=sum(repeats[:0]), pl=pl)
-        se_ratio=24
-        self.stage3 = MBConv(channels[1], channels[2], repeats[1],
+        if (endpoint is None  or 'full' in arch
+            or endpoint in [56, 28, 14, 7]):
+            se_ratio=24
+            self.stage3 = MBConv(channels[1], channels[2], repeats[1],
                              kernel_size=kernel_sizes[1],
                              stride=strides[1], expand=expands[1], 
                              se_ratio=se_ratio, sum_layer=sum_layer,
                              count_layer=sum(repeats[:1]), pl=pl)
-        if (endpoint is None
-            or endpoint in ['reduction_2', 56,
-                            'reduction_3', 28,
-                            'reduction_4', 14,
-                            'reduction_5', 7]):
+        if (endpoint is None  or 'full' in arch
+            or endpoint in [28, 14, 7]):
             self.stage4 = MBConv(channels[2], channels[3], repeats[2],
                                  kernel_size=kernel_sizes[2],
                                  stride=strides[2], expand=expands[2], 
                                  se_ratio=se_ratio, sum_layer=sum_layer,
                                  count_layer=sum(repeats[:2]), pl=pl)
-        if (endpoint is None
-            or endpoint in ['reduction_3', 28,
-                            'reduction_4', 14,
-                            'reduction_5', 7]):
+        if (endpoint is None  or 'full' in arch
+            or endpoint in [14, 7]):
             self.stage5 = MBConv(channels[3], channels[4], repeats[3], 
                                  kernel_size=kernel_sizes[3],
                                  stride=strides[3], expand=expands[3], 
                                  se_ratio=se_ratio, sum_layer=sum_layer,
                                  count_layer=sum(repeats[:3]), pl=pl)
-        if (endpoint is None
-            or endpoint in ['reduction_4', 14,
-                            'reduction_5', 7]):
+        if (endpoint is None or 'full' in arch
+            or endpoint in [7]):
             self.stage6 = MBConv(channels[4], channels[5], repeats[4],
                                  kernel_size=kernel_sizes[4],
                                  stride=strides[4], expand=expands[4],
@@ -258,24 +250,26 @@ class EfficientNet(nn.Module):
                                  stride=strides[5], expand=expands[5],
                                  se_ratio=se_ratio, sum_layer=sum_layer,
                                  count_layer=sum(repeats[:5]), pl=pl)
-        if (endpoint is None
-            or endpoint in ['reduction_5', 7]):
+
             self.stage8 = MBConv(channels[6], channels[7], repeats[6],
                                  kernel_size=kernel_sizes[6],
                                  stride=strides[6], expand=expands[6],
                                  se_ratio=se_ratio, sum_layer=sum_layer,
                                  count_layer=sum(repeats[:6]), pl=pl)
-        if endpoint is None:
+        if endpoint is None or 'full' in arch:
             self.stage9 = nn.Sequential(
                             nn.Conv2d(channels[7], channels[8],
-                            kernel_size=1, bias=False),
+                            kernel_size=1, bias=True),
                             nn.BatchNorm2d(channels[8], momentum=0.1, eps=1e-5),
                             Swish(),
                             nn.AdaptiveAvgPool2d((1, 1)),
-                            Flatten(),
-                            nn.Dropout(p=dropout_ratio),
-                            nn.Linear(channels[8], num_classes))
-
+                            Flatten())
+        if arch == 'fullEfficientnet':
+            self.head = nn.Sequential(
+                        nn.Dropout(p=dropout_ratio),
+                        nn.Linear(channels[8], num_classes))
+                        
+                        
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -284,33 +278,60 @@ class EfficientNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-    def forward(self, x):
-        # x = self.upsample(x)
-        ep = []
-        x = swish(self.stage1(x))
-        x = swish(self.stage2(x))
-        x = swish(self.stage3(x))
-        # TODO: return x befor or after Activation
-        if self.endpoint in ['reduction_1', 112]: return x
-        x = swish(self.stage4(x))
-        if self.endpoint in ['reduction_2', 56]: return x
-        x = swish(self.stage5(x))
-        if self.endpoint in ['reduction_3', 28]: return x
-        x = swish(self.stage6(x))
-        x = swish(self.stage7(x))
-        if self.endpoint in ['reduction_4', 14]: return x
-        x = swish(self.stage8(x))
-        if self.endpoint in ['reduction_5', 7]: return x
-        logit = self.stage9(x)
-        if self.return_endpoints: return logit, ep
-        return logit
+    def features(self, x):
+        # x = self.upsample(x)  # 2, 3, 224, 224
+        end_dict = {}
+        x = swish(self.stage1(x))  # 2, 32, 112, 112
+        x = swish(self.stage2(x))  # 2, 16, 112, 112
+        if self.endpoint in [112] or self.arch == 'full': 
+            end_dict[112] = x
+        x = swish(self.stage3(x))  # 2, 24, 56, 56
+        if self.endpoint in [56] or self.arch == 'full': 
+            end_dict[56] = x
+        x = swish(self.stage4(x))  # 2, 40, 28, 28
+        if self.endpoint in [28] or self.arch == 'full': 
+            end_dict[28] = x
+        x = swish(self.stage5(x))  # 2, 80, 14, 14
+        if self.endpoint in [14] or self.arch == 'full': 
+            end_dict[14] = x
+        x = swish(self.stage6(x))  # 2, 112, 7, 7
+        x = swish(self.stage7(x))  # 2, 192, 7, 7
+        x = swish(self.stage8(x))  # 2, 320, 7, 7
+        if self.endpoint in [7] or self.arch == 'full': 
+            end_dict[7] = x
+        x = swish(self.stage9(x))
+        x = swish(self.head(x))
+        # print(x.shape)
+        if not self.endpoint is None:
+            return end_dict[self.endpoint], x
+        return x
+
+        
+        
+    def forward(self, input):
+        if not (self.endpoint is None):
+            x = self.features(input)
+            return x
+        else: 
+            x = swish(self.stage1(input))  # 2, 32, 112, 112
+            x = swish(self.stage2(x))  # 2, 16, 112, 112
+            x = swish(self.stage3(x))  # 2, 24, 56, 56
+            x = swish(self.stage4(x))  # 2, 40, 28, 28
+            x = swish(self.stage5(x))  # 2, 80, 14, 14
+            x = swish(self.stage6(x))  # 2, 112, 7, 7
+            x = swish(self.stage7(x))  # 2, 192, 7, 7
+            x = swish(self.stage8(x))  # 2, 320, 7, 7
+            x = self.stage9(x) 
+            logit = self.head(x) # 2, classes
+            return logit
+
 
 
             
-def efficientnet_b0(num_classes=1000, endpoint=None):
+def efficientnet_b0(num_classes=1000, endpoint=None, arch='fullEfficientnet'):
     return EfficientNet(num_classes=num_classes, width_coef=1.0, 
             depth_coef=1.0, scale=1.0,dropout_ratio=0.2,
-            pl=0.2, endpoint=endpoint)
+            pl=0.2, endpoint=endpoint, arch=arch)
 
 def efficientnet_b1(num_classes=1000, endpoint=None):
     return EfficientNet(num_classes=num_classes, width_coef=1.0,
@@ -349,15 +370,11 @@ def efficientnet_b7(num_classes=1000, endpoint=None):
 
 def test():
     x = torch.FloatTensor(64, 3, 224, 224).cuda()
-    model = EfficientNet(num_classes=100, 
-                        width_coef=1.0, depth_coef=1.0, 
-                        scale=1.0,dropout_ratio=0.2,
-                        pl=0.5).cuda()
+    model = efficientnet_b0(num_classes=1000,endpoint=28, arch='full').cuda()
     from torchsummary import summary
     logit = model(x)
     print(model)
     print(summary(model, (3, 224, 224)))
-    print(logit.size())
 
 if __name__ == '__main__':
     test()

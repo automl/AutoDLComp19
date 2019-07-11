@@ -1,5 +1,7 @@
 import argparse
-
+# For tracking the best run
+        
+# global parser
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
 parser.add_argument('dataset', type=str, choices=['ucf101',
                                                   'jhmdb21',
@@ -16,6 +18,8 @@ parser.add_argument(
     default='.',
     help='path to working directory')
 parser.add_argument('--finetune_model', type=str, default=None)
+parser.add_argument('--training', type=bool, default=False,
+        help="If true set config and run without bohb")
 # ========================= Bohb Configs ==========================
 parser.add_argument('--bohb_iterations', type=int, default=5)
 parser.add_argument('--min_budget', type=float, default=0.1)
@@ -30,6 +34,8 @@ parser.add_argument(
     type=str,
     default="resnet101",
     choices=[
+        'ECOfull_py',
+        'ECOfull_efficient_py',
         'resnet50',
         'resnet101',
         'ECO',
@@ -37,8 +43,6 @@ parser.add_argument(
 parser.add_argument('--num_segments', type=int, default=3)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])
-
-parser.add_argument('--k', type=int, default=3)
 
 parser.add_argument('--dropout', '--do', default=0.5, type=float,
                     metavar='DO', help='dropout ratio (default: 0.5)')
@@ -52,7 +56,6 @@ parser.add_argument(
 parser.add_argument('--freeze_interval', '--fz_i', type=int,
                     default=[2, 63, -1, -1], nargs="+")
 parser.add_argument('--pretrain', type=str, default='imagenet')
-
 # ========================= Learning Configs ==========================
 parser.add_argument('--epochs', default=45, type=int, metavar='N',
                     help='number of total epochs to run')
@@ -102,7 +105,7 @@ parser.add_argument(
     type=int,
     default=5,
     help=temp_str)
-
+parser.add_argument('--best_prec1', type=int, default=0)
 # ========================= Monitor Configs ==========================
 parser.add_argument('--print-freq', '-p', default=20, type=int,
                     metavar='N', help='print frequency (default: 10)')
@@ -110,8 +113,6 @@ parser.add_argument('--print', default=True, type=bool,
                     help='If True print while training')
 parser.add_argument('--eval-freq', '-ef', default=5, type=int,
                     metavar='N', help='evaluation frequency (default: 5)')
-
-
 # ========================= Runtime Configs ==========================
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
@@ -122,7 +123,7 @@ parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
 parser.add_argument('--snapshot_pref', type=str, default="")
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpus', nargs='+', type=int, default=None)
+
 parser.add_argument('--flow_prefix', default="", type=str)
 parser.add_argument('--rgb_prefix', default="", type=str)
 
