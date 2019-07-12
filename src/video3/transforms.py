@@ -355,19 +355,20 @@ class SelectSamples(object):
         return pics[samples_select]
 
 
-
 class ToPilFormat(object):
     """
     convert from numpy array (B x S_old x H x W x C) to lits of PIL images (B x S_new x H x W x C)
     """
+
     def __call__(self, pics):
         if isinstance(pics, np.ndarray):
             lst = []
             print('SHAPE: ' + str(pics.shape))
             for i in range(len(pics)):
-                formatted = (pics[i,...] * 255).astype('uint8')
+                formatted = (pics[i, ...] * 255).astype('uint8')
                 lst.append(Image.fromarray(formatted))
             return lst
+
 
 class ToTorchFormatTensor(object):
     """ Converts a PIL.Image (RGB) or numpy.ndarray (H x W x C) in the range [0, 255]

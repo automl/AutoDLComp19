@@ -1,42 +1,50 @@
 import os
+
 import torch
+from opts import parser
 from torch.nn.init import constant_, xavier_uniform_
 
-from opts import parser
 
 def load_model_and_optimizer(parser_args, config):
     # update parser_args
     parser_args = parser_args
     if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
         from models_eco import TSN
-        model = TSN(parser_args.num_classes,
-                    parser_args.num_segments,
-                    parser_args.modality,
-                    base_model=parser_args.arch,
-                    consensus_type=parser_args.consensus_type,
-                    dropout=config['dropout'],
-                    partial_bn=not parser_args.no_partialbn,
-                    freeze_eco=parser_args.freeze_eco)
+        model = TSN(
+            parser_args.num_classes,
+            parser_args.num_segments,
+            parser_args.modality,
+            base_model=parser_args.arch,
+            consensus_type=parser_args.consensus_type,
+            dropout=config['dropout'],
+            partial_bn=not parser_args.no_partialbn,
+            freeze_eco=parser_args.freeze_eco
+        )
     elif "resnet" in parser_args.arch:
         from models_tsm import TSN
-        fc_lr5_temp = (not (parser_args.finetune_model
-                            and parser_args.dataset
-                            in parser_args.finetune_model))
-        model = TSN(parser_args.num_classes,
-                    parser_args.num_segments,
-                    parser_args.modality,
-                    base_model=parser_args.arch,
-                    consensus_type=parser_args.consensus_type,
-                    dropout=config['dropout'],
-                    img_feature_dim=parser_args.img_feature_dim,
-                    partial_bn=not parser_args.no_partialbn,
-                    pretrain=parser_args.pretrain,
-                    is_shift=parser_args.shift,
-                    shift_div=parser_args.shift_div,
-                    shift_place=parser_args.shift_place,
-                    fc_lr5=fc_lr5_temp,
-                    temporal_pool=parser_args.temporal_pool,
-                    non_local=parser_args.non_local)
+        fc_lr5_temp = (
+            not (
+                parser_args.finetune_model and
+                parser_args.dataset in parser_args.finetune_model
+            )
+        )
+        model = TSN(
+            parser_args.num_classes,
+            parser_args.num_segments,
+            parser_args.modality,
+            base_model=parser_args.arch,
+            consensus_type=parser_args.consensus_type,
+            dropout=config['dropout'],
+            img_feature_dim=parser_args.img_feature_dim,
+            partial_bn=not parser_args.no_partialbn,
+            pretrain=parser_args.pretrain,
+            is_shift=parser_args.shift,
+            shift_div=parser_args.shift_div,
+            shift_place=parser_args.shift_place,
+            fc_lr5=fc_lr5_temp,
+            temporal_pool=parser_args.temporal_pool,
+            non_local=parser_args.non_local
+        )
     elif parser_args.arch == "ECOfull_py":
         from models_ecopy import ECOfull
         model = ECOfull(
@@ -45,7 +53,8 @@ def load_model_and_optimizer(parser_args, config):
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
-            freeze_interval=parser_args.freeze_interval)
+            freeze_interval=parser_args.freeze_interval
+        )
     elif parser_args.arch == "ECOfull_efficient_py":
         from models_ecopy import ECOfull_efficient
         model = ECOfull_efficient(
@@ -54,7 +63,8 @@ def load_model_and_optimizer(parser_args, config):
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
-            freeze_interval=parser_args.freeze_interval)
+            freeze_interval=parser_args.freeze_interval
+        )
     ############################################################
     # Model Parameters
 
@@ -70,14 +80,15 @@ def load_model_and_optimizer(parser_args, config):
     ############################################################
     # Load optimizer
     if parser_args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(policies,
-                                    config['lr'],
-                                    momentum=parser_args.momentum,
-                                    weight_decay=parser_args.weight_decay,
-                                    nesterov=parser_args.nesterov)
+        optimizer = torch.optim.SGD(
+            policies,
+            config['lr'],
+            momentum=parser_args.momentum,
+            weight_decay=parser_args.weight_decay,
+            nesterov=parser_args.nesterov
+        )
     if parser_args.optimizer == 'Adam':
-        optimizer = torch.optim.Adam(policies,
-                                     config['lr'])
+        optimizer = torch.optim.Adam(policies, config['lr'])
 
     # if parser_args.print: print(model)
     # TODO: APEX WITH Dataparalell!?!
@@ -93,8 +104,7 @@ def load_model_and_optimizer(parser_args, config):
     if parser_args.resume:
         if os.path.isfile(parser_args.resume):
             if parser_args.print:
-                print(("=> loading checkpoint '{}'".format(
-                    parser_args.resume)))
+                print(("=> loading checkpoint '{}'".format(parser_args.resume)))
             checkpoint = torch.load(parser_args.resume)
             # if not checkpoint['lr']:
             if "lr" not in checkpoint.keys():
@@ -109,15 +119,17 @@ def load_model_and_optimizer(parser_args, config):
                 parser_args.best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
             if parser_args.print:
-                print(("=> loaded checkpoint '{}'"
-                       " (epoch: {}, lr: {})".format(
-                           parser_args.resume,
-                           checkpoint['epoch'],
-                           parser_args.lr)))
+                print(
+                    (
+                        "=> loaded checkpoint '{}'"
+                        " (epoch: {}, lr: {})".format(
+                            parser_args.resume, checkpoint['epoch'], parser_args.lr
+                        )
+                    )
+                )
             else:
                 if parser_args.print:
-                    print(("=> no checkpoint found at '{}'".format(
-                        parser_args.resume)))
+                    print(("=> no checkpoint found at '{}'".format(parser_args.resume)))
     #######################
     # Load pretrained
     else:
@@ -125,15 +137,13 @@ def load_model_and_optimizer(parser_args, config):
         # ECO
         if "ECO" in parser_args.arch:
             new_state_dict = init_ECO(model_dict)
-            un_init_dict_keys = [k for k in model_dict.keys() if k
-                                 not in new_state_dict]
+            un_init_dict_keys = [k for k in model_dict.keys() if k not in new_state_dict]
             if parser_args.print:
                 print("un_init_dict_keys: ", un_init_dict_keys)
                 print("\n------------------------------------")
 
             for k in un_init_dict_keys:
-                new_state_dict[k] = torch.DoubleTensor(
-                    model_dict[k].size()).zero_()
+                new_state_dict[k] = torch.DoubleTensor(model_dict[k].size()).zero_()
                 if 'weight' in k:
                     if 'bn' in k:
                         if parser_args.print:
@@ -157,15 +167,13 @@ def load_model_and_optimizer(parser_args, config):
         # Resnets
         if "resnet" in parser_args.arch:
             if parser_args.print:
-                print(("=> fine-tuning from '{}'".format(
-                    parser_args.finetune_model)))
+                print(("=> fine-tuning from '{}'".format(parser_args.finetune_model)))
             sd = torch.load(parser_args.finetune_model)
             sd = sd['state_dict']
             model_dict = model.state_dict()
             replace_dict = []
             for k, v in sd.items():
-                if k not in model_dict and k.replace(
-                        '.net', '') in model_dict:
+                if k not in model_dict and k.replace('.net', '') in model_dict:
                     if parser_args.print:
                         print('=> Load after remove .net: ', k)
                     replace_dict.append((k, k.replace('.net', '')))
@@ -181,32 +189,32 @@ def load_model_and_optimizer(parser_args, config):
             keys2 = set(list(model_dict.keys()))
             set_diff = (keys1 - keys2) | (keys2 - keys1)
             if parser_args.print:
-                print(
-                    '#### Notice: keys that failed to load: {}'.format(
-                        set_diff))
+                print('#### Notice: keys that failed to load: {}'.format(set_diff))
             if parser_args.dataset not in parser_args.finetune_model:
                 if parser_args.print:
                     print('=> New dataset, do not load fc weights')
                 sd = {k: v for k, v in sd.items() if 'fc' not in k}
-            if (parser_args.modality == 'Flow'
-                    and 'Flow' not in parser_args.finetune_model):
-                sd = {k: v for k,
-                      v in sd.items() if 'conv1.weight' not in k}
+            if (
+                parser_args.modality == 'Flow' and
+                'Flow' not in parser_args.finetune_model
+            ):
+                sd = {k: v for k, v in sd.items() if 'conv1.weight' not in k}
             model_dict.update(sd)
             model.load_state_dict(model_dict)
 
     return model, optimizer
 
 
-
 def load_loss_criterion(parser_args):
-    if (parser_args.loss_type == 'nll'
-            and parser_args.classification_type == 'multiclass'):
+    if (
+        parser_args.loss_type == 'nll' and parser_args.classification_type == 'multiclass'
+    ):
         criterion = torch.nn.CrossEntropyLoss().cuda()
         if parser_args.print:
             print("Using CrossEntropyLoss")
-    elif (parser_args.loss_type == 'nll'
-          and parser_args.classification_type == 'multilabel'):
+    elif (
+        parser_args.loss_type == 'nll' and parser_args.classification_type == 'multilabel'
+    ):
         criterion = torch.nn.BCEWithLogitsLoss().cuda()
         if parser_args.print:
             print("Using SigmoidBinaryCrossEntropyLoss")
@@ -215,8 +223,7 @@ def load_loss_criterion(parser_args):
 
     return criterion
 
-    
-    
+
 def init_ECO(model_dict, parser_args):
     if not os.path.exists(parser_args.finetune_model):
         print('Path or modeldile does not exist, can not load pretrained')
@@ -228,12 +235,19 @@ def init_ECO(model_dict, parser_args):
         if parser_args.finetune_model is not None:
             pretrained_dict = torch.load(parser_args.finetune_model)
             if parser_args.print:
-                print(("=> loading model-finetune: '{}'".format(
-                                    parser_args.finetune_model)))
+                print(
+                    (
+                        "=> loading model-finetune: '{}'".format(
+                            parser_args.finetune_model
+                        )
+                    )
+                )
         else:
-            pretrained_dict = torch.load("pretrained_models"
-                                         "/eco_fc_rgb_kinetics.pth.tar")
-            
+            pretrained_dict = torch.load(
+                "pretrained_models"
+                "/eco_fc_rgb_kinetics.pth.tar"
+            )
+
             if parser_args.print:
                 print(
                     (
@@ -242,17 +256,16 @@ def init_ECO(model_dict, parser_args):
                     )
                 )
         new_state_dict = {}
-        for k1, v in  pretrained_dict['state_dict'].items():
+        for k1, v in pretrained_dict['state_dict'].items():
             for k2 in model_dict.keys():
                 striped_k = str(k1)
                 striped_k = striped_k.replace('module.base_model.', '')
                 if striped_k in k2:
                     if (v.size() == model_dict[k2].size()):
                         new_state_dict[k2] = v
-                        
+
         if parser_args.print:
             print("*" * 50)
             print("Start finetuning ..")
 
     return new_state_dict
-                      

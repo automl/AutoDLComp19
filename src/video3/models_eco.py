@@ -1,10 +1,10 @@
+import numpy as np
+import torch
+import torchvision
 from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, xavier_uniform_
 from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
-import numpy as np
-import torch
-import torchvision
 
 
 class TSN(nn.Module):
@@ -206,11 +206,9 @@ TSN Configurations:
             for m in self.base_model.modules():
                 # print(m)
                 if (
-                    not isinstance(m, nn.ReLU)
-                    and not isinstance(m, nn.MaxPool2d)
-                    and not isinstance(m, nn.AvgPool2d)
-                    and not isinstance(m, nn.AvgPool3d)
-                    and not isinstance(m, nn.Dropout)
+                    not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
+                    not isinstance(m, nn.AvgPool2d) and
+                    not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
                     # print("000"*30)
@@ -221,11 +219,11 @@ TSN Configurations:
                         len(self._freeze_interval), self._freeze_interval
                     )
                     if (
-                        count >= self._freeze_interval[0]
-                        and count <= self._freeze_interval[1]
+                        count >= self._freeze_interval[0] and
+                        count <= self._freeze_interval[1]
                     ) or (
-                        count >= self._freeze_interval[2]
-                        and count <= self._freeze_interval[3]
+                        count >= self._freeze_interval[2] and
+                        count <= self._freeze_interval[3]
                     ):
                         m.eval()
                         print("Freezing - {} : {} ".format(count, m))
@@ -522,12 +520,12 @@ TSN Configurations:
         for x in reversed(list(range(1, self.new_length + 1))):
             if keep_rgb:
                 new_data[:, :, x, :, :, :] = (
-                    input_view[:, :, x, :, :, :]
-                    - input_view[:, :, x - 1, :, :, :])
+                    input_view[:, :, x, :, :, :] - input_view[:, :, x - 1, :, :, :]
+                )
             else:
                 new_data[:, :, x - 1, :, :, :] = (
-                    input_view[:, :, x, :, :, :]
-                    - input_view[:, :, x - 1, :, :, :])
+                    input_view[:, :, x, :, :, :] - input_view[:, :, x - 1, :, :, :]
+                )
 
         return new_data
 
@@ -549,7 +547,7 @@ TSN Configurations:
         kernel_size = params[0].size()
         new_kernel_size = kernel_size[:1] + (2 * self.new_length, ) + kernel_size[2:]
         new_kernels = params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size
-                                                                      ).contiguous()
+                                                                     ).contiguous()
 
         new_conv = nn.Conv2d(
             2 * self.new_length,
@@ -563,7 +561,7 @@ TSN Configurations:
         if len(params) == 2:
             new_conv.bias.data = params[1].data  # add bias if neccessary
         layer_name = list(container.state_dict().keys()
-                          )[0][:-7]  # remove .weight suffix to get the layer name
+                         )[0][:-7]  # remove .weight suffix to get the layer name
 
         # replace the first convlution layer
         setattr(container, layer_name, new_conv)
@@ -586,7 +584,7 @@ TSN Configurations:
         if not keep_rgb:
             new_kernel_size = kernel_size[:1] + (3 * self.new_length, ) + kernel_size[2:]
             new_kernels = params[0].data.mean(dim=1, keepdim=True
-                                              ).expand(new_kernel_size).contiguous()
+                                             ).expand(new_kernel_size).contiguous()
         else:
             new_kernel_size = kernel_size[:1] + (3 * self.new_length, ) + kernel_size[2:]
             new_kernels = torch.cat(
@@ -596,8 +594,8 @@ TSN Configurations:
                                         keepdim=True).expand(new_kernel_size).contiguous()
                 ), 1
             )
-            new_kernel_size = kernel_size[:1] + (3
-                                                 + 3 * self.new_length, ) + kernel_size[2:]
+            new_kernel_size = kernel_size[:1] + (3 +
+                                                 3 * self.new_length, ) + kernel_size[2:]
 
         new_conv = nn.Conv2d(
             new_kernel_size[1],
@@ -611,7 +609,7 @@ TSN Configurations:
         if len(params) == 2:
             new_conv.bias.data = params[1].data  # add bias if neccessary
         layer_name = list(container.state_dict().keys()
-                          )[0][:-7]  # remove .weight suffix to get the layer name
+                         )[0][:-7]  # remove .weight suffix to get the layer name
 
         # replace the first convolution layer
         setattr(container, layer_name, new_conv)
