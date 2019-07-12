@@ -5,13 +5,11 @@ from transforms import GroupCenterCrop, IdentityTransform, GroupNormalize
 # from transforms import GroupRandomHorizontalFlip
 import torch, torchvision
 
-def get_train_and_testloader(parser_args):
-    ############################################################
-    # Model choosing
+def get_model_for_loader(parser_args):
     model = ()
     if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
         from models_eco import TSN
-        model = TSN(parser_args.num_class,
+        model = TSN(parser_args.num_classes,
                     parser_args.num_segments,
                     parser_args.modality,
                     base_model=parser_args.arch,
@@ -25,7 +23,7 @@ def get_train_and_testloader(parser_args):
             parser_args.finetune_model
             and parser_args.dataset in parser_args.finetune_model)
         model = TSN(
-            parser_args.num_class,
+            parser_args.num_classes,
             parser_args.num_segments,
             parser_args.modality,
             base_model=parser_args.arch,
@@ -43,7 +41,7 @@ def get_train_and_testloader(parser_args):
     elif parser_args.arch == "ECOfull_py":
         from models_ecopy import ECOfull
         model = ECOfull(
-            num_classes=parser_args.num_class,
+            num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
@@ -51,11 +49,18 @@ def get_train_and_testloader(parser_args):
     elif parser_args.arch == "ECOfull_efficient_py":
         from models_ecopy import ECOfull_efficient
         model = ECOfull_efficient(
-            num_classes=parser_args.num_class,
+            num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval)
+    return model
+
+
+def get_train_and_testloader(parser_args):
+    ############################################################
+    # Model choosing
+    model = get_model_for_loader(parser_args)
 
     ############################################################
     # Data loading code
@@ -89,7 +94,7 @@ def get_train_and_testloader(parser_args):
                    modality=parser_args.modality,
                    image_tmpl=parser_args.prefix,
                    classification_type=parser_args.classification_type,
-                   num_labels=parser_args.num_class,
+                   num_labels=parser_args.num_classes,
                    transform=torchvision.transforms.Compose([
                        train_augmentation,
                        Stack(roll=True),

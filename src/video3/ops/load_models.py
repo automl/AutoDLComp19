@@ -4,12 +4,12 @@ from torch.nn.init import constant_, xavier_uniform_
 
 from opts import parser
 
-def load_model(parser_args, config):
+def load_model_and_optimizer(parser_args, config):
     # update parser_args
     parser_args = parser_args
     if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
         from models_eco import TSN
-        model = TSN(parser_args.num_class,
+        model = TSN(parser_args.num_classes,
                     parser_args.num_segments,
                     parser_args.modality,
                     base_model=parser_args.arch,
@@ -22,7 +22,7 @@ def load_model(parser_args, config):
         fc_lr5_temp = (not (parser_args.finetune_model
                             and parser_args.dataset
                             in parser_args.finetune_model))
-        model = TSN(parser_args.num_class,
+        model = TSN(parser_args.num_classes,
                     parser_args.num_segments,
                     parser_args.modality,
                     base_model=parser_args.arch,
@@ -41,7 +41,7 @@ def load_model(parser_args, config):
         from models_ecopy import ECOfull
         model = ECOfull(
             dropout=config['dropout'],
-            num_classes=parser_args.num_class,
+            num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
@@ -50,16 +50,38 @@ def load_model(parser_args, config):
         from models_ecopy import ECOfull_efficient
         model = ECOfull_efficient(
             dropout=config['dropout'],
-            num_classes=parser_args.num_class,
+            num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval)
     ############################################################
     # Model Parameters
+
+    # Optimizer s also support specifying per-parameter options.
+    # To do this, pass in an iterable of dict s.
+    # Each of them will define a separate parameter group,
+    # and should contain a params key, containing a list of parameters
+    # belonging to it.
+    # Other keys should match the keyword arguments accepted by
+    # the optimizers, and will be used as optimization options for this
+    # group.
+    policies = model.get_optim_policies()
+    ############################################################
+    # Load optimizer
+    if parser_args.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(policies,
+                                    config['lr'],
+                                    momentum=parser_args.momentum,
+                                    weight_decay=parser_args.weight_decay,
+                                    nesterov=parser_args.nesterov)
+    if parser_args.optimizer == 'Adam':
+        optimizer = torch.optim.Adam(policies,
+                                     config['lr'])
+
     # if parser_args.print: print(model)
     # TODO: APEX WITH Dataparalell!?!
-    #
+    model = torch.nn.DataParallel(model).cuda()
     #    model, device_ids=list(
     #        range(
     #            torch.cuda.device_count()))).cuda()
@@ -102,7 +124,7 @@ def load_model(parser_args, config):
         ###########
         # ECO
         if "ECO" in parser_args.arch:
-            new_state_dict = init_ECO(model_dict, parser_args)
+            new_state_dict = init_ECO(model_dict)
             un_init_dict_keys = [k for k in model_dict.keys() if k
                                  not in new_state_dict]
             if parser_args.print:
@@ -173,31 +195,8 @@ def load_model(parser_args, config):
             model_dict.update(sd)
             model.load_state_dict(model_dict)
 
-    return model
+    return model, optimizer
 
-
-def load_optimizer(parser_args, config, model):
-    # Optimizer s also support specifying per-parameter options.
-    # To do this, pass in an iterable of dict s.
-    # Each of them will define a separate parameter group,
-    # and should contain a params key, containing a list of parameters
-    # belonging to it.
-    # Other keys should match the keyword arguments accepted by
-    # the optimizers, and will be used as optimization options for this
-    # group.
-
-    policies = model.get_optim_policies()
-    if parser_args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(policies,
-                                    config['lr'],
-                                    momentum=parser_args.momentum,
-                                    weight_decay=parser_args.weight_decay,
-                                    nesterov=parser_args.nesterov)
-    if parser_args.optimizer == 'Adam':
-        optimizer = torch.optim.Adam(policies,
-                                     config['lr'])
-
-    return optimizer
 
 
 def load_loss_criterion(parser_args):

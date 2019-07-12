@@ -54,10 +54,8 @@ class ChallengeWorker(Worker):
         exp_num = 0
         ############################################################
         # Model, optimizer and criterion loading
-        model = load_model(self.parser_args, config)
-        optimizer = load_optimizer(self.parser_args, config, model)
+        model, optimizer = load_model_and_optimizer(self.parser_args, config)
         criterion = load_loss_criterion(self.parser_args)
-        model = torch.nn.DataParallel(model).cuda()
 
         # Logging
         if self.parser_args.training:
@@ -131,7 +129,7 @@ class ChallengeWorker(Worker):
                     'state_dict': model.state_dict(),
                     'best_prec1': self.parser_args.best_prec1,
                     'lr': optimizer.param_groups[-1]['lr'],
-                }, is_best)
+                }, is_best, parser_args)
         ############################################################
         if self.parser_args.classification_type == 'multiclass':
             return {
@@ -195,6 +193,9 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
 
     model.train()
     for i, (input, target) in enumerate(train_loader):
+        print('INPUT SHAPE: ' + str(input.shape))
+        print('TARGET: ' + str(target))
+        print('DATASET NAME: ' + str(type(train_loader.dataset).__name__))
         # measure data loading time
         data_time.update(time.time() - end)
         ######################################################
@@ -233,7 +234,7 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))  
         if parser_args.classification_type == 'multilabel':
-            prec1, p, rl = f2_score(output.data, target)
+            prec1, p, rl = f2_score(output.data, target, parser_args)
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
@@ -413,7 +414,7 @@ def accuracy(output, target, topk=(1,)):
     
 #############################################################################
 ##############################################################################
-def f2_score(output, target):
+def f2_score(output, target, parser_args):
     """Computes the f2 score, precision and recall"""
     predictions = output
     labels = target
@@ -431,7 +432,7 @@ def f2_score(output, target):
     true_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     false_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     # count true and false Positives
-    for j in range(batch_size):
+    for j in range(parser_args.batch_size):
         # for higher accuracy use batch scaling
         pred = predictions[j]
         maximum = pred.max()
@@ -462,7 +463,7 @@ def f2_score(output, target):
 
 ##############################################################################
 ##############################################################################
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, parser_args, filename='checkpoint.pth.tar'):
     if parser_args.training:
         filename = '_'.join(
             (parser_args.snapshot_pref, parser_args.modality.lower(),

@@ -21,13 +21,17 @@ import sys
 import numpy as np
 
 import torch
+import torchvision
 import torch.nn as nn
 import torch.utils.data as data_utils
 import torch.utils.data
 from ops.temporal_shift import make_temporal_pool
 from pytorch_dataset import PytorchDataset
+from transforms import Stack, ToTorchFormatTensor, GroupScale, ToPilFormat, SelectSamples
+from transforms import GroupCenterCrop, IdentityTransform, GroupNormalize
 from torch.nn.init import constant_, xavier_uniform_
-from ops.load_models import load_model, load_optimizer, load_loss_criterion
+from ops.load_dataloader import get_model_for_loader
+from ops.load_models import load_model_and_optimizer, load_loss_criterion
 import bohb
 import configuration
 from opts import parser
@@ -50,13 +54,15 @@ class ParserMock():
     self._parser_args = parser.parse_known_args()[0]
     setattr(self._parser_args, 'finetune_model', '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar')
     setattr(self._parser_args, 'arch', 'resnet50')
-    setattr(self._parser_args, 'batch-size', 1)
+    setattr(self._parser_args, 'batch_size', 1)
     setattr(self._parser_args, 'modality', 'RGB')
-    setattr(self._parser_args, 'classification_type', 'multiclass')
+    setattr(self._parser_args, 'classification_type', 'multilabel')
     setattr(self._parser_args, 'shift', True)
     setattr(self._parser_args, 'shift_div', 9)
     setattr(self._parser_args, 'shift_place', 'blockres')
     setattr(self._parser_args, 'dense_sample', True)
+    setattr(self._parser_args, 'print', True)
+
 
 
   def set_attr(self, attr, val):
@@ -79,19 +85,18 @@ class Model(algorithm.Algorithm):
     sequence_size = self.metadata_.get_sequence_size()
     print('INPUT SHAPE :', row_count, col_count, channel, sequence_size)
 
+
     # getting an object for the PyTorch Model class for Model Class
     # use CUDA if available
     parser = ParserMock()
-    parser.set_attr('num_class', self.output_dim)
-    parser.set_attr('print', True)
+    parser.set_attr('num_classes', self.output_dim)
 
     self.parser_args = parser.parse_args()
     self.config = configuration.get_configspace(model_name=self.parser_args.arch).get_default_configuration()
-    self.pytorchmodel = load_model(self.parser_args, self.config)
-    self.optimizer = load_optimizer(self.parser_args, self.config, self.pytorchmodel)
+    self.model, self.optimizer = load_model_and_optimizer(self.parser_args, self.config)
     self.criterion = load_loss_criterion(self.parser_args)
 
-    if torch.cuda.is_available(): self.pytorchmodel.cuda()
+    if torch.cuda.is_available(): self.model.cuda()
 
      # Attributes for managing time budget
     # Cumulated number of training steps
@@ -111,9 +116,6 @@ class Model(algorithm.Algorithm):
     # PYTORCH
     # Critical number for early stopping
     self.num_epochs_we_want_to_train = 100
-
-    # no of examples at each step/batch
-    self.batch_size = 1
 
   def train(self, dataset, remaining_time_budget=None):
     print('TRAINING')
@@ -135,7 +137,8 @@ class Model(algorithm.Algorithm):
       print_log("Begin training for another {} steps...{}".format(steps_to_train, msg_est))
 
       if not hasattr(self, 'trainloader'):
-        self.trainloader = self.get_dataloader(dataset, batch_size=self.batch_size, train=True)
+        print('BATCH SIZE: ' + str(self.parser_args.batch_size))
+        self.trainloader = self.get_dataloader(dataset=dataset, parser_args=self.parser_args, batch_size=self.parser_args.batch_size, train=True)
 
       train_start = time.time()
 
@@ -144,7 +147,7 @@ class Model(algorithm.Algorithm):
       #self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
       train_epoch = 1
       train_budget = 1
-      bohb.train(self.trainloader, self.pytorchmodel, self.criterion, self.optimizer, train_epoch, train_budget, self.parser_args)
+      bohb.train(self.trainloader, self.model, self.criterion, self.optimizer, train_epoch, train_budget, self.parser_args)
 
       train_end = time.time()
 
@@ -207,7 +210,7 @@ class Model(algorithm.Algorithm):
     2) convert X, y to CUDA
     3) trains the model with the Tesors for given no of steps.
     '''
-    self.pytorchmodel.train()
+    self.model.train()
     data_iterator = iter(self.trainloader)
     for i in range(steps):
       try:
@@ -220,7 +223,7 @@ class Model(algorithm.Algorithm):
       labels = labels.cuda()
       optimizer.zero_grad()
 
-      log_ps  = self.pytorchmodel(images)
+      log_ps  = self.model(images)
       loss = criterion(log_ps, labels)
       loss.backward()
       optimizer.step()
@@ -232,20 +235,35 @@ class Model(algorithm.Algorithm):
     '''
     preds = []
     with torch.no_grad():
-          self.pytorchmodel.eval()
+          self.model.eval()
           for images in dataloader:
             if torch.cuda.is_available():
               images = images.cuda()
-            log_ps = self.pytorchmodel(images)
+            log_ps = self.model(images)
             pred = torch.sigmoid(log_ps) #.data > 0.5
             preds.append(pred.cpu().numpy())
     preds = np.concatenate(preds)
     return preds
 
-  def get_dataloader(self, dataset, batch_size, train=False):
-    dataset = PytorchDataset(dataset, nr_buffer_shards=32)
+  def get_dataloader(self, dataset, parser_args, batch_size, train=False):
+    model = get_model_for_loader(parser_args)
+    train_augmentation = model.get_augmentation()
+    input_mean = model.input_mean
+    input_std = model.input_std
+    num_segments = parser_args.num_segments
+
+    dataset = PytorchDataset(dataset,
+                             nr_buffer_shards=32,
+                             transform_sample = torchvision.transforms.Compose([
+                                  SelectSamples(num_segments),
+                                  ToPilFormat(),
+                                  train_augmentation,
+                                  Stack(roll=True),
+                                  ToTorchFormatTensor(div=False),
+                                  GroupNormalize(input_mean, input_std),
+                             ]))
     dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=self.batch_size,
+                                             batch_size=batch_size,
                                              shuffle=train,
                                              num_workers=0,
                                              pin_memory=False)

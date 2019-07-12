@@ -10,7 +10,7 @@ import torchvision
 class TSN(nn.Module):
     def __init__(
         self,
-        num_class,
+        num_classes,
         num_segments,
         modality,
         base_model='resnet101',
@@ -84,7 +84,7 @@ TSN Configurations:
         self._enable_freeze_eco = freeze_eco
         self._freeze_interval = freeze_interval
 
-    def _prepare_tsn(self, num_class):
+    def _prepare_tsn(self, num_classes):
         feature_dim = getattr(
             self.base_model, self.base_model.last_layer_name
         ).in_features
@@ -93,7 +93,7 @@ TSN Configurations:
 
             setattr(
                 self.base_model, self.base_model.last_layer_name,
-                nn.Linear(feature_dim, num_class)
+                nn.Linear(feature_dim, num_classes)
             )
 
             self.new_fc = None
@@ -105,7 +105,7 @@ TSN Configurations:
                 self.base_model, self.base_model.last_layer_name,
                 nn.Dropout(p=self.dropout)
             )
-            self.new_fc = nn.Linear(feature_dim, num_class)
+            self.new_fc = nn.Linear(feature_dim, num_classes)
             # print(self.base_model)
 
             # print(self.base_model)
