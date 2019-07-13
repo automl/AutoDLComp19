@@ -16,9 +16,9 @@ AUTOTAGS = os.path.join(BASE_FOLDER,'unzip/yfcc100m_autotags')
 DATASET = os.path.join(BASE_FOLDER,'unzip/yfcc100m_dataset')
 
 # path to the file containing all possible labels as a list
-LABEL_LIST = os.path.join(BASE_FOLDER,'log/yfcc100m_label')
+LABEL_LIST = os.path.join(BASE_FOLDER,'yfcc100m_label')
 # overall resulting file with images+labels
-METADATA = os.path.join(BASE_FOLDER,'log/yfcc100m_images_metadata')
+METADATA = os.path.join(BASE_FOLDER,'yfcc100m_images_metadata')
 # path to the video download folder
 IMAGE_FOLDER = os.path.join(BASE_FOLDER,'images/')
 # path to the video download folder
@@ -94,11 +94,28 @@ def download(dataset_path, image_folder, temp_folder, failed_folder, process_id=
                         os.mknod(failed_name)
 
 
-def create_metadata(autotags_path, dataset_path, image_folder, label_list_path, metadata_path):
+def create_metadata_parallel(autotags_path, dataset_path, image_folder, label_list_path, metadata_path, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=create_metadata,
+            args=(autotags_path, dataset_path, image_folder, label_list_path, metadata_path, i, num_processes
+            )
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+
+def create_metadata(autotags_path, dataset_path, image_folder, label_list_path, metadata_path, process_id=0, num_processes=1):
     '''
     create metadata based on downloaded files
     '''
     label_dict = {}
+    metadata_path = metadata_path + '_' + str(process_id)
 
     with open(label_list_path, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter='\t')
@@ -117,8 +134,11 @@ def create_metadata(autotags_path, dataset_path, image_folder, label_list_path, 
 
         for i, d_row in enumerate(d_reader):
             # write a short progress message
-            if i % 1e5 == 0:
+            if i % 1e4 == 0:
                 print(i)
+
+            if (i + process_id) % num_processes != 0:
+                continue
 
             # if download path ends with '.jpg', ignore it
             if os.path.splitext(d_row[16])[1] != '.jpg':
@@ -159,6 +179,15 @@ def create_metadata(autotags_path, dataset_path, image_folder, label_list_path, 
                 print('No autotags found: ' + str(file_name))
 
 
+def merge_metadata(metadata_path):
+    split_files = glob.glob(metadata_path + '_*')
+
+    with open(metadata_path,'w+') as wf:
+        for f in split_files:
+            with open(f,'r') as fd:
+                shutil.copyfileobj(fd, wf)
+
+
 def create_splits(metadata_path, base_folder):
     train_file = os.path.join(base_folder, 'train.txt')
     test_file = os.path.join(base_folder, 'test.txt')
@@ -182,12 +211,12 @@ def create_splits(metadata_path, base_folder):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) > 1:
-    #     for arg in sys.argv[1:]:
-    #         print(arg)
-    #     download(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, int(sys.argv[1]), int(sys.argv[2]))
-    # else:
-    #     download_parallel(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, NUM_PROCESSES)
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        create_metadata_parallel(AUTOTAGS, DATASET, IMAGE_FOLDER, LABEL_LIST, METADATA, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+    #else:
+    #    download_parallel(DATASET, IMAGE_FOLDER, TEMP_FOLDER, FAILED_FOLDER, NUM_PROCESSES)
 
-    create_metadata(AUTOTAGS, DATASET, IMAGE_FOLDER, LABEL_LIST, METADATA)
+    #create_metadata(AUTOTAGS, DATASET, IMAGE_FOLDER, LABEL_LIST, METADATA)
 

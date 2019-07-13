@@ -326,7 +326,7 @@ def create_metadata_from_videos_parallel(autotags_path, dataset_path, dali_folde
 
 
 
-def create_metadata_from_videos(autotags_path, dataset_path, dali_folder, label_list_path, metadata_path, process_id, num_processes):
+def create_metadata_from_videos(autotags_path, dataset_path, dali_folder, label_list_path, metadata_path, process_id=0, num_processes=1):
     '''
     create metadata based on downloaded files
     '''
