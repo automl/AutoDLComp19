@@ -58,7 +58,7 @@ class ParserMock():
         setattr(self._parser_args, 'arch', 'resnet50')
         setattr(self._parser_args, 'batch_size', 1)
         setattr(self._parser_args, 'modality', 'RGB')
-        setattr(self._parser_args, 'classification_type', 'multilabel')
+        setattr(self._parser_args, 'classification_type', 'multiclass')
         setattr(self._parser_args, 'shift', True)
         setattr(self._parser_args, 'shift_div', 9)
         setattr(self._parser_args, 'shift_place', 'blockres')
@@ -119,6 +119,7 @@ class Model(algorithm.Algorithm):
         # Critical number for early stopping
         self.num_epochs_we_want_to_train = 100
 
+
     def train(self, dataset, remaining_time_budget=None):
         print('TRAINING')
 
@@ -147,7 +148,6 @@ class Model(algorithm.Algorithm):
                 self.trainloader = self.get_dataloader(
                     dataset=dataset,
                     parser_args=self.parser_args,
-                    batch_size=self.parser_args.batch_size,
                     train=True
                 )
 
@@ -155,13 +155,7 @@ class Model(algorithm.Algorithm):
 
             # PYTORCH
             #Training loop inside
-            #self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
-            train_epoch = 1
-            train_budget = 1
-            bohb.train(
-                self.trainloader, self.model, self.criterion, self.optimizer, train_epoch,
-                train_budget, self.parser_args
-            )
+            self.trainloop(self.model, self.criterion, self.optimizer, steps=steps_to_train, parser_args=self.parser_args)
 
             train_end = time.time()
 
@@ -174,6 +168,7 @@ class Model(algorithm.Algorithm):
                   "Now total steps trained: {}. ".format(self.cumulated_num_steps) +\
                   "Total time used for training: {:.2f} sec. ".format(self.total_train_time) +\
                   "Current estimated time per step: {:.2e} sec.".format(self.estimated_time_per_step))
+
 
     def test(self, dataset, remaining_time_budget=None):
         print('TESTING')
@@ -201,7 +196,7 @@ class Model(algorithm.Algorithm):
         # PYTORCH
         if not hasattr(self, 'testloader'):
             self.testloader = self.get_dataloader(
-                dataset, batch_size=self.batch_size, train=False
+                dataset, parser_args=self.parser_args, train=False
             )
         predictions = self.testloop(self.testloader)
 
@@ -216,14 +211,15 @@ class Model(algorithm.Algorithm):
               "Current estimated time for test: {:.2e} sec.".format(self.estimated_time_test))
         return predictions
 
-    def trainloop(self, criterion, optimizer, steps):
+
+    def trainloop(self, model, criterion, optimizer, steps, parser_args):
         '''
-    # PYTORCH
-    Trainloop function does the actual training of the model
-    1) it gets the X, y from tensorflow dataset.
-    2) convert X, y to CUDA
-    3) trains the model with the Tesors for given no of steps.
-    '''
+        # PYTORCH
+        Trainloop function does the actual training of the model
+        1) it gets the X, y from tensorflow dataset.
+        2) convert X, y to CUDA
+        3) trains the model with the Tesors for given no of steps.
+        '''
         self.model.train()
         data_iterator = iter(self.trainloader)
         for i in range(steps):
@@ -233,20 +229,18 @@ class Model(algorithm.Algorithm):
                 data_iterator = iter(self.trainloader)
                 images, labels = next(data_iterator)
 
-            images = images.cuda()
-            labels = labels.cuda()
-            optimizer.zero_grad()
+            # manually convert one-hot encoding back to integer *doh*
+            idx = np.argmax(labels, axis=1)
+            labels_int = torch.LongTensor([labels[i][idx[i]] for i in range(len(idx))])
 
-            log_ps = self.model(images)
-            loss = criterion(log_ps, labels)
-            loss.backward()
-            optimizer.step()
+            bohb.train_inner(model, optimizer, criterion, images, labels_int, i, parser_args)
+
 
     def testloop(self, dataloader):
         '''
-    # PYTORCH
-    testloop uses testdata to test the pytorch model and return onehot prediciton values.
-    '''
+        # PYTORCH
+        testloop uses testdata to test the pytorch model and return onehot prediciton values.
+        '''
         preds = []
         with torch.no_grad():
             self.model.eval()
@@ -259,7 +253,7 @@ class Model(algorithm.Algorithm):
         preds = np.concatenate(preds)
         return preds
 
-    def get_dataloader(self, dataset, parser_args, batch_size, train=False):
+    def get_dataloader(self, dataset, parser_args, train=False):
         model = get_model_for_loader(parser_args)
         train_augmentation = model.get_augmentation()
         input_mean = model.input_mean
@@ -282,24 +276,24 @@ class Model(algorithm.Algorithm):
         )
         dataloader = torch.utils.data.DataLoader(
             dataset,
-            batch_size=batch_size,
+            batch_size=parser_args.batch_size,
             shuffle=train,
             num_workers=0,
             pin_memory=False
         )
         return dataloader
 
+
     def get_steps_to_train(self, remaining_time_budget):
         """Get number of steps for training according to `remaining_time_budget`.
-
-    The strategy is:
-      1. If no training is done before, train for 10 steps (ten batches);
-      2. Otherwise, estimate training time per step and time needed for test,
-         then compare to remaining time budget to compute a potential maximum
-         number of steps (max_steps) that can be trained within time budget;
-      3. Choose a number (steps_to_train) between 0 and max_steps and train for
-         this many steps. Double it each time.
-    """
+        The strategy is:
+          1. If no training is done before, train for 10 steps (ten batches);
+          2. Otherwise, estimate training time per step and time needed for test,
+             then compare to remaining time budget to compute a potential maximum
+             number of steps (max_steps) that can be trained within time budget;
+          3. Choose a number (steps_to_train) between 0 and max_steps and train for
+             this many steps. Double it each time.
+        """
         if not remaining_time_budget:  # This is never true in the competition anyway
             remaining_time_budget = 1200  # if no time limit is given, set to 20min
 
@@ -323,13 +317,14 @@ class Model(algorithm.Algorithm):
                 steps_to_train = 0
         return steps_to_train
 
+
     def choose_to_stop_early(self):
         """The criterion to stop further training (thus finish train/predict
-    process).
-    """
+        process).
+        """
         # return self.cumulated_num_tests > 10 # Limit to make 10 predictions
         # return np.random.rand() < self.early_stop_proba
-        batch_size = self.batch_size
+        batch_size = self.parser_args.batch_size
         num_examples = self.metadata_.size()
         num_epochs = self.cumulated_num_steps * batch_size / num_examples
         print_log("Model already trained for {} epochs.".format(num_epochs))
@@ -352,13 +347,13 @@ def print_log(*content):
 
 def get_num_entries(tensor):
     """Return number of entries for a TensorFlow tensor.
-  Args:
+    Args:
     tensor: a tf.Tensor or tf.SparseTensor object of shape
         (batch_size, sequence_size, row_count, col_count[, num_channels])
-  Returns:
+    Returns:
     num_entries: number of entries of each example, which is equal to
         sequence_size * row_count * col_count [* num_channels]
-  """
+    """
     tensor_shape = tensor.shape
     assert (len(tensor_shape) > 1)
     num_entries = 1

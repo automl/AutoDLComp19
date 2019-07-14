@@ -363,7 +363,6 @@ class ToPilFormat(object):
     def __call__(self, pics):
         if isinstance(pics, np.ndarray):
             lst = []
-            print('SHAPE: ' + str(pics.shape))
             for i in range(len(pics)):
                 formatted = (pics[i, ...] * 255).astype('uint8')
                 lst.append(Image.fromarray(formatted))

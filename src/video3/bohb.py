@@ -193,53 +193,20 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
 
     model.train()
     for i, (input, target) in enumerate(train_loader):
-        print('INPUT SHAPE: ' + str(input.shape))
-        print('TARGET: ' + str(target))
-        print('DATASET NAME: ' + str(type(train_loader.dataset).__name__))
         # measure data loading time
         data_time.update(time.time() - end)
-        ######################################################
-        # fit batch into Model
-        # target size: [batch_size]
-        target = target.cuda()  # noqa: W606
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-        # compute output, output size: [batch_size, num_class]
-        output = model(input_var)
-        loss = criterion(output, target_var)
-        loss = loss / parser_args.iter_size
-        loss_summ += loss
-        # update average loss
-        losses.update(loss_summ.item(), input.size(0))
-        # update weights
-        loss.backward()
-        # scale down gradients when iter size is set
-        if (i + 1) % parser_args.iter_size == 0:
-            optimizer.step()
-            optimizer.zero_grad()
-            loss_summ = 0
-        # clip gradients id set
-        if parser_args.clip_gradient is not None:
-            total_norm = clip_grad_norm_(model.parameters(), parser_args.clip_gradient)
-            if total_norm > parser_args.clip_gradient:
-                if parser_args.print:
-                    print(
-                        "clipping gradient: {} with coef {}".format(
-                            total_norm, parser_args.clip_gradient / total_norm
-                        )
-                    )
-        ######################################################
-        # measure accuracy and record loss
+
         if parser_args.classification_type == 'multiclass':
-            # measure accuracy and record loss
-            prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
+            loss, prec1, prec5 = train_inner(model, optimizer, criterion, input, target, i, parser_args)
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))
-        if parser_args.classification_type == 'multilabel':
-            prec1, p, rl = f2_score(output.data, target, parser_args)
+        elif parser_args.classification_type == 'multilabel':
+            loss, prec1, p, rl = train_inner(model, optimizer, criterion, input, target, i, parser_args)
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
+        loss_summ += loss
+
         ######################################################
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -271,6 +238,45 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
         if i >= stop_batch:
             break
     return end_time
+
+
+def train_inner(model, optimizer, criterion, input, target, i, parser_args):
+    ######################################################
+    # fit batch into Model
+    # target size: [batch_size]
+    target = target.cuda()  # noqa: W606
+    input_var = torch.autograd.Variable(input)
+    target_var = torch.autograd.Variable(target)
+    # compute output, output size: [batch_size, num_class]
+    output = model(input_var)
+    loss = criterion(output, target_var)
+    loss = loss / parser_args.iter_size
+    # update average loss
+    loss.backward()
+    # scale down gradients when iter size is set
+    if (i + 1) % parser_args.iter_size == 0:
+        optimizer.step()
+        optimizer.zero_grad()
+        loss_summ = 0
+    # clip gradients id set
+    if parser_args.clip_gradient is not None:
+        total_norm = clip_grad_norm_(model.parameters(), parser_args.clip_gradient)
+        if total_norm > parser_args.clip_gradient:
+            if parser_args.print:
+                print(
+                    "clipping gradient: {} with coef {}".format(
+                        total_norm, parser_args.clip_gradient / total_norm
+                    )
+                )
+    ######################################################
+    # measure accuracy and record loss
+    if parser_args.classification_type == 'multiclass':
+        # measure accuracy and record loss
+        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
+        return loss, prec1, prec5
+    elif parser_args.classification_type == 'multilabel':
+        prec1, p, rl = f2_score(output.data, target, parser_args)
+        return loss, prec1, p, rl
 
 
 ##############################################################################
