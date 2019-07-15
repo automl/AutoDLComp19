@@ -33,7 +33,7 @@ class ChallengeWorker(Worker):
         # Global settings from main.py
         temp = dataset_config.return_dataset(
             parser_args.dataset, parser_args.modality, parser_args.class_limit)
-        parser_args.num_class = temp[0]
+        parser_args.num_classes = temp[0]
         parser_args.train_list = temp[1]
         parser_args.val_list = temp[2]
         parser_args.root_path = temp[3]
