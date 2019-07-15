@@ -6,7 +6,7 @@
 import os
 
 ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
-ROOT_DATASET = '/media/dingsda/External/datasets/'
+#ROOT_DATASET = '/media/dingsda/External/datasets/'
 
 
 def return_epickitchen_noun(modality, class_limit=None):
