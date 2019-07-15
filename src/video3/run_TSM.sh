@@ -10,16 +10,18 @@
 # Parameters!
 #############################################
 #--- training hyperparams ---
-#'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
-dataset_name="somethingv2"
+#'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m','youtube8m'
+#dataset_name="somethingv2"
+dataset_name='youtube8m'
 netType="resnet50"
-batch_size=4 #43
+batch_size=1 #43
 num_segments=16
 consensus_type=avg #{avg, identity}
 iter_size=4 # batch_size * iter_size = pseudo_batch_size 
 num_workers=32
 optimizer="SGD"
 val_perc=0.02
+class_limit=100
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
@@ -42,7 +44,7 @@ subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
-Echo ${mainFolder}${subFolder}
+echo ${mainFolder}${subFolder}
 snapshot_pref="${mainFolder}${subFolder}${netType}_${dataset_name}_${optimizer}_finetune_${finetune}"
 #############################################
 # others
@@ -67,6 +69,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+    --class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \
@@ -101,6 +104,7 @@ else
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+    --class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \

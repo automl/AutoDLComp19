@@ -84,6 +84,7 @@ def get_train_and_testloader(parser_args):
     train_loader = torch.utils.data.DataLoader(
         TSNDataSet(parser_args.root_path,
                    parser_args.train_list,
+                   parser_args.val_list,
                    num_segments=parser_args.num_segments,
                    new_length=data_length,
                    modality=parser_args.modality,
@@ -101,11 +102,13 @@ def get_train_and_testloader(parser_args):
     val_loader = torch.utils.data.DataLoader(
         TSNDataSet(parser_args.root_path,
                    parser_args.val_list,
+                   parser_args.train_list,
                    num_segments=parser_args.num_segments,
                    new_length=data_length,
                    modality=parser_args.modality,
                    image_tmpl=parser_args.prefix,
                    random_shift=False,
+                   num_labels=parser_args.num_class,
                    transform=torchvision.transforms.Compose([
                        GroupScale(int(scale_size)),
                        GroupCenterCrop(crop_size),

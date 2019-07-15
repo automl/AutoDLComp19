@@ -21,6 +21,7 @@ iter_size=4 # batch_size * iter_size = pseudo_batch_size
 num_workers=32
 optimizer="SGD"
 val_perc=0.02
+class_limit=100
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
@@ -43,7 +44,7 @@ subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
-Echo ${mainFolder}${subFolder}
+echo ${mainFolder}${subFolder}
 snapshot_pref="${mainFolder}${subFolder}${netType}_${dataset_name}_${optimizer}_finetune_${finetune}"
 #############################################
 # others
@@ -68,6 +69,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+    --class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \

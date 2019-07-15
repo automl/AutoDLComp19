@@ -11,7 +11,8 @@ parser.add_argument('dataset', type=str, choices=['ucf101',
                                                   'kinetics',
                                                   'epickitchen_verb',
                                                   'epickitchen_noun',
-                                                  'yfcc100m'])
+                                                  'yfcc100m',
+                                                  'youtube8m'])
 parser.add_argument('modality', type=str, choices=['RGB', 'Flow', 'RGBDiff'])
 parser.add_argument(
     '--working_directory',
@@ -41,6 +42,7 @@ parser.add_argument(
         'ECO',
         'ECOfull'])
 parser.add_argument('--num_segments', type=int, default=3)
+parser.add_argument('--class_limit', type=int, default=500)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])
 
