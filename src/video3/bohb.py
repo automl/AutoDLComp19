@@ -252,10 +252,11 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))
         if parser_args.classification_type == 'multilabel':
-            prec1, p, rl = f2_score(output.data, target)
-            top1.update(prec1.item())
-            precision.update(p.item())
-            recall.update(r.item())
+            pass
+            # prec1, p, rl = f2_score(output.data, target)
+            # top1.update(prec1.item())
+            # precision.update(p.item())
+            # recall.update(r.item())
         ######################################################
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -449,52 +450,51 @@ def accuracy(output, target, topk=(1, )):
 #############################################################################
 ##############################################################################
 def f2_score(output, target):
-    return 0, 0, 0
-    # """Computes the f2 score, precision and recall"""
-    # predictions = output
-    # labels = target
-    # maximum = predictions.max()
-    # minimum = predictions.min()
-    # # strech output of logits
-    # predictions = -5 + 10 * (predictions - minimum) / (maximum - minimum)
-    # # wrap probability function
-    # pred = torch.sigmoid(predictions)
-    # # TODO: if labels is a percentage it won't work :/
-    # act_pos_batch = torch.sum(labels)
-    # act_neg_batch = (parser_args.batch_size
-    #                  * parser_args.num_classes
-    #                  - act_pos_batch)
-    # true_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
-    # false_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
-    # # count true and false Positives
-    # for j in range(batch_size):
-    #     # for higher accuracy use batch scaling
-    #     pred = predictions[j]
-    #     maximum = pred.max()
-    #     minimum = pred.min()
-    #     pred = (pred - minimum) / (maximum - minimum)
-    #     a = pred.gt(eval_percentage).byte()
-    #     b1 = labels[j].eq(1).byte()
-    #     b2 = labels[j].eq(0).byte()
-    #     c = a & b1
-    #     d = a & b2
-    #     true_pos_batch += c.sum()
-    #     false_pos_batch += d.sum()
-    # # update false and ture negatives
-    # true_pos.update(true_pos_batch)
-    # false_pos.update(false_pos_batch)
-    # false_neg.update(act_pos_batch - true_pos_batch)
-    # true_neg.update(act_neg_batch - false_pos_batch)
-    # # precision: tp/(tp+fp) percentage of correctly classified predicted
-    # precision = true_pos.sum / (true_pos.sum + false_pos.sum + 1E-9)
-    # # recall: tp/(tp+fn) percentage of positives correctly classified
-    # recall = true_pos.sum / (true_pos.sum + false_neg.sum + 1E-9)
-    # # F-score with beta=1
-    # # see Sokolova et al., 2006 "Beyond Accuracy, F-score and ROC:
-    # # a Family of Discriminant Measures for Performance Evaluation"
-    # # fscore <- 2*precision.neg*recall.neg/(precision.neg+recall.neg)
-    # f_score = 2 * precision * recall / (precision + recall + 1E-9)
-    # return f_score, precision, recall
+    """Computes the f2 score, precision and recall"""
+    predictions = output
+    labels = target
+    maximum = predictions.max()
+    minimum = predictions.min()
+    # strech output of logits
+    predictions = -5 + 10 * (predictions - minimum) / (maximum - minimum)
+    # wrap probability function
+    pred = torch.sigmoid(predictions)
+    # TODO: if labels is a percentage it won't work :/
+    act_pos_batch = torch.sum(labels)
+    act_neg_batch = (parser_args.batch_size
+                     * parser_args.num_classes
+                     - act_pos_batch)
+    true_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
+    false_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
+    # count true and false Positives
+    for j in range(batch_size):
+        # for higher accuracy use batch scaling
+        pred = predictions[j]
+        maximum = pred.max()
+        minimum = pred.min()
+        pred = (pred - minimum) / (maximum - minimum)
+        a = pred.gt(eval_percentage).byte()
+        b1 = labels[j].eq(1).byte()
+        b2 = labels[j].eq(0).byte()
+        c = a & b1
+        d = a & b2
+        true_pos_batch += c.sum()
+        false_pos_batch += d.sum()
+    # update false and ture negatives
+    true_pos.update(true_pos_batch)
+    false_pos.update(false_pos_batch)
+    false_neg.update(act_pos_batch - true_pos_batch)
+    true_neg.update(act_neg_batch - false_pos_batch)
+    # precision: tp/(tp+fp) percentage of correctly classified predicted
+    precision = true_pos.sum / (true_pos.sum + false_pos.sum + 1E-9)
+    # recall: tp/(tp+fn) percentage of positives correctly classified
+    recall = true_pos.sum / (true_pos.sum + false_neg.sum + 1E-9)
+    # F-score with beta=1
+    # see Sokolova et al., 2006 "Beyond Accuracy, F-score and ROC:
+    # a Family of Discriminant Measures for Performance Evaluation"
+    # fscore <- 2*precision.neg*recall.neg/(precision.neg+recall.neg)
+    f_score = 2 * precision * recall / (precision + recall + 1E-9)
+    return f_score, precision, recall
 
 
 ##############################################################################
