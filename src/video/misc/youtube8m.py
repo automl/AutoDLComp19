@@ -25,6 +25,12 @@ VALID_SLINKS = os.path.join(BASE_FOLDER, 'validate_selected_links.csv')
 TRAIN_FILE = os.path.join(BASE_FOLDER, 'train.txt')
 VALID_FILE = os.path.join(BASE_FOLDER, 'test.txt')
 
+TRAIN_FRAMES_FILE = os.path.join(BASE_FOLDER, 'train_frames.txt')
+VALID_FRAMES_FILE = os.path.join(BASE_FOLDER, 'test_frames.txt')
+
+TRAIN_DALI_FILE = os.path.join(BASE_FOLDER, 'train_dali.txt')
+VALID_DALI_FILE = os.path.join(BASE_FOLDER, 'test_dali.txt')
+
 DOWNLOAD_FOLDER = os.path.join(BASE_FOLDER, 'download')
 VIDEO_FOLDER = os.path.join(BASE_FOLDER, 'videos')
 DALI_FOLDER = os.path.join(BASE_FOLDER, 'dali')
@@ -250,9 +256,9 @@ def convert_to_frames(output_path, video_folder, frame_folder, process_id=0, num
         reader = csv.reader(csvfile_output, delimiter=' ', quoting=csv.QUOTE_NONE)
 
         for i, d_row in enumerate(reader):
-            video_id = d_row[0].split('/')[-1]
+            video_id = d_row[0]
 
-            file_path = os.path.join(video_folder, video_id)
+            file_path = os.path.join(video_folder, video_id+'/'+video_id+'.mp4')
 
             file_name = os.path.basename(file_path)
             file_base = os.path.splitext(file_name)[0]
@@ -346,6 +352,103 @@ def create_metadata(label_path, video_folder, output_path, process_id=0, num_pro
                 print('-----------------')
 
 
+def create_metadata_from_frames_parallel(input_path, output_path, frame_folder, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=create_metadata_from_frames,
+            args=(input_path, output_path, frame_folder, i, num_processes)
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def create_metadata_from_frames(input_path, output_path, frame_folder, process_id, num_processes):
+    '''
+    create metadata based on downloaded files
+    '''
+    output_path = output_path + '_' + str(process_id)
+    print(output_path)
+
+    with open(input_path, 'r') as csvfile_dataset, \
+         open(output_path, 'w+') as csvfile_metadata:
+
+        d_reader = csv.reader(csvfile_dataset, delimiter=' ', quoting=csv.QUOTE_NONE)
+        m_writer = csv.writer(csvfile_metadata, delimiter=' ')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e6 == 0:
+                print(i)
+
+            # use non-conflicting indices for every process
+            if (i+process_id)%num_processes != 0:
+                continue
+
+            d_id = d_row[0]
+            folder_name = os.path.join(frame_folder, d_id)
+
+            if not os.path.isdir(folder_name):
+                continue
+
+            num_frames = len(next(os.walk(folder_name))[2])
+
+            print(folder_name)
+
+            m_writer.writerow(['/frames/'+d_id+'/', str(num_frames)] + d_row[2:])
+
+
+def create_metadata_from_dali_parallel(input_path, output_path, dali_folder, process_start, process_end, num_processes):
+    p_list = []
+    for i in range(process_start, process_end):
+        p = mp.Process(
+            target=create_metadata_from_dali,
+            args=(input_path, output_path, dali_folder, i, num_processes)
+        )
+        p.start()
+        p_list.append(p)
+
+    for p in p_list:
+        p.join()
+
+
+def create_metadata_from_dali(input_path, output_path, dali_folder, process_id, num_processes):
+    '''
+    create metadata based on downloaded files
+    '''
+    output_path = output_path + '_' + str(process_id)
+    print(output_path)
+
+    with open(input_path, 'r') as csvfile_dataset, \
+         open(output_path, 'w+') as csvfile_metadata:
+
+        d_reader = csv.reader(csvfile_dataset, delimiter=' ', quoting=csv.QUOTE_NONE)
+        m_writer = csv.writer(csvfile_metadata, delimiter=' ')
+
+        for i, d_row in enumerate(d_reader):
+            # write a short progress message
+            if i % 1e6 == 0:
+                print(i)
+
+            # use non-conflicting indices for every process
+            if (i+process_id)%num_processes != 0:
+                continue
+
+            d_id = d_row[0]
+            file_name = os.path.join(dali_folder, d_id+'/'+d_id+'.mp4')
+
+            if not os.path.isfile(file_name):
+                print('File not found: ' + file_name)
+                continue
+
+            print(file_name)
+
+            m_writer.writerow(['/dali/'+d_id+'/'+d_id+'.mp4'] + d_row[1:])
+
+
 def merge_metadata(output_path):
     split_files = glob.glob(output_path + '_*')
 
@@ -421,12 +524,15 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
+        create_metadata_from_dali_parallel(TRAIN_FILE, TRAIN_DALI_FILE, DALI_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        create_metadata_from_dali_parallel(VALID_FILE, VALID_DALI_FILE, DALI_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
         #dali_parallel(VIDEO_FOLDER, DALI_FOLDER, TRAIN_LABELS, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
         #convert_to_frames_parallel(TRAIN_FILE, VIDEO_FOLDER, FRAME_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
-        pass
         #download_and_convert_parallel(TRAIN_SLINKS, DOWNLOAD_FOLDER, VIDEO_FOLDER, FAILED_FOLDER, TEMP_FOLDER, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
-    dali_replace_paths(VALID_FILE)
+    merge_metadata(TRAIN_DALI_FILE)
+    merge_metadata(VALID_DALI_FILE)
+    #dali_replace_paths(VALID_FILE)
     # merge_metadata(TRAIN_FILE)
 
     # select_videos(TRAIN_LABELS, TRAIN_LINKS, TRAIN_SLINKS)
