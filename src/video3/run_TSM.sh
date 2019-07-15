@@ -14,7 +14,7 @@
 #dataset_name="somethingv2"
 dataset_name='youtube8m'
 netType="resnet50"
-batch_size=1 #43
+batch_size=4 #43
 num_segments=16
 consensus_type=avg #{avg, identity}
 iter_size=4 # batch_size * iter_size = pseudo_batch_size 
