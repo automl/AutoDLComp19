@@ -4,6 +4,8 @@ import time
 
 # GPU/CPU statistics
 import GPUtil
+#Multi-label evaluation
+import ops.eval_util
 import psutil
 # Torch
 import torch
@@ -21,9 +23,6 @@ from ops.load_models import Load_model_and_optimizer
 from ops.temporal_shift import make_temporal_pool
 from opts import parser
 from torch.nn.utils import clip_grad_norm_
-
-#Multi-label evaluation
-import ops.eval_util
 
 ##########################################################
 parser_args = parser.parse_args()
@@ -154,24 +153,26 @@ class ChallengeWorker(Worker):
             return {
                 #"loss": 100. - prec1,
                 "loss": loss,
-                "info": {
-                    "train_time": time.time() - start_time,
-                    "prec1": prec1,
-                    "prec5": prec5,
-                    "loss": loss,
-                },
+                "info":
+                    {
+                        "train_time": time.time() - start_time,
+                        "prec1": prec1,
+                        "prec5": prec5,
+                        "loss": loss,
+                    },
             }
         else:
             return {
                 "loss": loss,
                 #"loss": 100. - prec1,
-                "info": {
-                    "train_time": time.time() - start_time,
-                    "f2": prec1,
-                    "precision": precision,
-                    "recall": recall,
-                    "loss": loss,
-                },
+                "info":
+                    {
+                        "train_time": time.time() - start_time,
+                        "f2": prec1,
+                        "precision": precision,
+                        "recall": recall,
+                        "loss": loss,
+                    },
             }
 
 
@@ -187,9 +188,9 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
     data_time, top1 = AverageMeter(), AverageMeter()
     if parser_args.classification_type == 'multiclass':
         top5 = AverageMeter()
-        #true_pos, false_pos, false_neg, true_neg, 
-        precision, recall = (None,)*2
-        hit1, perr, gap = (None,)*3
+        #true_pos, false_pos, false_neg, true_neg,
+        precision, recall = (None, ) * 2
+        hit1, perr, gap = (None, ) * 3
 
     # For multilabel calculate f2 scores
     elif parser_args.classification_type == 'multilabel':
@@ -263,10 +264,19 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
-            
-            h1 = eval_util.calculate_hit_at_one(output.cpu().detach().numpy(), target.cpu().detach())
-            pr = eval_util.calculate_precision_at_equal_recall_rate(output.cpu().detach().numpy(), target.cpu().detach())
-            gp = eval_util.calculate_gap(output.cpu().detach().numpy(), target.cpu().detach())
+
+            h1 = eval_util.calculate_hit_at_one(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            pr = eval_util.calculate_precision_at_equal_recall_rate(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            gp = eval_util.calculate_gap(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
             #print("Hit:{}, PERR:{}, GAP:{}".format(hit_1,perr,gap))
             hit1.update(h1)
             perr.update(pr)
@@ -280,25 +290,27 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
         end_time = time.strftime("%m/%d-%H:%M:%S", localtime)
         ######################################################
         # Print results
-        Printings(pr=parser_args.print,
-                  freq=parser_args.print_freq, 
-                  train=True, 
-                  c_type=parser_args.classification_type, 
-                  batch=i, 
-                  stop_batch=stop_batch, 
-                  batch_time=batch_time,
-                  end_time=end_time, 
-                  data_time=data_time,
-                  loss=losses,
-                  top1=top1, 
-                  top5=top5,
-                  precision=precision, 
-                  recall=recall,
-                  hit1=hit1,
-                  perr=perr,
-                  gap=gap,
-                  lr=optimizer.param_groups[-1]['lr'],
-                  epoch=epoch, )
+        Printings(
+            pr=parser_args.print,
+            freq=parser_args.print_freq,
+            train=True,
+            c_type=parser_args.classification_type,
+            batch=i,
+            stop_batch=stop_batch,
+            batch_time=batch_time,
+            end_time=end_time,
+            data_time=data_time,
+            loss=losses,
+            top1=top1,
+            top5=top5,
+            precision=precision,
+            recall=recall,
+            hit1=hit1,
+            perr=perr,
+            gap=gap,
+            lr=optimizer.param_groups[-1]['lr'],
+            epoch=epoch,
+        )
         # show gpu usage all parser_args.print_freq batches
         if parser_args.print and i == 2:
             GPUtil.showUtilization(all=True)
@@ -320,7 +332,7 @@ def validate(val_loader, model, criterion, logger=None):
     if parser_args.classification_type == 'multiclass':
         top5 = AverageMeter()
         precision, recall = (None, ) * 2
-        hit1, perr, gap = (None,)*3
+        hit1, perr, gap = (None, ) * 3
 
     # For multilabel calculate f2 scores
     elif parser_args.classification_type == 'multilabel':
@@ -364,14 +376,23 @@ def validate(val_loader, model, criterion, logger=None):
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
-            
-            h1 = eval_util.calculate_hit_at_one(output.cpu().detach().numpy(), target.cpu().detach())
-            pr = eval_util.calculate_precision_at_equal_recall_rate(output.cpu().detach().numpy(), target.cpu().detach())
-            gp = eval_util.calculate_gap(output.cpu().detach().numpy(), target.cpu().detach())
+
+            h1 = eval_util.calculate_hit_at_one(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            pr = eval_util.calculate_precision_at_equal_recall_rate(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            gp = eval_util.calculate_gap(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
             hit1.update(h1)
             perr.update(pr)
             gap.update(gp)
-            
+
         ######################################################
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -441,7 +462,8 @@ class AverageMeter(object):
         self.count = 0
 
     def update(self, val, n=1):
-        if val != val: val = 0  # Check if val is none and set to 0
+        if val != val:
+            val = 0  # Check if val is none and set to 0
         self.val = val
         self.sum += val * n
         self.count += n
@@ -495,9 +517,7 @@ def f2_score(output, target):
     # wrap probability function
     predictions = torch.sigmoid(predictions)
     act_pos_batch = torch.sum(labels)
-    act_neg_batch = (batch_size 
-                     * parser_args.num_class
-                     - act_pos_batch)
+    act_neg_batch = (batch_size * parser_args.num_class - act_pos_batch)
     true_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     false_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     # count true and false Positives
@@ -610,29 +630,34 @@ def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
                 )
             # Multilabel
             else:
-                 p = kwargs['precision']
-                 r = kwargs['recall']
-                 print(('Epoch: [{0}][{1}/{2}], lr: {lr:.7f}  '
-                       'UT {end_time:}  '
-                       'Loss {loss.val:.3f} ({loss.avg:.3f})  '
-                       'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
-                       'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
-                       'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
-                       'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
-                       'PERR {pr.val:.4f} ({pr.avg:.4f})  '
-                       'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
-                           epoch, 
-                           batch, 
-                           stop_batch, 
-                           end_time=end_time, 
-                           loss=loss, 
-                           top1=top1, 
-                           p=kwargs['precision'],
-                           r=kwargs['recall'],
-                           h1=kwargs['hit1'],
-                           pr=kwargs['perr'],
-                           gp=kwargs['gap'],
-                           lr=lr)))
+                p = kwargs['precision']
+                r = kwargs['recall']
+                print(
+                    (
+                        'Epoch: [{0}][{1}/{2}], lr: {lr:.7f}  '
+                        'UT {end_time:}  '
+                        'Loss {loss.val:.3f} ({loss.avg:.3f})  '
+                        'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
+                        'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
+                        'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
+                        'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
+                        'PERR {pr.val:.4f} ({pr.avg:.4f})  '
+                        'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
+                            epoch,
+                            batch,
+                            stop_batch,
+                            end_time=end_time,
+                            loss=loss,
+                            top1=top1,
+                            p=kwargs['precision'],
+                            r=kwargs['recall'],
+                            h1=kwargs['hit1'],
+                            pr=kwargs['perr'],
+                            gp=kwargs['gap'],
+                            lr=lr
+                        )
+                    )
+                )
         ######################################################
         # Validation
         else:
@@ -654,22 +679,26 @@ def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
                     )
                 )
             # Multilabel
-            else:  
-                print(('Test: [{0}/{1}]  '
-                       'Loss {loss.val:.4f} ({loss.avg:.4f})  '
-                       'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
-                       'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
-                       'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
-                       'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
-                       'PERR {pr.val:.4f} ({pr.avg:.4f})  '
-                       'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
-                           batch,
-                           stop_batch,
-                           loss=loss,
-                           top1=top1,
-                           p=kwargs['precision'],
-                           r=kwargs['recall'],
-                           h1=kwargs['hit1'],
-                           pr=kwargs['perr'],
-                           gp=kwargs['gap']
-                           )))   
+            else:
+                print(
+                    (
+                        'Test: [{0}/{1}]  '
+                        'Loss {loss.val:.4f} ({loss.avg:.4f})  '
+                        'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
+                        'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
+                        'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
+                        'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
+                        'PERR {pr.val:.4f} ({pr.avg:.4f})  '
+                        'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
+                            batch,
+                            stop_batch,
+                            loss=loss,
+                            top1=top1,
+                            p=kwargs['precision'],
+                            r=kwargs['recall'],
+                            h1=kwargs['hit1'],
+                            pr=kwargs['perr'],
+                            gp=kwargs['gap']
+                        )
+                    )
+                )

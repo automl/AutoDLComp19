@@ -17,7 +17,7 @@ netType="ECOfull_py"
 batch_size=90 #32 for 4 2080/titan X
 num_segments=16
 consensus_type=avg #{avg, identity}
-iter_size=1 # batch_size * iter_size = pseudo_batch_size 
+iter_size=1 # batch_size * iter_size = pseudo_batch_size
 num_workers=32 #10 for 4 2080/ 32 for 4 titan X
 optimizer="SGD"
 val_perc=0.02
@@ -30,7 +30,7 @@ max_budget=0.02
 eta=3
 bohb_workers=1
 #############################################
-#--- finetunint hyperparams --- 
+#--- finetunint hyperparams ---
 # Set training = True and params, to run finetune instead of BOHB
 training=False
 finetune_model="pretrained_models/ECOfull_py_model.pth.tar"
@@ -38,7 +38,7 @@ dropout=0.8
 learning_rate=0.001
 epochs=80
 #############################################
-#--- Multilabel hyperparams --- 
+#--- Multilabel hyperparams ---
 prediction_threshold=0.7
 #############################################
 # Folders
