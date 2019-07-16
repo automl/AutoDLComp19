@@ -300,7 +300,7 @@ class EfficientNet(nn.Module):
         if self.endpoint in [7] or self.arch == 'full': 
             end_dict[7] = x
         x = swish(self.stage9(x))
-        x = swish(self.head(x))
+        # x = swish(self.head(x))
         # print(x.shape)
         if not self.endpoint is None:
             return end_dict[self.endpoint], x

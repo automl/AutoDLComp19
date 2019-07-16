@@ -19,7 +19,7 @@ def get_train_and_testloader(parser_args):
                     dropout=parser_args.dropout,
                     partial_bn=not parser_args.no_partialbn,
                     freeze_eco=parser_args.freeze_eco)
-    elif "resnet" in parser_args.arch:
+    elif "TSM" in parser_args.arch:
         from models_tsm import TSN
         fc_lr5_temp = not (
             parser_args.finetune_model
@@ -107,6 +107,7 @@ def get_train_and_testloader(parser_args):
                    new_length=data_length,
                    modality=parser_args.modality,
                    image_tmpl=parser_args.prefix,
+                   classification_type=parser_args.classification_type,
                    random_shift=False,
                    num_labels=parser_args.num_class,
                    transform=torchvision.transforms.Compose([

@@ -18,7 +18,7 @@ def Load_model_and_optimizer(parser_args, config):
                     dropout=config['dropout'],
                     partial_bn=not parser_args.no_partialbn,
                     freeze_eco=parser_args.freeze_eco)
-    elif "resnet" in parser_args.arch:
+    elif "TSM" in parser_args.arch:
         from models_tsm import TSN
         fc_lr5_temp = (not (parser_args.finetune_model
                             and parser_args.dataset
@@ -156,7 +156,7 @@ def Load_model_and_optimizer(parser_args, config):
             model.load_state_dict(new_state_dict)
         ###########
         # Resnets
-        if "resnet" in parser_args.arch:
+        if "TSM" in parser_args.arch:
             if parser_args.print:
                 print(("=> fine-tuning from '{}'".format(
                     parser_args.finetune_model)))
@@ -204,7 +204,7 @@ def init_ECO(model_dict):
                     '/bninception_rgb_kinetics_init-d4ee618d3399.pth')
 
     if not os.path.exists(parser_args.finetune_model):
-        print('Path or modeldile does not exist, can not load pretrained')
+        print('Path or model file does not exist, can not load pretrained')
         new_state_dict = {}
 
     else:
@@ -226,18 +226,13 @@ def init_ECO(model_dict):
                         format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
                     )
                 )
-        new_state_dict = {}
-        for k1, v in  pretrained_dict['state_dict'].items():
-            for k2 in model_dict.keys():
-                striped_k = str(k1)
-                striped_k = striped_k.replace('module.base_model.', '')
-                if striped_k in k2:
-                    if (v.size() == model_dict[k2].size()):
-                        new_state_dict[k2] = v
-                        
-        if parser_args.print:
-            print("*" * 50)
-            print("Start finetuning ..")
+        new_state_dict = {
+            k: v
+            for k, v in pretrained_dict['state_dict'].items()
+            if (k in model_dict) and (v.size() == model_dict[k].size())
+        }
+        print("*" * 50)
+        print("Start finetuning ..")
 
     return new_state_dict
                       

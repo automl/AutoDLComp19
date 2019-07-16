@@ -5,7 +5,6 @@ import argparse
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
 parser.add_argument('dataset', type=str, choices=['ucf101',
                                                   'jhmdb21',
-                                                  'jester',
                                                   'somethingv2',
                                                   'hmdb51',
                                                   'kinetics',
@@ -19,8 +18,8 @@ parser.add_argument(
     default='.',
     help='path to working directory')
 parser.add_argument('--finetune_model', type=str, default=None)
-parser.add_argument('--training', type=bool, default=False,
-        help="If true set config and run without bohb")
+parser.add_argument('--training',
+        help="If set, set config and run without bohb")
 # ========================= Bohb Configs ==========================
 parser.add_argument('--bohb_iterations', type=int, default=5)
 parser.add_argument('--min_budget', type=float, default=0.1)
@@ -33,12 +32,11 @@ parser.add_argument('--val_perc', type=float,
 parser.add_argument(
     '--arch',
     type=str,
-    default="resnet101",
+    default="ECOfull_py",
     choices=[
         'ECOfull_py',
         'ECOfull_efficient_py',
-        'resnet50',
-        'resnet101',
+        'TSM',
         'ECO',
         'ECOfull'])
 parser.add_argument('--num_segments', type=int, default=3)
@@ -108,6 +106,10 @@ parser.add_argument(
     default=5,
     help=temp_str)
 parser.add_argument('--best_prec1', type=int, default=0)
+# ========================= Multilabel Configs ==========================
+parser.add_argument('--prediction_threshold', default=0.80, type=float,
+                    help='Threshold for multilabel classification prediction'
+                         '(default: 0.8')
 # ========================= Monitor Configs ==========================
 parser.add_argument('--print-freq', '-p', default=20, type=int,
                     metavar='N', help='print frequency (default: 10)')

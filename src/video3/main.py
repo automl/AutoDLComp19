@@ -24,6 +24,11 @@ GPUtil.showUtilization()  # Show GPUs
 def main():
     ############################################################
     parser_args = parser.parse_args()
+    # Argparse doesn't support booleans so convert string to bool
+    if parser_args.training == 'False':
+        parser_args.training = False 
+    else:
+        parser_args.training = True 
     print("------------------------------------")
     print("Environment Versions:")
     print("- Python: {}".format(sys.version))

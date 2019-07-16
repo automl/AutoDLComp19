@@ -18,7 +18,7 @@ class TSN(nn.Module):
         num_class,
         num_segments,
         modality,
-        base_model='resnet101',
+        base_model='TSM',
         new_length=None,
         consensus_type='avg',
         before_softmax=True,
@@ -134,8 +134,9 @@ class TSN(nn.Module):
     def _prepare_base_model(self, base_model):
         print('=> base model: {}'.format(base_model))
 
-        if 'resnet' in base_model:
-            self.base_model = getattr(torchvision.models, base_model)(True)
+        if 'TSM' in base_model:
+            # TODO: base_model to resnet101 because we renamed resnet50 to TSM
+            self.base_model = getattr(torchvision.models, 'resnet50')(True)
             if self.is_shift:
                 print('Adding temporal shift...')
                 from ops.temporal_shift import make_temporal_shift

@@ -10,14 +10,13 @@
 # Parameters!
 #############################################
 #--- training hyperparams ---
-#'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m','youtube8m'
-#dataset_name="somethingv2"
-dataset_name='youtube8m'
-netType="resnet50"
-batch_size=4 #43
-num_segments=16
+#'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
+dataset_name="youtube8m"
+netType="TSM"
+batch_size=42 #43
+num_segments=8
 consensus_type=avg #{avg, identity}
-iter_size=4 # batch_size * iter_size = pseudo_batch_size 
+iter_size=2 # batch_size * iter_size = pseudo_batch_size 
 num_workers=32
 optimizer="SGD"
 val_perc=0.02
@@ -47,6 +46,9 @@ echo "Current network folder "
 echo ${mainFolder}${subFolder}
 snapshot_pref="${mainFolder}${subFolder}${netType}_${dataset_name}_${optimizer}_finetune_${finetune}"
 #############################################
+#--- Multilabel hyperparams --- 
+prediction_threshold=0.7
+#############################################
 # others
 print=True
 #####################################################################
@@ -64,7 +66,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --resume ${mainFolder}${lastCheckpoint} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
@@ -89,6 +91,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --bohb_workers ${bohb_workers}  \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 else
@@ -99,7 +102,7 @@ else
     --finetune_model ${pretrained_model} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
@@ -124,6 +127,7 @@ else
     --eta ${eta} \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 fi

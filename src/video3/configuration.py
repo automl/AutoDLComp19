@@ -36,7 +36,7 @@ def get_configspace(model_name):
                                 # weight_decay,
                                 # neurons,
                                 dropout])
-    elif "resnet" in model_name:
+    elif "TSM" in model_name:
         dropout = CSH.UniformFloatHyperparameter(
             "dropout", 0.25, 0.95, default_value=0.5)
         cs.add_hyperparameters([lr,

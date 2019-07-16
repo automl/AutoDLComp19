@@ -11,36 +11,39 @@
 #############################################
 #--- training hyperparams ---
 #'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
-dataset_name="somethingv2"
-#'ECOfull_py','ECOfull_efficient_py','resnet50','resnet101','ECO','ECOfull'
-netType="ECOfull_py" #_efficient
-batch_size=4 #32
+dataset_name="yfcc100m"
+#'ECOfull_py'','resnet50','resnet101','ECO','ECOfull'
+netType="ECOfull_py"
+batch_size=90 #32 for 4 2080/titan X
 num_segments=16
 consensus_type=avg #{avg, identity}
-iter_size=4 # batch_size * iter_size = pseudo_batch_size 
-num_workers=32
+iter_size=1 # batch_size * iter_size = pseudo_batch_size 
+num_workers=32 #10 for 4 2080/ 32 for 4 titan X
 optimizer="SGD"
 val_perc=0.02
 class_limit=100
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
-min_budget=0.01
-max_budget=0.1
+min_budget=0.005
+max_budget=0.02
 eta=3
 bohb_workers=1
 #############################################
 #--- finetunint hyperparams --- 
 # Set training = True and params, to run finetune instead of BOHB
 training=False
-pretrained_model="pretrained_models/eco_fc_rgb_kinetics.pth.tar"
+finetune_model="pretrained_models/ECOfull_py_model.pth.tar"
 dropout=0.8
 learning_rate=0.001
 epochs=80
 #############################################
+#--- Multilabel hyperparams --- 
+prediction_threshold=0.7
+#############################################
 # Folders
 mainFolder="experiments/"
-subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
+subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${training}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
@@ -64,7 +67,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --resume ${mainFolder}${lastCheckpoint} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
@@ -88,6 +91,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --bohb_workers ${bohb_workers}  \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 else
@@ -95,14 +99,15 @@ else
 
     python3 -u main.py ${dataset_name} RGB \
     --arch ${netType} \
-    --finetune_model ${pretrained_model} \
+    --finetune_model ${finetune_model} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+	--class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \
@@ -121,6 +126,7 @@ else
     --eta ${eta} \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 fi
