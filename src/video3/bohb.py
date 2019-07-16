@@ -4,8 +4,10 @@ import time
 
 # GPU/CPU statistics
 import GPUtil
+
 #Multi-label evaluation
-import ops.eval_util
+from ops import eval_util
+
 import psutil
 # Torch
 import torch
