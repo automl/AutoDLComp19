@@ -14,8 +14,8 @@ def return_epickitchen_noun(modality, class_limit=None):
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/classifier/'
         root_lists = ROOT_DATASET + 'epic_kitchens/lists/'
-        filename_imglist_train = root_lists + 'video_noun_train.txt'
-        filename_imglist_val = root_lists + 'video_noun_val.txt'
+        filename_imglist_train = root_lists + 'video_noun_train_fixed.txt'
+        filename_imglist_val = root_lists + 'video_noun_val_fixed.txt'
         prefix = 'img_{:04d}.jpg'
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 

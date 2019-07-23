@@ -12,42 +12,43 @@
 #--- training hyperparams ---
 #'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
 dataset_name="jhmdb21"
-netType="TSM"
-batch_size=16 #43
-num_segments=8
+#'ECOfull_py'','resnet50','resnet101','ECO','ECOfull'
+netType="Averagenet_reza"
+batch_size=75 #32 for 4 2080/titan X
+num_segments=16
 consensus_type=avg #{avg, identity}
-iter_size=2 # batch_size * iter_size = pseudo_batch_size 
-num_workers=10
+iter_size=1 # batch_size * iter_size = pseudo_batch_size 
+num_workers=40 #10 for 4 2080/ 32 for 4 titan X
 optimizer="SGD"
-val_perc=0.02
+val_perc=1
 class_limit=10000
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
-min_budget=0.01
-max_budget=0.1
+min_budget=0.056
+max_budget=0.168
 eta=3
 bohb_workers=1
 #############################################
 #--- finetunint hyperparams --- 
 # Set training = True and params, to run finetune instead of BOHB
 training=False
-pretrained_model="pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar"
-dropout=0.8
-learning_rate=0.001
-epochs=80
+finetune_model='pretrained_models/eco_fc_rgb_kinetics.pth.tar'
+dropout=0.4356317458624518
+learning_rate=0.00011004582459265685
+epochs=40
+#############################################
+#--- Multilabel hyperparams --- 
+prediction_threshold=0.7
 #############################################
 # Folders
 mainFolder="experiments/"
-subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${finetune}_r1/"
+subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${training}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
 echo ${mainFolder}${subFolder}
 snapshot_pref="${mainFolder}${subFolder}${netType}_${dataset_name}_${optimizer}_finetune_${finetune}"
-#############################################
-#--- Multilabel hyperparams --- 
-prediction_threshold=0.7
 #############################################
 # others
 print=True
@@ -76,7 +77,6 @@ if [ "x${checkpointIter}" != "x" ]; then
     -i ${iter_size} \
     -j ${num_workers} \
     --snapshot_pref ${mainFolder}${subFolder} \
-    --shift --shift_div=8 --shift_place=blockres --dense_sample \
     --consensus_type ${consensus_type} \
     --eval-freq 1 \
     --no_partialbn \
@@ -99,7 +99,7 @@ else
 
     python3 -u main.py ${dataset_name} RGB \
     --arch ${netType} \
-    --finetune_model ${pretrained_model} \
+    --finetune_model ${finetune_model} \
     --num_segments ${num_segments} \
     --gd 50 \
     --training ${training} \
@@ -107,14 +107,13 @@ else
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
-    --class_limit ${class_limit} \
+	--class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \
     --optimizer ${optimizer} \
     --nesterov "True" \
     --snapshot_pref ${mainFolder}${subFolder} \
-    --shift --shift_div=8 --shift_place=blockres --dense_sample \
     --consensus_type ${consensus_type} \
     --eval-freq 1 \
     --no_partialbn \

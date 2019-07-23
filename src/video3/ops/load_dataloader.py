@@ -1,5 +1,5 @@
 from dataset import TSNDataSet
-from transforms import Stack, ToTorchFormatTensor, GroupScale
+from transforms import Stack, ToTorchFormatTensor, GroupScale, GroupResize
 from transforms import GroupCenterCrop, IdentityTransform, GroupNormalize
 # from transforms import GroupMultiScaleCrop
 # from transforms import GroupRandomHorizontalFlip
@@ -56,6 +56,14 @@ def get_train_and_testloader(parser_args):
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval)
+    elif "Averagenet" in parser_args.arch:
+        from models_averagenet import Averagenet
+        model = Averagenet(
+            num_classes=parser_args.num_class,
+            num_segments=parser_args.num_segments,
+            modality=parser_args.modality,
+            freeze=parser_args.freeze_eco,
+            freeze_interval=parser_args.freeze_interval)
 
     ############################################################
     # Data loading code
@@ -81,6 +89,10 @@ def get_train_and_testloader(parser_args):
     else:
         parser_args.classification_type = 'multiclass'
 
+    # For Bohb, no shuffling. Otherwise we change data distribution
+    shuffle = True
+    if not parser_args.training: shuffle = False
+    
     train_loader = torch.utils.data.DataLoader(
         TSNDataSet(parser_args.root_path,
                    parser_args.train_list,
@@ -97,7 +109,7 @@ def get_train_and_testloader(parser_args):
                        ToTorchFormatTensor(div=False),
                        normalize,
                    ])),
-        batch_size=parser_args.batch_size, shuffle=True,
+        batch_size=parser_args.batch_size, shuffle=shuffle,
         num_workers=parser_args.workers, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(
         TSNDataSet(parser_args.root_path,
@@ -111,7 +123,7 @@ def get_train_and_testloader(parser_args):
                    random_shift=False,
                    num_labels=parser_args.num_class,
                    transform=torchvision.transforms.Compose([
-                       GroupScale(int(scale_size)),
+                       GroupResize(int(scale_size)),
                        GroupCenterCrop(crop_size),
                        Stack(roll=True),
                        ToTorchFormatTensor(div=False),

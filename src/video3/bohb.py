@@ -28,6 +28,16 @@ from torch.nn.utils import clip_grad_norm_
 
 ##########################################################
 parser_args = parser.parse_args()
+############################################################        
+# Apex usable?
+parser_args.APEX_AVAILABLE = False
+if torch.cuda.device_count() == 1:
+    try:
+        from apex import amp
+        parser_args.APEX_AVAILABLE = True
+    except Exception:
+        pass
+    print('Apex =', parser_args.APEX_AVAILABLE)
 
 
 ##############################################################################
@@ -215,10 +225,12 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
     # In PyTorch 0.4, "volatile=True" is deprecated.
     torch.set_grad_enabled(True)
 
-    if parser_args.no_partialbn:
-        model.module.partialBN(False)
-    else:
-        model.module.partialBN(True)
+    # Apex modules aren't callable
+    if not parser_args.APEX_AVAILABLE:
+        if parser_args.no_partialbn:
+            model.module.partialBN(False)
+        else:
+            model.module.partialBN(True)
 
     model.train()
     for i, (input, target) in enumerate(train_loader):
@@ -231,14 +243,25 @@ def train(train_loader, model, criterion, optimizer, epoch, budget):
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
         # compute output, output size: [batch_size, num_class]
-        output = model(input_var)
+        if parser_args.APEX_AVAILABLE:
+            output = model(input_var.cuda())
+        else:
+            output = model(input_var)
         loss = criterion(output, target_var)
         loss = loss / parser_args.iter_size
         loss_summ += loss
         # update average loss
         losses.update(loss_summ.item(), input.size(0))
-        # update weights
-        loss.backward()
+        # Scale loss with apex
+        #try: 
+        if parser_args.APEX_AVAILABLE:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+        #except Exception:
+        #    loss.backward()
+        #    print('Apex not working')
         # scale down gradients when iter size is set
         if (i + 1) % parser_args.iter_size == 0:
             optimizer.step()
@@ -363,7 +386,10 @@ def validate(val_loader, model, criterion, logger=None):
         input_var = input
         target_var = target
         # compute output
-        output = model(input_var)
+        if parser_args.APEX_AVAILABLE:
+            output = model(input_var.cuda())
+        else:
+            output = model(input_var)
         loss = criterion(output, target_var)
         ######################################################
         # measure accuracy and record loss

@@ -43,6 +43,35 @@ class GroupCenterCrop(object):
         return [self.worker(img) for img in img_group]
 
 
+class GroupRandomGrayscale(object):
+    def __init__(self, output_channels=3, p=0.1):
+        self.p = p
+        self.worker = torchvision.transforms.Grayscale(
+                            num_output_channels=output_channels)
+        
+    def __call__(self, img_group):
+        if random.random() >= self.p:
+            return [self.worker(img) for img in img_group]
+        else: 
+            return img_group
+
+
+class GroupResize(object):
+    """ Rescales the input PIL.Image to the given 'size'.
+    'size' will be the size of the smaller edge.
+    For example, if height > width, then image will be
+    rescaled to (size * height / width, size)
+    size: size of the smaller edge
+    interpolation: Default: PIL.Image.BICUBIC
+    """
+    def __init__(self, size):
+        self.worker = torchvision.transforms.Resize(size)
+
+    def __call__(self, img_group):
+        return [self.worker(img) for img in img_group]
+    
+
+
 class GroupRandomHorizontalFlip(object):
     """Randomly horizontally flips the given PIL.Image with a probability of 0.5
     """
@@ -81,18 +110,35 @@ class GroupNormalize(object):
 
 
 class GroupScale(object):
-    """ Rescales the input PIL.Image to the given 'size'.
-    'size' will be the size of the smaller edge.
-    For example, if height > width, then image will be
-    rescaled to (size * height / width, size)
-    size: size of the smaller edge
-    interpolation: Default: PIL.Image.BILINEAR
+    """ Rescales the input PIL.Image to the given 'scale'
+    keeps acpect ratio.
+    size: scale of the output image
+    interpolation: Default: PIL.Image.BICUBIC
     """
-
-    def __init__(self, size, interpolation=Image.BILINEAR):
-        self.worker = torchvision.transforms.Resize(size, interpolation)
+            
+    def __init__(self, scale=1, interpolation=Image.BICUBIC):
+        self.scale = scale
+        self.interpolation = interpolation
+        self.w, self.h, self.ow, self.oh = (None, )*4
+        self.worker = None
 
     def __call__(self, img_group):
+        w, h = img_group[0].size
+        if w != self.w or h != self.h:
+            self.w = w
+            self.h = h
+            if w < h:
+                self.ow = int(self.scale * w)
+                self.oh = int(self.ow * h / w)
+                self.worker = torchvision.transforms.Resize(
+                        (self.ow, self.oh), self.interpolation)
+            else:
+                self.oh = int(self.scale * h)
+                self.ow = int(self.oh * w / h)
+                self.worker = torchvision.transforms.Resize(
+                        (self.ow, self.oh), self.interpolation)
+            
+    
         return [self.worker(img) for img in img_group]
 
 

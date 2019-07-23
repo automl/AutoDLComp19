@@ -3,15 +3,17 @@ import argparse
         
 # global parser
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
-parser.add_argument('dataset', type=str, choices=['ucf101',
-                                                  'jhmdb21',
-                                                  'somethingv2',
-                                                  'hmdb51',
-                                                  'kinetics',
-                                                  'epickitchen_verb',
-                                                  'epickitchen_noun',
-                                                  'yfcc100m',
-                                                  'youtube8m'])
+parser.add_argument('dataset', type=str, choices=[
+        'ucf101',  # train=9537, val=3783, classes=101, single
+        'jhmdb21',  # train=660, val=268, classes=21, single
+        'somethingv2',  # train=168913, val=24777, classes=174, single(poss. multi)
+        'hmdb51',  # train=3570, val=1530, classes=51, single
+        'kinetics',  # train=238831, val=19675, classes=400, single
+        'epickitchen_verb',  # train=24699, val=3773, classes=125, single
+        'epickitchen_noun',  # train=24699, val=3773, classes=352, single
+        'yfcc100m',  # train=521035, val=130258, classes=1570, multi
+        'youtube8m',  # train=1459166, val=216409, classes=3862, multi
+        ])
 parser.add_argument('modality', type=str, choices=['RGB', 'Flow', 'RGBDiff'])
 parser.add_argument(
     '--working_directory',
@@ -38,7 +40,9 @@ parser.add_argument(
         'ECOfull_efficient_py',
         'TSM',
         'ECO',
-        'ECOfull'])
+        'ECOfull',
+        'Averagenet',
+        'Averagenet_reza',])
 parser.add_argument('--num_segments', type=int, default=3)
 parser.add_argument('--class_limit', type=int, default=500)
 parser.add_argument('--consensus_type', type=str, default='avg',
