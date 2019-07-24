@@ -23,16 +23,13 @@ class FixedSizeDataLoader:
             sampler=sampler,
             num_workers=num_workers,
             pin_memory=pin_memory,
-            drop_last=drop_last
-        )
+            drop_last=drop_last)
 
     def __len__(self):
         return self.steps
 
     def __iter__(self):
-        print('31')
         for _, data in zip(range(self.steps), self.dataloader):
-            print('32')
             yield ([t[0] for t in data] if self.batch_size is None else data)
 
 

@@ -35,7 +35,7 @@ from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
 from ops.temporal_shift import make_temporal_pool
 from opts import parser
-from pytorch_dataset import PytorchDataset
+from AutoDL_sample_code_submission_pytorch.pytorch_dataset import PytorchDataset
 from torch.nn.init import constant_, xavier_uniform_
 from transforms import (
     GroupCenterCrop, GroupNormalize, GroupScale, IdentityTransform, SelectSamples, Stack,
@@ -232,7 +232,8 @@ class Model(algorithm.Algorithm):
             # manually convert one-hot encoding back to integer *doh*
             idx = np.argmax(labels, axis=1)
             labels_int = torch.LongTensor([labels[i][idx[i]] for i in range(len(idx))])
-
+            print(images.shape)
+            print(labels_int.shape)
             bohb.train_inner(model, optimizer, criterion, images, labels_int, i, parser_args)
 
 

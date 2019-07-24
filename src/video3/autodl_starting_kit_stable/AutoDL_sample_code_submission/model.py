@@ -25,12 +25,49 @@ should not exceed 300MB.
 """
 
 import logging
+import bohb
 import numpy as np
 import os
+import torch
 import sys
 import tensorflow as tf
+import configuration
+import time
+import torchvision
+from opts import parser
+from ops.load_dataloader import get_model_for_loader
+from ops.load_models import load_loss_criterion, load_model_and_optimizer
 from AutoDL_sample_code_submission.dataset import TFDataset
 from AutoDL_sample_code_submission.dataloader import FixedSizeDataLoader
+from transforms import (
+    GroupCenterCrop, GroupNormalize, GroupScale, IdentityTransform, SelectSamples, Stack,
+    ToPilFormat, ToTorchFormatTensor
+)
+
+class ParserMock():
+  # mock class for handing over the correct arguments
+  def __init__(self):
+    self._parser_args = parser.parse_known_args()[0]
+    setattr(
+      self._parser_args, 'finetune_model',
+      '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
+    )
+    setattr(self._parser_args, 'arch', 'resnet50')
+    setattr(self._parser_args, 'batch_size', 3)
+    setattr(self._parser_args, 'modality', 'RGB')
+    setattr(self._parser_args, 'classification_type', 'multiclass')
+    setattr(self._parser_args, 'shift', True)
+    setattr(self._parser_args, 'shift_div', 9)
+    setattr(self._parser_args, 'shift_place', 'blockres')
+    setattr(self._parser_args, 'dense_sample', True)
+    setattr(self._parser_args, 'print', True)
+
+  def set_attr(self, attr, val):
+    setattr(self._parser_args, attr, val)
+
+  def parse_args(self):
+    return self._parser_args
+
 
 class Model(object):
   """Trivial example of valid model. Returns all-zero predictions."""
@@ -41,8 +78,31 @@ class Model(object):
       metadata: an AutoDLMetadata object. Its definition can be found in
           AutoDL_ingestion_program/dataset.py
     """
+    print('INIT')
+    super().__init__()
     self.done_training = False
     self.metadata = metadata
+    self.output_dim = self.metadata.get_output_size()
+    self.num_examples_train = self.metadata.size()
+    row_count, col_count = self.metadata.get_matrix_size(0)
+    channel = self.metadata.get_num_channels(0)
+    sequence_size = self.metadata.get_sequence_size()
+    print('INPUT SHAPE :', row_count, col_count, channel, sequence_size)
+
+    parser = ParserMock()
+    parser.set_attr('num_classes', self.output_dim)
+
+    self.parser_args = parser.parse_args()
+    self.config = configuration.get_configspace(model_name=self.parser_args.arch
+                                                ).get_default_configuration()
+    self.model, self.optimizer = load_model_and_optimizer(
+      self.parser_args, self.config
+    )
+    self.criterion = load_loss_criterion(self.parser_args)
+
+    if torch.cuda.is_available():
+      self.model.cuda()
+
 
   def train(self, dataset, remaining_time_budget=None):
     """Train this algorithm on the tensorflow |dataset|.
@@ -93,8 +153,6 @@ class Model(object):
     example, labels = iterator.get_next()
     sample_count = 0
 
-    print('1')
-
     with tf.Session() as sess:
       while True:
         try:
@@ -103,18 +161,40 @@ class Model(object):
         except tf.errors.OutOfRangeError:
           break
 
-    with tf.Session() as sess:
-      print('21')
-      ds = TFDataset(session=sess, dataset=dataset, num_samples=sample_count)
-      print('22')
-      dl = FixedSizeDataLoader(ds, steps=sample_count, batch_size=1, shuffle=True, num_workers=1, pin_memory=False, drop_last=False)
-      print('23')
-      for elem in dl:
-        print(elem.shape)
-
     logger.info("Number of training examples: {}".format(sample_count))
     logger.info("Shape of example: {}".format(example.shape))
     logger.info("Number of classes: {}".format(labels.shape[0]))
+
+    model = get_model_for_loader(self.parser_args)
+    train_augmentation = model.get_augmentation()
+    input_mean = model.input_mean
+    input_std = model.input_std
+    transform = torchvision.transforms.Compose([
+                    SelectSamples(self.parser_args.num_segments),
+                    ToPilFormat(),
+                    train_augmentation,
+                    Stack(roll=True),
+                    ToTorchFormatTensor(div=False),
+                    GroupNormalize(input_mean, input_std)])
+
+    with tf.Session() as sess:
+      ds = TFDataset(session=sess,
+                     dataset=dataset,
+                     num_samples=sample_count,
+                     transform=transform)
+
+      dl = FixedSizeDataLoader(ds,
+                               steps=sample_count,
+                               batch_size=self.parser_args.batch_size,
+                               shuffle=True,
+                               num_workers=0,
+                               pin_memory=True,
+                               drop_last=True)
+
+      for i, (data, labels) in enumerate(dl):
+        labels_int = np.argmax(labels, axis=1)
+        bohb.train_inner(self.model, self.optimizer, self.criterion, data, labels_int, i, self.parser_args)
+
     assert self.metadata.get_output_size() == labels.shape[0]
     self.done_training = True
 

@@ -40,7 +40,7 @@ parser.add_argument(
         'resnet101',
         'ECO',
         'ECOfull'])
-parser.add_argument('--num_segments', type=int, default=3)
+parser.add_argument('--num_segments', type=int, default=4)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])
 

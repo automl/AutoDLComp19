@@ -13,10 +13,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples):
+    def __init__(self, session, dataset, num_samples, transform=None):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
+        self.transform = transform
         self.num_samples = num_samples
         self.next_element = None
 
@@ -39,7 +40,10 @@ class TFDataset(Dataset):
             self.reset()
             raise StopIteration
 
-        return example, label
+        if self.transform is None:
+            return example, label
+        else:
+            return self.transform(example), label
 
     def scan(self, samples=1000000, with_tensors=False, is_batch=False, device=None, half=False):
         shapes, counts, tensors = [], [], []

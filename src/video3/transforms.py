@@ -5,6 +5,7 @@ import random
 import numpy as np
 import torch
 import torchvision
+import torchvision.transforms.functional as F
 from PIL import Image, ImageOps
 
 
@@ -343,7 +344,7 @@ class Stack(object):
 
 class SelectSamples(object):
     """
-    given a video as np.ndarray, randomly select sample images
+    given a video as 5D torch array, randomly select sample images
     """
 
     def __init__(self, num_samples):
@@ -357,7 +358,7 @@ class SelectSamples(object):
 
 class ToPilFormat(object):
     """
-    convert from numpy array (B x S_old x H x W x C) to lits of PIL images (B x S_new x H x W x C)
+    convert from numpy/torch array (B x S_old x H x W x C) to lits of PIL images (B x S_new x H x W x C)
     """
 
     def __call__(self, pics):
@@ -367,6 +368,10 @@ class ToPilFormat(object):
                 formatted = (pics[i, ...] * 255).astype('uint8')
                 lst.append(Image.fromarray(formatted))
             return lst
+        else:
+            for pic in pics:
+                print(pic.shape)
+            return [F.to_pil_image(pic) for pic in pics]
 
 
 class ToTorchFormatTensor(object):

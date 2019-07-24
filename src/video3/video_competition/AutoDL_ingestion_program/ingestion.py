@@ -293,7 +293,7 @@ if __name__=="__main__":
 
     try:
       # ========= Creating a model
-      from model import Model # in participants' model.py
+      from AutoDL_sample_code_submission_pytorch.model import Model # in participants' model.py
       ##### Begin creating model #####
       logger.info("Creating model...")
       print(D_train.get_metadata())
