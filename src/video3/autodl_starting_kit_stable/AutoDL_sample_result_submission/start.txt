@@ -1,0 +1,4 @@
+ingestion_pid: 11343
+task_name: kreatur
+time_budget: 1200.0
+start_time: 1563985456.6727824
