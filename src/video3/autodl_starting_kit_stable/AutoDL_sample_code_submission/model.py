@@ -53,12 +53,13 @@ class ParserMock():
       '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
     )
     setattr(self._parser_args, 'arch', 'resnet50')
-    setattr(self._parser_args, 'batch_size', 3)
+    setattr(self._parser_args, 'batch_size', 8)
     setattr(self._parser_args, 'modality', 'RGB')
     setattr(self._parser_args, 'classification_type', 'multiclass')
     setattr(self._parser_args, 'shift', True)
     setattr(self._parser_args, 'shift_div', 9)
     setattr(self._parser_args, 'shift_place', 'blockres')
+    setattr(self._parser_args, 'epoch_frac', 0.1)
     setattr(self._parser_args, 'dense_sample', True)
     setattr(self._parser_args, 'print', True)
 
@@ -152,6 +153,8 @@ class Model(object):
     iterator = dataset.make_one_shot_iterator()
     example, labels = iterator.get_next()
     sample_count = 0
+    epoch_frac = self.parser_args.epoch_frac
+    batch_size = self.parser_args.batch_size
 
     with tf.Session() as sess:
       while True:
@@ -177,6 +180,9 @@ class Model(object):
                     ToTorchFormatTensor(div=False),
                     GroupNormalize(input_mean, input_std)])
 
+    self.model.train()
+    torch.set_grad_enabled(True)
+
     with tf.Session() as sess:
       ds = TFDataset(session=sess,
                      dataset=dataset,
@@ -185,17 +191,22 @@ class Model(object):
 
       dl = FixedSizeDataLoader(ds,
                                steps=sample_count,
-                               batch_size=self.parser_args.batch_size,
+                               batch_size=batch_size,
                                shuffle=True,
                                num_workers=0,
                                pin_memory=True,
-                               drop_last=True)
+                               drop_last=False)
 
       for i, (data, labels) in enumerate(dl):
+        print('training: ' + str(i))
         labels_int = np.argmax(labels, axis=1)
         bohb.train_inner(self.model, self.optimizer, self.criterion, data, labels_int, i, self.parser_args)
 
-    assert self.metadata.get_output_size() == labels.shape[0]
+        # early out
+        if i*batch_size > epoch_frac*sample_count:
+          print('early out')
+          return
+
     self.done_training = True
 
   def test(self, dataset, remaining_time_budget=None):
@@ -222,12 +233,46 @@ class Model(object):
         except tf.errors.OutOfRangeError:
           break
     logger.info("Number of test examples: {}".format(sample_count))
-    output_dim = self.metadata.get_output_size()
-    predictions = np.zeros((sample_count, output_dim))
-    print(sample_count)
-    print(output_dim)
-    print(predictions)
-    return predictions
+
+    model = get_model_for_loader(self.parser_args)
+    train_augmentation = model.get_augmentation()
+    input_mean = model.input_mean
+    input_std = model.input_std
+    transform = torchvision.transforms.Compose([
+      SelectSamples(self.parser_args.num_segments),
+      ToPilFormat(),
+      train_augmentation,
+      Stack(roll=True),
+      ToTorchFormatTensor(div=False),
+      GroupNormalize(input_mean, input_std)])
+
+    self.model.eval()
+    torch.set_grad_enabled(False)
+
+    with tf.Session() as sess:
+      ds = TFDataset(session=sess,
+                     dataset=dataset,
+                     num_samples=sample_count,
+                     transform=transform)
+
+      dl = torch.utils.data.DataLoader(ds,
+            batch_size=1,#self.parser_args.batch_size,
+            drop_last=True)
+
+      predictions = None
+
+      for i, (data, labels) in enumerate(dl):
+        print('testing: ' + str(i))
+        output = self.model(data)
+
+        if predictions is None:
+          predictions = output
+        else:
+          predictions = torch.cat((predictions, output), 0)
+
+    self.done_training = False
+
+    return predictions.cpu().numpy()
 
   ##############################################################################
   #### Above 3 methods (__init__, train, test) should always be implemented ####

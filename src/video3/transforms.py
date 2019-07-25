@@ -358,19 +358,22 @@ class SelectSamples(object):
 
 class ToPilFormat(object):
     """
-    convert from numpy/torch array (B x S_old x H x W x C) to lits of PIL images (B x S_new x H x W x C)
+    convert from numpy/torch array (B x S_old x H x W x C) to list of PIL images (B x S_new x H x W x C)
     """
 
     def __call__(self, pics):
         if isinstance(pics, np.ndarray):
+            # handle numpy array
             lst = []
             for i in range(len(pics)):
                 formatted = (pics[i, ...] * 255).astype('uint8')
+                # if we have only one channel, expand it to three channels
+                if formatted.shape[-1] is 1:
+                    formatted = np.repeat(formatted, 3, axis=-1)
                 lst.append(Image.fromarray(formatted))
             return lst
         else:
-            for pic in pics:
-                print(pic.shape)
+            # handle torch tensor
             return [F.to_pil_image(pic) for pic in pics]
 
 

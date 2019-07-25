@@ -272,8 +272,9 @@ def train_inner(model, optimizer, criterion, input, target, i, parser_args):
     # measure accuracy and record loss
     if parser_args.classification_type == 'multiclass':
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
-        return loss, prec1, prec5
+        x_val = int(min(output.data.shape[1], 5))
+        prec1, precX = accuracy(output.data, target, topk=(1, x_val))
+        return loss, prec1, precX
     elif parser_args.classification_type == 'multilabel':
         prec1, p, rl = f2_score(output.data, target, parser_args)
         return loss, prec1, p, rl

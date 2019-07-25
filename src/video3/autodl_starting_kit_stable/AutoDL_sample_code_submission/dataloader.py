@@ -13,7 +13,6 @@ class FixedSizeDataLoader:
                  sampler=None):
         sampler = InfiniteSampler(dataset, shuffle) if sampler is None else sampler
         self.batch_size = batch_size
-        batch_size = 1 if batch_size is None else batch_size
 
         self.steps = steps
         self.dataset = dataset
@@ -29,8 +28,10 @@ class FixedSizeDataLoader:
         return self.steps
 
     def __iter__(self):
-        for _, data in zip(range(self.steps), self.dataloader):
-            yield ([t[0] for t in data] if self.batch_size is None else data)
+        for data in self.dataloader:
+            yield data
+#        for _, data in zip(range(self.steps), self.dataloader):
+#            yield ([t[0] for t in data] if self.batch_size is None else data)
 
 
 class InfiniteSampler(torch.utils.data.sampler.Sampler):
