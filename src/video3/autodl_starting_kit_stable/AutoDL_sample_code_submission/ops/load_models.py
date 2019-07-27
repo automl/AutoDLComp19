@@ -6,7 +6,7 @@ from torch.nn.init import constant_, xavier_uniform_
 # from opts imporwwt parser
 # parser_args = parser.parse_args()
 
-def load_model_and_optimizer(parser_args, config):
+def load_model_and_optimizer(parser_args, dropout, lr):
     parser_args = parser_args
     ############################################################       
     # Apex usable?
@@ -21,7 +21,7 @@ def load_model_and_optimizer(parser_args, config):
                     parser_args.modality,
                     base_model=parser_args.arch,
                     consensus_type=parser_args.consensus_type,
-                    dropout=config['dropout'],
+                    dropout=dropout,
                     partial_bn=not parser_args.no_partialbn,
                     freeze_eco=parser_args.freeze_eco,
                     input_size=224)
@@ -49,7 +49,7 @@ def load_model_and_optimizer(parser_args, config):
     elif parser_args.arch == "ECOfull_py":
         from models_ecopy import ECOfull
         model = ECOfull(
-            dropout=config['dropout'],
+            dropout=dropout,
             num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
@@ -59,7 +59,7 @@ def load_model_and_optimizer(parser_args, config):
     elif parser_args.arch == "ECOfull_efficient_py":
         from models_ecopy import ECOfull_efficient
         model = ECOfull_efficient(
-            dropout=config['dropout'],
+            dropout=dropout,
             num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
@@ -69,7 +69,7 @@ def load_model_and_optimizer(parser_args, config):
     elif parser_args.arch == "Averagenet":
         from models_averagenet import Averagenet
         model = Averagenet(
-            dropout=config['dropout'],
+            dropout=dropout,
             num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
@@ -79,7 +79,7 @@ def load_model_and_optimizer(parser_args, config):
     elif parser_args.arch == "Averagenet_feature":
         from models_averagenet import Averagenet_feature
         model = Averagenet_feature(
-            dropout=config['dropout'],
+            dropout=dropout,
             num_classes=parser_args.num_classes,
             num_segments=parser_args.num_segments,
             modality=parser_args.modality,
@@ -102,13 +102,13 @@ def load_model_and_optimizer(parser_args, config):
     # Load optimizer
     if parser_args.optimizer == 'SGD':
         optimizer = torch.optim.SGD(policies,
-                                    config['lr'],
+                                    lr,
                                     momentum=parser_args.momentum,
                                     weight_decay=parser_args.weight_decay,
                                     nesterov=parser_args.nesterov)
     if parser_args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(policies,
-                                     config['lr'])
+                                     lr)
 
     if not parser_args.apex_available:
         model = torch.nn.DataParallel(model).cuda()

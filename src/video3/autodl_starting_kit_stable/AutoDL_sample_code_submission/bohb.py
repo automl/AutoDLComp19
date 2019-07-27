@@ -61,7 +61,7 @@ class ChallengeWorker(Worker):
         exp_num = 0
         ############################################################
         # Model, optimizer and criterion loading
-        model, optimizer = load_model_and_optimizer(self.parser_args, config)
+        model, optimizer = load_model_and_optimizer(self.parser_args, config['dropout'], config['lr'])
         # define loss function (criterion) and optimizer
         if (
             self.parser_args.loss_type == 'nll' and
@@ -226,7 +226,48 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
         # fit batch into Model
         # target size: [batch_size]
 
-        output = train_inner(model, optimizer, criterion, input, target, i, parser_args, loss_summ, losses)
+        target = target.cuda()  # noqa: W606
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
+
+        # compute output, output size: [batch_size, num_classes]
+        if parser_args.apex_available:
+            output = model(input_var.cuda())
+        else:
+            output = model(input_var)
+        loss = criterion(output, target_var)
+        loss = loss / parser_args.iter_size
+        if parser_args.apex_available:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+        loss_summ += loss
+        # update average loss
+        if losses is not None:
+            losses.update(loss_summ.item(), input.size(0))
+        # Scale loss with apex
+        # try:
+
+        # except Exception:
+        #    loss.backward()
+        #    print('Apex not working')
+        # scale down gradients when iter size is set
+        if (i + 1) % parser_args.iter_size == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+            loss_summ = 0
+        # clip gradients id set
+        if parser_args.clip_gradient is not None:
+            total_norm = clip_grad_norm_(model.parameters(), parser_args.clip_gradient)
+            if total_norm > parser_args.clip_gradient:
+                if parser_args.print:
+                    print(
+                        "clipping gradient: {} with coef {}".format(
+                            total_norm, parser_args.clip_gradient / total_norm
+                        )
+                    )
 
         ######################################################
         # measure accuracy and record loss
@@ -296,59 +337,6 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
         if i >= stop_batch:
             break
     return end_time
-
-
-def train_inner(model, optimizer, criterion, input, target, i, parser_args, loss_summ = 0, losses = None):
-    # measure data loading time
-    ######################################################
-    # fit batch into Model
-    # target size: [batch_size]
-    target = target.cuda()  # noqa: W606
-    input_var = torch.autograd.Variable(input)
-    target_var = torch.autograd.Variable(target)
-
-    # train_inner(model, optimizer, criterion, input, target, i, parser_args)
-
-    # compute output, output size: [batch_size, num_classes]
-    if parser_args.apex_available:
-        output = model(input_var.cuda())
-    else:
-        output = model(input_var)
-    loss = criterion(output, target_var)
-    loss = loss / parser_args.iter_size
-    if parser_args.apex_available:
-        with amp.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
-    else:
-        loss.backward()
-
-    loss_summ += loss
-    # update average loss
-    if losses is not None:
-        losses.update(loss_summ.item(), input.size(0))
-    # Scale loss with apex
-    # try:
-
-    # except Exception:
-    #    loss.backward()
-    #    print('Apex not working')
-    # scale down gradients when iter size is set
-    if (i + 1) % parser_args.iter_size == 0:
-        optimizer.step()
-        optimizer.zero_grad()
-        loss_summ = 0
-    # clip gradients id set
-    if parser_args.clip_gradient is not None:
-        total_norm = clip_grad_norm_(model.parameters(), parser_args.clip_gradient)
-        if total_norm > parser_args.clip_gradient:
-            if parser_args.print:
-                print(
-                    "clipping gradient: {} with coef {}".format(
-                        total_norm, parser_args.clip_gradient / total_norm
-                    )
-                )
-
-    return output
 
 
 
