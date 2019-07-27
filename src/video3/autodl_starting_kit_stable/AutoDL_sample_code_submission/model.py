@@ -118,7 +118,7 @@ class Model(object):
 
     self.parser_args = parser.parse_args()
     self.model, self.optimizer = load_model_and_optimizer(
-      self.parser_args, 0.05, 0.0001)
+      self.parser_args, 0.05, 0.001)
     self.criterion = load_loss_criterion(self.parser_args)
 
     if torch.cuda.is_available():
@@ -196,8 +196,8 @@ class Model(object):
                     ToTorchFormatTensor(div=False),
                     GroupNormalize(input_mean, input_std)])
 
-    self.model.train()
     torch.set_grad_enabled(True)
+    self.model.train()
 
     epoch_frac = get_epoch_frac(self.time_start, time.time(), self.parser_args.time_mult)
     print('EPOCH_FRAC: ' + str(epoch_frac))
@@ -228,8 +228,8 @@ class Model(object):
         output = self.model(data_var)
         loss = self.criterion(output, labels_var)
         loss.backward()
-        self.optimizer.zero_grad()
         self.optimizer.step()
+        self.optimizer.zero_grad()
 
         # early out
         if i*self.parser_args.batch_size > epoch_frac:
