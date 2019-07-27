@@ -35,7 +35,7 @@ def load_model_and_optimizer(parser_args, dropout, lr):
                     parser_args.modality,
                     base_model=parser_args.arch,
                     consensus_type=parser_args.consensus_type,
-                    dropout=config['dropout'],
+                    dropout=dropout,
                     img_feature_dim=parser_args.img_feature_dim,
                     partial_bn=not parser_args.no_partialbn,
                     pretrain=parser_args.pretrain,

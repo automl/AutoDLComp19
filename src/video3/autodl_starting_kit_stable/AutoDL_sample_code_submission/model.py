@@ -53,11 +53,28 @@ class ParserMock():
     )
     setattr(self._parser_args, 'arch', 'Averagenet')
     setattr(self._parser_args, 'batch_size', 32)
-    setattr(self._parser_args, 'optimizer', 'SGD')
+    setattr(self._parser_args, 'optimizer', 'Adam')
     setattr(self._parser_args, 'modality', 'RGB')
-    setattr(self._parser_args, 'time_mult', 1000)
+    setattr(self._parser_args, 'time_mult', 10000)
     setattr(self._parser_args, 'print', True)
     setattr(self._parser_args, 'classification_type', 'multiclass')
+
+    # setattr(
+    #   self._parser_args, 'finetune_model',
+    #   './AutoDL_sample_code_submission/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
+    # )
+    # setattr(self._parser_args, 'arch', 'TSM')
+    # setattr(self._parser_args, 'batch_size', 32)
+    # setattr(self._parser_args, 'modality', 'RGB')
+    # setattr(self._parser_args, 'classification_type', 'multiclass')
+    # setattr(self._parser_args, 'shift', True)
+    # setattr(self._parser_args, 'shift_div', 9)
+    # setattr(self._parser_args, 'shift_place', 'blockres')
+    # setattr(self._parser_args, 'epoch_frac', 0.1)
+    # setattr(self._parser_args, 'dense_sample', True)
+    # setattr(self._parser_args, 'input_size', 224)
+    # setattr(self._parser_args, 'print', True)
+    # setattr(self._parser_args, 'time_mult', 10000)
 
     if torch.cuda.device_count() == 1:
         try:
@@ -101,7 +118,7 @@ class Model(object):
 
     self.parser_args = parser.parse_args()
     self.model, self.optimizer = load_model_and_optimizer(
-      self.parser_args, 0.5, 0.001)
+      self.parser_args, 0.05, 0.0001)
     self.criterion = load_loss_criterion(self.parser_args)
 
     if torch.cuda.is_available():
@@ -182,8 +199,6 @@ class Model(object):
     self.model.train()
     torch.set_grad_enabled(True)
 
-    batch_size = self.parser_args.batch_size
-
     epoch_frac = get_epoch_frac(self.time_start, time.time(), self.parser_args.time_mult)
     print('EPOCH_FRAC: ' + str(epoch_frac))
 
@@ -195,7 +210,7 @@ class Model(object):
 
       dl = FixedSizeDataLoader(ds,
                                steps=self.num_samples_training,
-                               batch_size=batch_size,
+                               batch_size=self.parser_args.batch_size,
                                shuffle=True,
                                num_workers=0,
                                pin_memory=True,
@@ -213,10 +228,11 @@ class Model(object):
         output = self.model(data_var)
         loss = self.criterion(output, labels_var)
         loss.backward()
+        self.optimizer.zero_grad()
+        self.optimizer.step()
 
         # early out
-
-        if i*batch_size > epoch_frac:
+        if i*self.parser_args.batch_size > epoch_frac:
           print('early out')
           return
 

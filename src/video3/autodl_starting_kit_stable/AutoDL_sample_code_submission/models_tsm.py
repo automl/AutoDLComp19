@@ -33,7 +33,8 @@ class TSN(nn.Module):
         shift_place='blockres',
         fc_lr5=False,
         temporal_pool=False,
-        non_local=False
+        non_local=False,
+        input_size=224
     ):
         super(TSN, self).__init__()
         self.modality = modality
@@ -53,6 +54,7 @@ class TSN(nn.Module):
         self.fc_lr5 = fc_lr5
         self.temporal_pool = temporal_pool
         self.non_local = non_local
+        self.input_size = input_size
 
         if not before_softmax and consensus_type != 'avg':
             raise ValueError("Only avg consensus can be used after Softmax")
@@ -154,7 +156,6 @@ class TSN(nn.Module):
                 make_non_local(self.base_model, self.num_segments)
 
             self.base_model.last_layer_name = 'fc'
-            self.input_size = 128
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
 
