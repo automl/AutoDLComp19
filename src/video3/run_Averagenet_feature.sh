@@ -1,3 +1,4 @@
+#!/bin/sh
 #unset CUDA_VISIBLE_DEVICES
 #gpuName="$(nvidia-smi --query-gpu="gpu_name" --format=csv,noheader,nounits -i 0)"
 #echo "$(date) - Training started on host ${HOSTNAME} on an ${gpuName}"
@@ -11,32 +12,32 @@
 #############################################
 #--- training hyperparams ---
 #'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
-dataset_name="yfcc100m"
+dataset_name="jhmdb21"
 #'ECOfull_py'','resnet50','resnet101','ECO','ECOfull'
-netType="ECOfull_py"
-batch_size=90 #32 for 4 2080/titan X
+netType="Averagenet_feature"
+batch_size=75 #32 for 4 2080/titan X
 num_segments=16
 consensus_type=avg #{avg, identity}
 iter_size=1 # batch_size * iter_size = pseudo_batch_size 
-num_workers=32 #10 for 4 2080/ 32 for 4 titan X
+num_workers=40 #10 for 4 2080/ 32 for 4 titan X
 optimizer="SGD"
-val_perc=0.02
-class_limit=100
+val_perc=1
+class_limit=10000
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
-min_budget=0.005
-max_budget=0.02
+min_budget=0.056
+max_budget=0.168
 eta=3
 bohb_workers=1
 #############################################
 #--- finetunint hyperparams --- 
 # Set training = True and params, to run finetune instead of BOHB
 training=False
-finetune_model="pretrained_models/ECOfull_py_model.pth.tar"
-dropout=0.8
-learning_rate=0.001
-epochs=80
+finetune_model='/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/Averagenet_reza_kinetics_Adam_finetune__rgb_model_best.pth.tar'
+dropout=0.1438267487593261
+learning_rate=0.0001898403917547631
+epochs=40
 #############################################
 #--- Multilabel hyperparams --- 
 prediction_threshold=0.7

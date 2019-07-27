@@ -4,32 +4,39 @@ import time
 
 # GPU/CPU statistics
 import GPUtil
+
+#Multi-label evaluation
+from ops import eval_util
+
+import psutil
 # Torch
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn.parallel
 import torch.optim
+import torchsummary as summary
+import torchvision
 # BOHB
 from hpbandster.core.worker import Worker
 from ops import dataset_config
 from ops.load_dataloader import get_train_and_testloader
-from ops.load_models import *
+from ops.load_models import load_model_and_optimizer
 # Project
 from ops.temporal_shift import make_temporal_pool
 from opts import parser
 from torch.nn.utils import clip_grad_norm_
 
+
 ##############################################################################
-
-
+##############################################################################
 class ChallengeWorker(Worker):
     def __init__(self, parser_args, **kwargs):
         super().__init__(**kwargs)
         ############################################################
         # Global settings from main.py
         self.parser_args = parser_args
-        temp = dataset_config.return_dataset(parser_args.dataset, parser_args.modality)
-        self.parser_args.num_class = temp[0]
+        temp = dataset_config.return_dataset(parser_args.dataset, parser_args.modality, parser_args.class_limit)
+        self.parser_args.num_classes = temp[0]
         self.parser_args.train_list = temp[1]
         self.parser_args.val_list = temp[2]
         self.parser_args.root_path = temp[3]
@@ -55,8 +62,23 @@ class ChallengeWorker(Worker):
         ############################################################
         # Model, optimizer and criterion loading
         model, optimizer = load_model_and_optimizer(self.parser_args, config)
-        criterion = load_loss_criterion(self.parser_args)
-
+        # define loss function (criterion) and optimizer
+        if (
+            self.parser_args.loss_type == 'nll' and
+            self.parser_args.classification_type == 'multiclass'
+        ):
+            criterion = torch.nn.CrossEntropyLoss().cuda()
+            if self.parser_args.print:
+                print("Using CrossEntropyLoss")
+        elif (
+            self.parser_args.loss_type == 'nll' and
+            self.parser_args.classification_type == 'multilabel'
+        ):
+            criterion = torch.nn.BCEWithLogitsLoss().cuda()
+            if self.parser_args.print:
+                print("Using SigmoidBinaryCrossEntropyLoss")
+        else:
+            raise ValueError("Unknown loss type")
         # Logging
         if self.parser_args.training:
             with open(
@@ -69,8 +91,7 @@ class ChallengeWorker(Worker):
             make_temporal_pool(model.module.base_model, self.parser_args.num_segments)
 
         if self.parser_args.evaluate:
-            validate(self.val_loader, model, criterion, 0)
-            return
+            validate(self.val_loader, model, criterion, 0, self.parser_args)
 
         # if budget below 1 training still must start, therefore +1
         epoches_to_train = self.parser_args.start_epoch + int(budget) + 1
@@ -92,15 +113,12 @@ class ChallengeWorker(Worker):
             # train for one epoch
             budget_counter -= 1
             train_budget = 1 if budget_counter > 1 else budget_counter
-            _ = train(
-                self.train_loader, model, criterion, optimizer, epoch, train_budget,
-                self.parser_args
-            )
+            _ = train(self.train_loader, model, criterion, optimizer, epoch, train_budget, self.parser_args)
             ############################################################
             # Validation and saving
             # evaluate on validation set after last epoch
             if self.parser_args.classification_type == 'multiclass':
-                prec1, prec5, loss = validate(self.val_loader, model, criterion)
+                prec1, prec5, loss = validate(self.val_loader, model, criterion, self.parser_args)
             if self.parser_args.classification_type == 'multilabel':
                 prec1, precision, recall, loss = validate(
                     self.val_loader, model, criterion, self.parser_args
@@ -126,12 +144,13 @@ class ChallengeWorker(Worker):
                         'state_dict': model.state_dict(),
                         'best_prec1': self.parser_args.best_prec1,
                         'lr': optimizer.param_groups[-1]['lr'],
-                    }, is_best, parser_args
+                    }, is_best, self.parser_args
                 )
         ############################################################
         if self.parser_args.classification_type == 'multiclass':
             return {
-                "loss": 100. - prec1,
+                #"loss": 100. - prec1,
+                "loss": loss,
                 "info":
                     {
                         "train_time": time.time() - start_time,
@@ -142,13 +161,15 @@ class ChallengeWorker(Worker):
             }
         else:
             return {
-                "loss": 100. - prec1,
+                "loss": loss,
+                #"loss": 100. - prec1,
                 "info":
                     {
                         "train_time": time.time() - start_time,
                         "f2": prec1,
-                        "precision": prec5,
-                        "recall": loss,
+                        "precision": precision,
+                        "recall": recall,
+                        "loss": loss,
                     },
             }
 
@@ -165,13 +186,17 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
     data_time, top1 = AverageMeter(), AverageMeter()
     if parser_args.classification_type == 'multiclass':
         top5 = AverageMeter()
-        true_pos, false_pos, false_neg, true_neg, precision, recall = (None, ) * 6
+        #true_pos, false_pos, false_neg, true_neg,
+        precision, recall = (None, ) * 2
+        hit1, perr, gap = (None, ) * 3
+
     # For multilabel calculate f2 scores
     elif parser_args.classification_type == 'multilabel':
         top5 = None  # fscore has no top-k
-        true_pos, false_pos = AverageMeter(), AverageMeter()
-        false_neg, true_neg = AverageMeter(), AverageMeter()
+        #true_pos, false_pos = AverageMeter(), AverageMeter()
+        #false_neg, true_neg = AverageMeter(), AverageMeter()
         precision, recall = AverageMeter(), AverageMeter()
+        hit1, perr, gap = AverageMeter(), AverageMeter(), AverageMeter()
 
     loss_summ = 0
     # Time tracking variables
@@ -186,33 +211,60 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
     # In PyTorch 0.4, "volatile=True" is deprecated.
     torch.set_grad_enabled(True)
 
-    if parser_args.no_partialbn:
-        model.module.partialBN(False)
-    else:
-        model.module.partialBN(True)
+    # Apex modules aren't callable
+    if not parser_args.apex_available:
+        if parser_args.no_partialbn:
+            model.module.partialBN(False)
+        else:
+            model.module.partialBN(True)
 
     model.train()
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
+        ######################################################
+        # fit batch into Model
+        # target size: [batch_size]
 
+        output = train_inner(model, optimizer, criterion, input, target, i, parser_args, loss_summ, losses)
+
+        ######################################################
+        # measure accuracy and record loss
+        target = target.cuda()  # noqa: W606
         if parser_args.classification_type == 'multiclass':
-            loss, prec1, prec5 = train_inner(model, optimizer, criterion, input, target, i, parser_args)
+            # measure accuracy and record loss
+            prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))
-        elif parser_args.classification_type == 'multilabel':
-            loss, prec1, p, rl = train_inner(model, optimizer, criterion, input, target, i, parser_args)
+        if parser_args.classification_type == 'multilabel':
+            prec1, p, r = f2_score(output.data, target)
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
-        loss_summ += loss
+
+            h1 = eval_util.calculate_hit_at_one(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            pr = eval_util.calculate_precision_at_equal_recall_rate(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            gp = eval_util.calculate_gap(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            #print("Hit:{}, PERR:{}, GAP:{}".format(hit_1,perr,gap))
+            hit1.update(h1)
+            perr.update(pr)
+            gap.update(gp)
 
         ######################################################
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
         localtime = time.localtime()
-        end_time = time.strftime("%Y/%m/%d-%H:%M:%S", localtime)
+        end_time = time.strftime("%m/%d-%H:%M:%S", localtime)
         ######################################################
         # Print results
         Printings(
@@ -230,9 +282,15 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
             top5=top5,
             precision=precision,
             recall=recall,
+            hit1=hit1,
+            perr=perr,
+            gap=gap,
             lr=optimizer.param_groups[-1]['lr'],
             epoch=epoch,
         )
+        # show gpu usage all parser_args.print_freq batches
+        if parser_args.print and i == 2:
+            GPUtil.showUtilization(all=True)
         ######################################################
         # break at budget
         if i >= stop_batch:
@@ -240,19 +298,40 @@ def train(train_loader, model, criterion, optimizer, epoch, budget, parser_args)
     return end_time
 
 
-def train_inner(model, optimizer, criterion, input, target, i, parser_args):
+def train_inner(model, optimizer, criterion, input, target, i, parser_args, loss_summ = 0, losses = None):
+    # measure data loading time
     ######################################################
     # fit batch into Model
     # target size: [batch_size]
     target = target.cuda()  # noqa: W606
     input_var = torch.autograd.Variable(input)
     target_var = torch.autograd.Variable(target)
-    # compute output, output size: [batch_size, num_class]
-    output = model(input_var)
+
+    # train_inner(model, optimizer, criterion, input, target, i, parser_args)
+
+    # compute output, output size: [batch_size, num_classes]
+    if parser_args.apex_available:
+        output = model(input_var.cuda())
+    else:
+        output = model(input_var)
     loss = criterion(output, target_var)
     loss = loss / parser_args.iter_size
+    if parser_args.apex_available:
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
+
+    loss_summ += loss
     # update average loss
-    loss.backward()
+    if losses is not None:
+        losses.update(loss_summ.item(), input.size(0))
+    # Scale loss with apex
+    # try:
+
+    # except Exception:
+    #    loss.backward()
+    #    print('Apex not working')
     # scale down gradients when iter size is set
     if (i + 1) % parser_args.iter_size == 0:
         optimizer.step()
@@ -268,16 +347,9 @@ def train_inner(model, optimizer, criterion, input, target, i, parser_args):
                         total_norm, parser_args.clip_gradient / total_norm
                     )
                 )
-    ######################################################
-    # measure accuracy and record loss
-    if parser_args.classification_type == 'multiclass':
-        # measure accuracy and record loss
-        x_val = int(min(output.data.shape[1], 5))
-        prec1, precX = accuracy(output.data, target, topk=(1, x_val))
-        return loss, prec1, precX
-    elif parser_args.classification_type == 'multilabel':
-        prec1, p, rl = f2_score(output.data, target, parser_args)
-        return loss, prec1, p, rl
+
+    return output
+
 
 
 ##############################################################################
@@ -290,17 +362,19 @@ def validate(val_loader, model, criterion, parser_args, logger=None):
     data_time, top1 = AverageMeter(), AverageMeter()
     if parser_args.classification_type == 'multiclass':
         top5 = AverageMeter()
-        true_pos, false_pos, false_neg, true_neg, precision, recall = (None, ) * 6
+        precision, recall = (None, ) * 2
+        hit1, perr, gap = (None, ) * 3
+
     # For multilabel calculate f2 scores
     elif parser_args.classification_type == 'multilabel':
         top5 = None  # fscore has no top-k
-        true_pos, false_pos = AverageMeter(), AverageMeter()
-        false_neg, true_neg = AverageMeter(), AverageMeter()
         precision, recall = AverageMeter(), AverageMeter()
+        hit1, perr, gap = AverageMeter(), AverageMeter(), AverageMeter()
+
     # Time tracking variables
     end = time.time()
     localtime = time.localtime()
-    end_time = time.strftime("%Y/%m/%d-%H:%M:%S", localtime)
+    end_time = time.strftime("%m/%d-%H:%M:%S", localtime)
     # Calculate stop batch for budget
     # budget is in range 0-1 so a perentage to scale one epoche
     stop_batch = int((parser_args.val_perc * len(val_loader)))
@@ -318,7 +392,10 @@ def validate(val_loader, model, criterion, parser_args, logger=None):
         input_var = input
         target_var = target
         # compute output
-        output = model(input_var)
+        if parser_args.apex_available:
+            output = model(input_var.cuda())
+        else:
+            output = model(input_var)
         loss = criterion(output, target_var)
         ######################################################
         # measure accuracy and record loss
@@ -329,10 +406,27 @@ def validate(val_loader, model, criterion, parser_args, logger=None):
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))
         if parser_args.classification_type == 'multilabel':
-            prec1, p, rl = f2_score(output.data, target)
+            prec1, p, r = f2_score(output, target_var)
             top1.update(prec1.item())
             precision.update(p.item())
             recall.update(r.item())
+
+            h1 = eval_util.calculate_hit_at_one(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            pr = eval_util.calculate_precision_at_equal_recall_rate(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            gp = eval_util.calculate_gap(
+                output.cpu().detach().numpy(),
+                target.cpu().detach()
+            )
+            hit1.update(h1)
+            perr.update(pr)
+            gap.update(gp)
+
         ######################################################
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -351,7 +445,10 @@ def validate(val_loader, model, criterion, parser_args, logger=None):
             top1=top1,
             top5=top5,
             precision=precision,
-            recall=recall
+            recall=recall,
+            hit1=hit1,
+            perr=perr,
+            gap=gap
         )
         ######################################################
         # break at budget
@@ -399,6 +496,8 @@ class AverageMeter(object):
         self.count = 0
 
     def update(self, val, n=1):
+        if val != val:
+            val = 0  # Check if val is none and set to 0
         self.val = val
         self.sum += val * n
         self.count += n
@@ -439,8 +538,10 @@ def accuracy(output, target, topk=(1, )):
 
 #############################################################################
 ##############################################################################
-def f2_score(output, target, parser_args):
+def f2_score(output, target):
     """Computes the f2 score, precision and recall"""
+    batch_size = target.size(0)
+    eval_percentage = 0.8
     predictions = output
     labels = target
     maximum = predictions.max()
@@ -448,14 +549,13 @@ def f2_score(output, target, parser_args):
     # strech output of logits
     predictions = -5 + 10 * (predictions - minimum) / (maximum - minimum)
     # wrap probability function
-    pred = torch.sigmoid(predictions)
-    # TODO: if labels is a percentage it won't work :/
+    predictions = torch.sigmoid(predictions)
     act_pos_batch = torch.sum(labels)
-    act_neg_batch = (parser_args.batch_size * parser_args.num_classes - act_pos_batch)
+    act_neg_batch = (batch_size * parser_args.num_classes - act_pos_batch)
     true_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     false_pos_batch = torch.zeros((1), dtype=torch.float16).cuda()
     # count true and false Positives
-    for j in range(parser_args.batch_size):
+    for j in range(batch_size):
         # for higher accuracy use batch scaling
         pred = predictions[j]
         maximum = pred.max()
@@ -469,14 +569,22 @@ def f2_score(output, target, parser_args):
         true_pos_batch += c.sum()
         false_pos_batch += d.sum()
     # update false and ture negatives
-    true_pos.update(true_pos_batch)
-    false_pos.update(false_pos_batch)
-    false_neg.update(act_pos_batch - true_pos_batch)
-    true_neg.update(act_neg_batch - false_pos_batch)
+    #true_pos.update(true_pos_batch)
+    #false_pos.update(false_pos_batch)
+    #false_neg.update(act_pos_batch - true_pos_batch)
+    #true_neg.update(act_neg_batch - false_pos_batch)
     # precision: tp/(tp+fp) percentage of correctly classified predicted
-    precision = true_pos.sum / (true_pos.sum + false_pos.sum + 1E-9)
+    #precision = true_pos.sum / (true_pos.sum + false_pos.sum + 1E-9)
     # recall: tp/(tp+fn) percentage of positives correctly classified
-    recall = true_pos.sum / (true_pos.sum + false_neg.sum + 1E-9)
+    #recall = true_pos.sum / (true_pos.sum + false_neg.sum + 1E-9)
+    false_neg = act_pos_batch - true_pos_batch
+    true_neg = act_neg_batch - false_pos_batch
+    # precision: tp/(tp+fp) percentage of correctly classified predicted
+    #precision = true_pos.sum / (true_pos.sum + false_pos.sum + 1E-9)
+    precision = true_pos_batch / (true_pos_batch + false_pos_batch + 1E-9)
+    # recall: tp/(tp+fn) percentage of positives correctly classified
+    #recall = true_pos.sum / (true_pos.sum + false_neg.sum + 1E-9)
+    recall = true_pos_batch / (true_pos_batch + false_neg + 1E-9)
     # F-score with beta=1
     # see Sokolova et al., 2006 "Beyond Accuracy, F-score and ROC:
     # a Family of Discriminant Measures for Performance Evaluation"
@@ -519,8 +627,6 @@ def save_checkpoint(state, is_best, parser_args, filename='checkpoint.pth.tar'):
 def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
 
     if pr and batch % freq == 0:
-        # show gpu usage all parser_args.print_freq batches
-        GPUtil.showUtilization(all=True)
         ######################################################
         # Training
         top1 = kwargs['top1']
@@ -538,7 +644,7 @@ def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
                     (
                         'Epoch: [{0}][{1}/{2}], lr: {lr:.7f}  '
                         'Time {batch_time.val:.2f} ({batch_time.avg:.2f})  '
-                        'UTime {end_time:}  '
+                        'UT {end_time:}  '
                         'Data {data_time.val:.2f} ({data_time.avg:.2f})  '
                         'Loss {loss.val:.3f} ({loss.avg:.3f})  '
                         'Prec@1 {top1.val:.2f} ({top1.avg:.2f})  '
@@ -563,23 +669,25 @@ def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
                 print(
                     (
                         'Epoch: [{0}][{1}/{2}], lr: {lr:.7f}  '
-                        'Time {batch_time.val:.2f} ({batch_time.avg:.2f})  '
-                        'UTime {end_time:}  '
-                        'Data {data_time.val:.2f} ({data_time.avg:.2f})  '
+                        'UT {end_time:}  '
                         'Loss {loss.val:.3f} ({loss.avg:.3f})  '
-                        'F2@1 {top1.val:.3f} ({top1.avg:.3f})  '
-                        'Precision@1 {p.val:.3f} ({p.avg:.3f})  '
-                        'Recall@1 {r.val:.3f} ({r.avg:.3f})'.format(
+                        'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
+                        'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
+                        'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
+                        'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
+                        'PERR {pr.val:.4f} ({pr.avg:.4f})  '
+                        'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
                             epoch,
                             batch,
                             stop_batch,
-                            batch_time=batch_time,
                             end_time=end_time,
-                            data_time=data_time,
                             loss=loss,
                             top1=top1,
                             p=kwargs['precision'],
                             r=kwargs['recall'],
+                            h1=kwargs['hit1'],
+                            pr=kwargs['perr'],
+                            gp=kwargs['gap'],
                             lr=lr
                         )
                     )
@@ -609,18 +717,22 @@ def Printings(pr, freq, train, c_type, batch, stop_batch, **kwargs):
                 print(
                     (
                         'Test: [{0}/{1}]  '
-                        'Time {batch_time.val:.3f} ({batch_time.avg:.3f})  '
                         'Loss {loss.val:.4f} ({loss.avg:.4f})  '
-                        'F2@1 {top1.val:.3f} ({top1.avg:.3f})  '
-                        'Precision@1 {p.val:.3f} ({p.avg:.3f})  '
-                        'Recall@1 {r.val:.3f} ({r.avg:.3f})'.format(
+                        'F2@1 {top1.val:.5f} ({top1.avg:.5f})  '
+                        'Prec@1 {p.val:.5f} ({p.avg:.5f})  '
+                        'Rec@1 {r.val:.5f} ({r.avg:.5f})  '
+                        'Hit@1 {h1.val:.4f} ({h1.avg:.4f})  '
+                        'PERR {pr.val:.4f} ({pr.avg:.4f})  '
+                        'GAP {gp.val:.4f} ({gp.avg:.4f})'.format(
                             batch,
                             stop_batch,
-                            batch_time=batch_time,
                             loss=loss,
                             top1=top1,
                             p=kwargs['precision'],
-                            r=kwargs['recall']
+                            r=kwargs['recall'],
+                            h1=kwargs['hit1'],
+                            pr=kwargs['perr'],
+                            gp=kwargs['gap']
                         )
                     )
                 )

@@ -11,15 +11,16 @@
 #############################################
 #--- training hyperparams ---
 #'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
-dataset_name="jhmdb21"
-netType="resnet50"
-batch_size=1 #43
+dataset_name="youtube8m"
+netType="TSM"
+batch_size=42 #43
 num_segments=8
 consensus_type=avg #{avg, identity}
-iter_size=4 # batch_size * iter_size = pseudo_batch_size 
+iter_size=2 # batch_size * iter_size = pseudo_batch_size 
 num_workers=32
 optimizer="SGD"
 val_perc=0.02
+class_limit=100
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
@@ -45,6 +46,9 @@ echo "Current network folder "
 echo ${mainFolder}${subFolder}
 snapshot_pref="${mainFolder}${subFolder}${netType}_${dataset_name}_${optimizer}_finetune_${finetune}"
 #############################################
+#--- Multilabel hyperparams --- 
+prediction_threshold=0.7
+#############################################
 # others
 print=True
 #####################################################################
@@ -57,18 +61,17 @@ if [ "x${checkpointIter}" != "x" ]; then
     lastCheckpoint="${subFolder}${snap_pref}_rgb_epoch_${checkpointIter}_checkpoint.pth.tar"
     echo "Continuing from checkpoint ${lastCheckpoint}"
 
-    python3 -u main.py \
-    --dataset ${dataset_name} \
-    --modality RGB \
+    python3 -u main.py ${dataset_name} RGB \
     --arch ${netType} \
     --resume ${mainFolder}${lastCheckpoint} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+    --class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \
@@ -88,23 +91,23 @@ if [ "x${checkpointIter}" != "x" ]; then
     --bohb_workers ${bohb_workers}  \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 else
      echo "Training with initialization"
 
-    python3 -u main.py \
-    --dataset ${dataset_name} \
-    --modality RGB \
+    python3 -u main.py ${dataset_name} RGB \
     --arch ${netType} \
     --finetune_model ${pretrained_model} \
     --num_segments ${num_segments} \
     --gd 50 \
-    --training ${training}? \
+    --training ${training} \
     --lr ${learning_rate} --num_saturate 4 \
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
+    --class_limit ${class_limit} \
     -b ${batch_size} \
     -i ${iter_size} \
     -j ${num_workers} \
@@ -124,6 +127,7 @@ else
     --eta ${eta} \
     --snapshot_pref ${snapshot_pref} \
     --working_directory ${mainFolder}${subFolder} \
+    --prediction_threshold ${prediction_threshold} \
     2>&1 | tee -a ${mainFolder}${subFolder}training/log.txt
 
 fi

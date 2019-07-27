@@ -60,7 +60,7 @@ TSN Configurations:
         self._prepare_base_model(base_model)
 
         # zc comments
-        feature_dim = self._prepare_tsn(num_class)  # noqa: F841
+        feature_dim = self._prepare_tsn(num_classes)  # noqa: F841
         # modules = list(self.modules())
 
         if self.modality == 'Flow':
@@ -495,11 +495,11 @@ TSN Configurations:
                     return output
 
             else:
-                # base_out.size(): [32, 3, 101], [batch_size, num_segments, num_class] respectively
+                # base_out.size(): [32, 3, 101], [batch_size, num_segments, num_classes] respectively
                 base_out = base_out.view((-1, self.num_segments) + base_out.size()[1:])
                 # output.size(): [32, 1, 101]
                 output = self.consensus(base_out)
-                # output after squeeze(1): [32, 101], forward() returns size: [batch_size, num_class]
+                # output after squeeze(1): [32, 101], forward() returns size: [batch_size, num_classes]
                 return output.squeeze(1)
 
     def _get_diff(self, input, keep_rgb=False):

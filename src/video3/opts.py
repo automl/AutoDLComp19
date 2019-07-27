@@ -3,23 +3,25 @@ import argparse
         
 # global parser
 parser = argparse.ArgumentParser(description="PyTorch implementation of ECO")
-parser.add_argument('--dataset', type=str, default='ucf101', choices=['ucf101',
-                                                                      'jhmdb21',
-                                                                      'jester',
-                                                                      'somethingv2',
-                                                                      'hmdb51',
-                                                                      'kinetics',
-                                                                      'epickitchen_verb',
-                                                                      'epickitchen_noun',
-                                                                      'yfcc100m'])
+parser.add_argument('--dataset', type=str, default='hmdb51', choices=[
+        'ucf101',  # train=9537, val=3783, classes=101, single
+        'jhmdb21',  # train=660, val=268, classes=21, single
+        'somethingv2',  # train=168913, val=24777, classes=174, single(poss. multi)
+        'hmdb51',  # train=3570, val=1530, classes=51, single
+        'kinetics',  # train=238831, val=19675, classes=400, single
+        'epickitchen_verb',  # train=24699, val=3773, classes=125, single
+        'epickitchen_noun',  # train=24699, val=3773, classes=352, single
+        'yfcc100m',  # train=521035, val=130258, classes=1570, multi
+        'youtube8m',  # train=1459166, val=216409, classes=3862, multi
+        ])
 parser.add_argument('--modality', type=str, default='RGB', choices=['RGB', 'Flow', 'RGBDiff'])
 parser.add_argument(
     '--working_directory',
     default='.',
     help='path to working directory')
 parser.add_argument('--finetune_model', type=str, default=None)
-parser.add_argument('--training', type=bool, default=False,
-        help="If true set config and run without bohb")
+parser.add_argument('--training',
+        help="If set, set config and run without bohb")
 # ========================= Bohb Configs ==========================
 parser.add_argument('--bohb_iterations', type=int, default=5)
 parser.add_argument('--min_budget', type=float, default=0.1)
@@ -32,15 +34,17 @@ parser.add_argument('--val_perc', type=float,
 parser.add_argument(
     '--arch',
     type=str,
-    default="resnet50",
+    default="ECOfull_py",
     choices=[
         'ECOfull_py',
         'ECOfull_efficient_py',
-        'resnet50',
-        'resnet101',
+        'TSM',
         'ECO',
-        'ECOfull'])
-parser.add_argument('--num_segments', type=int, default=4)
+        'ECOfull',
+        'Averagenet',
+        'Averagenet_feature',])
+parser.add_argument('--num_segments', type=int, default=3)
+parser.add_argument('--class_limit', type=int, default=10000)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])
 
@@ -106,6 +110,11 @@ parser.add_argument(
     default=5,
     help=temp_str)
 parser.add_argument('--best_prec1', type=int, default=0)
+parser.add_argument('--apex_available', default=False)
+# ========================= Multilabel Configs ==========================
+parser.add_argument('--prediction_threshold', default=0.80, type=float,
+                    help='Threshold for multilabel classification prediction'
+                         '(default: 0.8')
 # ========================= Monitor Configs ==========================
 parser.add_argument('--print-freq', '-p', default=20, type=int,
                     metavar='N', help='print frequency (default: 10)')

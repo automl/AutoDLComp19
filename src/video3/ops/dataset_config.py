@@ -6,10 +6,10 @@
 import os
 
 #ROOT_DATASET = '/data/aad/video_datasets/'  # '/data/jilin/'
-ROOT_DATASET = '/home/dingsda/autodl/datasets/'
+ROOT_DATASET = '/media/dingsda/Data/Datasets/'
 
 
-def return_epickitchen_noun(modality):
+def return_epickitchen_noun(modality, class_limit=None):
     filename_categories = 352
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/classifier/'
@@ -20,7 +20,7 @@ def return_epickitchen_noun(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_epickitchen_verb(modality):
+def return_epickitchen_verb(modality, class_limit=None):
     filename_categories = 125
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'epic_kitchens/epic_kitchen/classifier/'
@@ -32,7 +32,7 @@ def return_epickitchen_verb(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_ucf101(modality):
+def return_ucf101(modality, class_limit=None):
     filename_categories = 101
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'UCF101/'
@@ -49,7 +49,7 @@ def return_ucf101(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_hmdb51(modality):
+def return_hmdb51(modality, class_limit=None):
     filename_categories = 51
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'HMDB51/'
@@ -66,7 +66,7 @@ def return_hmdb51(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_somethingv2(modality):
+def return_somethingv2(modality, class_limit=None):
     filename_categories = 174
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'SMv2/'
@@ -84,7 +84,7 @@ def return_somethingv2(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_jhmdb21(modality):
+def return_jhmdb21(modality, class_limit=None):
     filename_categories = 21
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'JHMDB21'
@@ -103,11 +103,11 @@ def return_jhmdb21(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_jester(modality):
-    raise NotImplementedError('Not downloades yet!')
+def return_jester(modality, class_limit=None):
+    raise NotImplementedError('Not downloaded yet!')
 
 
-def return_kinetics(modality):
+def return_kinetics(modality, class_limit=None):
     filename_categories = 400
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'kinetics400/'
@@ -119,19 +119,31 @@ def return_kinetics(modality):
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_yfcc100m(modality):
-    filename_categories = 1570
+def return_yfcc100m(modality, class_limit=None):
+    filename_categories = min(1570, class_limit)
     if modality == 'RGB':
         root_data = ROOT_DATASET + 'yfcc100m/'
-        filename_imglist_train = root_data + 'train.txt'
-        filename_imglist_val = root_data + 'test.txt'
+        filename_imglist_train = root_data + 'train_frames.txt'
+        filename_imglist_val = root_data + 'test_frames.txt'
         prefix = '{:04d}.jpg'
     else:
         raise NotImplementedError('no such modality:' + modality)
     return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
 
 
-def return_dataset(dataset, modality):
+def return_youtube8m(modality, class_limit=None):
+    filename_categories = min(3862, class_limit)
+    if modality == 'RGB':
+        root_data = ROOT_DATASET + 'youtube8m/'
+        filename_imglist_train = root_data + 'train_frames.txt'
+        filename_imglist_val = root_data + 'test_frames.txt'
+        prefix = '{:04d}.jpg'
+    else:
+        raise NotImplementedError('no such modality:' + modality)
+    return filename_categories, filename_imglist_train, filename_imglist_val, root_data, prefix  # noqa: E501
+
+
+def return_dataset(dataset, modality, class_limit):
     dict_single = {
         'jhmdb21': return_jhmdb21,
         'jester': return_jester,
@@ -142,10 +154,11 @@ def return_dataset(dataset, modality):
         'epickitchen_verb': return_epickitchen_verb,
         'epickitchen_noun': return_epickitchen_noun,
         'yfcc100m': return_yfcc100m,
+        'youtube8m': return_youtube8m
     }
     if dataset in dict_single:
         file_categories, file_imglist_train, file_imglist_val, root_data, prefix = dict_single[dataset](  # noqa: E501
-            modality)
+            modality, class_limit)
     else:
         raise ValueError('Unknown dataset ' + dataset)
 

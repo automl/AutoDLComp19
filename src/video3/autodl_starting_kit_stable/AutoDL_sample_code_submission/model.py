@@ -52,16 +52,22 @@ class ParserMock():
       self._parser_args, 'finetune_model',
       '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
     )
-    setattr(self._parser_args, 'arch', 'resnet50')
-    setattr(self._parser_args, 'batch_size', 8)
+    setattr(self._parser_args, 'arch', 'Averagenet')
+    setattr(self._parser_args, 'batch_size', 4)
+    setattr(self._parser_args, 'optimizer', 'SGD')
     setattr(self._parser_args, 'modality', 'RGB')
-    setattr(self._parser_args, 'classification_type', 'multiclass')
-    setattr(self._parser_args, 'shift', True)
-    setattr(self._parser_args, 'shift_div', 9)
-    setattr(self._parser_args, 'shift_place', 'blockres')
     setattr(self._parser_args, 'epoch_frac', 0.1)
-    setattr(self._parser_args, 'dense_sample', True)
     setattr(self._parser_args, 'print', True)
+    setattr(self._parser_args, 'classification_type', 'multiclass')
+
+
+    if torch.cuda.device_count() == 1:
+        try:
+            from apex import amp
+            setattr(self._parser_args, 'apex_available', True)
+        except Exception:
+            pass
+        print('Apex =', self._parser_args.apex_available)
 
   def set_attr(self, attr, val):
     setattr(self._parser_args, attr, val)
@@ -256,8 +262,8 @@ class Model(object):
                      transform=transform)
 
       dl = torch.utils.data.DataLoader(ds,
-            batch_size=1,#self.parser_args.batch_size,
-            drop_last=True)
+            batch_size=self.parser_args.batch_size,
+            drop_last=False)
 
       predictions = None
 

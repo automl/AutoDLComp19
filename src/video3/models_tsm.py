@@ -6,7 +6,7 @@
 from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, normal_
-from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
+from transforms import *
 import numpy as np
 import torch
 import torchvision
@@ -15,10 +15,10 @@ import torchvision
 class TSN(nn.Module):
     def __init__(
         self,
-        num_class,
+        num_classes,
         num_segments,
         modality,
-        base_model='resnet101',
+        base_model='TSM',
         new_length=None,
         consensus_type='avg',
         before_softmax=True,
@@ -82,7 +82,7 @@ class TSN(nn.Module):
 
         self._prepare_base_model(base_model)
 
-        feature_dim = self._prepare_tsn(num_class)  # noqa: F841
+        feature_dim = self._prepare_tsn(num_classes)  # noqa: F841
 
         if self.modality == 'Flow':
             print("Converting the ImageNet model to a flow init model")
@@ -102,14 +102,14 @@ class TSN(nn.Module):
         if partial_bn:
             self.partialBN(True)
 
-    def _prepare_tsn(self, num_class):
+    def _prepare_tsn(self, num_classes):
         feature_dim = getattr(
             self.base_model, self.base_model.last_layer_name
         ).in_features
         if self.dropout == 0:
             setattr(
                 self.base_model, self.base_model.last_layer_name,
-                nn.Linear(feature_dim, num_class)
+                nn.Linear(feature_dim, num_classes)
             )
             self.new_fc = None
         else:
@@ -117,7 +117,7 @@ class TSN(nn.Module):
                 self.base_model, self.base_model.last_layer_name,
                 nn.Dropout(p=self.dropout)
             )
-            self.new_fc = nn.Linear(feature_dim, num_class)
+            self.new_fc = nn.Linear(feature_dim, num_classes)
 
         std = 0.001
         if self.new_fc is None:
@@ -134,8 +134,9 @@ class TSN(nn.Module):
     def _prepare_base_model(self, base_model):
         print('=> base model: {}'.format(base_model))
 
-        if 'resnet' in base_model:
-            self.base_model = getattr(torchvision.models, base_model)(True)
+        if 'TSM' in base_model:
+            # TODO: base_model to resnet101 because we renamed resnet50 to TSM
+            self.base_model = getattr(torchvision.models, 'resnet50')(True)
             if self.is_shift:
                 print('Adding temporal shift...')
                 from ops.temporal_shift import make_temporal_shift
@@ -153,7 +154,7 @@ class TSN(nn.Module):
                 make_non_local(self.base_model, self.num_segments)
 
             self.base_model.last_layer_name = 'fc'
-            self.input_size = 224
+            self.input_size = 128
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
 
@@ -479,7 +480,16 @@ class TSN(nn.Module):
 
     def get_augmentation(self, flip=True):
         if self.modality == 'RGB':
-            if flip:
+            if self.input_size == 128:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupScale(scale=0.6),
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                        GroupRandomGrayscale(p=0.001),
+                    ]
+                )
+            elif flip:
                 return torchvision.transforms.Compose(
                     [
                         GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),

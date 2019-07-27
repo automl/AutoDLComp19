@@ -18,7 +18,7 @@ pretrained_settings = {
                     # 'url': 'http://yjxiong.me/others/bn_inception-9f5701afb96c8044.pth',
                     'input_space':
                         'BGR',
-                    'input_size': [3, 224, 224],
+                    'input_size': [3, 128, 128],
                     'input_range': [0, 255],
                     'mean': [104, 117, 128],
                     'std': [1, 1, 1],
@@ -1817,12 +1817,12 @@ def bninception():
     
     
 def test():
-    x = torch.FloatTensor(64, 3, 224, 224).cuda()
+    x = torch.FloatTensor(64, 3, 128, 128).cuda()
     model = BNInception_full_pre(num_classes=1000).cuda()
     from torchsummary import summary
     logit = model(x)
     print(model)
-    print(summary(model, (3, 224, 224)))
+    print(summary(model, (3, 128, 128)))
 
 if __name__ == '__main__':
     test()
