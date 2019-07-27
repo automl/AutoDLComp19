@@ -37,8 +37,8 @@ import torchvision
 from opts import parser
 from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
-from AutoDL_sample_code_submission.dataset import TFDataset
-from AutoDL_sample_code_submission.dataloader import FixedSizeDataLoader
+from dataset_kakaobrain import TFDataset
+from dataloader_kakaobrain import FixedSizeDataLoader
 from transforms import (
     GroupCenterCrop, GroupNormalize, GroupScale, IdentityTransform, SelectSamples, Stack,
     ToPilFormat, ToTorchFormatTensor
@@ -50,7 +50,7 @@ class ParserMock():
     self._parser_args = parser.parse_known_args()[0]
     setattr(
       self._parser_args, 'finetune_model',
-      '/home/dingsda/autodl/AutoDLComp19/src/video3/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
+      './pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
     )
     setattr(self._parser_args, 'arch', 'Averagenet')
     setattr(self._parser_args, 'batch_size', 4)
@@ -59,7 +59,6 @@ class ParserMock():
     setattr(self._parser_args, 'epoch_frac', 0.1)
     setattr(self._parser_args, 'print', True)
     setattr(self._parser_args, 'classification_type', 'multiclass')
-
 
     if torch.cuda.device_count() == 1:
         try:
