@@ -21,7 +21,7 @@ def get_configspace(model_name):
     ################################################################
     # TRAINING
     lr = CSH.UniformFloatHyperparameter(
-        "lr", 1e-4, 0.5, default_value=0.001, log=True
+        "lr", 1e-6, 0.5, default_value=0.001, log=True
     )
     # weight_decay = CSH.UniformFloatHyperparameter(
     #     "weight_decay", 5e-7, 0.05, default_value=0.0005
@@ -36,9 +36,16 @@ def get_configspace(model_name):
                                 # weight_decay,
                                 # neurons,
                                 dropout])
+    elif "Averagenet" in model_name:
+        dropout = CSH.UniformFloatHyperparameter(
+            "dropout", 0., 0.95, default_value=0.5)
+        cs.add_hyperparameters([lr,
+                                # weight_decay,
+                                # neurons,
+                                dropout])
     elif "TSM" in model_name:
         dropout = CSH.UniformFloatHyperparameter(
-            "dropout", 0.25, 0.95, default_value=0.5)
+            "dropout", 0.0, 0.95, default_value=0.5)
         cs.add_hyperparameters([lr,
                                 # weight_decay,
                                 # neurons,

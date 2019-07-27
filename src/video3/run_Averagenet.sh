@@ -11,39 +11,39 @@
 #############################################
 #--- training hyperparams ---
 #'jhmdb21','jester','somethingv2','hmdb51','kinetics','epickitchen_verb','epickitchen_noun','yfcc100m'
-dataset_name="hmdb51"
+dataset_name="ucf101"
 #'ECOfull_py'','resnet50','resnet101','ECO','ECOfull'
-netType="ECOfull_py"
-batch_size=16 #32 for 4 2080/titan X
+netType="Averagenet"
+batch_size=150 #32 for 4 2080/titan X
 num_segments=16
 consensus_type=avg #{avg, identity}
-iter_size=1 # batch_size * iter_size = pseudo_batch_size
+iter_size=1 # batch_size * iter_size = pseudo_batch_size 
 num_workers=32 #10 for 4 2080/ 32 for 4 titan X
 optimizer="SGD"
-val_perc=0.02
-class_limit=100
+val_perc=0.5
+class_limit=10000
 #############################################
 #--- bohb hyperparams ---
 bohb_iterations=10
-min_budget=0.005
-max_budget=0.02
-eta=3
+min_budget=0.05
+max_budget=0.1
+eta=2
 bohb_workers=1
 #############################################
-#--- finetunint hyperparams ---
+#--- finetunint hyperparams --- 
 # Set training = True and params, to run finetune instead of BOHB
 training=False
-finetune_model="pretrained_models/ECOfull_py_model.pth.tar"
-dropout=0.8
-learning_rate=0.001
-epochs=80
+finetune_model='pretrained_models/Averagenet_reza_kinetics_Adam_finetune__rgb_model_best.pth.tar'
+dropout=0.2
+learning_rate=0.00001
+epochs=20
 #############################################
-#--- Multilabel hyperparams ---
+#--- Multilabel hyperparams --- 
 prediction_threshold=0.7
 #############################################
 # Folders
 mainFolder="experiments/"
-subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${training}_noFreeze_r1/"
+subFolder="run_${netType}_${dataset_name}_${optimizer}_finetune_${training}_r1/"
 mkdir -p ${mainFolder}
 mkdir -p ${mainFolder}${subFolder}training
 echo "Current network folder "
@@ -68,7 +68,7 @@ if [ "x${checkpointIter}" != "x" ]; then
     --num_segments ${num_segments} \
     --gd 50 \
     --training ${training} \
-    --lr ${learning_rate} --num_saturate 4 \
+    --lr ${learning_rate} --num_saturate 3 \
     --dropout ${dropout} \
     --epochs ${epochs} \
     --val_perc ${val_perc} \
@@ -80,6 +80,8 @@ if [ "x${checkpointIter}" != "x" ]; then
     --consensus_type ${consensus_type} \
     --eval-freq 1 \
     --no_partialbn \
+    --freeze_eco \
+    --freeze_interval 2 50 0 0 \
     --nesterov "True" \
     --optimizer ${optimizer} \
     --bohb_iterations ${bohb_iterations} \
@@ -115,6 +117,8 @@ else
     --consensus_type ${consensus_type} \
     --eval-freq 1 \
     --no_partialbn \
+    --freeze_eco \
+    --freeze_interval 2 50 0 0 \
     --bohb_iterations ${bohb_iterations} \
     --bohb_workers ${bohb_workers}  \
     --min_budget ${min_budget} \

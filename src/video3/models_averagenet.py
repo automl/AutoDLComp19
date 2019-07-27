@@ -3,27 +3,31 @@ import sys
 import torch.nn.functional as F
 from tf_model_zoo.ECOfull_py.bninception import bninception_pretrained
 from tf_model_zoo.ECOfull_py.efficientnet import EfficientNet
-from tf_model_zoo.ECOfull_py.resnet_3d import resnet3d, resnet3d_eff
 from torch import nn
 from transforms import *
 
 
-class ECOfull_efficient(nn.Module):
+class Averagenet_feature(nn.Module):
     def __init__(
         self,
         num_classes,
         num_segments,
         modality,
+        base=None,
+        # BNinception: 1024; Effnet: 1280,
+        n_output_base=1280,
         dropout=0.8,
-        partial_bn=True,
-        freeze_eco=False,
+        input_size=224,
+        partial_bn=False,
+        freeze=False,
         freeze_interval=[2, 63, -1, -1],
-        input_size=224
+        scaleing=0.7,
     ):
-        super(ECOfull_efficient, self).__init__()
+        super(Averagenet_feature, self).__init__()
         self.num_segments = num_segments
         self.channel = 3
         self.reshape = True
+        self.scaling = scaleing
         
         self.dropout = dropout
         self.alphadrop = nn.AlphaDropout(p=self.dropout)
@@ -32,18 +36,26 @@ class ECOfull_efficient(nn.Module):
         self.input_size = input_size
         self.input_mean = [0.485, 0.456, 0.406]
         self.input_std = [0.229, 0.224, 0.225]
-        self.scale = 1
-        self.efficientnet = EfficientNet(num_classes=num_classes,
-            width_coef=self.scale, depth_coef=self.scale, 
-            scale=self.scale,dropout_ratio=0.2,
-            pl=0.2, endpoint=112, arch='full')
-        self.resnet3d_eff = resnet3d_eff()
-        # changed, because we dont get bias out of efficientnet
-        self.fc = nn.Linear(1792, num_classes)  # kernels * segments = 40*16 = 640
+        if base is None:
+            self.base = EfficientNet(num_classes=num_classes,
+                                width_coef=self.scaling, 
+                                depth_coef=self.scaling ,
+                                scale=self.scaling ,
+                                dropout_ratio=0.2,
+                                pl=0.2,
+                                endpoint=112,
+                                arch='full')
+            #bninception_pretrained(
+            #        num_classes=1000, eco_version="full")
+            #efficientnet_b0(
+            #    num_classes=num_classes, arch='full')
+        else:
+            self.base = base
+        self.n_output_base = int(n_output_base*self.scaling)
+        self.fc = nn.Linear(self.n_output_base , num_classes)
         self._enable_pbn = partial_bn
-        self._enable_freeze_eco = freeze_eco
+        self._enable_freeze = freeze
         self._freeze_interval = freeze_interval
-        self._enable_pbn = partial_bn
         if partial_bn:
             self.partialBN(True)
 
@@ -54,31 +66,24 @@ class ECOfull_efficient(nn.Module):
 
         sample_len = 3
         bs, c_ns, h, w = input.shape
-
+        #print('ip : ', input.shape)
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
-
+        #print('ip_view : ', input.shape)
         # base model: BNINception pretrained model
-        x, x_b = self.efficientnet(input)
-        # print('bs : ', x.shape, x_b.shape)
+        _, x = self.base(input)
+        #print('bs : ', x.shape)
         
         #print('shape after effnet: ', x.shape)
         # reshape (2D to 3D)
-        x = x.view(bs, 40, self.num_segments, 28, 28)  # (bs, 40, ns, 28, 28)
+        x = x.view(bs, self.num_segments, self.n_output_base)  # (bs, 40, ns, 28, 28)
         #print('shape after segments effnet: ', x.shape)
-        # 3D resnet
-        x = self.resnet3d_eff(x)  # (bs, 512, 4, 7, 7)
-
         # global average pooling (modified version to fit for arbitrary the number of segments
-        bs, _, fc, fh, hw = x.shape
-        x = F.avg_pool3d(x, kernel_size=(fc, fh, hw), stride=(1, 1, 1))
-
-        # fully connected
-        x = x.view(-1, 512)
-
-        x_b = x_b.view(-1, self.num_segments, 1280)
-        x_b = torch.mean(x_b, dim=1)  # avg over frames
-        
-        x = torch.cat((x, x_b), 1)  # concatenate output of 3D net and 2D net
+        #x = F.adaptive_avg_pool1d(x, self.n_output_base)
+        bs, seg, _ = x.shape
+        x = F.avg_pool2d(x, kernel_size=(seg,1), stride=(1,1))
+        #print('shape after pool: ', x.shape)
+        x = x.view(-1, self.n_output_base)
+        #print('shape after view: ', x.shape)
         x = self.alphadrop(x)
         x = self.fc(x)
 
@@ -92,13 +97,13 @@ class ECOfull_efficient(nn.Module):
         Override the default train() to freeze the BN parameters
         :return:
         """
-        super(ECOfull_efficient, self).train(mode)
+        super(Averagenet_feature, self).train(mode)
         count = 0
-        if self._enable_freeze_eco:
+        if False: # TODO: why always true??self._enable_freeze:
             print(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
-            for m in self.efficientnet.modules():
+            for m in self.base.modules():
                 # print(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
@@ -131,7 +136,7 @@ class ECOfull_efficient(nn.Module):
         count = 0
         if self._enable_pbn:
             print("Freezing BatchNorm2D except the first one.")
-            for m in self.efficientnet.modules():
+            for m in self.base.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
                     if count >= (2 if self._enable_pbn else 1):
@@ -202,18 +207,6 @@ class ECOfull_efficient(nn.Module):
                     )
         return [
             {
-                'params': first_3d_conv_weight,
-                'lr_mult': 5 if self.modality == 'Flow' else 1,
-                'decay_mult': 1,
-                'name': "first_3d_conv_weight"
-            },
-            {
-                'params': first_3d_conv_bias,
-                'lr_mult': 10 if self.modality == 'Flow' else 2,
-                'decay_mult': 0,
-                'name': "first_3d_conv_bias"
-            },
-            {
                 'params': normal_weight,
                 'lr_mult': 1,
                 'decay_mult': 1,
@@ -242,57 +235,85 @@ class ECOfull_efficient(nn.Module):
         return self.input_size * 256 // 224
 
     def get_augmentation(self):
-        if self.input_size == 128:
+        if self.modality == 'RGB':
+            if self.input_size == 128:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupScale(scale=0.6),
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                        GroupRandomGrayscale(p=0.001),
+                    ]
+                )
+            else:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                    ]
+                )
+        elif self.modality == 'Flow':
             return torchvision.transforms.Compose(
                 [
-                    GroupScale(scale=0.6),
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
-                    GroupRandomHorizontalFlip(is_flow=False),
-                    GroupRandomGrayscale(p=0.001),
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
+                    GroupRandomHorizontalFlip(is_flow=True)
                 ]
             )
-        else:
+        elif self.modality == 'RGBDiff':
             return torchvision.transforms.Compose(
                 [
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
                     GroupRandomHorizontalFlip(is_flow=False)
                 ]
             )
 
 
-class ECOfull(nn.Module):
+class Averagenet(nn.Module):
     def __init__(
         self,
         num_classes,
         num_segments,
         modality,
+        base=None,
+        # BNinception: 1024; Effnet: 1280,
+        n_output_base=1280,
         dropout=0.8,
-        partial_bn=True,
-        freeze_eco=False,
+        input_size=224,
+        partial_bn=False,
+        freeze=False,
         freeze_interval=[2, 63, -1, -1],
-        input_size=224
+        scaleing=0.7,
+
     ):
-        super(ECOfull, self).__init__()
+        super(Averagenet, self).__init__()
         self.num_segments = num_segments
+        self.num_classes = num_classes
         self.channel = 3
         self.reshape = True
+        self.scaling = scaleing
         self.dropout = dropout
+        self.alphadrop = nn.AlphaDropout(p=self.dropout)
         self.modality = modality
 
         self.input_size = input_size
         self.input_mean = [0.485, 0.456, 0.406]
         self.input_std = [0.229, 0.224, 0.225]
-
-        self.bninception_pretrained = bninception_pretrained(
-            num_classes=1000, eco_version="full"
-        )
-        self.resnet3d = resnet3d()
-        self.fc = nn.Linear(1536, num_classes)
-
+        if base is None:
+            self.base = EfficientNet(num_classes=num_classes, width_coef=.7, 
+                                depth_coef=.7, scale=.7,dropout_ratio=0.2,
+                                pl=0.2, endpoint=112, arch='full')
+            #bninception_pretrained(
+            #        num_classes=1000, eco_version="full")
+            #efficientnet_b0(
+            #    num_classes=num_classes, arch='full')
+        else:
+            self.base = base
+        self.n_output_base = int(n_output_base*self.scaling)
+        self.fc = nn.Linear(self.n_output_base,
+                            num_classes)
         self._enable_pbn = partial_bn
-        self._enable_freeze_eco = freeze_eco
+        self._enable_freeze = freeze
         self._freeze_interval = freeze_interval
-        self._enable_pbn = partial_bn
         if partial_bn:
             self.partialBN(True)
 
@@ -300,30 +321,15 @@ class ECOfull(nn.Module):
         """
         input: (bs, c*ns, h, w)
         """
-
         sample_len = 3
         bs, c_ns, h, w = input.shape
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
         # base model: BNINception pretrained model
-        x, x_b = self.bninception_pretrained(input)
-        #print('bs : ', x.shape, x_b.shape)
-        # reshape (2D to 3D)
-        x = x.view(bs, 96, self.num_segments, 28, 28)  # (bs, 96, ns, 28, 28)
-
-        # 3D resnet
-        x = self.resnet3d(x)  # (bs, 512, 4, 7, 7)
-
-        # global average pooling (modified version to fit for arbitrary the number of segments
-        bs, _, fc, fh, hw = x.shape
-        x = F.avg_pool3d(x, kernel_size=(fc, fh, hw), stride=(1, 1, 1))
-
-        # fully connected
-        x = x.view(-1, 512)
-
-        x_b = x_b.view(-1, self.num_segments, 1024)
-        x_b = torch.mean(x_b, dim=1)  # avg over frames
-        x = torch.cat((x, x_b), 1)  # concatenate output of 3D net and 2D net
-        x = self.fc(x)
+        _, x = self.base(input)
+        self.alphadrop(x)
+        x = self.fc(x)        
+        x = x.view(-1, self.num_segments, self.num_classes)  # (bs, 96, ns, 28, 28)
+        x = torch.mean(x, dim=1)  # avg over frames
 
         return x
 
@@ -335,13 +341,13 @@ class ECOfull(nn.Module):
         Override the default train() to freeze the BN parameters
         :return:
         """
-        super(ECOfull, self).train(mode)
+        super(Averagenet, self).train(mode)
         count = 0
-        if self._enable_freeze_eco:
+        if False: # TODO: why always true??self._enable_freeze:
             print(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
-            for m in self.bninception_pretrained.modules():
+            for m in self.base.modules():
                 # print(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
@@ -374,7 +380,7 @@ class ECOfull(nn.Module):
         count = 0
         if self._enable_pbn:
             print("Freezing BatchNorm2D except the first one.")
-            for m in self.bninception_pretrained.modules():
+            for m in self.base.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
                     if count >= (2 if self._enable_pbn else 1):
@@ -445,18 +451,6 @@ class ECOfull(nn.Module):
                     )
         return [
             {
-                'params': first_3d_conv_weight,
-                'lr_mult': 5 if self.modality == 'Flow' else 1,
-                'decay_mult': 1,
-                'name': "first_3d_conv_weight"
-            },
-            {
-                'params': first_3d_conv_bias,
-                'lr_mult': 10 if self.modality == 'Flow' else 2,
-                'decay_mult': 0,
-                'name': "first_3d_conv_bias"
-            },
-            {
                 'params': normal_weight,
                 'lr_mult': 1,
                 'decay_mult': 1,
@@ -485,91 +479,37 @@ class ECOfull(nn.Module):
         return self.input_size * 256 // 224
 
     def get_augmentation(self):
-        if self.input_size == 128:
+        if self.modality == 'RGB':
+            if self.input_size == 128:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupScale(scale=0.6),
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                        GroupRandomGrayscale(p=0.001),
+                    ]
+                )
+            else:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                    ]
+                )
+        elif self.modality == 'Flow':
             return torchvision.transforms.Compose(
                 [
-                    GroupScale(scale=0.6),
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
-                    GroupRandomHorizontalFlip(is_flow=False),
-                    GroupRandomGrayscale(p=0.001),
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
+                    GroupRandomHorizontalFlip(is_flow=True)
                 ]
             )
-        else:
+        elif self.modality == 'RGBDiff':
             return torchvision.transforms.Compose(
                 [
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                    GroupMultiScaleCrop(self.input_size, [1, .875, .75]),
                     GroupRandomHorizontalFlip(is_flow=False)
                 ]
             )
 
-class ECO(nn.Module):
-    def __init__(self, num_classes, num_segments, dropout=0.8, input_size=224):
-        super(ECO, self).__init__()
-        self.num_segments = num_segments
-        self.channel = 3
-        self.reshape = True
-        self.dropout = dropout
 
-        self.input_size = input_size
 
-        # self.bninception = bninception()
-        self.efficientnet = bninception_pretrained(
-            num_classes=1000, eco_version="lite"
-        )
-        self.resnet3d = resnet3d()
-
-        self.fc = nn.Linear(512, num_classes)
-
-    def forward(self, input):
-        """
-        input: (bs, c*ns, h, w)
-        """
-
-        sample_len = 3
-        bs, c_ns, h, w = input.shape
-        input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
-
-        # base model: BNINception pretrained model
-        x = self.efficientnet(input)
-
-        # reshape (2D to 3D)
-        x = x.view(bs, 40, self.num_segments, 28, 28)  # (bs, 96, ns, 28, 28)
-
-        # 3D resnet
-        x = self.resnet3d(x)  # (bs, 512, 4, 7, 7)
-
-        # global average pooling (modified version to fit for arbitrary the number of segments
-        bs, _, fc, fh, hw = x.shape
-        x = F.avg_pool3d(x, kernel_size=(fc, fh, hw), stride=(1, 1, 1))
-
-        # fully connected
-        x = x.view(-1, 512)
-        x = self.fc(x)
-
-        return x
-
-    @property
-    def crop_size(self):
-        return self.input_size
-
-    @property
-    def scale_size(self):
-        return self.input_size * 256 // 224
-
-    def get_augmentation(self):
-        if self.input_size == 128:
-            return torchvision.transforms.Compose(
-                [
-                    GroupScale(scale=0.6),
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
-                    GroupRandomHorizontalFlip(is_flow=False),
-                    GroupRandomGrayscale(p=0.001),
-                ]
-            )
-        else:
-            return torchvision.transforms.Compose(
-                [
-                    GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
-                    GroupRandomHorizontalFlip(is_flow=False)
-                ]
-            )

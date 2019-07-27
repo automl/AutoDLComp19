@@ -52,7 +52,8 @@ class TSNDataSet(data.Dataset):
         self.test_mode = test_mode
         self.classification_type = classification_type
 
-        self.label_limiter = LabelLimiter(list_file, additional_file, des_num_labels=num_labels)
+        if self.classification_type == 'multilabel':
+            self.label_limiter = LabelLimiter(list_file, additional_file, des_num_labels=num_labels)
 
         if self.modality == 'RGBDiff':
             self.new_length += 1  # Diff needs one more image to calculate diff

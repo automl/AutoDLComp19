@@ -5,7 +5,7 @@ import random
 import numpy as np
 import torch
 import torchvision
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageChops
 
 
 class GroupRandomCrop(object):
@@ -41,6 +41,35 @@ class GroupCenterCrop(object):
 
     def __call__(self, img_group):
         return [self.worker(img) for img in img_group]
+
+
+class GroupRandomGrayscale(object):
+    def __init__(self, output_channels=3, p=0.1):
+        self.p = p
+        self.worker = torchvision.transforms.Grayscale(
+                            num_output_channels=output_channels)
+        
+    def __call__(self, img_group):
+        if self.p >= random.random():
+            return [self.worker(img) for img in img_group]
+        else: 
+            return img_group
+
+
+class GroupResize(object):
+    """ Rescales the input PIL.Image to the given 'size'.
+    'size' will be the size of the smaller edge.
+    For example, if height > width, then image will be
+    rescaled to (size * height / width, size)
+    size: size of the smaller edge
+    interpolation: Default: PIL.Image.BICUBIC
+    """
+    def __init__(self, size):
+        self.worker = torchvision.transforms.Resize(size)
+
+    def __call__(self, img_group):
+        return [self.worker(img) for img in img_group]
+    
 
 
 class GroupRandomHorizontalFlip(object):
@@ -81,18 +110,35 @@ class GroupNormalize(object):
 
 
 class GroupScale(object):
-    """ Rescales the input PIL.Image to the given 'size'.
-    'size' will be the size of the smaller edge.
-    For example, if height > width, then image will be
-    rescaled to (size * height / width, size)
-    size: size of the smaller edge
-    interpolation: Default: PIL.Image.BILINEAR
+    """ Rescales the input PIL.Image to the given 'scale'
+    keeps acpect ratio.
+    size: scale of the output image
+    interpolation: Default: PIL.Image.BICUBIC
     """
-
-    def __init__(self, size, interpolation=Image.BILINEAR):
-        self.worker = torchvision.transforms.Resize(size, interpolation)
+            
+    def __init__(self, scale=1, interpolation=Image.BICUBIC):
+        self.scale = scale
+        self.interpolation = interpolation
+        self.w, self.h, self.ow, self.oh = (None, )*4
+        self.worker = None
 
     def __call__(self, img_group):
+        w, h = img_group[0].size
+        if w != self.w or h != self.h:
+            self.w = w
+            self.h = h
+            if w < h:
+                self.ow = int(self.scale * w)
+                self.oh = int(self.ow * h / w)
+                self.worker = torchvision.transforms.Resize(
+                        (self.ow, self.oh), self.interpolation)
+            else:
+                self.oh = int(self.scale * h)
+                self.ow = int(self.oh * w / h)
+                self.worker = torchvision.transforms.Resize(
+                        (self.ow, self.oh), self.interpolation)
+            
+    
         return [self.worker(img) for img in img_group]
 
 
@@ -395,3 +441,48 @@ if __name__ == "__main__":
         ]
     )
     print(trans2(color_group))
+
+
+class Cutout(object):
+    """Randomly mask out one or more patches from an image.
+    Args:
+        n_holes (int): Number of patches to cut out of each image.
+        length (int): The length (in pixels) of each square patch.
+    """
+    def __init__(self, n_holes, length):
+        self.n_holes = n_holes
+        self.length = length
+
+    def __call__(self, img_group):
+        """
+        Args:
+            img (Tensor): Tensor image of size (C, H, W).
+        Returns:
+            Tensor: Image with n_holes of dimension length x length cut out of it.
+        """
+        h = img_group[0].size[0]
+        w = img_group[0].size[1]
+
+        mask = np.ones((h, w), np.float32)
+
+        for n in range(self.n_holes):
+            y = np.random.randint(h)
+            x = np.random.randint(w)
+
+            y1 = int(np.clip(y - self.length // 2, 0, h))
+            y2 = int(np.clip(y + self.length // 2, 0, h))
+            x1 = int(np.clip(x - self.length // 2, 0, w))
+            x2 = int(np.clip(x + self.length // 2, 0, w))
+
+            mask[y1: y2, x1: x2] = 0.
+
+        image_mode = img_group[0].mode
+        # for torch tensors
+        # mask = torch.from_numpy(mask)
+        # mask = mask.expand((len(image_mode), h, w))
+        # for np.arrays
+        # TODO: Check if PIL.ImageChops.logical_and is faster
+        mask = np.repeat(mask[np.newaxis,:, :], 3, axis=0)
+        mask =  Image.fromarray(mask, image_mode)
+        
+        return [ImageChops.multiply(img, mask) for img in img_group]

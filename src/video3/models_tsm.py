@@ -6,7 +6,7 @@
 from ops.basic_ops import ConsensusModule
 from torch import nn
 from torch.nn.init import constant_, normal_
-from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
+from transforms import *
 import numpy as np
 import torch
 import torchvision
@@ -154,7 +154,7 @@ class TSN(nn.Module):
                 make_non_local(self.base_model, self.num_segments)
 
             self.base_model.last_layer_name = 'fc'
-            self.input_size = 224
+            self.input_size = 128
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
 
@@ -480,7 +480,16 @@ class TSN(nn.Module):
 
     def get_augmentation(self, flip=True):
         if self.modality == 'RGB':
-            if flip:
+            if self.input_size == 128:
+                return torchvision.transforms.Compose(
+                    [
+                        GroupScale(scale=0.6),
+                        GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
+                        GroupRandomHorizontalFlip(is_flow=False),
+                        GroupRandomGrayscale(p=0.001),
+                    ]
+                )
+            elif flip:
                 return torchvision.transforms.Compose(
                     [
                         GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
