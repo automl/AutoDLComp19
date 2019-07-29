@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import logging
-
+import time
 import torch
 from torch.utils.data import Dataset
 import numpy as np
@@ -43,9 +43,12 @@ class TFDataset(Dataset):
         if self.transform is None:
             return example, label
         else:
-            return self.transform(example), label
+            #t1 = time.time()
+            example_transform = self.transform(example)
+            #print('TIMING TRANSFORM: ' + str(time.time()-t1))
+            return example_transform, label
 
-    def scan(self, samples=1000000, with_tensors=False, is_batch=False, device=None, half=False):
+    def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
         shapes, counts, tensors = [], [], []
         for i in range(min(self.num_samples, samples)):
             try:
@@ -57,7 +60,6 @@ class TFDataset(Dataset):
 
             shape = example.shape
             count = np.sum(label, axis=None if not is_batch else -1)
-
             shapes.append(shape)
             counts.append(count)
             if with_tensors:
@@ -79,7 +81,7 @@ class TFDataset(Dataset):
 
         info = {
             'count': len(counts),
-            'is_multiclass': counts.max() > 1.0,
+            'is_multilabel': counts.max() > 1.01,
             'example': {
                 'shape': [int(v) for v in np.median(shapes, axis=0)],  # 1, width, height, channels
             },

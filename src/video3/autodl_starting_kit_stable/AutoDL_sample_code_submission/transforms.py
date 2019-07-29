@@ -411,7 +411,7 @@ class ToTorchFormatTensor(object):
 
 class SelectSamples(object):
     """
-    given a video as 5D torch array, randomly select sample images
+    given a video as 5D torch array, randomly select sample images within segments
     """
 
     def __init__(self, num_samples):
@@ -419,7 +419,15 @@ class SelectSamples(object):
 
     def __call__(self, pics):
         samples = pics.shape[0]
-        samples_select = np.random.randint(samples, size=self.num_samples)
+        if samples <= self.num_samples:
+            samples_select = np.linspace(0, samples-1, self.num_samples, dtype=int)
+            print(samples_select)
+        else:
+            samples_select = np.zeros(self.num_samples, dtype=int)
+            bounds = np.linspace(0, samples-1, self.num_samples+1, dtype=int)
+            for i in range(self.num_samples):
+                samples_select[i] = np.random.randint(bounds[i], bounds[i+1])
+        # room for improvement: the last frame is never chosen
         return pics[samples_select]
 
 
