@@ -66,5 +66,6 @@ def main(*argv):
   print("Now you should find them under the directory: {}"\
         .format(public_date_dir))
 
+
 if __name__ == '__main__':
   main(sys.argv)
