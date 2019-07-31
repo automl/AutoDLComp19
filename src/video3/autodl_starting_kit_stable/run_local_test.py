@@ -109,18 +109,18 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200):
   remove_dir(score_dir)
   ingestion_process.start()
   scoring_process.start()
-  detailed_results_page = os.path.join(starting_kit_dir,
-                                       'AutoDL_scoring_output',
-                                       'detailed_results.html')
-  detailed_results_page = os.path.abspath(detailed_results_page)
-
+  # detailed_results_page = os.path.join(starting_kit_dir,
+  #                                      'AutoDL_scoring_output',
+  #                                      'detailed_results.html')
+  # detailed_results_page = os.path.abspath(detailed_results_page)
+  #
   # Open detailed results page in a browser
-  time.sleep(2)
-  for i in range(30):
-    if os.path.isfile(detailed_results_page):
-      webbrowser.open('file://'+detailed_results_page, new=2)
-      break
-      time.sleep(1)
+  # time.sleep(2)
+  # for i in range(30):
+  #   if os.path.isfile(detailed_results_page):
+  #     webbrowser.open('file://'+detailed_results_page, new=2)
+  #     break
+  #     time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -130,7 +130,7 @@ if __name__ == '__main__':
                                      'AutoDL_sample_data', 'miniciao')
   default_code_dir = os.path.join(default_starting_kit_dir,
                                      'AutoDL_sample_code_submission')
-  default_time_budget = 1200
+  default_time_budget = 30
 
   tf.flags.DEFINE_string('dataset_dir', default_dataset_dir,
                         "Directory containing the content (e.g. adult.data/ + "

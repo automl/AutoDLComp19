@@ -33,6 +33,7 @@ import tensorflow as tf
 import time
 import subprocess
 import torchvision
+import _pickle as pickle
 from opts import parser
 from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
@@ -48,43 +49,47 @@ class ParserMock():
     # mock class for handing over the correct arguments
     def __init__(self):
         self._parser_args = parser.parse_known_args()[0]
+        self.load_manual_parameters()
+        self.load_bohb_parameters()
+        self.load_apex()
+
+    def load_manual_parameters(self):
+        # manually set parameters
         setattr(
             self._parser_args, 'finetune_model',
-            #'./AutoDL_sample_code_submission/1pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-            './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            './AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
         )
         setattr(self._parser_args, 'arch', 'Averagenet')
-        setattr(self._parser_args, 'batch_size', 64)
+        setattr(self._parser_args, 'batch_size', 32)
         setattr(self._parser_args, 'num_segments', 8)
         setattr(self._parser_args, 'optimizer', 'Adam')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
 
-        # setattr(
-        #   self._parser_args, 'finetune_model',
-        #   './AutoDL_sample_code_submission/pretrained_models/somethingv2_rgb_epoch_16_checkpoint.pth.tar'
-        # )
-        # setattr(self._parser_args, 'arch', 'TSM')
-        # setattr(self._parser_args, 'batch_size', 32)
-        # setattr(self._parser_args, 'modality', 'RGB')
-        # setattr(self._parser_args, 'classification_type', 'multiclass')
-        # setattr(self._parser_args, 'shift', True)
-        # setattr(self._parser_args, 'shift_div', 9)
-        # setattr(self._parser_args, 'shift_place', 'blockres')
-        # setattr(self._parser_args, 'epoch_frac', 0.1)
-        # setattr(self._parser_args, 'dense_sample', True)
-        # setattr(self._parser_args, 'input_size', 224)
-        # setattr(self._parser_args, 'print', True)
-        # setattr(self._parser_args, 'time_mult', 10000)
+    def load_bohb_parameters(self):
+        # parameters from bohb_auc
+        path = os.path.join(os.getcwd(), 'bohb_config.txt')
+        if os.path.isfile(path):
+            with open(path, 'rb') as file:
+                logger.info('FOUND BOHB CONFIG, OVERRIDING PARAMETERS')
+                bohb_cfg = pickle.load(file)
+                logger.info('BOHB_CFG: ' + str(bohb_cfg))
+                for key, value in bohb_cfg.items():
+                    logger.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
+                    setattr(self._parser_args, key, value)
+            os.remove(path)
 
+    def load_apex(self):
+        # apex
         if torch.cuda.device_count() == 1:
             try:
                 from apex import amp
                 setattr(self._parser_args, 'apex_available', True)
             except Exception:
                 pass
-            print('Apex =', self._parser_args.apex_available)
+            logger.info('Apex = ' + str(self._parser_args.apex_available))
 
     def set_attr(self, attr, val):
         setattr(self._parser_args, attr, val)
@@ -102,7 +107,7 @@ class Model(object):
           metadata: an AutoDLMetadata object. Its definition can be found in
               AutoDL_ingestion_program/dataset.py
         """
-        print('INIT')
+        logger.info("INIT START: " + str(time.time()))
         super().__init__()
         self.time_start = time.time()
         self.done_training = False
@@ -113,7 +118,7 @@ class Model(object):
         row_count, col_count = self.metadata.get_matrix_size(0)
         channel = self.metadata.get_num_channels(0)
         sequence_size = self.metadata.get_sequence_size()
-        print('INPUT SHAPE :', row_count, col_count, channel, sequence_size)
+        print('INPUT SHAPE : ', row_count, col_count, channel, sequence_size)
 
         parser = ParserMock()
         parser.set_attr('num_classes', self.num_classes)
@@ -184,10 +189,10 @@ class Model(object):
 
         # initial config during first round
         if int(self.training_round) == 1:
-            print('TRAINING: FIRST ROUND')
+            logger.info('TRAINING: FIRST ROUND')
             # show directory structure
-            for root, subdirs, files in os.walk(os.getcwd()):
-                print(root)
+            # for root, subdirs, files in os.walk(os.getcwd()):
+            #     logger.info(root)
             # get multiclass/multilabel information
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10)
             info = ds_temp.scan()
@@ -195,6 +200,7 @@ class Model(object):
                 setattr(self.parser_args, 'classification_type', 'multilabel')
             else:
                 setattr(self.parser_args, 'classification_type', 'multiclass')
+            # load proper criterion for multiclass/multilabel
             self.criterion = load_loss_criterion(self.parser_args)
 
         t2 = time.time()
@@ -234,7 +240,7 @@ class Model(object):
         brk = False
         while brk == False:
             for i, (data, labels) in enumerate(dl):
-                print('training: ' + str(i))
+                logger.info('training: ' + str(i))
                 labels_format = format_labels(labels, self.parser_args)
                 labels_format = labels_format.cuda()
                 data.cuda()
@@ -293,7 +299,7 @@ class Model(object):
         t1 = time.time()
 
         if int(self.testing_round) == 1:
-            print('TESTING: FIRST ROUND')
+            logger.info('TESTING: FIRST ROUND')
             ds_temp = TFDataset(session=self.session,
                                 dataset=dataset,
                                 num_samples=10000000)
@@ -331,7 +337,7 @@ class Model(object):
         t4 = time.time()
 
         for i, (data, _) in enumerate(dl):
-            print('testing: ' + str(i))
+            logger.info('testing: ' + str(i))
             data.cuda()
             output = self.model(data)
             if predictions is None:
