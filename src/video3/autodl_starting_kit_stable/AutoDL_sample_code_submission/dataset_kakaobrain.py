@@ -12,8 +12,10 @@ import tensorflow as tf
 LOGGER = logging.getLogger(__name__)
 
 
+
+
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples, transform=None):
+    def __init__(self, session, dataset, num_samples, transform=None, scale=None):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
@@ -35,7 +37,12 @@ class TFDataset(Dataset):
     def __getitem__(self, index):
         session = self.session if self.session is not None else tf.Session()
         try:
+
             example, label = session.run(self.next_element)
+            #with tf.device('/device:GPU:0'):
+            #example = tf.image.resize_images(example,
+            #                              size=(190, 190),
+            #                              preserve_aspect_ratio=True)
         except tf.errors.OutOfRangeError:
             self.reset()
             raise StopIteration
@@ -78,7 +85,7 @@ class TFDataset(Dataset):
 
         shapes = np.array(shapes)
         counts = np.array(counts) if not is_batch else np.concatenate(counts)
-
+        # TODO: speed up by averaging directly instad of going over all samples again.
         info = {
             'count': len(counts),
             'is_multilabel': counts.max() > 1.01,
@@ -92,13 +99,12 @@ class TFDataset(Dataset):
                 'median': np.median(counts),
             }
         }
-
         if with_tensors:
             return info, tensors
         return info
 
 
-class TransformDataset(Dataset):
+class TaransformDataset(Dataset):
     def __init__(self, dataset, transform=None, index=None):
         self.dataset = dataset
         self.transform = transform

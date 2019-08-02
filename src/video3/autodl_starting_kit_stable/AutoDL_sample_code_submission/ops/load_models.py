@@ -110,8 +110,8 @@ def load_model_and_optimizer(parser_args, dropout, lr):
         optimizer = torch.optim.Adam(policies,
                                      lr)
 
-    if not parser_args.apex_available:
-        model = torch.nn.DataParallel(model).cuda()
+    #if not parser_args.apex_available:
+    #    model = torch.nn.DataParallel(model).cuda()
     ############################################################
     # Model Training with resume option
     model_dict = model.state_dict()
@@ -264,7 +264,7 @@ def load_model_and_optimizer(parser_args, dropout, lr):
         # Apex seems to have a problem loading pretrained
         # therefore again load model to gpu
         # return model.cuda(), optimizer
-    return model, optimizer
+    return model.cuda(), optimizer
 
 
 def load_loss_criterion(parser_args):

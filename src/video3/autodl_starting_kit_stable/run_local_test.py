@@ -112,7 +112,7 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200):
   # detailed_results_page = os.path.join(starting_kit_dir,
   #                                      'AutoDL_scoring_output',
   #                                      'detailed_results.html')
-  # detailed_results_page = os.path.abspath(detailed_results_page)
+  # detailed_results_page = os.path.abspath(ddetailed_results_page)
   #
   # Open detailed results page in a browser
   # time.sleep(2)
@@ -127,10 +127,10 @@ if __name__ == '__main__':
   default_starting_kit_dir = _HERE()
   # The default dataset is 'miniciao' under the folder AutoDL_sample_data/
   default_dataset_dir = os.path.join(default_starting_kit_dir,
-                                     'AutoDL_sample_data', 'miniciao')
+                                     'AutoDL_public_data', 'Kreatur')
   default_code_dir = os.path.join(default_starting_kit_dir,
                                      'AutoDL_sample_code_submission')
-  default_time_budget = 30
+  default_time_budget = 600
 
   tf.flags.DEFINE_string('dataset_dir', default_dataset_dir,
                         "Directory containing the content (e.g. adult.data/ + "

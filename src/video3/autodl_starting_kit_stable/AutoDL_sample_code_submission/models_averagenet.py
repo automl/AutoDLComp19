@@ -239,7 +239,7 @@ class Averagenet_feature(nn.Module):
             if self.input_size == 128:
                 return torchvision.transforms.Compose(
                     [
-                        GroupScale(scale=0.6),
+                        #GroupScale(scale=0.6),
                         GroupMultiScaleCrop(self.input_size, [1, .875, .75, .66]),
                         GroupRandomHorizontalFlip(is_flow=False),
                         GroupRandomGrayscale(p=0.001),
