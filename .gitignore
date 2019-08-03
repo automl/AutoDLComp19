@@ -112,6 +112,14 @@ venv.bak/
 # Experiments and data
 experiments/cluster_oe/*
 datasets/*
+*.pickle
+*.tfrecord
+*.solution
+*.textproto
+*.info
+
+# PyCharm
+.idea
 
 # .miniconda
 .miniconda/bin/

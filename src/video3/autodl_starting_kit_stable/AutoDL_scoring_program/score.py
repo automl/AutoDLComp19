@@ -600,6 +600,10 @@ class IngestionError(Exception):
 class ScoringError(Exception):
   pass
 
+def write_final_score_to_file(score, score_dir):
+    with open(os.path.join(score_dir, 'final_score.txt'), "w") as file:
+        file.write(str(score))
+
 # =============================== MAIN ========================================
 
 if __name__ == "__main__":
@@ -727,6 +731,7 @@ if __name__ == "__main__":
                                                   scoring_function,
                                                   score_dir,
                                                   is_multiclass_task)
+          print('CURRENT SCORE: ' + str(score))
           num_preds = num_preds_new
           logger.info("Current area under learning curve for {}: {:.4f}"\
                     .format(basename, score))
@@ -784,5 +789,7 @@ if __name__ == "__main__":
                   .format(ingestion_duration) +
                   "The score of your algorithm on the task '{}' is: {:.6f}."\
                   .format(basename, score))
+
+    write_final_score_to_file(score, score_dir)
 
     logger.info("[Scoring terminated]")
