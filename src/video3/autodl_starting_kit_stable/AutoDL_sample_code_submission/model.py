@@ -34,6 +34,7 @@ import time
 import subprocess
 import torchvision
 import _pickle as pickle
+from functools import partial
 from opts import parser
 from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
@@ -67,6 +68,7 @@ class ParserMock():
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
+        setattr(self._parser_args, 'splits', [85, 15])
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
@@ -109,7 +111,15 @@ class Model(object):
         """
         logger.info("INIT START: " + str(time.time()))
         super().__init__()
+
+        # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
+        # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
+        # for your network do not vary
+        # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
+        torch.backends.cudnn.benchmark = True
+
         self.time_start = time.time()
+        self.test_time = []
         self.done_training = False
         self.metadata = metadata
         self.num_classes = self.metadata.get_output_size()
@@ -130,6 +140,7 @@ class Model(object):
         self.model.cuda()
 
         self.training_round = 0  # flag indicating if we are in the first round of training
+        self.last_val_err = np.Inf  # number of last known validation error
         self.testing_round = 0  # flag indicating if we are in the first round of testing
         self.num_samples_training = None  # number of training samples
         self.num_samples_testing = None  # number of test samples
@@ -202,6 +213,22 @@ class Model(object):
                 setattr(self.parser_args, 'classification_type', 'multiclass')
             # load proper criterion for multiclass/multilabel
             self.criterion = load_loss_criterion(self.parser_args)
+            if self.parser_args.apex_available:
+                from apex import amp
+
+                def scaled_loss_helper(loss, optimizer):
+                    with amp.scale_loss(loss, optimizer) as scale_loss:
+                        scale_loss.backward()
+
+                def amp_loss(predictions, labels, loss_fn, optimizer):
+                    loss = loss_fn(predictions, labels)
+                    if hasattr(optimizer, '_amp_stash'):
+                        loss.backward = partial(scaled_loss_helper, loss=loss, optimizer=optimizer)
+                    return loss
+
+                self.criterion = partial(
+                    amp_loss, loss_fn=self.criterion, optimizer=self.optimizer
+                )
 
         t2 = time.time()
 
@@ -216,54 +243,113 @@ class Model(object):
             ToTorchFormatTensor(div=False),
             GroupNormalize(input_mean, input_std)])
 
-        torch.set_grad_enabled(True)
-        self.model.train()
-
         t3 = time.time()
 
-        ds = TFDataset(session=self.session,
-                       dataset=dataset,
-                       num_samples=10000000,
-                       transform=transform)
+        # [train_percent, validation_percent, ...]
+        split_percentages = self.parser_args.splits / np.sum(self.parser_args.splits)
+        split_num = np.round((self.num_examples_train * split_percentages))
+        assert(sum(split_num) == self.num_examples_train)
 
-        dl = FixedSizeDataLoader(ds,
-                                 steps=10000000,
-                                 batch_size=self.parser_args.batch_size,
-                                 shuffle=True,
-                                 num_workers=0,
-                                 pin_memory=True,
-                                 drop_last=False)
+        dataset_remaining = dataset
+        dataset_train = dataset_remaining.take(split_num[0])
+        dataset_remaining = dataset.skip(split_num[0])
+        dataset_val = dataset_remaining.take(split_num[1])
+        dataset_remaining = dataset_remaining.skip(split_num[1])
+
+        ds_train = TFDataset(
+            session=self.session,
+            dataset=dataset_train,
+            num_samples=10000000,
+            transform=transform
+        )
+
+        dl_train = FixedSizeDataLoader(
+            ds_train,
+            steps=10000000,
+            batch_size=self.parser_args.batch_size,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        ds_val = TFDataset(
+            session=self.session,
+            dataset=dataset_val,
+            num_samples=10000000,
+            transform=transform
+        )
+
+        dl_val = FixedSizeDataLoader(
+            ds_val,
+            steps=10000000,
+            batch_size=self.parser_args.batch_size,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
 
         t4 = time.time()
 
         t_train = time.time()
-        brk = False
-        while brk == False:
-            for i, (data, labels) in enumerate(dl):
-                logger.info('training: ' + str(i))
-                labels_format = format_labels(labels, self.parser_args)
-                labels_format = labels_format.cuda()
-                data.cuda()
-                labels_var = torch.autograd.Variable(labels_format)
-                data_var = torch.autograd.Variable(data)
+        make_prediction = False
+        self.model.train()
+        while not make_prediction:
+            # Set train mode before we go into the train loop over an epoch
+            for i, (data, labels) in enumerate(dl_train):
+                self.optimizer.zero_grad()
 
-                output = self.model(data_var)
-                loss = self.criterion(output, labels_var)
+                output = self.model(data.cuda())
+                labels = format_labels(labels, self.parser_args).cuda()
+
+                loss = self.criterion(output, labels)
                 loss.backward()
                 self.optimizer.step()
-                self.optimizer.zero_grad()
 
                 if i == 0:
                     subprocess.run(["nvidia-smi"])
 
                 t_cur = time.time()
 
-                # early out
                 t_diff = transform_time_abs(t_cur - self.time_start) - \
                          transform_time_abs(t_train - self.time_start)
+
                 if t_diff > self.parser_args.t_diff:
-                    brk = True
-                    break
+                    # Disable validation based decisions in the last 3min
+                    if len(self.test_time) > 0 and remaining_time_budget - (
+                        t_cur
+                        - t_train
+                        - np.mean(self.test_time)
+                        - np.std(self.test_time)
+                    ) < 180:
+                        make_prediction = True
+                        break
+
+                    val_error = np.Inf
+
+                    tempargs = self.parser_args
+                    tempargs.evaluate = True
+
+                    self.model.eval()
+                    with torch.no_grad():
+                        for i, (vdata, vlabels) in enumerate(dl_val):
+                            vlabels = format_labels(vlabels, tempargs).cuda()
+                            voutput = self.model(vdata.cuda())
+
+                            if np.isinf(val_error):
+                                val_err = self.criterion(voutput, vlabels)
+                            else:
+                                val_err += self.criterion(voutput, vlabels)
+                    self.model.train()
+
+                    logger.info('validation: {0}'.format(val_err))
+                    if self.last_val_err > val_err:
+                        self.last_val_err = val_err
+                        make_prediction = True
+                        break
+                    t_train = time.time()
+                    logger.info('BACK TO TRAINING')
 
         self.training_round += 1
         self.done_training = True
@@ -318,32 +404,34 @@ class Model(object):
             GroupCenterCrop(self.model_for_loader.crop_size),
             Stack(roll=True),
             ToTorchFormatTensor(div=False),
-            GroupNormalize(input_mean, input_std)])
-        self.model.eval()
-        self.model.cuda()
-        torch.set_grad_enabled(False)
+            GroupNormalize(input_mean, input_std)
+        ])
         predictions = None
 
         t3 = time.time()
-        ds = TFDataset(session=self.session,
-                       dataset=dataset,
-                       num_samples=self.num_samples_testing,
-                       transform=transform)
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=self.num_samples_testing,
+            transform=transform
+        )
 
-        dl = torch.utils.data.DataLoader(ds,
-                                         batch_size=self.parser_args.batch_size,
-                                         drop_last=False)
+        dl = torch.utils.data.DataLoader(
+            ds,
+            batch_size=self.parser_args.batch_size,
+            drop_last=False
+        )
 
         t4 = time.time()
-
-        for i, (data, _) in enumerate(dl):
-            logger.info('testing: ' + str(i))
-            data.cuda()
-            output = self.model(data)
-            if predictions is None:
-                predictions = output
-            else:
-                predictions = torch.cat((predictions, output), 0)
+        self.model.eval()
+        with torch.no_grad():
+            for i, (data, _) in enumerate(dl):
+                data = data.cuda()
+                output = self.model(data)
+                if predictions is None:
+                    predictions = output
+                else:
+                    predictions = torch.cat((predictions, output), 0)
 
         self.done_training = False
 
@@ -356,7 +444,7 @@ class Model(object):
                     '\n t5-t4 ' + str(t5 - t4))
 
         logger.info("TESTING END: " + str(time.time()))
-
+        self.test_time.append(t5 - t1)
         return predictions.cpu().numpy()
 
     ##############################################################################
