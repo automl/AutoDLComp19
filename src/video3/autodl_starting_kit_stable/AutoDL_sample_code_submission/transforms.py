@@ -449,6 +449,7 @@ class ToPilFormat(object):
             return lst
         else:
             # handle torch tensor
+            print('torch tensor')
             return [F.to_pil_image(pic) for pic in pics]
 
 

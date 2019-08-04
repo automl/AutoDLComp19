@@ -36,6 +36,8 @@ class TFDataset(Dataset):
         session = self.session if self.session is not None else tf.Session()
         try:
             example, label = session.run(self.next_element)
+            # example = torch.as_tensor(example)
+            # label = torch.as_tensor(example)
         except tf.errors.OutOfRangeError:
             self.reset()
             raise StopIteration
@@ -43,9 +45,7 @@ class TFDataset(Dataset):
         if self.transform is None:
             return example, label
         else:
-            #t1 = time.time()
             example_transform = self.transform(example)
-            #print('TIMING TRANSFORM: ' + str(time.time()-t1))
             return example_transform, label
 
     def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
