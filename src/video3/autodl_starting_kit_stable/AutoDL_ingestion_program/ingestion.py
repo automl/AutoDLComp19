@@ -249,7 +249,9 @@ if __name__=="__main__":
     path.append(ingestion_program_dir)
     path.append(code_dir)
     #IG: to allow submitting the starting kit as sample submission
-    path.append(code_dir + '/AutoDL_sample_code_submission')
+    # Changes here won't carry over
+    # Use "src/video3/autodl_starting_kit_stable" as current working dir
+    #path.append(code_dir + '/AutoDL_sample_code_submission')
     import data_io
     from dataset import AutoDLDataset # THE class of AutoDL datasets
 

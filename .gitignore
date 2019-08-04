@@ -148,3 +148,7 @@ colab_submission/
 
 # Pytorch
 *.pth
+
+src/video3/autodl_starting_kit_stable/AutoDL_public_data/*
+src/video3/autodl_starting_kit_stable/AutoDL_sample_result_submission/*
+src/video3/autodl_starting_kit_stable/AutoDL_scoring_output/*
