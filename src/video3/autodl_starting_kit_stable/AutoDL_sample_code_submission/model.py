@@ -40,7 +40,7 @@ from functools import partial
 from opts import parser
 from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
-from transforms import SelectSamples
+from transforms import SelectSamples, RandomCropPad
 from dataset_kakaobrain import TFDataset
 from dataloader_kakaobrain import FixedSizeDataLoader
 from wrapper_net import WrapperNet
@@ -58,11 +58,11 @@ class ParserMock():
         setattr(
             self._parser_args, 'finetune_model',
             './AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-            # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            #'./input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
         )
         setattr(self._parser_args, 'arch', 'Averagenet')
-        setattr(self._parser_args, 'batch_size', 64)
-        setattr(self._parser_args, 'num_segments', 4)
+        setattr(self._parser_args, 'batch_size', 128)
+        setattr(self._parser_args, 'num_segments', 2)
         setattr(self._parser_args, 'optimizer', 'Adam')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
@@ -134,7 +134,7 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
         self.model_main, self.optimizer = load_model_and_optimizer(
-            self.parser_args, 0.1, 0.001)
+            self.parser_args, 0.2, 0.005)
         self.model = WrapperNet(self.model_main)
         self.model.cuda()
 
@@ -190,7 +190,8 @@ class Model(object):
         t2 = time.time()
 
         transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments)])
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
 
 
         t3 = time.time()
@@ -243,11 +244,13 @@ class Model(object):
         t4 = time.time()
 
         t_train = time.time()
+
         make_prediction = False
         self.model.train()
         while not make_prediction:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
+                logger.info('train: ' + str(i))
                 self.optimizer.zero_grad()
 
                 output = self.model(data.cuda())
@@ -334,7 +337,8 @@ class Model(object):
         t2 = time.time()
 
         transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments)])
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
         predictions = None
 
         t3 = time.time()
@@ -355,6 +359,7 @@ class Model(object):
         self.model.eval()
         with torch.no_grad():
             for i, (data, _) in enumerate(dl):
+                logger.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)
                 if predictions is None:
