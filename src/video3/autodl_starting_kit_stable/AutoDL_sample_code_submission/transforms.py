@@ -411,7 +411,7 @@ class ToTorchFormatTensor(object):
 
 class SelectSamples(object):
     """
-    given a video as 5D torch array, randomly select sample images within segments
+    given a video 4D array, randomly select sample images within segments
     """
 
     def __init__(self, num_samples):
@@ -429,6 +429,47 @@ class SelectSamples(object):
                 samples_select[i] = np.random.randint(bounds[i], bounds[i+1])
         # room for improvement: the last frame is never chosen
         return pics[samples_select]
+
+
+class RandomCropPad(object):
+    def __init__(self, size_des):
+        self.size_des = size_des
+        print(self.size_des)
+
+    def __call__(self, pics):
+        row = pics.shape[1]
+        row_des = self.size_des
+        col = pics.shape[2]
+        col_des = self.size_des
+
+        if row <= row_des: # pad rows
+            row_pad_start = int(np.floor((row_des-row)/2))
+            row_pad_end = row + int(np.floor((row_des-row)/2))
+            row_start = 0
+            row_end = row
+        else: # crop rows
+            row_rand = np.random.random() * int(np.floor((row-row_des)))
+            row_pad_start = 0
+            row_pad_end = row_des
+            row_start = row_rand
+            row_end = row_des + row_rand
+        if col <= col_des: # pad columns
+            col_pad_start = int(np.floor((col_des-col)/2))
+            col_pad_end = col + int(np.floor((col_des-col)/2))
+            col_start = 0
+            col_end = col
+        else: # crop columns
+            col_rand = np.random.random() * int(np.floor((col-col_des)))
+            col_pad_start = 0
+            col_pad_end = col_des
+            col_start = col_rand
+            col_end = col_des + col_rand
+
+        pics_pad = np.zeros((pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype)
+        pics_pad[:,row_pad_start:row_pad_end,col_pad_start:col_pad_end,:] = pics[:,row_start:row_end,col_start:col_end,:]
+        return pics_pad
+
+
 
 
 class ToPilFormat(object):

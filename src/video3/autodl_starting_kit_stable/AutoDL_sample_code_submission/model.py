@@ -40,7 +40,7 @@ from functools import partial
 from opts import parser
 from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
-from transforms import SelectSamples
+from transforms import SelectSamples, RandomCropPad
 from dataset_kakaobrain import TFDataset
 from dataloader_kakaobrain import FixedSizeDataLoader
 from wrapper_net import WrapperNet
@@ -57,16 +57,16 @@ class ParserMock():
         # manually set parameters
         setattr(
             self._parser_args, 'finetune_model',
-            './AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-            # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            #'./AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
         )
         setattr(self._parser_args, 'arch', 'Averagenet')
         setattr(self._parser_args, 'batch_size', 64)
-        setattr(self._parser_args, 'num_segments', 4)
+        setattr(self._parser_args, 'num_segments', 1)
         setattr(self._parser_args, 'optimizer', 'Adam')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
-        setattr(self._parser_args, 't_diff', 1.0 / 50)
+        setattr(self._parser_args, 't_diff', 1.0 / 100)
         setattr(self._parser_args, 'splits', [85, 15])
 
     def load_bohb_parameters(self):
@@ -134,7 +134,7 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
         self.model_main, self.optimizer = load_model_and_optimizer(
-            self.parser_args, 0.1, 0.001)
+            self.parser_args, 0.1, 0.01)
         self.model = WrapperNet(self.model_main)
         self.model.cuda()
 
@@ -190,7 +190,8 @@ class Model(object):
         t2 = time.time()
 
         transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments)])
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
 
 
         t3 = time.time()
@@ -243,11 +244,20 @@ class Model(object):
         t4 = time.time()
 
         t_train = time.time()
+
+        # set dropout to zer for t_rel < 0.6
+        if transform_time_abs(remaining_time_budget) < 0.4:
+            self.model.dropout = 0.1
+        else:
+            self.model.dropout = 0
+
+
         make_prediction = False
         self.model.train()
         while not make_prediction:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
+                logger.info('train: ' + str(i))
                 self.optimizer.zero_grad()
 
                 output = self.model(data.cuda())
@@ -266,40 +276,44 @@ class Model(object):
                          transform_time_abs(t_train - self.time_start)
 
                 if t_diff > self.parser_args.t_diff:
-                    # Disable validation based decisions in the last 3min
-                    if len(self.test_time) > 0 and remaining_time_budget - (
-                        t_cur
-                        - t_train
-                        - np.mean(self.test_time)
-                        - np.std(self.test_time)
-                    ) < 180:
-                        make_prediction = True
-                        break
-
-                    val_error = np.Inf
-
-                    tempargs = self.parser_args
-                    tempargs.evaluate = True
-
-                    self.model.eval()
-                    with torch.no_grad():
-                        for i, (vdata, vlabels) in enumerate(dl_val):
-                            vlabels = format_labels(vlabels, tempargs).cuda()
-                            voutput = self.model(vdata.cuda())
-
-                            if np.isinf(val_error):
-                                val_err = self.criterion(voutput, vlabels)
-                            else:
-                                val_err += self.criterion(voutput, vlabels)
-                    self.model.train()
-
-                    logger.info('validation: {0}'.format(val_err))
-                    if self.last_val_err > val_err:
-                        self.last_val_err = val_err
-                        make_prediction = True
-                        break
-                    t_train = time.time()
-                    logger.info('BACK TO TRAINING')
+                    make_prediction = True
+                    break
+                #
+                # if t_diff > self.parser_args.t_diff:
+                #     # Disable validation based decisions in the last 3min
+                #     if len(self.test_time) > 0 and remaining_time_budget - (
+                #         t_cur
+                #         - t_train
+                #         - np.mean(self.test_time)
+                #         - np.std(self.test_time)
+                #     ) < 180:
+                #         make_prediction = True
+                #         break
+                #
+                #     val_error = np.Inf
+                #
+                #     tempargs = self.parser_args
+                #     tempargs.evaluate = True
+                #
+                #     self.model.eval()
+                #     with torch.no_grad():
+                #         for i, (vdata, vlabels) in enumerate(dl_val):
+                #             vlabels = format_labels(vlabels, tempargs).cuda()
+                #             voutput = self.model(vdata.cuda())
+                #
+                #             if np.isinf(val_error):
+                #                 val_err = self.criterion(voutput, vlabels)
+                #             else:
+                #                 val_err += self.criterion(voutput, vlabels)
+                #     self.model.train()
+                #
+                #     logger.info('validation: {0}'.format(val_err))
+                #     if self.last_val_err > val_err:
+                #         self.last_val_err = val_err
+                #         make_prediction = True
+                #         break
+                #     t_train = time.time()
+                #     logger.info('BACK TO TRAINING')
 
         self.training_round += 1
         self.done_training = True
@@ -334,7 +348,8 @@ class Model(object):
         t2 = time.time()
 
         transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments)])
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
         predictions = None
 
         t3 = time.time()
@@ -355,6 +370,7 @@ class Model(object):
         self.model.eval()
         with torch.no_grad():
             for i, (data, _) in enumerate(dl):
+                logger.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)
                 if predictions is None:

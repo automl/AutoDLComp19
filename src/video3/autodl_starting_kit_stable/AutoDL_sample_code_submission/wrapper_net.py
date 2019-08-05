@@ -17,9 +17,9 @@ class WrapperNet(nn.Module):
         self.augmentation = nn.Sequential(
             SwapAxes(),
             FormatChannels(3),
-            Interpolate((int(i_size * RESIZE_FACTOR),
-                         int(i_size * RESIZE_FACTOR))),
-            RandomCrop((i_size, i_size)),
+            # Interpolate((int(i_size * RESIZE_FACTOR),
+            #              int(i_size * RESIZE_FACTOR))),
+            # RandomCrop((i_size, i_size)),
             Stack(),
             Normalize())
 
@@ -28,19 +28,14 @@ class WrapperNet(nn.Module):
         self.augmentation = nn.Sequential(
             SwapAxes(),
             FormatChannels(3),
-            Interpolate((i_size, i_size)),
+            # Interpolate((i_size, i_size)),
             Stack(),
             Normalize())
 
 
     def forward(self, x):
-        t1 = time.time()
         x = self.augmentation(x)
-        t2 = time.time()
         x = self.model(x)
-        t3 = time.time()
-        print('TIMINGS AUGMENTATION: ' + str(t2-t1))
-        print('TIMINGS MODEL: ' +  str(t3-t2))
         return x
 
 
@@ -88,7 +83,7 @@ class Interpolate(nn.Module):
         # first squeeze first two dimensions to make it suitable for interpolation
         shape = x.shape
         x = x.view(-1,*shape[2:])
-        # do inerpolation
+        # do interpolation
         x = self.interp(x, size=self.size, mode='nearest')
         # and unsqueeeze dimensions again
         x = x.view(*shape[0:3],*self.size)
@@ -131,8 +126,8 @@ class Stack(nn.Module):
 
     def forward(self, x):
         shape = x.shape
-        shape_new = [x.shape[0], -1, *shape[-2:]]
-        x = x.view(*shape_new)
+        shape_new = [x.shape[0], x.shape[1]*x.shape[2],*shape[3:]]
+        x = x.contiguous().view(*shape_new)
         return x
 
 
