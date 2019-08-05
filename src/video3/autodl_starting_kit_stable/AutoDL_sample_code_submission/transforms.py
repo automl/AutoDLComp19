@@ -432,6 +432,10 @@ class SelectSamples(object):
 
 
 class RandomCropPad(object):
+    """
+    instead of resizing, crop/pad video to desired shape directly
+    """
+
     def __init__(self, size_des):
         self.size_des = size_des
         print(self.size_des)
@@ -448,7 +452,7 @@ class RandomCropPad(object):
             row_start = 0
             row_end = row
         else: # crop rows
-            row_rand = np.random.random() * int(np.floor((row-row_des)))
+            row_rand = int(np.random.random() * int(np.floor((row-row_des))))
             row_pad_start = 0
             row_pad_end = row_des
             row_start = row_rand
@@ -459,7 +463,7 @@ class RandomCropPad(object):
             col_start = 0
             col_end = col
         else: # crop columns
-            col_rand = np.random.random() * int(np.floor((col-col_des)))
+            col_rand = int(np.random.random() * int(np.floor((col-col_des))))
             col_pad_start = 0
             col_pad_end = col_des
             col_start = col_rand
