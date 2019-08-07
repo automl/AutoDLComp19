@@ -33,12 +33,9 @@ import tensorflow as tf
 import time
 import subprocess
 import torchvision
-import torch.nn as nn
-import torchvision.transforms.functional as F
 import _pickle as pickle
 from functools import partial
 from opts import parser
-from ops.load_dataloader import get_model_for_loader
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
 from transforms import SelectSamples, RandomCropPad
 from dataset_kakaobrain import TFDataset
@@ -57,11 +54,12 @@ class ParserMock():
         # manually set parameters
         setattr(
             self._parser_args, 'finetune_model',
-            './AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-            #'./input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            #'./AutoDL_sample_code_submission/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+            './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
         )
         setattr(self._parser_args, 'arch', 'Averagenet')
-        setattr(self._parser_args, 'batch_size', 128)
+        setattr(self._parser_args, 'batch_size_train', 128)
+        setattr(self._parser_args, 'batch_size_test', 256)
         setattr(self._parser_args, 'num_segments', 2)
         setattr(self._parser_args, 'optimizer', 'Adam')
         setattr(self._parser_args, 'modality', 'RGB')
@@ -146,6 +144,7 @@ class Model(object):
         self.is_multiclass = None  # multilabel or multiclass dataset?
 
         self.session = tf.Session()
+        logger.info("INIT END: " + str(time.time()))
 
     def train(self, dataset, remaining_time_budget=None):
         logger.info("TRAINING START: " + str(time.time()))
@@ -217,24 +216,7 @@ class Model(object):
         dl_train = FixedSizeDataLoader(
             ds_train,
             steps=10000000,
-            batch_size=self.parser_args.batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True,
-            drop_last=False
-        )
-
-        ds_val = TFDataset(
-            session=self.session,
-            dataset=dataset_val,
-            num_samples=10000000,
-            transform=transform
-        )
-
-        dl_val = FixedSizeDataLoader(
-            ds_val,
-            steps=10000000,
-            batch_size=self.parser_args.batch_size,
+            batch_size=self.parser_args.batch_size_train,
             shuffle=True,
             num_workers=0,
             pin_memory=True,
@@ -269,43 +251,10 @@ class Model(object):
                          transform_time_abs(t_train - self.time_start)
 
                 if t_diff > self.parser_args.t_diff:
-                    # Disable validation based decisions in the last 3min
-                    if len(self.test_time) > 0 and remaining_time_budget - (
-                        t_cur
-                        - t_train
-                        - np.mean(self.test_time)
-                        - np.std(self.test_time)
-                    ) < 180:
-                        make_prediction = True
-                        break
-
-                    val_error = np.Inf
-
-                    tempargs = self.parser_args
-                    tempargs.evaluate = True
-
-                    self.model.eval()
-                    with torch.no_grad():
-                        for i, (vdata, vlabels) in enumerate(dl_val):
-                            vlabels = format_labels(vlabels, tempargs).cuda()
-                            voutput = self.model(vdata.cuda())
-
-                            if np.isinf(val_error):
-                                val_err = self.criterion(voutput, vlabels)
-                            else:
-                                val_err += self.criterion(voutput, vlabels)
-                    self.model.train()
-
-                    logger.info('validation: {0}'.format(val_err))
-                    if self.last_val_err > val_err:
-                        self.last_val_err = val_err
-                        make_prediction = True
-                        break
-                    t_train = time.time()
-                    logger.info('BACK TO TRAINING')
+                    make_prediction = True
+                    break
 
         self.training_round += 1
-        self.done_training = True
 
         t5 = time.time()
 
@@ -351,7 +300,7 @@ class Model(object):
 
         dl = torch.utils.data.DataLoader(
             ds,
-            batch_size=self.parser_args.batch_size,
+            batch_size=self.parser_args.batch_size_test,
             drop_last=False
         )
 
@@ -367,7 +316,11 @@ class Model(object):
                 else:
                     predictions = torch.cat((predictions, output), 0)
 
-        self.done_training = False
+        # remove if needed: Only train for 5 mins in order to save time on the submissions
+        if remaining_time_budget < 900:
+            self.done_training = True
+        else:
+            self.done_training = False
 
         t5 = time.time()
 
