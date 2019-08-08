@@ -421,7 +421,6 @@ class SelectSamples(object):
         samples = pics.shape[0]
         if samples <= self.num_samples:
             samples_select = np.linspace(0, samples-1, self.num_samples, dtype=int)
-            print(samples_select)
         else:
             samples_select = np.zeros(self.num_samples, dtype=int)
             bounds = np.linspace(0, samples-1, self.num_samples+1, dtype=int)
