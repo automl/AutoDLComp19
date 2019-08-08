@@ -62,19 +62,21 @@ class ParserMock():
         # 'pretrained_models/BnT_Image_Input_128.tar'
         setattr(
             self._parser_args, 'finetune_model',
-            os.path.join(rootpath, 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar')
+            os.path.join(rootpath, 'pretrained_models/bnt_kinetics_input_128.pth.tar')
             # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
            
         )
-        setattr(self._parser_args, 'arch', 'Averagenet') # Averagenet or bninception
+        setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'batch_size_train', 128)
-        setattr(self._parser_args, 'batch_size_test', 256)
+        setattr(self._parser_args, 'batch_size_test', 128)
         setattr(self._parser_args, 'num_segments', 2)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
         setattr(self._parser_args, 'splits', [85, 15])
+        setattr(self._parser_args, 'train_out', 'fixed')
+
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
@@ -136,6 +138,7 @@ class Model(object):
         self.metadata = metadata
         self.num_classes = self.metadata.get_output_size()
         self.num_examples_train = self.metadata.size()
+        self.num_segments = None
 
         row_count, col_count = self.metadata.get_matrix_size(0)
         channel = self.metadata.get_num_channels(0)
@@ -156,7 +159,6 @@ class Model(object):
         self.testing_round = 0  # flag indicating if we are in the first round of testing
         self.num_samples_training = None  # number of training samples
         self.num_samples_testing = None  # number of test samples
-        self.is_multilabel = None  # multilabel or multiclass dataset?
 
         self.session = tf.Session()
         logger.info("INIT END: " + str(time.time()))
@@ -175,9 +177,16 @@ class Model(object):
 
         t2 = time.time()
 
+        if transform_time_abs(time.time() - self.time_start) < self.parser_args.num_segments_threshold:
+            self.num_segments = self.parser_args.num_segments
+        else:
+            self.num_segments = int(self.parser_args.num_segments) * int(self.parser_args.num_segments_multiplier)
+        print('')
+
         transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments),
+            SelectSamples(self.num_segments),
             RandomCropPad(self.model_main.input_size)])
+        self.model.model.num_segments = self.num_segments
 
         t3 = time.time()
 
@@ -218,43 +227,55 @@ class Model(object):
                 self.train_err = self.append_loss(self.train_err, loss)
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                # The first 15 seconds just train and make a prediction
-                if time.time() - self.time_start < 15:
-                    continue
-                elif self.testing_round == 0:
-                    self.make_prediction = True
-                    break
-
-                # The first 5min do grid-like predictions
-                if time.time() - self.time_start < 300:
-                    t_diff = (
-                        transform_time_abs(time.time() - self.time_start)
-                        - transform_time_abs(t_train - self.time_start)
-                    )
-                    if t_diff < self.parser_args.t_diff:
-                        continue
-                    else:
+                if self.parser_args.train_out == 'fixed':
+                    t_diff = (transform_time_abs(time.time() - self.time_start)
+                            - transform_time_abs(t_train - self.time_start))
+                    if t_diff > self.parser_args.t_diff:
                         self.make_prediction = True
                         break
 
-                # If the last train error improves upon the minimum of it's exponential moving average
-                # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
-                if self.train_err.size > 1:
-                    train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
-                    if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
-                        self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
-                        if self.val_err.size > 1:
-                            val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
-                            logger.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
-                            logger.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
-                            logger.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
-                            # If the last validation error improves upon the minimum of it's exponential moving average
-                            # by 10% with window self.train_err_ewm = 5, escalate to test.
-                            # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
-                            if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
-                                self.make_prediction = True
-                                break
-                            logger.info('BACK TO THE GYM')
+
+                elif self.parser_args.train_out == 'variable':
+                    # The first 15 seconds just train and make a prediction
+                    if time.time() - self.time_start < self.parser_args.t_out1:
+                        continue
+                    elif self.testing_round == 0:
+                        self.make_prediction = True
+                        break
+
+                    # The first 5min do grid-like predictions
+                    if time.time() - self.time_start < self.parser_args.t_out2:
+                        t_diff = (
+                            transform_time_abs(time.time() - self.time_start)
+                            - transform_time_abs(t_train - self.time_start)
+                        )
+                        if t_diff < self.parser_args.t_diff:
+                            continue
+                        else:
+                            self.make_prediction = True
+                            break
+
+                    # If the last train error improves upon the minimum of it's exponential moving average
+                    # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
+                    if self.train_err.size > 1:
+                        train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
+                        if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
+                            self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
+                            if self.val_err.size > 1:
+                                val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
+                                logger.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
+                                logger.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
+                                logger.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
+                                # If the last validation error improves upon the minimum of it's exponential moving average
+                                # by 10% with window self.train_err_ewm = 5, escalate to test.
+                                # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
+                                if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
+                                    self.make_prediction = True
+                                    break
+                                logger.info('BACK TO THE GYM')
+
+                else:
+                    print('unknown train_out parameter: ' + str(self.parser_args.train_out))
 
         subprocess.run(['nvidia-smi'])
         self.training_round += 1
@@ -272,6 +293,89 @@ class Model(object):
         logger.info("TRAINING END: " + str(time.time()))
         self.train_time.append(t5 - t1)
 
+
+    def test(self, dataset, remaining_time_budget=None):
+        # Check if this or the previous prediction is/was a final prediction
+        # and return None to stop the ingestion if a final prediction was made
+        if self.final_prediction_made:
+            logger.info('Total time trained: {0}s'.format(np.sum(self.train_time)))
+            self.done_training = True
+            return None
+        if self.make_final_prediction:
+            self.final_prediction_made = True
+
+        logger.info("TESTING START: " + str(time.time()))
+        logger.info("REMAINING TIME: " + str(remaining_time_budget))
+
+        self.testing_round += 1
+
+        t1 = time.time()
+
+        if int(self.testing_round) == 1:
+            scan_start = time.time()
+            ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
+            info = ds_temp.scan2()
+            self.num_samples_testing = info['num_samples']
+            logger.info('SCAN TIME: {0}'.format(time.time() - scan_start))
+            logger.info('TESTING: FIRST ROUND')
+
+        t2 = time.time()
+
+        transform = torchvision.transforms.Compose([
+            SelectSamples(self.num_segments),
+            RandomCropPad(self.model_main.input_size)])
+        predictions = None
+
+        t3 = time.time()
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=self.num_samples_testing,
+            transform=transform
+        )
+
+        dl = torch.utils.data.DataLoader(
+            ds,
+            batch_size=int(self.parser_args.batch_size_test/self.num_segments),
+            drop_last=False
+        )
+
+        t4 = time.time()
+        self.model.eval()
+        with torch.no_grad():
+            for i, (data, _) in enumerate(dl):
+                logger.info('test: ' + str(i))
+                data = data.cuda()
+                output = self.model(data)
+                if predictions is None:
+                    predictions = output
+                else:
+                    predictions = torch.cat((predictions, output), 0)
+
+        # remove if needed: Only train for 5 mins in order to save time on the submissions
+        if remaining_time_budget < 900:
+            self.done_training = True
+            return None
+
+        t5 = time.time()
+
+        logger.info(
+            '\nTIMINGS TESTING: ' +
+            '\n t2-t1 ' + str(t2 - t1) +
+            '\n t3-t2 ' + str(t3 - t2) +
+            '\n t4-t3 ' + str(t4 - t3) +
+            '\n t5-t4 ' + str(t5 - t4)
+        )
+
+        logger.info("TESTING END: " + str(time.time()))
+        self.test_time.append(t5 - t1)
+        return predictions.cpu().numpy()
+
+    ##############################################################################
+    #### Above 3 methods (__init__, train, test) should always be implemented ####
+    ##############################################################################
+
+
     def late_init(self, dataset):
         logger.info('TRAINING: FIRST ROUND')
         # show directory structure
@@ -287,14 +391,13 @@ class Model(object):
             num_samples = self.num_examples_train
         info = ds_temp.scan2(num_samples)
         logger.info('TRAIN SCAN TIME: {0}'.format(time.time() - scan_start))
-        self.is_multilabel = info['is_multilabel']
-        if self.is_multilabel:
+        if info['is_multilabel']:
             setattr(self.parser_args, 'classification_type', 'multilabel')
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
 
         self.model_main, self.optimizer = load_model_and_optimizer(
-            self.parser_args, 0.2, 0.005, info['min_shape'], info['max_shape'])
+            self.parser_args, self.parser_args.dropout, self.parser_args.lr, info['min_shape'], info['max_shape'], info['avg_shape'])
         self.model = WrapperNet(self.model_main)
         self.model.cuda()
 
@@ -341,7 +444,7 @@ class Model(object):
         dl_train = FixedSizeDataLoader(
             ds_train,
             steps=int(split_num[0]),
-            batch_size=self.parser_args.batch_size_train,
+            batch_size=int(self.parser_args.batch_size_train/self.num_segments),
             shuffle=True,
             num_workers=0,
             pin_memory=True,
@@ -358,7 +461,7 @@ class Model(object):
         dl_val = FixedSizeDataLoader(
             ds_val,
             steps=int(split_num[1]),
-            batch_size=self.parser_args.batch_size_train,
+            batch_size=int(self.parser_args.batch_size_train/self.num_segments),
             shuffle=True,
             num_workers=0,
             pin_memory=True,
@@ -418,88 +521,6 @@ class Model(object):
             err.iloc[-1, 0] / np.min(ema.iloc[:-1, 0])
             < 1 - threshold
         ).all()
-
-    def test(self, dataset, remaining_time_budget=None):
-        # Check if this or the previous prediction is/was a final prediction
-        # and return None to stop the ingestion if a final prediction was made
-        if self.final_prediction_made:
-            logger.info('Total time trained: {0}s'.format(np.sum(self.train_time)))
-            self.done_training = True
-            return None
-        if self.make_final_prediction:
-            self.final_prediction_made = True
-
-        logger.info("TESTING START: " + str(time.time()))
-        logger.info("REMAINING TIME: " + str(remaining_time_budget))
-
-        self.testing_round += 1
-
-        t1 = time.time()
-
-        if int(self.testing_round) == 1:
-            scan_start = time.time()
-            ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
-            info = ds_temp.scan2()
-            self.num_samples_testing = info['num_samples']
-            logger.info('SCAN TIME: {0}'.format(time.time() - scan_start))
-            logger.info('TESTING: FIRST ROUND')
-
-        t2 = time.time()
-
-        transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments),
-            RandomCropPad(self.model_main.input_size)])
-        predictions = None
-
-        t3 = time.time()
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=self.num_samples_testing,
-            transform=transform
-        )
-
-        dl = torch.utils.data.DataLoader(
-            ds,
-            batch_size=self.parser_args.batch_size_test,
-            drop_last=False
-        )
-
-        t4 = time.time()
-        self.model.eval()
-        with torch.no_grad():
-            for i, (data, _) in enumerate(dl):
-                logger.info('test: ' + str(i))
-                data = data.cuda()
-                output = self.model(data)
-                if predictions is None:
-                    predictions = output
-                else:
-                    predictions = torch.cat((predictions, output), 0)
-
-        # remove if needed: Only train for 5 mins in order to save time on the submissions
-        if remaining_time_budget < 900:
-            self.done_training = True
-            return None
-
-        t5 = time.time()
-
-        logger.info(
-            '\nTIMINGS TESTING: ' +
-            '\n t2-t1 ' + str(t2 - t1) +
-            '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3) +
-            '\n t5-t4 ' + str(t5 - t4)
-        )
-
-        logger.info("TESTING END: " + str(time.time()))
-        self.test_time.append(t5 - t1)
-        return predictions.cpu().numpy()
-
-    ##############################################################################
-    #### Above 3 methods (__init__, train, test) should always be implemented ####
-    ##############################################################################
-
 
 def format_labels(labels, parser_args):
     if parser_args.classification_type == 'multiclass':
