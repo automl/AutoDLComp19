@@ -207,12 +207,13 @@ class Model(object):
                     + np.std(self.test_time)
                 ) if len(self.test_time) > 0 else None
 
-                # Abort training and make final prediction if not enough time is left
-                if len(self.test_time) > 0 and time_remaining_minus_last_test < 10:
-                    logger.info('Making final prediciton!')
-                    self.make_final_prediction = True
-                    self.make_prediction = True
-                    break
+                if self.parser_args.train_out == 'variable':
+                    # Abort training and make final prediction if not enough time is left
+                    if len(self.test_time) > 0 and time_remaining_minus_last_test < 10:
+                        logger.info('Making final prediciton!')
+                        self.make_final_prediction = True
+                        self.make_prediction = True
+                        break
 
                 self.model.train()
                 self.optimizer.zero_grad()
@@ -226,6 +227,10 @@ class Model(object):
 
                 self.train_err = self.append_loss(self.train_err, loss)
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
+
+                t_diff = (transform_time_abs(time.time() - self.time_start)
+                          - transform_time_abs(t_train - self.time_start))
+                print(t_diff)
 
                 if self.parser_args.train_out == 'fixed':
                     t_diff = (transform_time_abs(time.time() - self.time_start)
@@ -352,10 +357,10 @@ class Model(object):
                 else:
                     predictions = torch.cat((predictions, output), 0)
 
-        # remove if needed: Only train for 5 mins in order to save time on the submissions
-        if remaining_time_budget < 900:
-            self.done_training = True
-            return None
+        # # remove if needed: Only train for 5 mins in order to save time on the submissions
+        # if remaining_time_budget < 900:
+        #     self.done_training = True
+        #     return None
 
         t5 = time.time()
 

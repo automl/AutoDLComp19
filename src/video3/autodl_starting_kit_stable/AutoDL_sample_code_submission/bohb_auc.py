@@ -17,7 +17,7 @@ def get_configspace(dataset):
     cs = CS.ConfigurationSpace()
     dataset_name = CSH.CategoricalHyperparameter('dataset_name', choices=[dataset])
     train_out = CSH.CategoricalHyperparameter('train_out', choices=['fixed', 'variable'])
-    t_diff = CSH.UniformFloatHyperparameter(name='t_diff', lower=5, upper=100, log=True)
+    t_diff = CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.2, log=True)
     t_out1 = CSH.UniformFloatHyperparameter(name='t_out1', lower=0.5, upper=30, log=True)
     t_out2 = CSH.UniformFloatHyperparameter(name='t_out2', lower=10, upper=300, log=True)
     dropout = CSH.UniformFloatHyperparameter(name='dropout', lower=0.05, upper=0.5, log=True)
@@ -47,7 +47,7 @@ def get_configuration(dataset_name):
     cfg = {}
     cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     cfg["dataset_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/' + dataset_name
-    cfg["bohb_min_budget"] = 30
+    cfg["bohb_min_budget"] = 60
     cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 3
     cfg["bohb_log_dir"] = "./logs"
