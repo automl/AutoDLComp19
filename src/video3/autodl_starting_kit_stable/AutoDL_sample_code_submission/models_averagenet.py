@@ -59,11 +59,11 @@ class Averagenet_feature(nn.Module):
         if partial_bn:
             self.partialBN(True)
 
-    def forward(self, input):
+    def forward(self, input, num_segments=0):
         """
         input: (bs, c*ns, h, w)
         """
-
+        if num_segments != 0: self.num_segments = num_segments
         sample_len = 3
         bs, c_ns, h, w = input.shape
         #print('ip : ', input.shape)
@@ -317,10 +317,11 @@ class Averagenet(nn.Module):
         if partial_bn:
             self.partialBN(True)
 
-    def forward(self, input):
+    def forward(self, input, num_segments=0):
         """
         input: (bs, c*ns, h, w)
         """
+        if num_segments != 0: self.num_segments = num_segments
         sample_len = 3
         bs, c_ns, h, w = input.shape
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)

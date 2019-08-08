@@ -56,6 +56,18 @@ def load_model_and_optimizer(parser_args, dropout, lr, min_input_size, max_input
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
             input_size=224)
+			
+    elif parser_args.arch == "bninception":
+        from models_ecopy import ECO_bninception
+        model = ECO_bninception(
+            dropout=dropout,
+            num_classes=parser_args.num_classes,
+            num_segments=parser_args.num_segments,
+            modality=parser_args.modality,
+            freeze_eco=parser_args.freeze_eco,
+            freeze_interval=parser_args.freeze_interval,
+                    input_size=128)
+			
     elif parser_args.arch == "ECOfull_efficient_py":
         from models_ecopy import ECOfull_efficient
         model = ECOfull_efficient(
@@ -150,7 +162,7 @@ def load_model_and_optimizer(parser_args, dropout, lr, min_input_size, max_input
     else:
         ###########
         # ECO
-        if "ECO" in parser_args.arch:
+        if "ECO" in parser_args.arch or "bninception" in parser_args.arch :
             new_state_dict = init_ECO(model_dict, parser_args)
             un_init_dict_keys = [k for k in model_dict.keys() if k
                                  not in new_state_dict]
@@ -309,11 +321,25 @@ def init_ECO(model_dict, parser_args):
                             format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
                     )
                 )
-        new_state_dict = {
-            k: v
-            for k, v in pretrained_dict['state_dict'].items()
-            if (k in model_dict) and (v.size() == model_dict[k].size())
-        }
+        # TODO: Nicer model loading, without iterating and exception
+        new_state_dict = {}
+        try: 
+            for k1, v in pretrained_dict['state_dict'].items():
+                for k2 in model_dict.keys():
+                    k = k1.replace('module.','')
+                    if k2 in k and (v.size() == model_dict[k2].size()):
+                        new_state_dict[k2] = v
+        except Exception:
+            for k1, v in pretrained_dict.items():
+                for k2 in model_dict.keys():
+                    k = k1.replace('module.','bninception_pretrained.')
+                    if k2 in k and (v.size() == model_dict[k2].size()):
+                        new_state_dict[k2] = v
+        #new_state_dict = {
+        #    k: v
+        #    for k, v in pretrained_dict['state_dict'].items()
+        #    if (k[7:] in model_dict) and (v.size() == model_dict[k].size())
+        #}
         print("*" * 50)
         print("Start finetuning ..")
 
@@ -321,8 +347,6 @@ def init_ECO(model_dict, parser_args):
 
 
 def init_Averagenet(model_dict, parser_args):
-    weight_url_2d = ('https://yjxiong.blob.core.windows.net/ssn-models'
-                     '/bninception_rgb_kinetics_init-d4ee618d3399.pth')
 
     if not os.path.exists(parser_args.finetune_model):
         print('Path or model file does not exist, can not load pretrained')
@@ -337,8 +361,9 @@ def init_Averagenet(model_dict, parser_args):
                 print(("=> loading model-finetune: '{}'".format(
                     parser_args.finetune_model)))
         else:
-            pretrained_dict = torch.load("pretrained_models"
-                                         "/bninception_rgb_kinetics_init-d4ee618d3399.pth")
+            print('No default model set')
+            #pretrained_dict = torch.load("pretrained_models"
+            #                             "/bninception_rgb_kinetics_init-d4ee618d3399.pth")
 
             if parser_args.print:
                 print(

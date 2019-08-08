@@ -55,16 +55,22 @@ class ParserMock():
     def load_manual_parameters(self):
         # manually set parameters
         rootpath = os.path.dirname(__file__)
+        print(rootpath)
+        print('+++'*30)
+        # 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+        # 'pretrained_models/bnt_kinetics_SGD_finetune__rgb.pth.tar'
+        # 'pretrained_models/BnT_Image_Input_128.tar'
         setattr(
             self._parser_args, 'finetune_model',
             os.path.join(rootpath, 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar')
             # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+           
         )
-        setattr(self._parser_args, 'arch', 'Averagenet')
+        setattr(self._parser_args, 'arch', 'Averagenet') # Averagenet or bninception
         setattr(self._parser_args, 'batch_size_train', 128)
         setattr(self._parser_args, 'batch_size_test', 256)
         setattr(self._parser_args, 'num_segments', 2)
-        setattr(self._parser_args, 'optimizer', 'Adam')
+        setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 't_diff', 1.0 / 50)

@@ -42,6 +42,7 @@ parser.add_argument(
         'ECO',
         'ECOfull',
         'Averagenet',
+        'bninception',
         'Averagenet_feature',])
 parser.add_argument('--num_segments', type=int, default=3)
 parser.add_argument('--class_limit', type=int, default=10000)
