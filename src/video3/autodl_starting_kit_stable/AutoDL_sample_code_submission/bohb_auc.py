@@ -13,9 +13,8 @@ from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB as BOHB
 
 
-def get_configspace(dataset):
+def get_configspace():
     cs = CS.ConfigurationSpace()
-    dataset_name = CSH.CategoricalHyperparameter('dataset_name', choices=[dataset])
     train_out = CSH.CategoricalHyperparameter('train_out', choices=['fixed', 'variable'])
     t_diff = CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.2, log=True)
     t_out1 = CSH.UniformFloatHyperparameter(name='t_out1', lower=0.5, upper=30, log=True)
@@ -26,7 +25,6 @@ def get_configspace(dataset):
     num_segments_multiplier = CSH.CategoricalHyperparameter('num_segments_multiplier', choices = [1,2,4])
     num_segments_threshold = CSH.UniformFloatHyperparameter(name='num_segments_threshold', lower=0.05, upper=0.5, log=True)
 
-    cs.add_hyperparameter(dataset_name)
     cs.add_hyperparameter(train_out)
     cs.add_hyperparameter(t_diff)
     cs.add_hyperparameter(t_out1)
@@ -47,7 +45,7 @@ def get_configuration(dataset_name):
     cfg = {}
     cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     cfg["dataset_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/' + dataset_name
-    cfg["bohb_min_budget"] = 60
+    cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 3
     cfg["bohb_log_dir"] = "./logs"
@@ -126,7 +124,7 @@ def runBOHB(cfg, dataset):
     )
 
     bohb = BOHB(
-        configspace=get_configspace(dataset),
+        configspace=get_configspace(),
         run_id=run_id,
         min_budget=cfg["bohb_min_budget"],
         max_budget=cfg["bohb_max_budget"],
