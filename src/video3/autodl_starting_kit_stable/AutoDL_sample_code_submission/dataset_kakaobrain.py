@@ -48,6 +48,34 @@ class TFDataset(Dataset):
             example_transform = self.transform(example)
             return example_transform, label
 
+    def scan2(self, samples=10000000):
+        # Same as scann but extracts the min/max shape and checks
+        # if the dataset is multilabeled
+        # TODO(Philipp J.): Can we do better than going over the whole
+        # to check this?
+        min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
+        max_shape = (-np.Inf, -np.Inf, -np.Inf, -np.Inf)
+        is_multilabel = False
+        count = 0
+        for i in range(min(self.num_samples, samples)):
+            try:
+                example, label = self.__getitem__(i)
+            except tf.errors.OutOfRangeError:
+                break
+            except StopIteration:
+                break
+            min_shape = np.minimum(min_shape, example.shape)
+            max_shape = np.maximum(max_shape, example.shape)
+            count += 1
+            if np.sum(label) > 1:
+                is_multilabel = True
+        return {
+            'num_samples': count,
+            'min_shape': min_shape,
+            'max_shape': max_shape,
+            'is_multilabel': is_multilabel,
+        }
+
     def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
         shapes, counts, tensors = [], [], []
         for i in range(min(self.num_samples, samples)):

@@ -7,7 +7,6 @@
   is_codalab_submission: false
   extra_packages: [
     .miniconda/envs/autodl/lib/python3.5/site-packages/hjson
-    .miniconda/envs/autodl/lib/python3.5/site-packages/amp_C.cpython-35m-x86_64-linux-gnu.so
   ]
   active_model_files: [  # With respect to model_dir
     resnet18-5c106cde
@@ -39,6 +38,7 @@
   mixed_precision_package: [
     .miniconda/envs/autodl/lib/python3.5/site-packages/apex
     .miniconda/envs/autodl/lib/python3.5/site-packages/apex-0.1-py3.5.egg-info
+    .miniconda/envs/autodl/lib/python3.5/site-packages/amp_C.cpython-35m-x86_64-linux-gnu.so
     .miniconda/envs/autodl/lib/python3.5/site-packages/apex_C.cpython-35m-x86_64-linux-gnu.so
     .miniconda/envs/autodl/lib/python3.5/site-packages/fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
     .miniconda/envs/autodl/lib/python3.5/site-packages/fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
