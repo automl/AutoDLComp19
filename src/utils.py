@@ -1,16 +1,12 @@
-import datetime
-
+import os
+import sys
+import logging
 import hjson
 
 
-def print_log(*content):
-    """Logging function. (could've also used `import logging`.)"""
-    now = datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S")
-    print("MODEL INFO: " + str(now) + " ", end="")
-    print(*content)
+BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
-# TODO(Danny): write a nice __repr__ using e.g., pprint
 class Config:
     def __init__(self, config_path):
         with open(config_path) as config_file:
@@ -19,3 +15,28 @@ class Config:
     def write(self, save_path):
         with open(save_path, "w") as save_file:
             save_file.write(hjson.dumps(self.__dict__))
+
+
+def get_logger():
+    """Set logging format to something like:
+            2019-04-25 12:52:51,924 INFO model.py: <message>
+    """
+    conf = Config(os.path.join(BASEDIR, "config.hjson"))
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, conf.log_level)
+    logger.setLevel(logging_level)
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s')
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging_level)
+    stdout_handler.setFormatter(formatter)
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+    stderr_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
+    logger.propagate = False
+    return logger
+
+
+LOGGER = get_logger()

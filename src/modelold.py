@@ -1,0 +1,540 @@
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS-IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Modified by: Zhengying Liu, Isabelle Guyon
+
+"""An example of code submission for the AutoDL challenge.
+
+It implements 3 compulsory methods ('__init__', 'train' and 'test') and
+an attribute 'done_training' for indicating if the model will not proceed more
+training due to convergence or limited time budget.
+
+To create a valid submission, zip model.py together with other necessary files
+such as Python modules/packages, pre-trained weights, etc. The final zip file
+should not exceed 300MB.
+"""
+
+import logging
+import numpy as np
+import pandas as pd
+import os
+import torch
+import sys
+import tensorflow as tf
+import time
+import subprocess
+import torchvision
+import _pickle as pickle
+from functools import partial
+from opts import parser
+from ops.load_models import load_loss_criterion, load_model_and_optimizer
+from transforms import SelectSamples, RandomCropPad
+from dataset_kakaobrain import TFDataset
+from dataloader_kakaobrain import FixedSizeDataLoader
+from wrapper_net import WrapperNet
+
+
+class ParserMock():
+    # mock class for handing over the correct arguments
+    def __init__(self):
+        self._parser_args = parser.parse_known_args()[0]
+        self.load_manual_parameters()
+        self.load_bohb_parameters()
+        self.load_apex()
+
+    def load_manual_parameters(self):
+        # manually set parameters
+        rootpath = os.path.dirname(__file__)
+        print(rootpath)
+        print('+++'*30)
+        # 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+        # 'pretrained_models/bnt_kinetics_SGD_finetune__rgb.pth.tar'
+        # 'pretrained_models/BnT_Image_Input_128.tar'
+        setattr(
+            self._parser_args, 'finetune_model',
+            os.path.join(rootpath, 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar')
+            # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
+           
+        )
+        setattr(self._parser_args, 'arch', 'Averagenet') # Averagenet or bninception
+        setattr(self._parser_args, 'batch_size_train', 128)
+        setattr(self._parser_args, 'batch_size_test', 256)
+        setattr(self._parser_args, 'num_segments', 2)
+        setattr(self._parser_args, 'modality', 'RGB')
+        
+        setattr(self._parser_args, 'optimizer', 'SGD')
+
+        setattr(self._parser_args, 'batch_size_train', 128)
+        setattr(self._parser_args, 'batch_size_test', 256)
+
+        setattr(self._parser_args, 'print', True)
+        setattr(self._parser_args, 't_diff', 1.0 / 50)
+        setattr(self._parser_args, 'splits', [85, 15])
+
+    def load_bohb_parameters(self):
+        # parameters from bohb_auc
+        path = os.path.join(os.getcwd(), 'bohb_config.txt')
+        if os.path.isfile(path):
+            with open(path, 'rb') as file:
+                logger.info('FOUND BOHB CONFIG, OVERRIDING PARAMETERS')
+                bohb_cfg = pickle.load(file)
+                logger.info('BOHB_CFG: ' + str(bohb_cfg))
+                for key, value in bohb_cfg.items():
+                    logger.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
+                    setattr(self._parser_args, key, value)
+            os.remove(path)
+
+    def load_apex(self):
+        # apex
+        if torch.cuda.device_count() == 1:
+            try:
+                from apex import amp
+                setattr(self._parser_args, 'apex_available', True)
+            except Exception:
+                pass
+            logger.info('Apex = ' + str(self._parser_args.apex_available))
+
+    def set_attr(self, attr, val):
+        setattr(self._parser_args, attr, val)
+
+    def parse_args(self):
+        return self._parser_args
+
+
+class Model(object):
+    """Trivial example of valid model. Returns all-zero predictions."""
+
+    def __init__(self, metadata):
+        """
+        Args:
+          metadata: an AutoDLMetadata object. Its definition can be found in
+              AutoDL_ingestion_program/dataset.py
+        """
+        logger.info("INIT START: " + str(time.time()))
+        super().__init__()
+
+        # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
+        # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
+        # for your network do not vary
+        # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
+        torch.backends.cudnn.benchmark = True
+
+        self.time_start = time.time()
+        self.train_time = []
+        self.test_time = []
+
+        self.done_training = False
+        self.make_prediction = False
+        self.make_final_prediction = False
+        self.final_prediction_made = False
+
+        self.metadata = metadata
+        self.num_classes = self.metadata.get_output_size()
+        self.num_examples_train = self.metadata.size()
+
+        row_count, col_count = self.metadata.get_matrix_size(0)
+        channel = self.metadata.get_num_channels(0)
+        sequence_size = self.metadata.get_sequence_size()
+        print('INPUT SHAPE : ', row_count, col_count, channel, sequence_size)
+
+        parser = ParserMock()
+        parser.set_attr('num_classes', self.num_classes)
+
+        self.parser_args = parser.parse_args()
+
+        self.train_err = pd.DataFrame()  # collect train error
+        self.train_ewm_window = 1  # window size of the exponential moving average
+        self.val_err = pd.DataFrame()  # collect train error
+        self.val_ewm_window = 1  # window size of the exponential moving average
+
+        self.training_round = 0  # flag indicating if we are in the first round of training
+        self.testing_round = 0  # flag indicating if we are in the first round of testing
+        self.num_samples_training = None  # number of training samples
+        self.num_samples_testing = None  # number of test samples
+        self.is_multilabel = None  # multilabel or multiclass dataset?
+
+        self.session = tf.Session()
+        logger.info("INIT END: " + str(time.time()))
+
+    def train(self, dataset, remaining_time_budget=None):
+        logger.info("TRAINING START: " + str(time.time()))
+        logger.info("REMAINING TIME: " + str(remaining_time_budget))
+
+        self.training_round += 1
+
+        t1 = time.time()
+
+        # initial config during first round
+        if int(self.training_round) == 1:
+            self.late_init(dataset)
+
+        t2 = time.time()
+
+        transform = torchvision.transforms.Compose([
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
+
+        t3 = time.time()
+
+        # [train_percent, validation_percent, ...]
+        dl_train, dl_val = self.split_dataset(dataset, transform)
+
+        t4 = time.time()
+
+        t_train = time.time()
+        self.make_prediction = False
+        while not self.make_prediction:
+            # Set train mode before we go into the train loop over an epoch
+            for i, (data, labels) in enumerate(dl_train):
+                # Calculate current remaining time - time to make a prediction
+                time_remaining_minus_last_test = remaining_time_budget - (
+                    time.time() - t_train
+                    + np.mean(self.test_time)
+                    + np.std(self.test_time)
+                ) if len(self.test_time) > 0 else None
+
+                # Abort training and make final prediction if not enough time is left
+                if len(self.test_time) > 0 and time_remaining_minus_last_test < 10:
+                    logger.info('Making final prediciton!')
+                    self.make_final_prediction = True
+                    self.make_prediction = True
+                    break
+
+                self.model.train()
+                self.optimizer.zero_grad()
+
+                output = self.model(data.cuda())
+                labels = format_labels(labels, self.parser_args).cuda()
+
+                loss = self.criterion(output, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                self.train_err = self.append_loss(self.train_err, loss)
+                logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
+
+                # The first 15 seconds just train and make a prediction
+                if time.time() - self.time_start < 15:
+                    continue
+                elif self.testing_round == 0:
+                    self.make_prediction = True
+                    break
+
+                # The first 5min do grid-like predictions
+                if time.time() - self.time_start < 300:
+                    t_diff = (
+                        transform_time_abs(time.time() - self.time_start)
+                        - transform_time_abs(t_train - self.time_start)
+                    )
+                    if t_diff < self.parser_args.t_diff:
+                        continue
+                    else:
+                        self.make_prediction = True
+                        break
+
+                # If the last train error improves upon the minimum of it's exponential moving average
+                # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
+                if self.train_err.size > 1:
+                    train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
+                    if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
+                        self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
+                        if self.val_err.size > 1:
+                            val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
+                            logger.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
+                            logger.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
+                            logger.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
+                            # If the last validation error improves upon the minimum of it's exponential moving average
+                            # by 10% with window self.train_err_ewm = 5, escalate to test.
+                            # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
+                            if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
+                                self.make_prediction = True
+                                break
+                            logger.info('BACK TO THE GYM')
+
+        subprocess.run(['nvidia-smi'])
+        self.training_round += 1
+
+        t5 = time.time()
+
+        logger.info(
+            '\nTIMINGS TRAINING: ' +
+            '\n t2-t1 ' + str(t2 - t1) +
+            '\n t3-t2 ' + str(t3 - t2) +
+            '\n t4-t3 ' + str(t4 - t3) +
+            '\n t5-t4 ' + str(t5 - t4)
+        )
+
+        logger.info("TRAINING END: " + str(time.time()))
+        self.train_time.append(t5 - t1)
+
+    def late_init(self, dataset):
+        logger.info('TRAINING: FIRST ROUND')
+        # show directory structure
+        # for root, subdirs, files in os.walk(os.getcwd()):
+        #     logger.info(root)
+        # get multiclass/multilabel information
+        ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=self.num_examples_train)
+        scan_start = time.time()
+        num_samples = 1
+        if np.any(
+            [e is None or e <= 0 for e in self.metadata.get_tensor_shape()]
+        ):
+            num_samples = self.num_examples_train
+        info = ds_temp.scan2(num_samples)
+        logger.info('TRAIN SCAN TIME: {0}'.format(time.time() - scan_start))
+        self.is_multilabel = info['is_multilabel']
+        if self.is_multilabel:
+            setattr(self.parser_args, 'classification_type', 'multilabel')
+        else:
+            setattr(self.parser_args, 'classification_type', 'multiclass')
+
+        self.model_main, self.optimizer = load_model_and_optimizer(
+            self.parser_args, 0.2, 0.005, info['min_shape'], info['max_shape'])
+        self.model = WrapperNet(self.model_main)
+        self.model.cuda()
+
+        # load proper criterion for multiclass/multilabel
+        self.criterion = load_loss_criterion(self.parser_args)
+        if self.parser_args.apex_available:
+            from apex import amp
+
+            def scaled_loss_helper(loss, optimizer):
+                with amp.scale_loss(loss, optimizer) as scale_loss:
+                    scale_loss.backward()
+
+            def amp_loss(predictions, labels, loss_fn, optimizer):
+                loss = loss_fn(predictions, labels)
+                if hasattr(optimizer, '_amp_stash'):
+                    loss.backward = partial(scaled_loss_helper, loss=loss, optimizer=optimizer)
+                return loss
+
+            self.criterion = partial(
+                amp_loss, loss_fn=self.criterion, optimizer=self.optimizer
+            )
+
+    def split_dataset(self, dataset, transform):
+        # [train_percent, validation_percent, ...]
+        split_percentages = self.parser_args.splits / np.sum(self.parser_args.splits)
+        split_num = np.round((self.num_examples_train * split_percentages))
+        assert(sum(split_num) == self.num_examples_train)
+
+        dataset.shuffle(self.num_examples_train)
+
+        dataset_remaining = dataset
+        dataset_train = dataset_remaining.take(split_num[0])
+        dataset_remaining = dataset.skip(split_num[0])
+        dataset_val = dataset_remaining.take(split_num[1])
+        dataset_remaining = dataset_remaining.skip(split_num[1])
+
+        ds_train = TFDataset(
+            session=self.session,
+            dataset=dataset_train,
+            num_samples=int(split_num[0]),
+            transform=transform
+        )
+
+        dl_train = FixedSizeDataLoader(
+            ds_train,
+            steps=int(split_num[0]),
+            batch_size=self.parser_args.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        ds_val = TFDataset(
+            session=self.session,
+            dataset=dataset_val,
+            num_samples=int(split_num[1]),
+            transform=transform
+        )
+
+        dl_val = FixedSizeDataLoader(
+            ds_val,
+            steps=int(split_num[1]),
+            batch_size=self.parser_args.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
+        self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
+
+        return dl_train, dl_val
+
+    def append_loss(self, err_list, loss):
+        # Convenience function to increase readability
+        return err_list.append(
+            [loss.detach().cpu().tolist()],
+            ignore_index=True
+        )
+
+    def evaluate_on(self, dl_val):
+        val_error = np.Inf
+
+        tempargs = self.parser_args
+        tempargs.evaluate = True
+
+        self.model.eval()
+        with torch.no_grad():
+            for i, (vdata, vlabels) in enumerate(dl_val):
+                vlabels = format_labels(vlabels, tempargs).cuda()
+                voutput = self.model(vdata.cuda())
+
+                if np.isinf(val_error):
+                    val_err = self.criterion(voutput, vlabels)
+                else:
+                    val_err += self.criterion(voutput, vlabels)
+        return val_err
+
+    def get_ema(self, err_df, ema_win):
+        # If there aren't enough elements shrink the window which is only possible with at least 2
+        # errors to compare.
+        return err_df.ewm(
+            span=np.min([err_df.size - 1, ema_win]),
+            min_periods=np.min([err_df.size - 1, ema_win])
+        ).mean()
+
+    def check_ema_improvement(self, err, ema, threshold):
+        # Convenience function to increase readability
+        # If threshold == 0 this boils down to lesser operation
+        return (
+            err.iloc[-1, 0] / ema.iloc[-1, 0]
+            < 1 - threshold
+        ).all()
+
+    def check_ema_improvement_min(self, err, ema, threshold):
+        # Convenience function to increase readability
+        # If threshold == 0 this boils down to lesser operation
+        return (
+            err.iloc[-1, 0] / np.min(ema.iloc[:-1, 0])
+            < 1 - threshold
+        ).all()
+
+    def test(self, dataset, remaining_time_budget=None):
+        # Check if this or the previous prediction is/was a final prediction
+        # and return None to stop the ingestion if a final prediction was made
+        if self.final_prediction_made:
+            logger.info('Total time trained: {0}s'.format(np.sum(self.train_time)))
+            self.done_training = True
+            return None
+        if self.make_final_prediction:
+            self.final_prediction_made = True
+
+        logger.info("TESTING START: " + str(time.time()))
+        logger.info("REMAINING TIME: " + str(remaining_time_budget))
+
+        self.testing_round += 1
+
+        t1 = time.time()
+
+        if int(self.testing_round) == 1:
+            scan_start = time.time()
+            ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
+            info = ds_temp.scan2()
+            self.num_samples_testing = info['num_samples']
+            logger.info('SCAN TIME: {0}'.format(time.time() - scan_start))
+            logger.info('TESTING: FIRST ROUND')
+
+        t2 = time.time()
+
+        transform = torchvision.transforms.Compose([
+            SelectSamples(self.parser_args.num_segments),
+            RandomCropPad(self.model_main.input_size)])
+        predictions = None
+
+        t3 = time.time()
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=self.num_samples_testing,
+            transform=transform
+        )
+
+        dl = torch.utils.data.DataLoader(
+            ds,
+            batch_size=self.parser_args.batch_size_test,
+            drop_last=False
+        )
+
+        t4 = time.time()
+        self.model.eval()
+        with torch.no_grad():
+            for i, (data, _) in enumerate(dl):
+                logger.info('test: ' + str(i))
+                data = data.cuda()
+                output = self.model(data)
+                if predictions is None:
+                    predictions = output
+                else:
+                    predictions = torch.cat((predictions, output), 0)
+
+        # remove if needed: Only train for 5 mins in order to save time on the submissions
+        if remaining_time_budget < 900:
+            self.done_training = True
+            return None
+
+        t5 = time.time()
+
+        logger.info(
+            '\nTIMINGS TESTING: ' +
+            '\n t2-t1 ' + str(t2 - t1) +
+            '\n t3-t2 ' + str(t3 - t2) +
+            '\n t4-t3 ' + str(t4 - t3) +
+            '\n t5-t4 ' + str(t5 - t4)
+        )
+
+        logger.info("TESTING END: " + str(time.time()))
+        self.test_time.append(t5 - t1)
+        return predictions.cpu().numpy()
+
+    ##############################################################################
+    #### Above 3 methods (__init__, train, test) should always be implemented ####
+    ##############################################################################
+
+
+def format_labels(labels, parser_args):
+    if parser_args.classification_type == 'multiclass':
+        return np.argmax(labels, axis=1)
+    else:
+        return labels
+
+
+
+
+
+def get_logger(verbosity_level):
+    """Set logging format to something like:
+         2019-04-25 12:52:51,924 INFO model.py: <message>
+    """
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, verbosity_level)
+    logger.setLevel(logging_level)
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s')
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging_level)
+    stdout_handler.setFormatter(formatter)
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+    stderr_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
+    logger.propagate = False
+    return logger
+
+
+logger = get_logger('INFO')

@@ -14,222 +14,282 @@ not exceed 300MB.
 """
 import os
 import time
+import types
+from functools import partial
 
 # Import the challenge algorithm (model) API from algorithm.py
-import algorithm
-import image.models
-import image.online_concrete
-import image.online_meta
 import numpy as np
 import torch
-import utils
+import tensorflow as tf
 
-# Disable tf device loggings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+import algorithm
+import selection
+import training
+import transformations
+import utils
+from utils import LOGGER
+from dataset_kakaobrain import TFDataset
+from dataloader_kakaobrain import FixedSizeDataLoader
+
+
+# If apex's amp is available, import it and set a flag to use it
+try:
+    from apex import amp
+    USE_AMP = True
+except Exception:
+    USE_AMP = False
+    pass
+
+if USE_AMP:
+    # Make the use of amp's scaled loss seemless to the training so
+    # loss.backward() performs scaled_loss.backward() and training
+    # doesn't need to pay attention
+    def amp_loss(predictions, labels, loss_fn, optimizer):
+        loss = loss_fn(predictions, labels)
+        if hasattr(optimizer, '_amp_stash'):
+            loss.backward = partial(scaled_loss_helper, loss=loss, optimizer=optimizer)
+        return loss
+
+    def scaled_loss_helper(loss, optimizer):
+        with amp.scale_loss(loss, optimizer) as scale_loss:
+            scale_loss.backward()
+
+# Set seeds
+np.random.seed(42)
+torch.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+
+# Set the device which torch should use
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
+        self.birthday = time.time()
+        LOGGER.info("INIT START: " + str(time.time()))
         super(Model, self).__init__(metadata)
-        # Set seeds
-        np.random.seed(42)
-        torch.manual_seed(42)
-        torch.cuda.manual_seed_all(42)
-        # TODO(Danny) tensorflow
-
         # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
         # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
         # for your network do not vary
         # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-        # TODO(Danny): How should we handle this
         torch.backends.cudnn.benchmark = True
-
-        # TODO(Danny): Document what metadata_ contains
-        self.no_more_training = False
-        self.output_dim = self.metadata_.get_output_size()
-
-        utils.print_log("Metadata={}".format(self.metadata_.__dict__))
 
         # Assume model.py and config.hjson are always in the same folder. Could possibly
         # do this in a nicer fashion, but it must still run during the submission on
         # codalab.
-        code_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config = utils.Config(code_dir + "/" + "config.hjson")
-        # During submission the models are in code_dir
-        if self.config.is_codalab_submission:
-            self.config.model_dir = code_dir
+        self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
 
-        utils.print_log("Config={}".format(self.config.__dict__))
+        # In-/Out Dimensions from the train dataset's metadata
+        row_count, col_count = metadata.get_matrix_size(0)
+        channel = metadata.get_num_channels(0)
+        sequence_size = metadata.get_sequence_size()
+        self.input_dim = [sequence_size, row_count, col_count, channel]
+        self.output_dim = metadata.get_output_size()
+        self.num_train_samples = metadata.size()
+        self.num_test_samples = None
 
-        self.train_data_iterator = None
-        self.model_input_sizes = None
+        # Store the current dataset's path, loader and the currently used
+        # model, optimizer and lossfunction
+        self.current_train_dataset = None
+        self.current_test_dataset = None
         self.model = None
+        self.optimizer = None
+        self.loss_fn = None
 
-        if self.config.modality == "image":
-            self.online_meta = image.online_meta.OnlineMeta(self.config, self.metadata_)
-            self.online_concrete = image.online_concrete
-        else:
-            raise  # TODO(Danny): Some error message
+        # Set the algorithms to use from the config file
+        self.select_model = getattr(
+            selection,
+            self.config.model_selector
+        )
+        self.select_transformations = getattr(
+            transformations,
+            self.config.transformations_selector
+        )
+        self.trainer = getattr(
+            training,
+            self.config.trainer
+        )
+        self.trainer = self.trainer if isinstance(
+            self.trainer,
+            types.FunctionType
+        ) else self.trainer()
 
         # Attributes for managing time budget
         # Cumulated number of training steps
-        self.birthday = time.time()
-        self.total_train_time = 0
-        self.cumulated_num_steps = 0
-        self.estimated_time_per_step = None
-        self.total_test_time = 0
-        self.cumulated_num_tests = 0
-        self.estimated_time_test = None
-        self.trained = False
+        self.make_final_prediction = False
+        self.final_prediction_made = False
         self.done_training = False
-        self.dataset_metadata = metadata
 
-    def _get_steps_to_train(self, remaining_time_budget):
-        """Get number of steps for training according to `remaining_time_budget`.
+        self.training_round = 0  # flag indicating if we are in the first round of training
+        self.train_time = []
+        self.testing_round = 0  # flag indicating if we are in the first round of testing
+        self.test_time = []
 
-        The strategy is:
-          1. If no training is done before, train for 10 steps (ten batches);
-          2. Otherwise, estimate training time per step and time needed for test,
-             then compare to remaining time budget to compute a potential maximum
-             number of steps (max_steps) that can be trained within time budget;
-          3. Choose a number (steps_to_train) between 0 and max_steps and train for
-             this many steps. Double it each time.
-        """
-        if not remaining_time_budget:  # This is never true in the competition anyway
-            remaining_time_budget = 1200  # if no time limit is given, set to 20min
+        self.session = tf.Session()
+        LOGGER.info("INIT END: " + str(time.time()))
 
-        if not self.estimated_time_per_step:
-            steps_to_train = 10
-        else:
-            if self.estimated_time_test:
-                tentative_estimated_time_test = self.estimated_time_test
-            else:
-                tentative_estimated_time_test = 50  # conservative estimation for test
-            max_steps = int(
-                (remaining_time_budget - tentative_estimated_time_test) /
-                self.estimated_time_per_step
-            )
-            max_steps = max(max_steps, 1)
-            if self.cumulated_num_tests < np.log(max_steps) / np.log(2):
-                steps_to_train = int(
-                    2**self.cumulated_num_tests
-                )  # Double steps_to_train after each test
-            else:
-                steps_to_train = 0
-        return steps_to_train
-
-    def _autodl(self, dataset, dataset_metadata, steps_to_train):
-        self.model, self.optimizer, model_input_sizes = self.online_meta.select_model()
-
-        # If the input size changes, the tensorflow dataloader has to be recreated to
-        # accomodate this
-        self.model_input_sizes = model_input_sizes
-        return self.online_concrete.trainloop(
-            self.model,
-            self.optimizer,
-            dataset,
-            dataset_metadata,
-            self.config,
-            steps_to_train,
-            model_input_sizes,
+    def split_dataset(self, dataset, transform):
+        # [train_percent, validation_percent, ...]
+        split_percentages = (
+            self.config.dataset_split_ratio
+            / np.sum(self.config.dataset_split_ratio)
         )
+        split_num = np.round((self.num_examples_train * split_percentages))
+        assert(sum(split_num) == self.num_examples_train)
+
+        dataset.shuffle(self.num_examples_train)
+
+        dataset_remaining = dataset
+        dataset_train = dataset_remaining.take(split_num[0])
+        dataset_remaining = dataset.skip(split_num[0])
+        dataset_val = dataset_remaining.take(split_num[1])
+        dataset_remaining = dataset_remaining.skip(split_num[1])
+
+        ds_train = TFDataset(
+            session=self.session,
+            dataset=dataset_train,
+            num_samples=int(split_num[0]),
+            transform=transform
+        )
+
+        dl_train = FixedSizeDataLoader(
+            ds_train,
+            steps=int(split_num[0]),
+            batch_size=self.parser_args.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        ds_val = TFDataset(
+            session=self.session,
+            dataset=dataset_val,
+            num_samples=int(split_num[1]),
+            transform=transform
+        )
+
+        dl_val = FixedSizeDataLoader(
+            ds_val,
+            steps=int(split_num[1]),
+            batch_size=self.parser_args.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
+        self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
+
+        return dl_train, dl_val
+
+    def setup_train_dataset(self, dataset, ds_temp=None):
+        transf_dict = self.select_transformations(
+            self.current_train_dataset, self.model,
+            **self.config.transformations_selector_args[
+                self.config.transformations_selector
+            ]
+        )
+        self.current_train_dataset = FixedSizeDataLoader(
+            dataset,
+            self.config.dataloader_args,
+            transf_dict['train']['samples'],
+            transf_dict['test']['labels']
+        )
+
+    def setup_test_dataset(self, dataset, ds_temp=None):
+        transf_dict = self.select_transformations(
+            self.current_train_dataset, self.model,
+            **self.config.transformations_selector_args[
+                self.config.transformations_selector
+            ]
+        )
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=self.num_samples_testing,
+            transform=transform
+        )
+
+        dl = torch.utils.data.DataLoader(
+            ds,
+            batch_size=self.parser_args.batch_size_test,
+            drop_last=False
+        )
+
+    def setup_model(self, ds_temp):
+        selected = self.select_model(
+            self.session,
+            ds_temp,
+            **self.config.model_selector_args[
+                self.config.model_selector
+            ]
+        )
+        self.model, self.loss_fn, self.optimizer, amp_compatible = selected
+        self.model.to(DEVICE)
+        self.loss_fn.to(DEVICE)
+        if USE_AMP and amp_compatible:
+            self.model, self.optimizer = amp.initialize(
+                self.model, self.optimizer, **self.config.amp_args
+            )
+            self.loss_fn = partial(
+                amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
+            )
 
     def train(self, dataset, remaining_time_budget=None):
-        steps_to_train = self._get_steps_to_train(remaining_time_budget)
-        if steps_to_train <= 0:
-            utils.print_log(
-                "Not enough time remaining for training. " +
-                "Estimated time for training per step: {:.2f}, ".
-                format(self.estimated_time_per_step) +
-                "but remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
-                "Skipping..."
-            )
-            self.done_training = True
+        if self.final_prediction_made:
             return
+        dataset_changed = self.current_train_dataset != dataset
+        if dataset_changed:
+            # Create a temporary handle to inspect data
+            ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
+            ds_temp.scan2()
+            # self.
+            self.setup_model(ds_temp)
+            self.setup_train_dataset(dataset, ds_temp)
 
-        msg_est = ""
-        if self.estimated_time_per_step:
-            msg_est = "estimated time for this: " + "{:.2f} sec.".format(
-                steps_to_train * self.estimated_time_per_step
-            )
-        utils.print_log(
-            "Begin training for another {} steps...{}".format(steps_to_train, msg_est)
-        )
-
+        self.training_round += 1
         train_start = time.time()
-        self._autodl(dataset, self.dataset_metadata, steps_to_train)
-        train_end = time.time()
-
-        # Update for time budget managing
-        train_duration = train_end - train_start
-        self.total_train_time += train_duration
-        self.cumulated_num_steps += steps_to_train
-        self.estimated_time_per_step = self.total_train_time / self.cumulated_num_steps
-        utils.print_log(
-            "{} steps trained. {:.2f} sec used. ".format(steps_to_train, train_duration) +
-            "Now total steps trained: {}. ".format(self.cumulated_num_steps) +
-            "Total time used for training: {:.2f} sec. ".format(self.total_train_time) +
-            "Current estimated time per step: {:.2e} sec.".
-            format(self.estimated_time_per_step)
+        self.make_final_prediction = self.trainer(
+            self,
+            self.current_train_dataset['train'],
+            self.current_train_dataset['val'],
+            remaining_time_budget
         )
-
-    def _choose_to_stop_early(self):
-        """The criterion to stop further training (thus finish train/predict
-        process).
-        """
-        # return self.cumulated_num_tests > 10 # Limit to make 10 predictions
-        # return np.random.rand() < self.early_stop_proba
-        batch_size = self.config.batch_size
-        num_examples = self.metadata_.size()
-        num_epochs = self.cumulated_num_steps * batch_size / num_examples
-        utils.print_log("Model already trained for {} epochs.".format(num_epochs))
-
-        # Train for at least certain number of epochs then stop
-        return num_epochs > self.config.num_epochs_we_want_to_train
+        self.train_time.append(time.time() - train_start)
 
     def test(self, dataset, remaining_time_budget=None):
-        if self.done_training:
+        if self.final_prediction_made:
             return None
-
-        if self._choose_to_stop_early():
-            utils.print_log("Oops! Choose to stop early for next call!")
+        if self.make_final_prediction:
+            self.final_prediction_made = True
             self.done_training = True
-        test_begin = time.time()
-        not_enough_time_for_test = (
-            remaining_time_budget and self.estimated_time_test and
-            self.estimated_time_test > remaining_time_budget
-        )
-        if not_enough_time_for_test:
-            utils.print_log(
-                "Not enough time for test. " +
-                "Estimated time for test: {:.2e}, ".format(self.estimated_time_test) +
-                "But remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
-                "Stop train/predict process by returning None."
-            )
+        if (
+            self.config.earlystop is not None
+            and time.time() - self.birthday > 300
+        ):
+            self.done_training = True
             return None
 
-        msg_est = ""
-        if self.estimated_time_test:
-            msg_est = "estimated time: {:.2e} sec.".format(self.estimated_time_test)
-        utils.print_log("Begin testing...", msg_est)
+        dataset_changed = self.current_test_dataset != dataset
+        if dataset_changed:
+            self.setup_test_dataset(dataset)
 
-        # PYTORCH
-        # TODO(Danny): Only load testset once if it fits nicely in 24GB
-        predictions = self.online_concrete.testloop(
-            self.model, dataset, self.model_input_sizes, self.output_dim, self.config
-        )
+        self.testing_round += 1
+        test_start = time.time()
 
-        test_end = time.time()
-        # Update some variables for time management
-        test_duration = test_end - test_begin
-        self.total_test_time += test_duration
-        self.cumulated_num_tests += 1
-        self.estimated_time_test = self.total_test_time / self.cumulated_num_tests
-        utils.print_log(
-            "[+] Successfully made one prediction. {:.2f} sec used. ".
-            format(test_duration) +
-            "Total time used for testing: {:.2f} sec. ".format(self.total_test_time) +
-            "Current estimated time for test: {:.2e} sec.".
-            format(self.estimated_time_test)
-        )
+        predictions = None
+        self.model.eval()
+        with torch.no_grad():
+            for i, (data, _) in enumerate(self.current_test_dataset):
+                LOGGER.info('test: ' + str(i))
+                data = data.cuda()
+                output = self.model(data)
+                predictions = output if predictions is None \
+                    else torch.cat((predictions, output), 0)
+
+        LOGGER.info("TESTING END: " + str(time.time()))
+        self.test_time.append(time.time() - test_start)
         return predictions

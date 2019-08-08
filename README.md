@@ -1,4 +1,4 @@
-# AutoDLComp19
+# AutoDLComp19 (OUTDATED!)
 AutoDL Competition Scripts 2019
 
 
