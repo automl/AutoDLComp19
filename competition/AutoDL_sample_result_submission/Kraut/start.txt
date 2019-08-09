@@ -1,5 +1,0 @@
-ingestion_pid: 20028
-task_name: kraut
-time_budget: 1200.0
-start_time: 1565356945.8875606
-0: 1565357178.4032054

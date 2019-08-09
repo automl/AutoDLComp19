@@ -1,9 +1,9 @@
-import time
 import numpy as np
 import torch
 import torch.nn as nn
 
 RESIZE_FACTOR = 1.2
+
 
 class WrapperNet(nn.Module):
     def __init__(self, model):
@@ -11,8 +11,8 @@ class WrapperNet(nn.Module):
         self.model = model
         self.augmentation = None
 
-
     def train(self):
+        self.model.train()
         i_size = self.model.input_size
         self.augmentation = nn.Sequential(
             SwapAxes(),
@@ -24,6 +24,7 @@ class WrapperNet(nn.Module):
             Normalize())
 
     def eval(self):
+        self.model.eval()
         i_size = self.model.input_size
         self.augmentation = nn.Sequential(
             SwapAxes(),
@@ -31,7 +32,6 @@ class WrapperNet(nn.Module):
             # Interpolate((i_size, i_size)),
             Stack(),
             Normalize())
-
 
     def forward(self, x):
         x = self.augmentation(x)
@@ -52,10 +52,11 @@ class FormatChannels(nn.Module):
         channels = x.shape[2]
         if channels < self.channels_des:
             shape = x.shape
-            x = x.expand(*shape[:2],int(np.ceil(self.channels_des/channels)),*shape[3:])
+            x = x.expand(*shape[:2], int(np.ceil(self.channels_des / channels)), *shape[3:])
         x = x[:, :, 0:self.channels_des, :, :]
 
         return x
+
 
 class SwapAxes(nn.Module):
     '''
@@ -66,7 +67,7 @@ class SwapAxes(nn.Module):
         pass
 
     def forward(self, x):
-        x = x.permute(0,1,4,2,3)
+        x = x.permute(0, 1, 4, 2, 3)
         return x
 
 
@@ -82,11 +83,11 @@ class Interpolate(nn.Module):
     def forward(self, x):
         # first squeeze first two dimensions to make it suitable for interpolation
         shape = x.shape
-        x = x.view(-1,*shape[2:])
+        x = x.view(-1, *shape[2:])
         # do interpolation
         x = self.interp(x, size=self.size, mode='nearest')
         # and unsqueeeze dimensions again
-        x = x.view(*shape[0:3],*self.size)
+        x = x.view(*shape[0:3], *self.size)
         return x
 
 
@@ -111,9 +112,9 @@ class RandomCrop(nn.Module):
         # resulting end index for crop
         row_end = int(row_start + row_out)
         col_end = int(col_start + col_out)
-        row_index = torch.tensor([row_start, row_end])
-        col_index = torch.tensor([col_start, col_end])
-        x = x[:,:,:,row_start:row_end,col_start:col_end]
+        # row_index = torch.tensor([row_start, row_end])
+        # col_index = torch.tensor([col_start, col_end])
+        x = x[:, :, :, row_start:row_end, col_start:col_end]
         return x
 
 
@@ -126,7 +127,7 @@ class Stack(nn.Module):
 
     def forward(self, x):
         shape = x.shape
-        shape_new = [x.shape[0], x.shape[1]*x.shape[2],*shape[3:]]
+        shape_new = [x.shape[0], x.shape[1] * x.shape[2], *shape[3:]]
         x = x.contiguous().view(*shape_new)
         return x
 
