@@ -69,7 +69,7 @@ class ParserMock():
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'batch_size_train', 128)
         setattr(self._parser_args, 'batch_size_test', 128)
-        setattr(self._parser_args, 'num_segments', 2)
+        setattr(self._parser_args, 'num_segments', 4)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)

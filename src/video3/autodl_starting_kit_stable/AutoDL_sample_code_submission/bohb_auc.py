@@ -47,7 +47,7 @@ def get_configuration(dataset_name):
     cfg["dataset_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/' + dataset_name
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
-    cfg["bohb_iterations"] = 3
+    cfg["bohb_iterations"] = 10
     cfg["bohb_log_dir"] = "./logs"
     return cfg
 
