@@ -74,6 +74,7 @@ class default_trainer():
 
     def evaluate_on(self, model, dl_val):
         val_err = np.Inf
+        dl_val.dataset.reset()
         with torch.no_grad():
             for i, (vdata, vlabels) in enumerate(dl_val):
                 _, loss = eval_step(
@@ -139,6 +140,7 @@ class default_trainer():
         make_final_prediction = False
         while not make_prediction:
             # Set train mode before we go into the train loop over an epoch
+            dl_train.dataset.reset()
             for i, (data, labels) in enumerate(dl_train):
                 t_left = self.get_time_wo_final_prediction(
                     remaining_time,
@@ -162,7 +164,6 @@ class default_trainer():
                 if self.check_policy(model, i, t_train, loss, dl_val, **kwargs):
                     make_prediction = True
                     break
-
         subprocess.run(['nvidia-smi'])
         LOGGER.info("TRAINING END: " + str(time.time()))
         return make_final_prediction

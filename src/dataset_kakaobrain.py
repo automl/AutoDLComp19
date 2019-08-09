@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import logging
-import time
 import torch
 from torch.utils.data import Dataset
 import numpy as np
 import tensorflow as tf
-#from torch.nn.modules.hooks import MoveToHook
 
 
 LOGGER = logging.getLogger(__name__)
@@ -40,7 +38,7 @@ class TFDataset(Dataset):
     def __len__(self):
         return self.num_samples
 
-    def __getitem__(self, index):
+    def __getitem__(self, _):
         session = self.session if self.session is not None else tf.Session()
         try:
             example, label = session.run(self.next_element)
@@ -58,7 +56,7 @@ class TFDataset(Dataset):
             else label
         return example, label
 
-    def scan2(self, samples=10000000):
+    def scan_all(self):
         # Same as scann but extracts the min/max shape and checks
         # if the dataset is multilabeled
         # TODO(Philipp J.): Can we do better than going over the whole
@@ -68,9 +66,9 @@ class TFDataset(Dataset):
         shape_list = []
         is_multilabel = False
         count = 0
-        for i in range(min(self.num_samples, samples)):
+        while True:
             try:
-                example, label = self.__getitem__(i)
+                example, label = self.__getitem__(0)
             except tf.errors.OutOfRangeError:
                 break
             except StopIteration:

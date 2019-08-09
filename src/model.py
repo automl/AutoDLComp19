@@ -29,7 +29,6 @@ import transformations
 import utils
 from utils import LOGGER
 from dataset_kakaobrain import TFDataset
-from dataloader_kakaobrain import FixedSizeDataLoader
 
 
 # If apex's amp is available, import it and set a flag to use it
@@ -194,14 +193,12 @@ class Model(algorithm.Algorithm):
         ds_val.is_multilabel = ds_temp.is_multilabel
 
         self.train_dl = {
-            'train': FixedSizeDataLoader(
+            'train': torch.utils.data.DataLoader(
                 ds_train,
-                steps=int(split_num[0]),
                 **self.config.dataloader_args['train']
             ),
-            'val': FixedSizeDataLoader(
+            'val': torch.utils.data.DataLoader(
                 ds_val,
-                steps=int(split_num[1]),
                 **self.config.dataloader_args['train']
             )
         }
@@ -223,7 +220,7 @@ class Model(algorithm.Algorithm):
             self.tf_train_set = dataset
             # Create a temporary handle to inspect data
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
-            ds_temp.scan2()
+            ds_temp.scan_all()
 
             self.setup_model(ds_temp)
             self.setup_train_dataset(dataset, ds_temp)
@@ -262,6 +259,9 @@ class Model(algorithm.Algorithm):
         )
 
     def test(self, dataset, remaining_time_budget=None):
+        LOGGER.error('TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday))
+        LOGGER.error('TRAIN ERR SHAPE: {0}'.format(self.trainer.train_err.shape))
+        return None
         if self.final_prediction_made:
             return None
         if self.make_final_prediction:
@@ -279,25 +279,24 @@ class Model(algorithm.Algorithm):
             self.tf_test_set = dataset
             # Create a temporary handle to inspect data
             ds_temp = TFDataset(self.session, dataset, 1e10)
-            ds_temp.scan2()
+            ds_temp.scan_all()
             self.num_test_samples = ds_temp.num_samples
 
             self.setup_test_dataset(dataset, ds_temp)
 
         test_start = time.time()
-
-        predictions = None
-        e = enumerate(self.test_dl)
-        self.model.eval()
+        predictions = []
+        self.test_dl.dataset.reset()
         with torch.no_grad():
-            for i, (data, _) in e:
+            for i, (data, _) in enumerate(self.test_dl):
+                self.model.eval()
                 LOGGER.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)
-                predictions = output if predictions is None \
-                    else torch.cat((predictions, output), 0)
+                predictions += output.cpu().tolist()
+                i += 1
 
         LOGGER.info("TESTING END: " + str(time.time()))
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
-        return predictions.cpu().numpy()
+        return np.array(predictions)
