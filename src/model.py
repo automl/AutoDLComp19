@@ -91,8 +91,10 @@ class Model(algorithm.Algorithm):
 
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
-        self.current_train_dataset = None
-        self.current_test_dataset = None
+        self.tf_train_set = None
+        self.tf_test_set = None
+        self.train_dl = None
+        self.test_dl = None
         self.model = None
         self.optimizer = None
         self.loss_fn = None
@@ -129,96 +131,6 @@ class Model(algorithm.Algorithm):
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
 
-    def split_dataset(self, dataset, transform):
-        # [train_percent, validation_percent, ...]
-        split_percentages = (
-            self.config.dataset_split_ratio
-            / np.sum(self.config.dataset_split_ratio)
-        )
-        split_num = np.round((self.num_examples_train * split_percentages))
-        assert(sum(split_num) == self.num_examples_train)
-
-        dataset.shuffle(self.num_examples_train)
-
-        dataset_remaining = dataset
-        dataset_train = dataset_remaining.take(split_num[0])
-        dataset_remaining = dataset.skip(split_num[0])
-        dataset_val = dataset_remaining.take(split_num[1])
-        dataset_remaining = dataset_remaining.skip(split_num[1])
-
-        ds_train = TFDataset(
-            session=self.session,
-            dataset=dataset_train,
-            num_samples=int(split_num[0]),
-            transform=transform
-        )
-
-        dl_train = FixedSizeDataLoader(
-            ds_train,
-            steps=int(split_num[0]),
-            batch_size=self.parser_args.batch_size_train,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True,
-            drop_last=False
-        )
-
-        ds_val = TFDataset(
-            session=self.session,
-            dataset=dataset_val,
-            num_samples=int(split_num[1]),
-            transform=transform
-        )
-
-        dl_val = FixedSizeDataLoader(
-            ds_val,
-            steps=int(split_num[1]),
-            batch_size=self.parser_args.batch_size_train,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True,
-            drop_last=False
-        )
-
-        self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-        self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-
-        return dl_train, dl_val
-
-    def setup_train_dataset(self, dataset, ds_temp=None):
-        transf_dict = self.select_transformations(
-            self.current_train_dataset, self.model,
-            **self.config.transformations_selector_args[
-                self.config.transformations_selector
-            ]
-        )
-        self.current_train_dataset = FixedSizeDataLoader(
-            dataset,
-            self.config.dataloader_args,
-            transf_dict['train']['samples'],
-            transf_dict['test']['labels']
-        )
-
-    def setup_test_dataset(self, dataset, ds_temp=None):
-        transf_dict = self.select_transformations(
-            self.current_train_dataset, self.model,
-            **self.config.transformations_selector_args[
-                self.config.transformations_selector
-            ]
-        )
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=self.num_samples_testing,
-            transform=transform
-        )
-
-        dl = torch.utils.data.DataLoader(
-            ds,
-            batch_size=self.parser_args.batch_size_test,
-            drop_last=False
-        )
-
     def setup_model(self, ds_temp):
         selected = self.select_model(
             self.session,
@@ -238,27 +150,116 @@ class Model(algorithm.Algorithm):
                 amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
             )
 
+    def split_dataset(self, ds_temp, transform):
+        # [train_percent, validation_percent, ...]
+        split_percentages = (
+            self.config.dataset_split_ratio
+            / np.sum(self.config.dataset_split_ratio)
+        )
+        split_num = np.round((self.num_train_samples * split_percentages))
+        assert(sum(split_num) == self.num_train_samples)
+
+        tfdataset = ds_temp.dataset
+        tfdataset.shuffle(self.num_train_samples)
+        tfdataset_remaining = tfdataset
+
+        tfdataset_train = tfdataset_remaining.take(split_num[0])
+        tfdataset_remaining = tfdataset_remaining.skip(split_num[0])
+
+        tfdataset_val = tfdataset_remaining.take(split_num[1])
+        tfdataset_remaining = tfdataset_remaining.skip(split_num[1])
+
+        ds_train = TFDataset(
+            session=self.session,
+            dataset=tfdataset_train,
+            num_samples=int(split_num[0]),
+            transform_sample=transform['samples'],
+            transform_label=transform['labels']
+        )
+        ds_train.min_shape = ds_temp.min_shape
+        ds_train.median_shape = ds_temp.median_shape
+        ds_train.max_shape = ds_temp.max_shape
+        ds_train.is_multilabel = ds_temp.is_multilabel
+
+        ds_val = TFDataset(
+            session=self.session,
+            dataset=tfdataset_val,
+            num_samples=int(split_num[1]),
+            transform_sample=transform['samples'],
+            transform_label=transform['labels']
+        )
+        ds_val.min_shape = ds_temp.min_shape
+        ds_val.median_shape = ds_temp.median_shape
+        ds_val.max_shape = ds_temp.max_shape
+        ds_val.is_multilabel = ds_temp.is_multilabel
+
+        self.train_dl = {
+            'train': FixedSizeDataLoader(
+                ds_train,
+                steps=int(split_num[0]),
+                **self.config.dataloader_args['train']
+            ),
+            'val': FixedSizeDataLoader(
+                ds_val,
+                steps=int(split_num[1]),
+                **self.config.dataloader_args['train']
+            )
+        }
+
+    def setup_train_dataset(self, dataset, ds_temp=None):
+        transf_dict = self.select_transformations(
+            ds_temp, self.model,
+            **self.config.transformations_selector_args[
+                self.config.transformations_selector
+            ]
+        )
+        self.split_dataset(ds_temp, transf_dict['train'])
+
     def train(self, dataset, remaining_time_budget=None):
         if self.final_prediction_made:
             return
-        dataset_changed = self.current_train_dataset != dataset
+        dataset_changed = self.tf_train_set != dataset
         if dataset_changed:
+            self.tf_train_set = dataset
             # Create a temporary handle to inspect data
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
             ds_temp.scan2()
-            # self.
+
             self.setup_model(ds_temp)
             self.setup_train_dataset(dataset, ds_temp)
 
-        self.training_round += 1
         train_start = time.time()
         self.make_final_prediction = self.trainer(
             self,
-            self.current_train_dataset['train'],
-            self.current_train_dataset['val'],
-            remaining_time_budget
+            self.train_dl['train'],
+            self.train_dl['val'],
+            remaining_time_budget,
+            **self.config.trainer_args[
+                self.config.trainer
+            ]
         )
+        self.training_round += 1
         self.train_time.append(time.time() - train_start)
+
+    def setup_test_dataset(self, dataset, ds_temp=None):
+        transf_dict = self.select_transformations(
+            ds_temp, self.model,
+            **self.config.transformations_selector_args[
+                self.config.transformations_selector
+            ]
+        )
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=self.num_test_samples,
+            transform_sample=transf_dict['test']['samples'],
+            transform_label=transf_dict['test']['labels']
+        )
+        # TODO(Philipp J.): what is the difference between torch.utils.data.DataLoader/FixedSizeDataLoader
+        self.test_dl = torch.utils.data.DataLoader(
+            ds,
+            **self.config.dataloader_args['test']
+        )
 
     def test(self, dataset, remaining_time_budget=None):
         if self.final_prediction_made:
@@ -268,22 +269,28 @@ class Model(algorithm.Algorithm):
             self.done_training = True
         if (
             self.config.earlystop is not None
-            and time.time() - self.birthday > 300
+            and time.time() - self.birthday > self.config.earlystop
         ):
             self.done_training = True
             return None
 
-        dataset_changed = self.current_test_dataset != dataset
+        dataset_changed = self.tf_test_set != dataset
         if dataset_changed:
-            self.setup_test_dataset(dataset)
+            self.tf_test_set = dataset
+            # Create a temporary handle to inspect data
+            ds_temp = TFDataset(self.session, dataset, 1e10)
+            ds_temp.scan2()
+            self.num_test_samples = ds_temp.num_samples
 
-        self.testing_round += 1
+            self.setup_test_dataset(dataset, ds_temp)
+
         test_start = time.time()
 
         predictions = None
+        e = enumerate(self.test_dl)
         self.model.eval()
         with torch.no_grad():
-            for i, (data, _) in enumerate(self.current_test_dataset):
+            for i, (data, _) in e:
                 LOGGER.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)
@@ -291,5 +298,6 @@ class Model(algorithm.Algorithm):
                     else torch.cat((predictions, output), 0)
 
         LOGGER.info("TESTING END: " + str(time.time()))
+        self.testing_round += 1
         self.test_time.append(time.time() - test_start)
-        return predictions
+        return predictions.cpu().numpy()

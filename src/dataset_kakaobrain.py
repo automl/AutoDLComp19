@@ -13,11 +13,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples, transform=None):
+    def __init__(self, session, dataset, num_samples, transform_sample=None, transform_label=None):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
-        self.transform = transform
+        self.transform_sample = transform_sample
+        self.transform_label = transform_label
 
         # Metadata
         self.num_samples = num_samples
@@ -49,11 +50,13 @@ class TFDataset(Dataset):
             self.reset()
             raise StopIteration
 
-        if self.transform is None:
-            return example, label
-        else:
-            example_transform = self.transform(example)
-            return example_transform, label
+        example = self.transform_sample(example) \
+            if self.transform_sample is not None \
+            else example
+        label = self.transform_label(label) \
+            if self.transform_label is not None \
+            else label
+        return example, label
 
     def scan2(self, samples=10000000):
         # Same as scann but extracts the min/max shape and checks

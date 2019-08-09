@@ -16,6 +16,9 @@ class default_trainer():
         self.val_err = pd.DataFrame()  # collect train error
         self.val_ewm_window = 1  # window size of the exponential moving average
 
+        self.train_ewm_window = None  # np.ceil(split_num[0] / self.parser_args.batch_size)
+        self.val_ewm_window = None  # np.ceil(split_num[0] / self.parser_args.batch_size)
+
         self.train_time = 0
 
     def transform_time_abs(self, t_abs):
@@ -75,17 +78,63 @@ class default_trainer():
             for i, (vdata, vlabels) in enumerate(dl_val):
                 _, loss = eval_step(
                     model.model,
-                    model.criterion,
+                    model.loss_fn,
                     vdata,
                     vlabels
                 )
                 val_err = loss if np.isinf(val_err) else val_err + loss
         return val_err
 
-    def __call__(self, model, dl_train, dl_val, remaining_time):
+    def check_policy(self, model, i, t_train_start, loss, dl_val, t_diff):
+        make_prediction = False
+        self.train_err = self.append_loss(self.train_err, loss)
+        LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
+
+        t_current = time.time() - t_train_start
+        # The first 15 seconds just train and make a prediction
+        if t_current <= 15:
+            pass
+        elif (
+            model.config.earlystop is not None
+            and time.time() - model.birthday > model.config.earlystop
+        ):
+            make_prediction = True
+        elif t_current < 300 and dl_val is not None:
+            if model.testing_round == 0:
+                make_prediction = True
+            # The first 5min do grid-like predictions
+            ct_diff = (
+                self.transform_time_abs(time.time() - model.birthday)
+                - self.transform_time_abs(t_train_start - model.birthday)
+            )
+            if ct_diff < t_diff:
+                pass
+            else:
+                make_prediction = True
+        else:
+            # If the last train error improves upon the minimum of it's exponential moving average
+            # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
+            if self.train_err.size > 1:
+                train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
+                if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
+                    self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
+                    if self.val_err.size > 1:
+                        val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
+                        LOGGER.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
+                        LOGGER.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
+                        LOGGER.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
+                        # If the last validation error improves upon the minimum of it's exponential moving average
+                        # by 10% with window self.train_err_ewm = 5, escalate to test.
+                        # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
+                        if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
+                            make_prediction = True
+                        LOGGER.info('BACK TO THE GYM')
+        return make_prediction
+
+    def __call__(self, model, dl_train, dl_val, remaining_time, **kwargs):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("REMAINING TIME: " + str(remaining_time))
-        t_train = time.time()
+        t_train = time.time() if model.training_round > 0 else model.birthday
         make_prediction = False
         make_final_prediction = False
         while not make_prediction:
@@ -106,57 +155,13 @@ class default_trainer():
                 _, loss = train_step(
                     model.model,
                     model.optimizer,
-                    model.criterion,
+                    model.loss_fn,
                     data,
                     labels
                 )
-
-                self.train_err = self.append_loss(self.train_err, loss)
-                LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
-
-                t_current = time.time() - self.time_start
-                # The first 15 seconds just train and make a prediction
-                if t_current < 15:
-                    continue
-                elif (
-                    model.config.earlystop is not None
-                    and time.time() - model.birthday > 300
-                ):
+                if self.check_policy(model, i, t_train, loss, dl_val, **kwargs):
                     make_prediction = True
-                    break                    
-                elif t_current < 300 and dl_val is not None:
-                    if model.testing_round == 0:
-                        make_prediction = True
-                        break
-                    # The first 5min do grid-like predictions
-                    t_diff = (
-                        self.transform_time_abs(time.time() - self.time_start)
-                        - self.transform_time_abs(t_train - self.time_start)
-                    )
-                    if t_diff < self.parser_args.t_diff:
-                        continue
-                    else:
-                        make_prediction = True
-                        break
-                else:
-                    # If the last train error improves upon the minimum of it's exponential moving average
-                    # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
-                    if self.train_err.size > 1:
-                        train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
-                        if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
-                            self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
-                            if self.val_err.size > 1:
-                                val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
-                                LOGGER.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
-                                LOGGER.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
-                                LOGGER.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
-                                # If the last validation error improves upon the minimum of it's exponential moving average
-                                # by 10% with window self.train_err_ewm = 5, escalate to test.
-                                # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
-                                if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
-                                    make_prediction = True
-                                    break
-                                LOGGER.info('BACK TO THE GYM')
+                    break
 
         subprocess.run(['nvidia-smi'])
         LOGGER.info("TRAINING END: " + str(time.time()))
@@ -164,7 +169,7 @@ class default_trainer():
 
 
 # Example for a training loop
-def example_loop(model, optimizer, criterion, data, labels):
+def example_loop(model, dl_train, dl_val, remaining_time):
     pass
 
 
@@ -175,7 +180,6 @@ def train_step(model, optimizer, criterion, data, labels):
     model.train()
     optimizer.zero_grad()
     output = model(data.cuda())
-    labels = labels if model.is_multilabel else np.argmax(labels, axis=1)
     loss = criterion(output, labels.cuda())
     loss.backward()
     optimizer.step()
@@ -186,7 +190,6 @@ def train_step(model, optimizer, criterion, data, labels):
 def eval_step(model, criterion, data, labels):
     model.eval()
     output = model(data.cuda())
-    labels = labels if model.is_multilabel else np.argmax(labels, axis=1)
     loss = criterion(output, labels.cuda())
 
     return output, loss

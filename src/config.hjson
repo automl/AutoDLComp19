@@ -36,7 +36,6 @@
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
       drop_last: false,
-      timeout: 0,
     }
     test: {
       batch_size: 256,
@@ -44,7 +43,6 @@
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
       drop_last: false,
-      timeout: 0,
     }
   },
 
@@ -58,13 +56,14 @@
 
   transformations_selector: 'default_transformations_selector',
   transformations_selector_args: {
-    default_transformations_selector: {      
+    default_transformations_selector: {
     },
   },
 
   trainer: 'default_trainer',
   trainer_args: {
     default_trainer: {
+      t_diff: 0.02
     },
   }
 }

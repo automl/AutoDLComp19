@@ -3,6 +3,7 @@ import os
 
 import hjson
 import torch
+from wrapper_net import WrapperNet
 from utils import LOGGER
 # from torchhome.hub.autodlcomp_models_master.video.load_models import load_model_and_optimizer, load_loss_criterion
 
@@ -39,10 +40,10 @@ def default_model_selector(tfsession, dataset):
         }
     }
 
-    # FIXME(Philipp J.): currently not working due to loading pretrained weights
     model, optimizer, loss_fn = torch.hub.load(
         HUBNAME, 'averagenet', pretrained=True, url=conf.checkpoint_file, **modeloptimargs
     )
+    model = WrapperNet(model)
 
     # This is an example how you could get the optimizer from the manifest
     # ####

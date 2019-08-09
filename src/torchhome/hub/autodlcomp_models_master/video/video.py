@@ -13,7 +13,7 @@ __all__ = [
     'ecofull',
     'ecofull_py',
     'ecofull_efficient_py',
-    'eco_bninception'
+    'eco_bninception',
     'tsm',
     'averagenet',
     'averagenet_feature',

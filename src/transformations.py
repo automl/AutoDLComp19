@@ -15,23 +15,23 @@ def default_transformations_selector(dataset, model):
         'train': {
             'samples': torchvision.transforms.Compose(
                 [
-                    SelectSamples(dataset.num_segments),
-                    RandomCropPad(model.input_size)
+                    SelectSamples(model.model.num_segments),
+                    RandomCropPad(model.model.input_size)
                 ]
             ),
             'labels': torchvision.transforms.Lambda(
-                lambda x: torch.Tensor(format_label(x)).unsqueeze(0).to(DEVICE)
+                lambda x: x if dataset.is_multilabel else np.argmax(x)
             )
         },
         'test': {
             'samples': torchvision.transforms.Compose(
                 [
-                    SelectSamples(dataset.num_segments),
-                    RandomCropPad(model.input_size)
+                    SelectSamples(model.model.num_segments),
+                    RandomCropPad(model.model.input_size)
                 ]
             ),
             'labels': torchvision.transforms.Lambda(
-                lambda x: torch.Tensor(format_label(x)).unsqueeze(0).to(DEVICE)
+                lambda x: x if dataset.is_multilabel else np.argmax(x)
             )
         }
     }
@@ -41,5 +41,3 @@ def default_transformations_selector(dataset, model):
 # ########################################################
 # Helpers
 # ########################################################
-def format_label(label, is_multilabel):
-    return label if is_multilabel else np.argmax(label, axis=1)

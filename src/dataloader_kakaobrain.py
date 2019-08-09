@@ -28,10 +28,10 @@ class FixedSizeDataLoader:
         return self.steps
 
     def __iter__(self):
-        for data in self.dataloader:
-            yield data
-#        for _, data in zip(range(self.steps), self.dataloader):
-#            yield ([t[0] for t in data] if self.batch_size is None else data)
+        # for data in self.dataloader:
+        #     yield data
+        for _, data in zip(range(self.steps), self.dataloader):
+            yield ([t[0] for t in data] if self.batch_size is None else data)
 
 
 class InfiniteSampler(torch.utils.data.sampler.Sampler):
