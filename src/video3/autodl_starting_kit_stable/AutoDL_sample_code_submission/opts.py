@@ -44,7 +44,7 @@ parser.add_argument(
         'Averagenet',
         'bninception',
         'Averagenet_feature',])
-parser.add_argument('--num_segments', type=int, default=3)
+parser.add_argument('--num_segments', type=int, default=4)
 parser.add_argument('--class_limit', type=int, default=10000)
 parser.add_argument('--consensus_type', type=str, default='avg',
                     choices=['avg', 'max', 'topk', 'identity', 'rnn', 'cnn'])

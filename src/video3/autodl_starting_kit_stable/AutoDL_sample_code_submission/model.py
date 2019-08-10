@@ -55,17 +55,23 @@ class ParserMock():
     def load_manual_parameters(self):
         # manually set parameters
         rootpath = os.path.dirname(__file__)
-        print('ROOT PATH: ' + str(rootpath))
+        logger.info('ROOT PATH: ' + str(rootpath))
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'batch_size_train', 64)
         setattr(self._parser_args, 'batch_size_test', 64)
-        setattr(self._parser_args, 'num_segments', 4)
+        setattr(self._parser_args, 'num_segments_train', 2)
+        setattr(self._parser_args, 'num_segments_test', 3)
+        setattr(self._parser_args, 'num_segments_threshold', 20)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
-        setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
-        setattr(self._parser_args, 'splits', [85, 15])
+        setattr(self._parser_args, 'dropout_max', 0.5)
+        setattr(self._parser_args, 'lr', 0.001)
+        setattr(self._parser_args, 'lr_schedule', 0.99)
+        setattr(self._parser_args, 'lr_schedule_step', 10)
+        setattr(self._parser_args, 'print', True)
+        setattr(self._parser_args, 'fast_augment', True)
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
@@ -120,9 +126,6 @@ class Model(object):
         self.test_time = []
 
         self.done_training = False
-        self.make_prediction = False
-        self.make_final_prediction = False
-        self.final_prediction_made = False
 
         self.metadata = metadata
         self.num_classes = self.metadata.get_output_size()
@@ -132,31 +135,21 @@ class Model(object):
         channel = self.metadata.get_num_channels(0)
         sequence_size = self.metadata.get_sequence_size()
         print('INPUT SHAPE : ', row_count, col_count, channel, sequence_size)
-
         parser = ParserMock()
         parser.set_attr('num_classes', self.num_classes)
 
         self.parser_args = parser.parse_args()
-
-        if sequence_size == 1:
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
-            self.parser_args.num_segments = 1
-        else:
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'bnt_kinetics_input_128.pth.tar'
-        print('USED MODEL: ' + str(self.parser_args.finetune_model))
-
-        self.train_err = pd.DataFrame()  # collect train error
-        self.train_ewm_window = 1  # window size of the exponential moving average
-        self.val_err = pd.DataFrame()  # collect train error
-        self.val_ewm_window = 1  # window size of the exponential moving average
+        self.select_fast_augment()
+        self.model_path = self.select_model()
 
         self.training_round = 0  # flag indicating if we are in the first round of training
         self.testing_round = 0  # flag indicating if we are in the first round of testing
-        self.num_samples_training = None  # number of training samples
+        self.train_batch_counter = 0 # to adapt the learning rate
         self.num_samples_testing = None  # number of test samples
 
         self.session = tf.Session()
         logger.info("INIT END: " + str(time.time()))
+
 
     def train(self, dataset, remaining_time_budget=None):
         logger.info("TRAINING START: " + str(time.time()))
@@ -172,23 +165,18 @@ class Model(object):
 
         t2 = time.time()
 
-        transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments),
-            RandomCropPad(self.model_main.input_size)])
+        self.set_dropout()
+        num_segments = self.set_num_segments(is_training=True)
+        dl_train = self.get_dataloader_train(dataset, num_segments)
+        self.model.train()
 
         t3 = time.time()
-
-        # [train_percent, validation_percent, ...]
-        dl_train = self.split_dataset(dataset, transform)
-
-        t4 = time.time()
 
         t_train = time.time()
         self.finish_loop = False
         while not self.finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
-                self.model.train()
                 self.optimizer.zero_grad()
 
                 output = self.model(data.cuda())
@@ -197,12 +185,13 @@ class Model(object):
                 loss = self.criterion(output, labels)
                 loss.backward()
                 self.optimizer.step()
+                self.train_batch_counter += 1
+                self.set_lr()
 
-                self.train_err = self.append_loss(self.train_err, loss)
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                t_diff = (transform_time_abs(time.time() - self.time_start)
-                        - transform_time_abs(t_train - self.time_start))
+                t_diff = (transform_to_time_rel(time.time() - self.time_start)
+                        - transform_to_time_rel(t_train - self.time_start))
 
                 if t_diff > self.parser_args.t_diff:
                     self.finish_loop = True
@@ -211,24 +200,24 @@ class Model(object):
             subprocess.run(['nvidia-smi'])
             self.training_round += 1
 
-        t5 = time.time()
+        t4 = time.time()
 
         logger.info(
             '\nTIMINGS TRAINING: ' +
             '\n t2-t1 ' + str(t2 - t1) +
             '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3) +
-            '\n t5-t4 ' + str(t5 - t4)
-        )
+            '\n t4-t3 ' + str(t4 - t3)         )
 
         logger.info("TRAINING END: " + str(time.time()))
-        self.train_time.append(t5 - t1)
+        self.train_time.append(t4 - t1)
+
 
     def late_init(self, dataset):
         logger.info('TRAINING: FIRST ROUND')
         # show directory structure
         # for root, subdirs, files in os.walk(os.getcwd()):
         #     logger.info(root)
+
         # get multiclass/multilabel information
         ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=self.num_examples_train)
         scan_start = time.time()
@@ -239,9 +228,8 @@ class Model(object):
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
 
-        self.model_main, self.optimizer = load_model_and_optimizer(
-            self.parser_args, 0.3, 0.001)
-        self.model = WrapperNet(self.model_main)
+        self.model_main, self.optimizer = load_model_and_optimizer(self.parser_args)
+        self.model = WrapperNet(self.model_main, self.parser_args)
         self.model.cuda()
 
         # load proper criterion for multiclass/multilabel
@@ -263,107 +251,6 @@ class Model(object):
                 amp_loss, loss_fn=self.criterion, optimizer=self.optimizer
             )
 
-    def split_dataset(self, dataset, transform):
-        # [train_percent, validation_percent, ...]
-        split_percentages = self.parser_args.splits / np.sum(self.parser_args.splits)
-        split_num = np.round((self.num_examples_train * split_percentages))
-        assert(sum(split_num) == self.num_examples_train)
-
-        dataset.shuffle(self.num_examples_train)
-
-        dataset_remaining = dataset
-        dataset_train = dataset_remaining.take(split_num[0])
-        dataset_remaining = dataset.skip(split_num[0])
-        # dataset_val = dataset_remaining.take(split_num[1])
-        # dataset_remaining = dataset_remaining.skip(split_num[1])
-
-        ds_train = TFDataset(
-            session=self.session,
-            dataset=dataset_train,
-            num_samples=int(split_num[0]),
-            transform=transform
-        )
-
-        dl_train = FixedSizeDataLoader(
-            ds_train,
-            steps=int(split_num[0]),
-            batch_size=self.parser_args.batch_size_train,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True,
-            drop_last=False
-        )
-
-        # ds_val = TFDataset(
-        #     session=self.session,
-        #     dataset=dataset_val,
-        #     num_samples=int(split_num[1]),
-        #     transform=transform
-        # )
-        #
-        # dl_val = FixedSizeDataLoader(
-        #     ds_val,
-        #     steps=int(split_num[1]),
-        #     batch_size=self.parser_args.batch_size_train,
-        #     shuffle=True,
-        #     num_workers=0,
-        #     pin_memory=True,
-        #     drop_last=False
-        # )
-        #
-        # self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-        # self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-
-        return dl_train
-
-    def append_loss(self, err_list, loss):
-        # Convenience function to increase readability
-        return err_list.append(
-            [loss.detach().cpu().tolist()],
-            ignore_index=True
-        )
-
-    def evaluate_on(self, dl_val):
-        val_error = np.Inf
-
-        tempargs = self.parser_args
-        tempargs.evaluate = True
-
-        self.model.eval()
-        with torch.no_grad():
-            for i, (vdata, vlabels) in enumerate(dl_val):
-                vlabels = format_labels(vlabels, tempargs).cuda()
-                voutput = self.model(vdata.cuda())
-
-                if np.isinf(val_error):
-                    val_err = self.criterion(voutput, vlabels)
-                else:
-                    val_err += self.criterion(voutput, vlabels)
-        return val_err
-
-    def get_ema(self, err_df, ema_win):
-        # If there aren't enough elements shrink the window which is only possible with at least 2
-        # errors to compare.
-        return err_df.ewm(
-            span=np.min([err_df.size - 1, ema_win]),
-            min_periods=np.min([err_df.size - 1, ema_win])
-        ).mean()
-
-    def check_ema_improvement(self, err, ema, threshold):
-        # Convenience function to increase readability
-        # If threshold == 0 this boils down to lesser operation
-        return (
-            err.iloc[-1, 0] / ema.iloc[-1, 0]
-            < 1 - threshold
-        ).all()
-
-    def check_ema_improvement_min(self, err, ema, threshold):
-        # Convenience function to increase readability
-        # If threshold == 0 this boils down to lesser operation
-        return (
-            err.iloc[-1, 0] / np.min(ema.iloc[:-1, 0])
-            < 1 - threshold
-        ).all()
 
     def test(self, dataset, remaining_time_budget=None):
         logger.info("TESTING START: " + str(time.time()))
@@ -383,12 +270,149 @@ class Model(object):
 
         t2 = time.time()
 
-        transform = torchvision.transforms.Compose([
-            SelectSamples(self.parser_args.num_segments),
-            RandomCropPad(self.model_main.input_size)])
-        predictions = None
+        num_segments = self.set_num_segments(is_training=False)
+        dl = self.get_dataloader_test(dataset, num_segments)
+        self.model.eval()
 
         t3 = time.time()
+
+        predictions = torch.zeros([self.num_samples_testing, self.num_classes])
+        idx = 0
+        with torch.no_grad():
+            for i, (data, _) in enumerate(dl):
+                logger.info('test: ' + str(i))
+                data = data.cuda()
+                output = self.model(data).cpu()
+                predictions[idx:idx+output.shape[0],:] = output
+                idx += output.shape[0]
+
+        # remove if needed: Only train for 10 mins in order to save time on the submissions
+        # if remaining_time_budget < 600:
+        #     self.done_training = True
+        #     return None
+
+        t4 = time.time()
+
+        logger.info(
+            '\nTIMINGS TESTING: ' +
+            '\n t2-t1 ' + str(t2 - t1) +
+            '\n t3-t2 ' + str(t3 - t2) +
+            '\n t4-t3 ' + str(t4 - t3)
+        )
+
+        logger.info("TESTING END: " + str(time.time()))
+        self.test_time.append(t4 - t1)
+        return predictions.cpu().numpy()
+
+
+    def select_fast_augment(self):
+        '''
+        if all input videos/images have the same width/height, we can do augmentation on the GPU
+        '''
+        row_count, col_count = self.metadata.get_matrix_size(0)
+        if row_count > 0 and col_count > 0:
+            setattr(self.parser_args, 'fast_augment', True)
+        else:
+            setattr(self.parser_args, 'fast_augment', False)
+        logger.info('FAST AUGMENT: ' + str(self.parser_args.fast_augment))
+
+
+    def select_model(self):
+        '''
+        select proper model based on information from the dataset (image/video, etc.)
+        '''
+        if self.metadata.get_sequence_size() == 1:  # image network
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
+        else:                                       # video network
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'bnt_kinetics_input_128.pth.tar'
+        logger.info('USE MODEL: ' + str(self.parser_args.finetune_model))
+
+
+    def set_dropout(self):
+        '''
+        linearly increase dropout over time. Also ensures that dropout is never larger than 0.9
+        '''
+        do_max = self.parser_args.dropout_max
+        t_rel = transform_to_time_rel(time.time()-self.time_start)
+        do = min(do_max*t_rel, 0.9)
+        self.model.model.dropout = do
+        logger.info('SET DROPOUT: ' + str(do))
+
+
+    def set_lr(self):
+        '''
+        multiply learning rate every n batches by a constant factor <= 1
+        '''
+        lr_schedule = self.parser_args.lr_schedule
+        lr_schedule_step = self.parser_args.lr_schedule_step
+
+        if self.train_batch_counter > lr_schedule_step:
+            self.train_batch_counter -= lr_schedule_step
+            logger.info('UPDATE LR')
+
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] *= lr_schedule
+
+
+    def set_num_segments(self, is_training):
+        '''
+        increase number of segments after a given time by a factor of 2
+        '''
+        if self.metadata.get_sequence_size() == 1:
+            # image dataset
+            num_segments = 1
+        else:
+            # video dataset
+            if is_training:
+                # double num_segments after specific time
+                if time.time()-self.time_start > self.parser_args.num_segments_threshold:
+                    num_segments  = self.parser_args.num_segments_train*2
+                else:
+                    num_segments = self.parser_args.num_segments_train
+            else:
+                num_segments = self.parser_args.num_segments_test
+
+        logger.info('SET NUM SEGMENTS: ' + str(num_segments))
+        self.model.model.num_segments = num_segments
+        return num_segments
+
+
+    def get_transform(self, num_segments):
+        if self.parser_args.fast_augment:
+            return torchvision.transforms.Compose([
+                SelectSamples(num_segments)])
+        else:
+            return torchvision.transforms.Compose([
+                SelectSamples(num_segments),
+                RandomCropPad(self.model_main.input_size)])
+
+
+    def get_dataloader_train(self, dataset, num_segments):
+        transform = self.get_transform(num_segments)
+
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=int(10000000),
+            transform=transform
+        )
+
+        dl = FixedSizeDataLoader(
+            ds,
+            steps=int(10000000),
+            batch_size=self.parser_args.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True,
+            drop_last=False
+        )
+
+        return dl
+
+
+    def get_dataloader_test(self, dataset, num_segments):
+        transform = self.get_transform(num_segments)
+
         ds = TFDataset(
             session=self.session,
             dataset=dataset,
@@ -402,36 +426,8 @@ class Model(object):
             drop_last=False
         )
 
-        t4 = time.time()
-        self.model.eval()
-        with torch.no_grad():
-            for i, (data, _) in enumerate(dl):
-                logger.info('test: ' + str(i))
-                data = data.cuda()
-                output = self.model(data)
-                if predictions is None:
-                    predictions = output
-                else:
-                    predictions = torch.cat((predictions, output), 0)
+        return dl
 
-        # remove if needed: Only train for 5 mins in order to save time on the submissions
-        if remaining_time_budget < 600:
-            self.done_training = True
-            return None
-
-        t5 = time.time()
-
-        logger.info(
-            '\nTIMINGS TESTING: ' +
-            '\n t2-t1 ' + str(t2 - t1) +
-            '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3) +
-            '\n t5-t4 ' + str(t5 - t4)
-        )
-
-        logger.info("TESTING END: " + str(time.time()))
-        self.test_time.append(t5 - t1)
-        return predictions.cpu().numpy()
 
     ##############################################################################
     #### Above 3 methods (__init__, train, test) should always be implemented ####
@@ -445,14 +441,14 @@ def format_labels(labels, parser_args):
         return labels
 
 
-def transform_time_abs(t_abs):
+def transform_to_time_rel(t_abs):
     '''
     conversion from absolute time 0s-1200s to relative time 0-1
     '''
     return np.log(1 + t_abs / 60.0) / np.log(21)
 
 
-def transform_time_rel(t_rel):
+def transform_to_time_abs(t_rel):
     '''
     convertsion from relative time 0-1 to absolute time 0s-1200s
     '''

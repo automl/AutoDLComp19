@@ -2,6 +2,7 @@ import random
 import traceback
 import _pickle as pickle
 import os
+import time
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -15,18 +16,27 @@ from hpbandster.optimizers import BOHB as BOHB
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=1e-1, log=True))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter('num_segments_train', choices = [2,4,8,16]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter('num_segments_test', choices = [2,4,8,16]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='num_segments_threshold', lower=1, upper=300, log=False))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout_max', lower=0, upper=1.5, log=False))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.1, log=False))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-1, log=True))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_schedule', lower=0.9, upper=1, log=False))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_schedule_step', lower=10, upper=1000, log=True))
+
     return cs
 
 
 def get_configuration():
     cfg = {}
     cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-    cfg["dataset_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/Kraut'
-    cfg["bohb_min_budget"] = 40
-    cfg["bohb_max_budget"] = 1200
+    cfg["dataset_base_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/'
+    cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur', 'Decal', 'Hammer']
+    cfg["bohb_min_budget"] = 30
+    cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = "./logs"
+    cfg["bohb_log_dir"] = "./logs/" + str(int(time.time()))
     return cfg
 
 
@@ -63,25 +73,36 @@ class BOHBWorker(Worker):
         print("START BOHB ITERATION")
         print('CONFIG: ' + str(config))
         print('BUDGET: ' + str(budget))
+
         score = 0
-        try:
-            # stored bohb config will be readagain in model.py
-            write_config_to_file(config)
-            # execute main function
-            fc = create_function_call(cfg, budget)
-            os.system(fc)
-            # read final score from score.py
-            score = read_final_score_from_file()
-        except Exception:
-            status = traceback.format_exc()
-            print(status)
+        info = {}
+
+        for dataset in cfg["datasets"]:
+            cfg["dataset_dir"] = os.path.join(cfg["dataset_base_dir"], dataset)
+
+            score_temp = 0
+            try:
+                print('BOHB ON DATASET: ' + str(dataset))
+                # stored bohb config will be readagain in model.py
+                write_config_to_file(config)
+                # execute main function
+                fc = create_function_call(cfg, budget)
+                os.system(fc)
+                # read final score from score.py
+                score_temp = read_final_score_from_file()
+            except Exception:
+                status = traceback.format_exc()
+                print(status)
+
+            score += score_temp
+            info[dataset] = score_temp
 
         print('FINAL SCORE: ' + str(score))
         print("END BOHB ITERATION")
 
         return {
             "loss": -score,
-            "info": {}
+            "info": info
         }
 
 
