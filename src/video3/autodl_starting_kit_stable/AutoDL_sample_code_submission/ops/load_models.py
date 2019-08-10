@@ -6,7 +6,7 @@ from torch.nn.init import constant_, xavier_uniform_
 # from opts imporwwt parser
 # parser_args = parser.parse_args()
 
-def load_model_and_optimizer(parser_args, dropout, lr, min_input_size, max_input_size):
+def load_model_and_optimizer(parser_args, dropout, lr):
     parser_args = parser_args
     ############################################################       
     # Apex usable?

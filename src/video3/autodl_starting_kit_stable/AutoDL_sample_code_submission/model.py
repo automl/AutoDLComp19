@@ -55,21 +55,12 @@ class ParserMock():
     def load_manual_parameters(self):
         # manually set parameters
         rootpath = os.path.dirname(__file__)
-        print(rootpath)
-        print('+++'*30)
-        # 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-        # 'pretrained_models/bnt_kinetics_SGD_finetune__rgb.pth.tar'
-        # 'pretrained_models/BnT_Image_Input_128.tar'
-        setattr(
-            self._parser_args, 'finetune_model',
-            os.path.join(rootpath, 'pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar')
-            # './input/res/pretrained_models/Averagenet_RGB_Kinetics_128.pth.tar'
-           
-        )
-        setattr(self._parser_args, 'arch', 'Averagenet') # Averagenet or bninception
-        setattr(self._parser_args, 'batch_size_train', 128)
-        setattr(self._parser_args, 'batch_size_test', 256)
-        setattr(self._parser_args, 'num_segments', 2)
+        print('ROOT PATH: ' + str(rootpath))
+        setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
+        setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
+        setattr(self._parser_args, 'batch_size_train', 64)
+        setattr(self._parser_args, 'batch_size_test', 64)
+        setattr(self._parser_args, 'num_segments', 4)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'print', True)
@@ -147,6 +138,13 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
 
+        if sequence_size == 1:
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
+            self.parser_args.num_segments = 1
+        else:
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'bnt_kinetics_input_128.pth.tar'
+        print('USED MODEL: ' + str(self.parser_args.finetune_model))
+
         self.train_err = pd.DataFrame()  # collect train error
         self.train_ewm_window = 1  # window size of the exponential moving average
         self.val_err = pd.DataFrame()  # collect train error
@@ -156,7 +154,6 @@ class Model(object):
         self.testing_round = 0  # flag indicating if we are in the first round of testing
         self.num_samples_training = None  # number of training samples
         self.num_samples_testing = None  # number of test samples
-        self.is_multilabel = None  # multilabel or multiclass dataset?
 
         self.session = tf.Session()
         logger.info("INIT END: " + str(time.time()))
@@ -182,29 +179,15 @@ class Model(object):
         t3 = time.time()
 
         # [train_percent, validation_percent, ...]
-        dl_train, dl_val = self.split_dataset(dataset, transform)
+        dl_train = self.split_dataset(dataset, transform)
 
         t4 = time.time()
 
         t_train = time.time()
-        self.make_prediction = False
-        while not self.make_prediction:
+        self.finish_loop = False
+        while not self.finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
-                # Calculate current remaining time - time to make a prediction
-                time_remaining_minus_last_test = remaining_time_budget - (
-                    time.time() - t_train
-                    + np.mean(self.test_time)
-                    + np.std(self.test_time)
-                ) if len(self.test_time) > 0 else None
-
-                # Abort training and make final prediction if not enough time is left
-                if len(self.test_time) > 0 and time_remaining_minus_last_test < 10:
-                    logger.info('Making final prediciton!')
-                    self.make_final_prediction = True
-                    self.make_prediction = True
-                    break
-
                 self.model.train()
                 self.optimizer.zero_grad()
 
@@ -218,46 +201,15 @@ class Model(object):
                 self.train_err = self.append_loss(self.train_err, loss)
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                # The first 15 seconds just train and make a prediction
-                if time.time() - self.time_start < 15:
-                    continue
-                elif self.testing_round == 0:
-                    self.make_prediction = True
+                t_diff = (transform_time_abs(time.time() - self.time_start)
+                        - transform_time_abs(t_train - self.time_start))
+
+                if t_diff > self.parser_args.t_diff:
+                    self.finish_loop = True
                     break
 
-                # The first 5min do grid-like predictions
-                if time.time() - self.time_start < 300:
-                    t_diff = (
-                        transform_time_abs(time.time() - self.time_start)
-                        - transform_time_abs(t_train - self.time_start)
-                    )
-                    if t_diff < self.parser_args.t_diff:
-                        continue
-                    else:
-                        self.make_prediction = True
-                        break
-
-                # If the last train error improves upon the minimum of it's exponential moving average
-                # by at least 5% with window self.train_err_ewm = 5, escalate to validation.
-                if self.train_err.size > 1:
-                    train_err_ewm = self.get_ema(self.train_err, self.train_ewm_window)
-                    if self.check_ema_improvement(self.train_err, train_err_ewm, 0.1):
-                        self.val_err = self.append_loss(self.val_err, self.evaluate_on(dl_val))
-                        if self.val_err.size > 1:
-                            val_err_ewm = self.get_ema(self.val_err, self.val_ewm_window)
-                            logger.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
-                            logger.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
-                            logger.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
-                            # If the last validation error improves upon the minimum of it's exponential moving average
-                            # by 10% with window self.train_err_ewm = 5, escalate to test.
-                            # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
-                            if self.check_ema_improvement_min(self.val_err, val_err_ewm, 0.15):
-                                self.make_prediction = True
-                                break
-                            logger.info('BACK TO THE GYM')
-
-        subprocess.run(['nvidia-smi'])
-        self.training_round += 1
+            subprocess.run(['nvidia-smi'])
+            self.training_round += 1
 
         t5 = time.time()
 
@@ -280,21 +232,15 @@ class Model(object):
         # get multiclass/multilabel information
         ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=self.num_examples_train)
         scan_start = time.time()
-        num_samples = 1
-        if np.any(
-            [e is None or e <= 0 for e in self.metadata.get_tensor_shape()]
-        ):
-            num_samples = self.num_examples_train
-        info = ds_temp.scan2(num_samples)
+        info = ds_temp.scan2(10)
         logger.info('TRAIN SCAN TIME: {0}'.format(time.time() - scan_start))
-        self.is_multilabel = info['is_multilabel']
-        if self.is_multilabel:
+        if info['is_multilabel']:
             setattr(self.parser_args, 'classification_type', 'multilabel')
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
 
         self.model_main, self.optimizer = load_model_and_optimizer(
-            self.parser_args, 0.2, 0.005, info['min_shape'], info['max_shape'])
+            self.parser_args, 0.3, 0.001)
         self.model = WrapperNet(self.model_main)
         self.model.cuda()
 
@@ -328,8 +274,8 @@ class Model(object):
         dataset_remaining = dataset
         dataset_train = dataset_remaining.take(split_num[0])
         dataset_remaining = dataset.skip(split_num[0])
-        dataset_val = dataset_remaining.take(split_num[1])
-        dataset_remaining = dataset_remaining.skip(split_num[1])
+        # dataset_val = dataset_remaining.take(split_num[1])
+        # dataset_remaining = dataset_remaining.skip(split_num[1])
 
         ds_train = TFDataset(
             session=self.session,
@@ -348,27 +294,27 @@ class Model(object):
             drop_last=False
         )
 
-        ds_val = TFDataset(
-            session=self.session,
-            dataset=dataset_val,
-            num_samples=int(split_num[1]),
-            transform=transform
-        )
+        # ds_val = TFDataset(
+        #     session=self.session,
+        #     dataset=dataset_val,
+        #     num_samples=int(split_num[1]),
+        #     transform=transform
+        # )
+        #
+        # dl_val = FixedSizeDataLoader(
+        #     ds_val,
+        #     steps=int(split_num[1]),
+        #     batch_size=self.parser_args.batch_size_train,
+        #     shuffle=True,
+        #     num_workers=0,
+        #     pin_memory=True,
+        #     drop_last=False
+        # )
+        #
+        # self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
+        # self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
 
-        dl_val = FixedSizeDataLoader(
-            ds_val,
-            steps=int(split_num[1]),
-            batch_size=self.parser_args.batch_size_train,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True,
-            drop_last=False
-        )
-
-        self.train_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-        self.val_ewm_window = np.ceil(split_num[0] / self.parser_args.batch_size)
-
-        return dl_train, dl_val
+        return dl_train
 
     def append_loss(self, err_list, loss):
         # Convenience function to increase readability
@@ -420,15 +366,6 @@ class Model(object):
         ).all()
 
     def test(self, dataset, remaining_time_budget=None):
-        # Check if this or the previous prediction is/was a final prediction
-        # and return None to stop the ingestion if a final prediction was made
-        if self.final_prediction_made:
-            logger.info('Total time trained: {0}s'.format(np.sum(self.train_time)))
-            self.done_training = True
-            return None
-        if self.make_final_prediction:
-            self.final_prediction_made = True
-
         logger.info("TESTING START: " + str(time.time()))
         logger.info("REMAINING TIME: " + str(remaining_time_budget))
 
@@ -478,7 +415,7 @@ class Model(object):
                     predictions = torch.cat((predictions, output), 0)
 
         # remove if needed: Only train for 5 mins in order to save time on the submissions
-        if remaining_time_budget < 900:
+        if remaining_time_budget < 600:
             self.done_training = True
             return None
 
