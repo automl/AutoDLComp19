@@ -14,6 +14,7 @@ class WrapperNet(nn.Module):
 
 
     def train(self):
+        self.model.train()
         if self.fast_augment:
             i_size = self.model.input_size
             self.augmentation = nn.Sequential(
@@ -32,6 +33,7 @@ class WrapperNet(nn.Module):
                 Normalize())
 
     def eval(self):
+        self.model.eval()
         if self.fast_augment:
             i_size = self.model.input_size
             self.augmentation = nn.Sequential(
