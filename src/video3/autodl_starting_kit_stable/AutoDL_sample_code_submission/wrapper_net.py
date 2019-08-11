@@ -50,7 +50,8 @@ class WrapperNet(nn.Module):
                 Normalize())
 
     def forward(self, x):
-        x = self.augmentation(x)
+        with torch.no_grad():
+            x = self.augmentation(x)
         x = self.model(x)
         return x
 
