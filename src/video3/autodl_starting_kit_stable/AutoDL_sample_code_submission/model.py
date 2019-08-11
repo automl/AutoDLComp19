@@ -60,14 +60,14 @@ class ParserMock():
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'bn_prod_limit', 256)    # limit of batch_size * num_segments
-        setattr(self._parser_args, 'batch_size_train', 64)
-        setattr(self._parser_args, 'num_segments_test', 2)
-        setattr(self._parser_args, 'num_segments_step', 5000)
+        setattr(self._parser_args, 'batch_size_train', 128)
+        setattr(self._parser_args, 'num_segments_test', 4)
+        setattr(self._parser_args, 'num_segments_step', 50000)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'dropout_diff', 1e-4)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
-        setattr(self._parser_args, 'lr', 0.01)
+        setattr(self._parser_args, 'lr', 0.002)
         setattr(self._parser_args, 'lr_gamma', 0.01)
         setattr(self._parser_args, 'lr_step', 20)
         setattr(self._parser_args, 'print', True)
@@ -372,7 +372,8 @@ class Model(object):
         else:
             # video dataset
             if is_training:
-                num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
+                #num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
+                num_segments = 8
                 avg_frames = self.info['avg_shape'][0]
                 if avg_frames > 64:
                     upper_limit = 16
