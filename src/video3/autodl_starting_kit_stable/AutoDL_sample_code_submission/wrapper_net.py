@@ -49,7 +49,6 @@ class WrapperNet(nn.Module):
                 Stack(),
                 Normalize())
 
-
     def forward(self, x):
         x = self.augmentation(x)
         x = self.model(x)

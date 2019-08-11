@@ -49,12 +49,13 @@ class TFDataset(Dataset):
             return example_transform, label
 
     def scan2(self, samples=10000000):
-        # Same as scann but extracts the min/max shape and checks
+        # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
         # TODO(Philipp J.): Can we do better than going over the whole
         # to check this?
         min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
         max_shape = (-np.Inf, -np.Inf, -np.Inf, -np.Inf)
+        avg_shape = np.array([0, 0, 0, 0])
         is_multilabel = False
         count = 0
         for i in range(min(self.num_samples, samples)):
@@ -66,13 +67,18 @@ class TFDataset(Dataset):
                 break
             min_shape = np.minimum(min_shape, example.shape)
             max_shape = np.maximum(max_shape, example.shape)
+            avg_shape += example.shape
             count += 1
             if np.sum(label) > 1:
                 is_multilabel = True
+
+        avg_shape = avg_shape / count
+
         return {
             'num_samples': count,
             'min_shape': min_shape,
             'max_shape': max_shape,
+            'avg_shape': avg_shape,
             'is_multilabel': is_multilabel,
         }
 

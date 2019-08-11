@@ -26,7 +26,7 @@ should not exceed 300MB.
 
 import logging
 import numpy as np
-import pandas as pd
+import copy
 import os
 import torch
 import sys
@@ -40,8 +40,9 @@ from opts import parser
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
 from transforms import SelectSamples, RandomCropPad
 from dataset_kakaobrain import TFDataset
-from dataloader_kakaobrain import FixedSizeDataLoader
 from wrapper_net import WrapperNet
+from torch.optim.lr_scheduler import StepLR
+
 
 
 class ParserMock():
@@ -58,18 +59,17 @@ class ParserMock():
         logger.info('ROOT PATH: ' + str(rootpath))
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
+        setattr(self._parser_args, 'bn_prod_limit', 256)    # limit of batch_size * num_segments
         setattr(self._parser_args, 'batch_size_train', 64)
-        setattr(self._parser_args, 'batch_size_test', 64)
-        setattr(self._parser_args, 'num_segments_train', 2)
-        setattr(self._parser_args, 'num_segments_test', 3)
-        setattr(self._parser_args, 'num_segments_threshold', 20)
+        setattr(self._parser_args, 'num_segments_test', 2)
+        setattr(self._parser_args, 'num_segments_step', 5000)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
+        setattr(self._parser_args, 'dropout_diff', 1e-4)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
-        setattr(self._parser_args, 'dropout_max', 0.5)
-        setattr(self._parser_args, 'lr', 0.001)
-        setattr(self._parser_args, 'lr_schedule', 0.99)
-        setattr(self._parser_args, 'lr_schedule_step', 10)
+        setattr(self._parser_args, 'lr', 0.01)
+        setattr(self._parser_args, 'lr_gamma', 0.01)
+        setattr(self._parser_args, 'lr_step', 20)
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 'fast_augment', True)
 
@@ -140,11 +140,10 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
         self.select_fast_augment()
-        self.model_path = self.select_model()
 
         self.training_round = 0  # flag indicating if we are in the first round of training
         self.testing_round = 0  # flag indicating if we are in the first round of testing
-        self.train_batch_counter = 0 # to adapt the learning rate
+        self.train_counter = 0
         self.num_samples_testing = None  # number of test samples
 
         self.session = tf.Session()
@@ -165,9 +164,9 @@ class Model(object):
 
         t2 = time.time()
 
-        self.set_dropout()
         num_segments = self.set_num_segments(is_training=True)
-        dl_train = self.get_dataloader_train(dataset, num_segments)
+        batch_size = self.set_batch_size(num_segments, is_training=True)
+        dl_train = self.get_dataloader_train(dataset, num_segments, batch_size)
         self.model.train()
 
         t3 = time.time()
@@ -185,8 +184,9 @@ class Model(object):
                 loss = self.criterion(output, labels)
                 loss.backward()
                 self.optimizer.step()
-                self.train_batch_counter += 1
-                self.set_lr()
+                self.lr_scheduler.step()
+                self.set_dropout()
+                self.train_counter += num_segments*batch_size
 
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
@@ -206,8 +206,14 @@ class Model(object):
             '\nTIMINGS TRAINING: ' +
             '\n t2-t1 ' + str(t2 - t1) +
             '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3)         )
+            '\n t4-t3 ' + str(t4 - t3))
 
+        logger.info('LR: ')
+        for param_group in self.optimizer.param_groups:
+            logger.info(param_group['lr'])
+        logger.info('DROPOUT: ' + str(self.model.model.dropout))
+        logger.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
+        logger.info("TRAINING COUNTER: " + str(self.train_counter))
         logger.info("TRAINING END: " + str(time.time()))
         self.train_time.append(t4 - t1)
 
@@ -218,19 +224,27 @@ class Model(object):
         # for root, subdirs, files in os.walk(os.getcwd()):
         #     logger.info(root)
 
-        # get multiclass/multilabel information
+        # get multiclass/multilabel information based on a small subset of videos/images
+
         ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=self.num_examples_train)
         scan_start = time.time()
-        info = ds_temp.scan2(10)
+        self.info = ds_temp.scan2(50)
         logger.info('TRAIN SCAN TIME: {0}'.format(time.time() - scan_start))
-        if info['is_multilabel']:
+        logger.info('AVG SHAPE: ' + str(self.info['avg_shape']))
+
+        if self.info['is_multilabel']:
             setattr(self.parser_args, 'classification_type', 'multilabel')
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
 
+        self.select_model()
         self.model_main, self.optimizer = load_model_and_optimizer(self.parser_args)
         self.model = WrapperNet(self.model_main, self.parser_args)
         self.model.cuda()
+        self.lr_scheduler = StepLR(self.optimizer,
+                                   self.parser_args.lr_step,
+                                   1-self.parser_args.lr_gamma)
+        self.set_dropout(first_round=True)
 
         # load proper criterion for multiclass/multilabel
         self.criterion = load_loss_criterion(self.parser_args)
@@ -271,7 +285,8 @@ class Model(object):
         t2 = time.time()
 
         num_segments = self.set_num_segments(is_training=False)
-        dl = self.get_dataloader_test(dataset, num_segments)
+        batch_size = self.set_batch_size(num_segments, is_training=False)
+        dl = self.get_dataloader_test(dataset, num_segments, batch_size)
         self.model.eval()
 
         t3 = time.time()
@@ -307,7 +322,7 @@ class Model(object):
 
     def select_fast_augment(self):
         '''
-        if all input videos/images have the same width/height, we can do augmentation on the GPU
+        if all input videos/images have the same width/height, we can do faster data augmentation on the GPU
         '''
         row_count, col_count = self.metadata.get_matrix_size(0)
         if row_count > 0 and col_count > 0:
@@ -321,60 +336,73 @@ class Model(object):
         '''
         select proper model based on information from the dataset (image/video, etc.)
         '''
+        avg_shape = self.info['avg_shape']
         if self.metadata.get_sequence_size() == 1:  # image network
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
+            num_pixel = avg_shape[1]*avg_shape[2]
+            if num_pixel < 10000:                   # select network based on average number of pixels in the dataset
+                self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_64.pth.tar'
+            else:
+                self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
         else:                                       # video network
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'bnt_kinetics_input_128.pth.tar'
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Video_input_128.pth.tar'
         logger.info('USE MODEL: ' + str(self.parser_args.finetune_model))
 
 
-    def set_dropout(self):
+    def set_dropout(self, first_round=False):
         '''
-        linearly increase dropout over time. Also ensures that dropout is never larger than 0.9
+        linearly increase dropout over number of processed batches. Also ensures that dropout is never larger than 0.9
         '''
-        do_max = self.parser_args.dropout_max
-        t_rel = transform_to_time_rel(time.time()-self.time_start)
-        do = min(do_max*t_rel, 0.9)
-        self.model.model.dropout = do
-        logger.info('SET DROPOUT: ' + str(do))
-
-
-    def set_lr(self):
-        '''
-        multiply learning rate every n batches by a constant factor <= 1
-        '''
-        lr_schedule = self.parser_args.lr_schedule
-        lr_schedule_step = self.parser_args.lr_schedule_step
-
-        if self.train_batch_counter > lr_schedule_step:
-            self.train_batch_counter -= lr_schedule_step
-            logger.info('UPDATE LR')
-
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] *= lr_schedule
+        if first_round:
+            self.model.model.dropout = 0
+        else:
+            self.model.model.dropout = self.model.model.dropout + self.parser_args.dropout_diff
+            self.model.model.dropout = min(self.model.model.dropout, 0.9)
 
 
     def set_num_segments(self, is_training):
         '''
         increase number of segments after a given time by a factor of 2
         '''
+        print('train counter: ' + str(self.train_counter))
+        print('num segments step: ' + str(self.parser_args.num_segments_step))
+
         if self.metadata.get_sequence_size() == 1:
             # image dataset
             num_segments = 1
         else:
             # video dataset
             if is_training:
-                # double num_segments after specific time
-                if time.time()-self.time_start > self.parser_args.num_segments_threshold:
-                    num_segments  = self.parser_args.num_segments_train*2
+                num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
+                avg_frames = self.info['avg_shape'][0]
+                if avg_frames > 64:
+                    upper_limit = 16
                 else:
-                    num_segments = self.parser_args.num_segments_train
+                    upper_limit = 8
+                num_segments = min(max(num_segments, 2), upper_limit)
             else:
                 num_segments = self.parser_args.num_segments_test
 
         logger.info('SET NUM SEGMENTS: ' + str(num_segments))
         self.model.model.num_segments = num_segments
         return num_segments
+
+
+    def set_batch_size(self, num_segments, is_training):
+        '''
+        calculate resulting batch size based on desired batch size and specified upper limit due to GPU memory
+        '''
+        if is_training:
+            bn_prod_des = self.parser_args.batch_size_train*num_segments
+            if bn_prod_des <= self.parser_args.bn_prod_limit:
+                batch_size = self.parser_args.batch_size_train
+            else:
+                batch_size = int(self.parser_args.bn_prod_limit / num_segments)
+        else:
+            batch_size = int(self.parser_args.bn_prod_limit / num_segments)
+
+        logger.info('SET BATCH SIZE: ' + str(batch_size))
+
+        return batch_size
 
 
     def get_transform(self, num_segments):
@@ -387,7 +415,7 @@ class Model(object):
                 RandomCropPad(self.model_main.input_size)])
 
 
-    def get_dataloader_train(self, dataset, num_segments):
+    def get_dataloader_train(self, dataset, num_segments, batch_size):
         transform = self.get_transform(num_segments)
 
         ds = TFDataset(
@@ -397,12 +425,10 @@ class Model(object):
             transform=transform
         )
 
-        dl = FixedSizeDataLoader(
+        dl = torch.utils.data.DataLoader(
             ds,
-            steps=int(10000000),
-            batch_size=self.parser_args.batch_size_train,
+            batch_size=batch_size,
             shuffle=True,
-            num_workers=0,
             pin_memory=True,
             drop_last=False
         )
@@ -410,7 +436,7 @@ class Model(object):
         return dl
 
 
-    def get_dataloader_test(self, dataset, num_segments):
+    def get_dataloader_test(self, dataset, num_segments, batch_size):
         transform = self.get_transform(num_segments)
 
         ds = TFDataset(
@@ -422,7 +448,9 @@ class Model(object):
 
         dl = torch.utils.data.DataLoader(
             ds,
-            batch_size=self.parser_args.batch_size_test,
+            batch_size=batch_size,
+            shuffle=False,
+            pin_memory=True,
             drop_last=False
         )
 
