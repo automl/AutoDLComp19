@@ -50,7 +50,6 @@ class ParserMock():
         self._parser_args = parser.parse_known_args()[0]
         self.load_manual_parameters()
         self.load_bohb_parameters()
-        self.load_apex()
 
     def load_manual_parameters(self):
         # manually set parameters
@@ -59,12 +58,12 @@ class ParserMock():
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'bn_prod_limit', 256)    # limit of batch_size * num_segments
-        setattr(self._parser_args, 'batch_size_train', 32)
-        setattr(self._parser_args, 'num_segments_test', 4)
-        setattr(self._parser_args, 'num_segments_step', 3000)
+        setattr(self._parser_args, 'batch_size_train', 16)
+        setattr(self._parser_args, 'num_segments_test', 2)
+        setattr(self._parser_args, 'num_segments_step', 4000)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
-        setattr(self._parser_args, 'dropout_diff', 5e-4)
+        setattr(self._parser_args, 'dropout_diff', 1e-3)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
         setattr(self._parser_args, 'lr', 0.001)
         setattr(self._parser_args, 'lr_gamma', 0.01)
@@ -84,16 +83,6 @@ class ParserMock():
                     logger.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
                     setattr(self._parser_args, key, value)
             os.remove(path)
-
-    def load_apex(self):
-        # apex
-        if torch.cuda.device_count() == 1:
-            try:
-                from apex import amp
-                setattr(self._parser_args, 'apex_available', True)
-            except Exception:
-                pass
-            logger.info('Apex = ' + str(self._parser_args.apex_available))
 
     def set_attr(self, attr, val):
         setattr(self._parser_args, attr, val)
@@ -190,12 +179,17 @@ class Model(object):
 
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                t_diff = (transform_to_time_rel(time.time() - self.time_start)
+                if int(self.training_round) == 1:
+                    if i > 30:
+                        self.finish_loop = True
+                        break
+                else:
+                    t_diff = (transform_to_time_rel(time.time() - self.time_start)
                         - transform_to_time_rel(t_train - self.time_start))
 
-                if t_diff > self.parser_args.t_diff:
-                    self.finish_loop = True
-                    break
+                    if t_diff > self.parser_args.t_diff:
+                        self.finish_loop = True
+                        break
 
             subprocess.run(['nvidia-smi'])
             self.training_round += 1
@@ -264,22 +258,6 @@ class Model(object):
 
         # load proper criterion for multiclass/multilabel
         self.criterion = load_loss_criterion(self.parser_args)
-        if self.parser_args.apex_available:
-            from apex import amp
-
-            def scaled_loss_helper(loss, optimizer):
-                with amp.scale_loss(loss, optimizer) as scale_loss:
-                    scale_loss.backward()
-
-            def amp_loss(predictions, labels, loss_fn, optimizer):
-                loss = loss_fn(predictions, labels)
-                if hasattr(optimizer, '_amp_stash'):
-                    loss.backward = partial(scaled_loss_helper, loss=loss, optimizer=optimizer)
-                return loss
-
-            self.criterion = partial(
-                amp_loss, loss_fn=self.criterion, optimizer=self.optimizer
-            )
 
         t8 = time.time()
 
@@ -326,9 +304,9 @@ class Model(object):
         predictions = np.vstack(prediction_list)
 
         # remove if needed: Only train for 10 mins in order to save time on the submissions
-        # if remaining_time_budget < 600:
-        #     self.done_training = True
-        #     return None
+        if remaining_time_budget < 600:
+            self.done_training = True
+            return None
 
         t4 = time.time()
 
@@ -394,16 +372,16 @@ class Model(object):
             num_segments = 1
         else:
             # video dataset
-            if is_training:
-                num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
-                avg_frames = self.info['avg_shape'][0]
-                if avg_frames > 64:
-                    upper_limit = 16
-                else:
-                    upper_limit = 8
-                num_segments = min(max(num_segments, 2), upper_limit)
+#            if is_training:
+            num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
+            avg_frames = self.info['avg_shape'][0]
+            if avg_frames > 64:
+                upper_limit = 16
             else:
-                num_segments = self.parser_args.num_segments_test
+                upper_limit = 8
+            num_segments = min(max(num_segments, 2), upper_limit)
+            # else:
+            #     num_segments = self.parser_args.num_segments_test
 
         logger.info('TRAIN COUNTER: ' + str(self.train_counter))
         logger.info('SET NUM SEGMENTS: ' + str(num_segments))

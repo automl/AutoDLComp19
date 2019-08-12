@@ -48,13 +48,13 @@ class WrapperNet(nn.Module):
                 Normalize())
 
     def forward(self, x):
-        t1 = time.time()
+        #t1 = time.time()
         x = self.augmentation(x)
-        t2 = time.time()
+        #t2 = time.time()
         x = self.model(x)
-        t3 = time.time()
-        print('TIMINGS AUGMENTATION: ' + str(t2 - t1))
-        print('TIMINGS MODEL: ' + str(t3 - t2))
+        #t3 = time.time()
+        #print('TIMINGS AUGMENTATION: ' + str(t2 - t1))
+        #print('TIMINGS MODEL: ' + str(t3 - t2))
         return x
 
 
