@@ -26,7 +26,6 @@ should not exceed 300MB.
 
 import logging
 import numpy as np
-import copy
 import os
 import torch
 import sys
@@ -119,7 +118,7 @@ class Model(object):
         # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
         # for your network do not vary
         # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-        torch.backends.cudnn.benchmark = True
+        #torch.backends.cudnn.benchmark = True
 
         self.time_start = time.time()
         self.train_time = []
