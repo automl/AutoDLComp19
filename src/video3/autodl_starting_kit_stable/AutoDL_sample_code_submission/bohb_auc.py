@@ -17,9 +17,9 @@ from hpbandster.optimizers import BOHB as BOHB
 def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='bn_prod_limit', choices = [256]))     # maximum value of batch_size*num_segments
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [32,64,128]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64,128]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='num_segments_test', choices = [2,4,8,16]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='num_segments_step', lower=1e3, upper=1e6, log=True))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='num_segments_step', lower=1e2, upper=1e4, log=True))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout_diff', lower=1e-5, upper=1e-3, log=True))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.1, log=False))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-1, log=True))

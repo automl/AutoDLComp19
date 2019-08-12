@@ -14,7 +14,6 @@ class WrapperNet(nn.Module):
 
 
     def train(self):
-        self.model.train()
         if self.fast_augment:
             i_size = self.model.input_size
             self.augmentation = nn.Sequential(
@@ -33,7 +32,6 @@ class WrapperNet(nn.Module):
                 Normalize())
 
     def eval(self):
-        self.model.eval()
         if self.fast_augment:
             i_size = self.model.input_size
             self.augmentation = nn.Sequential(
@@ -50,9 +48,13 @@ class WrapperNet(nn.Module):
                 Normalize())
 
     def forward(self, x):
-        with torch.no_grad():
-            x = self.augmentation(x)
+        t1 = time.time()
+        x = self.augmentation(x)
+        t2 = time.time()
         x = self.model(x)
+        t3 = time.time()
+        print('TIMINGS AUGMENTATION: ' + str(t2 - t1))
+        print('TIMINGS MODEL: ' + str(t3 - t2))
         return x
 
 
@@ -144,7 +146,7 @@ class Stack(nn.Module):
     def forward(self, x):
         shape = x.shape
         shape_new = [x.shape[0], x.shape[1]*x.shape[2],*shape[3:]]
-        x = x.contiguous().view(*shape_new)
+        x = x.view(*shape_new)
         return x
 
 
@@ -156,7 +158,13 @@ class Normalize(nn.Module):
         super().__init__()
 
     def forward(self, x):
+        min_val = torch.min(x).cpu().numpy()
+
+        if min_val < -0.01:
+            x = x + min_val
+
         max_val = torch.max(x).cpu().numpy()
+
         if max_val <= 255 and max_val > 1:
             x = x / 255
         elif max_val > 255:
