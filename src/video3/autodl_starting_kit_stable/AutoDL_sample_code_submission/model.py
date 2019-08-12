@@ -180,7 +180,7 @@ class Model(object):
                 logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
                 if int(self.training_round) == 1:
-                    if i > 30:
+                    if i > 20:
                         self.finish_loop = True
                         break
                 else:
