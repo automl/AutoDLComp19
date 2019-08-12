@@ -2,36 +2,52 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-RESIZE_FACTOR = 1.2
+RESIZE_FACTOR = 1.3
 
 
 class WrapperNet(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
+        self.fast_augment = fast_augment
         self.augmentation = None
+        self.__dict__ = {**self.model.__dict__, **self.__dict__}
 
     def train(self):
         self.model.train()
-        i_size = self.model.input_size
-        self.augmentation = nn.Sequential(
-            SwapAxes(),
-            FormatChannels(3),
-            # Interpolate((int(i_size * RESIZE_FACTOR),
-            #              int(i_size * RESIZE_FACTOR))),
-            # RandomCrop((i_size, i_size)),
-            Stack(),
-            Normalize())
+        if self.fast_augment:
+            i_size = self.model.input_size
+            self.augmentation = nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Interpolate((int(i_size * RESIZE_FACTOR),
+                             int(i_size * RESIZE_FACTOR))),
+                RandomCrop((i_size, i_size)),
+                Stack(),
+                Normalize())
+        else:
+            self.augmentation = nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Stack(),
+                Normalize())
 
     def eval(self):
         self.model.eval()
-        i_size = self.model.input_size
-        self.augmentation = nn.Sequential(
-            SwapAxes(),
-            FormatChannels(3),
-            # Interpolate((i_size, i_size)),
-            Stack(),
-            Normalize())
+        if self.fast_augment:
+            i_size = self.model.input_size
+            self.augmentation = nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Interpolate((i_size, i_size)),
+                Stack(),
+                Normalize())
+        else:
+            self.augmentation = nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Stack(),
+                Normalize())
 
     def forward(self, x):
         x = self.augmentation(x)

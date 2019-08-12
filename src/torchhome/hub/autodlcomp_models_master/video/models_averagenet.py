@@ -1,9 +1,12 @@
+import logging
 import torch
 from torch import nn
 import torchvision
 import torch.nn.functional as F
 from .transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip, GroupScale, GroupRandomGrayscale
 from .tf_model_zoo.ECOfull_py.efficientnet import EfficientNet
+
+logger = logging.getLogger(__file__)
 
 
 class Averagenet_feature(nn.Module):
@@ -67,24 +70,24 @@ class Averagenet_feature(nn.Module):
         if num_segments != 0: self.num_segments = num_segments
         sample_len = 3
         bs, c_ns, h, w = input.shape
-        # print('ip : ', input.shape)
+        # logger.debug('ip : ', input.shape)
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
-        # print('ip_view : ', input.shape)
+        # logger.debug('ip_view : ', input.shape)
         # base model: BNINception pretrained model
         _, x = self.base(input)
-        # print('bs : ', x.shape)
+        # logger.debug('bs : ', x.shape)
 
-        # print('shape after effnet: ', x.shape)
+        # logger.debug('shape after effnet: ', x.shape)
         # reshape (2D to 3D)
         x = x.view(bs, self.num_segments, self.n_output_base)  # (bs, 40, ns, 28, 28)
-        # print('shape after segments effnet: ', x.shape)
+        # logger.debug('shape after segments effnet: ', x.shape)
         # global average pooling (modified version to fit for arbitrary the number of segments
         # x = F.adaptive_avg_pool1d(x, self.n_output_base)
         bs, seg, _ = x.shape
         x = F.avg_pool2d(x, kernel_size=(seg, 1), stride=(1, 1))
-        # print('shape after pool: ', x.shape)
+        # logger.debug('shape after pool: ', x.shape)
         x = x.view(-1, self.n_output_base)
-        # print('shape after view: ', x.shape)
+        # logger.debug('shape after view: ', x.shape)
         x = self.alphadrop(x)
         x = self.fc(x)
 
@@ -101,19 +104,19 @@ class Averagenet_feature(nn.Module):
         super(Averagenet_feature, self).train(mode)
         count = 0
         if False:  # TODO: why always true??self._enable_freeze:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.base.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -127,16 +130,16 @@ class Averagenet_feature(nn.Module):
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.base.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -147,7 +150,7 @@ class Averagenet_feature(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def get_optim_policies(self):
         first_3d_conv_weight = []
@@ -353,19 +356,19 @@ class Averagenet(nn.Module):
         super(Averagenet, self).train(mode)
         count = 0
         if False:  # TODO: why always true??self._enable_freeze:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.base.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -379,16 +382,16 @@ class Averagenet(nn.Module):
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.base.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -399,7 +402,7 @@ class Averagenet(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def get_optim_policies(self):
         first_3d_conv_weight = []

@@ -15,6 +15,7 @@ not exceed 300MB.
 import os
 import time
 import types
+import logging
 from functools import partial
 
 # Import the challenge algorithm (model) API from algorithm.py
@@ -211,6 +212,8 @@ class Model(algorithm.Algorithm):
             ]
         )
         self.split_dataset(ds_temp, transf_dict['train'])
+        if LOGGER.level == logging.DEBUG:
+            self.train_dl['train'].dataset.benchmark_transofrmations()
 
     def train(self, dataset, remaining_time_budget=None):
         if self.final_prediction_made:
@@ -259,9 +262,10 @@ class Model(algorithm.Algorithm):
         )
 
     def test(self, dataset, remaining_time_budget=None):
-        LOGGER.error('TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday))
-        LOGGER.error('TRAIN ERR SHAPE: {0}'.format(self.trainer.train_err.shape))
-        return None
+        if self.config.benchmark_time_till_first_prediction:
+            LOGGER.error('TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday))
+            LOGGER.error('TRAIN ERR SHAPE: {0}'.format(self.trainer.train_err.shape))
+            return None
         if self.final_prediction_made:
             return None
         if self.make_final_prediction:
@@ -289,7 +293,10 @@ class Model(algorithm.Algorithm):
         self.test_dl.dataset.reset()
         with torch.no_grad():
             for i, (data, _) in enumerate(self.test_dl):
-                self.model.eval()
+                if time.time() - self.birthday > 60:
+                    self.model.eval()
+                else:
+                    self.model.train()
                 LOGGER.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)

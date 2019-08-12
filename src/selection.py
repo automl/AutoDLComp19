@@ -20,7 +20,7 @@ with open(os.path.join(TORCH_HOME, 'manifest.hjson')) as manifest:
 
 
 # Model selectors
-def default_model_selector(tfsession, dataset):
+def default_model_selector(tfsession, dataset, use_wrappernet=False):
     models_available = torch.hub.list(HUBNAME)
     conf = struct(HUBMANIFEST['averagenet']['kinetics'])
 
@@ -43,7 +43,8 @@ def default_model_selector(tfsession, dataset):
     model, optimizer, loss_fn = torch.hub.load(
         HUBNAME, 'averagenet', pretrained=True, url=conf.checkpoint_file, **modeloptimargs
     )
-    model = WrapperNet(model)
+    if use_wrappernet:
+        model = WrapperNet(model)
 
     # This is an example how you could get the optimizer from the manifest
     # ####

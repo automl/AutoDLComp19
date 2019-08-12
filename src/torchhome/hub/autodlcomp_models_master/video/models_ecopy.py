@@ -1,3 +1,4 @@
+import logging
 import torch
 import torchvision
 import torch.nn.functional as F
@@ -6,6 +7,8 @@ from .tf_model_zoo.ECOfull_py.bninception import bninception_pretrained
 from .tf_model_zoo.ECOfull_py.efficientnet import EfficientNet
 from .tf_model_zoo.ECOfull_py.resnet_3d import resnet3d, resnet3d_eff
 from .transforms import GroupScale, GroupMultiScaleCrop, GroupRandomHorizontalFlip, GroupRandomGrayscale
+
+logger = logging.getLogger(__file__)
 
 
 class ECOfull_efficient(nn.Module):
@@ -30,7 +33,7 @@ class ECOfull_efficient(nn.Module):
         self.modality = modality
 
         self.input_size = input_size
-        print("Input size: ", self.input_size)
+        logger.debug("Input size: ", self.input_size)
 
         self.input_mean = [0.485, 0.456, 0.406]
         self.input_std = [0.229, 0.224, 0.225]
@@ -76,13 +79,13 @@ class ECOfull_efficient(nn.Module):
 
         # base model: BNINception pretrained model
         x, x_b = self.base(input)
-        # print('bs : ', x.shape, x_b.shape)
+        # logger.debug('bs : ', x.shape, x_b.shape)
 
-        # print('shape after effnet: ', x.shape)
+        # logger.debug('shape after effnet: ', x.shape)
         # reshape (2D to 3D)
         '''
         x = x.view(bs, 68, self.num_segments, 16, 16)  # (bs, 40, ns, 28, 28)
-        #print('shape after segments effnet: ', x.shape)
+        #logger.debug('shape after segments effnet: ', x.shape)
         # 3D resnet
         x = self.resnet3d_eff(x)  # (bs, 512, 4, 7, 7)
 
@@ -124,19 +127,19 @@ class ECOfull_efficient(nn.Module):
         super(ECOfull_efficient, self).train(mode)
         count = 0
         if self._enable_freeze_eco:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.efficientnet.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -150,16 +153,16 @@ class ECOfull_efficient(nn.Module):
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.efficientnet.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -170,7 +173,7 @@ class ECOfull_efficient(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def get_optim_policies(self):
         first_3d_conv_weight = []
@@ -335,7 +338,7 @@ class ECOfull(nn.Module):
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
         # base model: BNINception pretrained model
         x, x_b = self.bninception_pretrained(input)
-        # print('bs : ', x.shape, x_b.shape)
+        # logger.debug('bs : ', x.shape, x_b.shape)
         # reshape (2D to 3D)
         x = x.view(bs, 96, self.num_segments, 28, 28)  # (bs, 96, ns, 28, 28)
 
@@ -367,19 +370,19 @@ class ECOfull(nn.Module):
         super(ECOfull, self).train(mode)
         count = 0
         if self._enable_freeze_eco:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.bninception_pretrained.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -393,16 +396,16 @@ class ECOfull(nn.Module):
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.bninception_pretrained.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -413,7 +416,7 @@ class ECOfull(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def get_optim_policies(self):
         first_3d_conv_weight = []
@@ -556,7 +559,7 @@ class ECO_bninception(nn.Module):
         self.input_std = [0.229, 0.224, 0.225]
 
         self.dropout = 0.1
-        #print(self.dropout)
+        #logger.debug(self.dropout)
         self.alphadrop = nn.AlphaDropout(p=self.dropout)
 
         reduction = 8
@@ -595,18 +598,18 @@ class ECO_bninception(nn.Module):
         x_t = self.transfer2D(x)
         x = self.batch_norm_2do(x_t*x)
         x = self.alphadrop(x)
-        #print("x.shape: ", x.shape)
+        #logger.debug("x.shape: ", x.shape)
 
         x = x.view(-1, self.num_segments, 1024)  # (bs, 96, ns, 28, 28)
         x = torch.mean(x, dim=1)  # avg over frames
-        #print("x.shape2: ", x.shape)
+        #logger.debug("x.shape2: ", x.shape)
 
         x = self.last_linear(x)
-        #print("x.shape3: ", x.shape)
+        #logger.debug("x.shape3: ", x.shape)
 
 
 
-        #print('bs3 : ', x.shape)
+        #logger.debug('bs3 : ', x.shape)
 
         return x
 
@@ -621,19 +624,19 @@ class ECO_bninception(nn.Module):
         super(ECO_bninception, self).train(mode)
         count = 0
         if self._enable_freeze_eco:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.bninception_pretrained.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -647,16 +650,16 @@ class ECO_bninception(nn.Module):
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.bninception_pretrained.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -667,7 +670,7 @@ class ECO_bninception(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def get_optim_policies(self):
         first_3d_conv_weight = []

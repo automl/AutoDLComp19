@@ -20,12 +20,15 @@
 
   # Automatic mixed precision ops
   amp_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
-    opt_level: "O1" # O0 is normal learning and apex does nothing
+    opt_level: "O2" # O0 is normal learning and apex does nothing
+    keep_batchnorm_fp32: true,
+    loss_scale: "dynamic"
   },
 
   # General
   log_level: 'INFO',
   earlystop: 300, # Stop after 300 seconds
+  benchmark_time_till_first_prediction: true
 
   # Dataset/DataLoader
   dataset_split_ratio: [0.875, 0.125],
@@ -34,14 +37,14 @@
       batch_size: 128,
       shuffle: true,
       num_workers: 0,
-      pin_memory: true, # faster transfer of data to gpu if true
+      pin_memory: false, # faster transfer of data to gpu if true
       drop_last: false,
     }
     test: {
       batch_size: 256,
       shuffle: false,
       num_workers: 0,
-      pin_memory: true, # faster transfer of data to gpu if true
+      pin_memory: false, # faster transfer of data to gpu if true
       drop_last: false,
     }
   },
@@ -50,13 +53,21 @@
   # Model and Optimizer selection algorithms
   model_selector: 'default_model_selector',
   model_selector_args: {
-    default_model_selector: {      
+    default_model_selector: {
+      use_wrappernet: true
     },
   },
 
   transformations_selector: 'default_transformations_selector',
   transformations_selector_args: {
     default_transformations_selector: {
+      resize: true
+    },
+    cpu_transforms: {
+      resize: false
+    },
+    gpu_transforms: { # if gpu_transforms is used we can't use pin memory
+      resize: false
     },
   },
 

@@ -1,10 +1,13 @@
 import numpy as np
+import logging
 import torch
 import torchvision
 from torch import nn
 from torch.nn.init import constant_, xavier_uniform_
 from .ops.basic_ops import ConsensusModule
 from .transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip
+
+logger = logging.getLogger(__file__)
 
 
 class TSN(nn.Module):
@@ -40,7 +43,7 @@ class TSN(nn.Module):
         else:
             self.new_length = new_length
 
-        print(
+        logger.debug(
             (
                 """
 Initializing TSN with base model: {}.
@@ -64,13 +67,13 @@ TSN Configurations:
         # modules = list(self.modules())
 
         if self.modality == 'Flow':
-            print("Converting the ImageNet model to a flow init model")
+            logger.debug("Converting the ImageNet model to a flow init model")
             self.base_model = self._construct_flow_model(self.base_model)
-            print("Done. Flow model ready...")
+            logger.debug("Done. Flow model ready...")
         elif self.modality == 'RGBDiff':
-            print("Converting the ImageNet model to RGB+Diff init model")
+            logger.debug("Converting the ImageNet model to RGB+Diff init model")
             self.base_model = self._construct_diff_model(self.base_model)
-            print("Done. RGBDiff model ready.")
+            logger.debug("Done. RGBDiff model ready.")
 
         self.consensus = ConsensusModule(consensus_type)
 
@@ -100,15 +103,15 @@ TSN Configurations:
             self.new_fc3 = None
 
         else:
-            print("0" * 100)
+            logger.debug("0" * 100)
             setattr(
                 self.base_model, self.base_model.last_layer_name,
                 nn.Dropout(p=self.dropout)
             )
             self.new_fc = nn.Linear(feature_dim, num_classes)
-            # print(self.base_model)
+            # logger.debug(self.base_model)
 
-            # print(self.base_model)
+            # logger.debug(self.base_model)
 
         std = 0.001  # noqa: F841
         if self.new_fc is None:
@@ -200,19 +203,19 @@ TSN Configurations:
         super(TSN, self).train(mode)
         count = 0
         if self._enable_freeze_eco:
-            print(
+            logger.debug(
                 "Freezing all layers in ECO except the first one and last layers for regression."
             )
             for m in self.base_model.modules():
-                # print(m)
+                # logger.debug(m)
                 if (
                     not isinstance(m, nn.ReLU) and not isinstance(m, nn.MaxPool2d) and
                     not isinstance(m, nn.AvgPool2d) and
                     not isinstance(m, nn.AvgPool3d) and not isinstance(m, nn.Dropout)
                 ):
                     count += 1
-                    # print("000"*30)
-                    # print(count)
+                    # logger.debug("000"*30)
+                    # logger.debug(count)
                     assert len(
                         self._freeze_interval
                     ) == 4, '--freeze_interval must have 4 int numbers, {} numbers: {} are given'.format(
@@ -226,16 +229,16 @@ TSN Configurations:
                         count <= self._freeze_interval[3]
                     ):
                         m.eval()
-                        print("Freezing - {} : {} ".format(count, m))
+                        logger.debug("Freezing - {} : {} ".format(count, m))
                         # shutdown update in frozen mode
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
                     elif count != 1:
-                        print("No Freezing - {} : {} ".format(count, m))
+                        logger.debug("No Freezing - {} : {} ".format(count, m))
 
         count = 0
         if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
+            logger.debug("Freezing BatchNorm2D except the first one.")
             for m in self.base_model.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
@@ -246,7 +249,7 @@ TSN Configurations:
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
         else:
-            print("No BN layer Freezing.")
+            logger.debug("No BN layer Freezing.")
 
     def partialBN(self, enable):
         self._enable_pbn = enable
@@ -450,7 +453,7 @@ TSN Configurations:
 
         # input.size(): [32, 9, 224, 224]
         # after view() func: [96, 3, 224, 224]
-        # print(input.view((-1, sample_len) + input.size()[-2:]).size())
+        # logger.debug(input.view((-1, sample_len) + input.size()[-2:]).size())
         if self.base_model_name == "C3DRes18":
             before_permute = input.view((-1, sample_len) + input.size()[-2:])
             input_var = torch.transpose(
