@@ -146,7 +146,7 @@ class Stack(nn.Module):
     def forward(self, x):
         shape = x.shape
         shape_new = [x.shape[0], x.shape[1] * x.shape[2], *shape[3:]]
-        x = x.contiguous().view(*shape_new)
+        x = x.view(*shape_new)
         return x
 
 
@@ -158,7 +158,13 @@ class Normalize(nn.Module):
         super().__init__()
 
     def forward(self, x):
+        min_val = torch.min(x).cpu().numpy()
+
+        if min_val < -0.01:
+            x = x + min_val
+
         max_val = torch.max(x).cpu().numpy()
+
         if max_val <= 255 and max_val > 1:
             x = x / 255
         elif max_val > 255:

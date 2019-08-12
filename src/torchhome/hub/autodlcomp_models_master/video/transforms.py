@@ -435,7 +435,6 @@ class RandomCropPad(object):
     """
     instead of resizing, crop/pad video to desired shape directly
     """
-
     def __init__(self, size_des):
         self.size_des = size_des
         print(self.size_des)
