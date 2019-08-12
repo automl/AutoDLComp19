@@ -13,7 +13,7 @@ __all__ = [
     'ecofull',
     'ecofull_py',
     'ecofull_efficient_py',
-    'eco_bninception',
+    'bninception',
     'tsm',
     'averagenet',
     'averagenet_feature',
@@ -32,120 +32,112 @@ model_urls = {
 
 
 def eco(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'ECO')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def ecofull(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'ECOfull')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def ecofull_py(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'ECOfull_py')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def ecofull_efficient_py(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'ECOfull_efficient_py')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
-def eco_bninception(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
+def bninception(pretrained=False, url=None, **kwargs):
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'bninception')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def tsm(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'TSM')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def averagenet(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'Averagenet')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn
 
 
 def averagenet_feature(pretrained=False, url=None, **kwargs):
-    user_pargs = kwargs.pop('parser_args')
     pargs = parser.parse_known_args()[0]
-    for k, v in user_pargs.items():
+    for k, v in kwargs.items():
         setattr(pargs, k, v)
     if pretrained:
         if url is not None:
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'Averagenet_feature')
-    model, optimizer = load_model_and_optimizer(pargs, **kwargs)
+    model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn

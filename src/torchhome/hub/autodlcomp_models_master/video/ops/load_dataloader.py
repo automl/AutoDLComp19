@@ -61,7 +61,6 @@ def get_model_for_loader(parser_args):
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
             input_size=128)
-        
     elif parser_args.arch == "bninception":
         from models_ecopy import ECO_bninception
         model = ECO_bninception(
@@ -70,8 +69,7 @@ def get_model_for_loader(parser_args):
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
-                    input_size=128)
-        
+            input_size=128)
     elif "Averagenet" in parser_args.arch:
         from models_averagenet import Averagenet
         model = Averagenet(

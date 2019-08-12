@@ -147,7 +147,9 @@ colab_submission/
 *.zip
 
 # Pytorch
-#*.pth
+*.pth
+*.pth.tar
+*.tar
 
 */AutoDL_public_data/*
 */AutoDL_sample_result_submission/*

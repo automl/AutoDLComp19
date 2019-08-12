@@ -1,57 +1,59 @@
 import numpy as np
 import torch
 import torch.nn as nn
+# from utils import LOGGER
 
 RESIZE_FACTOR = 1.3
 
 
 class WrapperNet(nn.Module):
-    def __init__(self, model):
+    def __init__(self, out_size: int, fast_augment: bool):
         super().__init__()
-        self.model = model
+        if not isinstance(out_size, int):
+            raise ValueError
         self.fast_augment = fast_augment
-        self.augmentation = None
-        self.__dict__ = {**self.model.__dict__, **self.__dict__}
+        self.out_size = np.array((out_size, out_size), dtype=np.int)
+        self.re_size = np.ceil(self.out_size * RESIZE_FACTOR).astype(np.int)
 
-    def train(self):
-        self.model.train()
-        if self.fast_augment:
-            i_size = self.model.input_size
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate((int(i_size * RESIZE_FACTOR),
-                             int(i_size * RESIZE_FACTOR))),
-                RandomCrop((i_size, i_size)),
-                Stack(),
-                Normalize())
-        else:
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize())
-
-    def eval(self):
-        self.model.eval()
-        if self.fast_augment:
-            i_size = self.model.input_size
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate((i_size, i_size)),
-                Stack(),
-                Normalize())
-        else:
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize())
+        self.augmentation = {
+            'train': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate(self.re_size.tolist()),
+                    RandomCrop(self.out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment
+                else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    RandomCrop(self.out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                )
+            ),
+            'eval': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate(self.out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment
+                else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            )
+        }
 
     def forward(self, x):
-        x = self.augmentation(x)
-        x = self.model(x)
+        mode = 'train' if self.training else 'eval'
+        with torch.no_grad():
+            x = self.augmentation[mode](x)
         return x
 
 

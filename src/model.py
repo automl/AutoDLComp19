@@ -54,11 +54,6 @@ if USE_AMP:
         with amp.scale_loss(loss, optimizer) as scale_loss:
             scale_loss.backward()
 
-# Set seeds
-np.random.seed(42)
-torch.manual_seed(42)
-torch.cuda.manual_seed_all(42)
-
 # Set the device which torch should use
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
@@ -67,18 +62,24 @@ BASEDIR = os.path.dirname(os.path.abspath(__file__))
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
+        self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
         LOGGER.info("INIT START: " + str(time.time()))
         super(Model, self).__init__(metadata)
         # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
         # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
         # for your network do not vary
         # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.benchmark = self.config.cudnn_benchmark
+        torch.backends.cudnn.deterministic = self.config.cudnn_deterministic
+
+        # Seeds
+        np.random.seed = self.config.np_random_seed
+        torch.manual_seed = self.config.torch_manual_seed
+        torch.cuda.manual_seed_all = self.config.torch_cuda_manual_seed_all
 
         # Assume model.py and config.hjson are always in the same folder. Could possibly
         # do this in a nicer fashion, but it must still run during the submission on
         # codalab.
-        self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
 
         # In-/Out Dimensions from the train dataset's metadata
         row_count, col_count = metadata.get_matrix_size(0)
@@ -95,6 +96,7 @@ class Model(algorithm.Algorithm):
         self.tf_test_set = None
         self.train_dl = None
         self.test_dl = None
+        self.transforms = None
         self.model = None
         self.optimizer = None
         self.loss_fn = None
@@ -139,16 +141,16 @@ class Model(algorithm.Algorithm):
                 self.config.model_selector
             ]
         )
-        self.model, self.loss_fn, self.optimizer, amp_compatible = selected
-        self.model.to(DEVICE)
-        self.loss_fn.to(DEVICE)
-        if USE_AMP and amp_compatible:
-            self.model, self.optimizer = amp.initialize(
-                self.model, self.optimizer, **self.config.amp_args
-            )
-            self.loss_fn = partial(
-                amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
-            )
+        self.model, self.loss_fn, self.optimizer = selected
+
+    def setup_transforms(self, ds_temp):
+        self.transforms = self.select_transformations(
+            self,
+            ds_temp,
+            **self.config.transformations_selector_args[
+                self.config.transformations_selector
+            ]
+        )
 
     def split_dataset(self, ds_temp, transform):
         # [train_percent, validation_percent, ...]
@@ -178,6 +180,8 @@ class Model(algorithm.Algorithm):
         )
         ds_train.min_shape = ds_temp.min_shape
         ds_train.median_shape = ds_temp.median_shape
+        ds_train.mean_shape = ds_temp.mean_shape
+        ds_train.std_shape = ds_temp.std_shape
         ds_train.max_shape = ds_temp.max_shape
         ds_train.is_multilabel = ds_temp.is_multilabel
 
@@ -190,6 +194,8 @@ class Model(algorithm.Algorithm):
         )
         ds_val.min_shape = ds_temp.min_shape
         ds_val.median_shape = ds_temp.median_shape
+        ds_val.mean_shape = ds_temp.mean_shape
+        ds_val.std_shape = ds_temp.std_shape
         ds_val.max_shape = ds_temp.max_shape
         ds_val.is_multilabel = ds_temp.is_multilabel
 
@@ -205,14 +211,8 @@ class Model(algorithm.Algorithm):
         }
 
     def setup_train_dataset(self, dataset, ds_temp=None):
-        transf_dict = self.select_transformations(
-            ds_temp, self.model,
-            **self.config.transformations_selector_args[
-                self.config.transformations_selector
-            ]
-        )
-        self.split_dataset(ds_temp, transf_dict['train'])
-        if LOGGER.level == logging.DEBUG:
+        self.split_dataset(ds_temp, self.transforms['train'])
+        if self.config.benchmark_transformations:
             self.train_dl['train'].dataset.benchmark_transofrmations()
 
     def train(self, dataset, remaining_time_budget=None):
@@ -223,16 +223,31 @@ class Model(algorithm.Algorithm):
             self.tf_train_set = dataset
             # Create a temporary handle to inspect data
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
-            ds_temp.scan_all()
+            # ds_temp.dataset.prefetch(self.num_train_samples)
+            ds_temp.scan_all(50)
 
             self.setup_model(ds_temp)
+            self.setup_transforms(ds_temp)
             self.setup_train_dataset(dataset, ds_temp)
+
+            # Finally move the model to gpu
+            self.model.to(DEVICE)
+            self.loss_fn.to(DEVICE)
+            if (
+                USE_AMP
+                and hasattr(self.model, 'amp_compatible')
+                and self.model.amp_compatible
+            ):
+                self.model, self.optimizer = amp.initialize(
+                    self.model, self.optimizer, **self.config.amp_args
+                )
+                self.loss_fn = partial(
+                    amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
+                )
 
         train_start = time.time()
         self.make_final_prediction = self.trainer(
             self,
-            self.train_dl['train'],
-            self.train_dl['val'],
             remaining_time_budget,
             **self.config.trainer_args[
                 self.config.trainer
@@ -242,20 +257,13 @@ class Model(algorithm.Algorithm):
         self.train_time.append(time.time() - train_start)
 
     def setup_test_dataset(self, dataset, ds_temp=None):
-        transf_dict = self.select_transformations(
-            ds_temp, self.model,
-            **self.config.transformations_selector_args[
-                self.config.transformations_selector
-            ]
-        )
         ds = TFDataset(
             session=self.session,
             dataset=dataset,
             num_samples=self.num_test_samples,
-            transform_sample=transf_dict['test']['samples'],
-            transform_label=transf_dict['test']['labels']
+            transform_sample=self.transforms['test']['samples'],
+            transform_label=self.transforms['test']['labels']
         )
-        # TODO(Philipp J.): what is the difference between torch.utils.data.DataLoader/FixedSizeDataLoader
         self.test_dl = torch.utils.data.DataLoader(
             ds,
             **self.config.dataloader_args['test']
@@ -293,10 +301,7 @@ class Model(algorithm.Algorithm):
         self.test_dl.dataset.reset()
         with torch.no_grad():
             for i, (data, _) in enumerate(self.test_dl):
-                if time.time() - self.birthday > 60:
-                    self.model.eval()
-                else:
-                    self.model.train()
+                self.model.train()
                 LOGGER.info('test: ' + str(i))
                 data = data.cuda()
                 output = self.model(data)

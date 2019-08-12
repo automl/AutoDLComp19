@@ -55,7 +55,7 @@ class TFDataset(Dataset):
             else label
         return example, label
 
-    def scan_all(self):
+    def scan_all(self, max_samples=None):
         # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
         # TODO(Philipp J.): Can we do better than going over the whole
@@ -67,7 +67,7 @@ class TFDataset(Dataset):
         is_multilabel = False
         count = 0
         self.reset()
-        while True:
+        while count != max_samples:
             try:
                 example, label = session.run(self.next_element)
             except tf.errors.OutOfRangeError:
@@ -79,11 +79,16 @@ class TFDataset(Dataset):
             count += 1
             if np.sum(label) > 1:
                 is_multilabel = True
+
+        setattr(self, 'num_samples', (
+            self.num_samples if max_samples is None else count
+        ))
         setattr(self, 'num_classes', label.shape[0])
-        setattr(self, 'num_samples', count)
         setattr(self, 'min_shape', min_shape)
         setattr(self, 'max_shape', max_shape)
         setattr(self, 'median_shape', np.median(shape_list, axis=0))
+        setattr(self, 'mean_shape', np.mean(shape_list, axis=0))
+        setattr(self, 'std_shape', np.std(shape_list, axis=0))
         setattr(self, 'is_multilabel', is_multilabel)
         self.reset()
 
@@ -124,6 +129,7 @@ class TFDataset(Dataset):
         LOGGER.debug('SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
 
     def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
+        LOGGER.warning('This is deprecated by scan_all!!!')
         shapes, counts, tensors = [], [], []
         for i in range(min(self.num_samples, samples)):
             try:
