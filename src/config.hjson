@@ -26,8 +26,9 @@
   },
 
   # General
-  log_level: 'DEBUG',
-  earlystop: 300, # Stop after 300 seconds
+  log_level: 'INFO',
+  earlystop: 120, # Stop after 300 seconds
+  use_gpu_augment: true,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
   
@@ -43,7 +44,7 @@
 
 
   # Dataset/DataLoader
-  dataset_split_ratio: [0.95, 0.05],
+  dataset_split_ratio: [1, 0],
   dataloader_args: {
     train: {
       batch_size: 16,
@@ -71,9 +72,10 @@
         # so for now we expose them here to hardcode them
         optimizer: 'SGD',
         modality: 'RGB',
+        initial_dropout: 0,
         lr: 0.001,
-        lr_gamma: 0.01,
         lr_step: 10,
+        lr_gamma: 0.01,
       }
     },
   },
@@ -102,6 +104,7 @@
   tester_args: {  # If the chosen trainer is a class the args
                    # will be passed as init arguments
     default_tester: {
+      bn_prod_limit: 128, # limit of batch_size * num_segments
       num_segments_test: 2,
     },
   },

@@ -22,7 +22,8 @@ def aug_net(autodl_model, dataset):
 
     # Inject the WrapperNet at the top of the modules list
     need_to_resize = np.any(dataset.min_shape[1:] != dataset.max_shape[1:])
-    aug_net = AugmentNet(model.input_size, not need_to_resize)
+    use_gpu_augment = autodl_model.config.use_gpu_augment
+    aug_net = AugmentNet(model.input_size, not need_to_resize and use_gpu_augment)
     # Monkeypatch the new network to expose the original model's attributes
     # autodl_model.model = MonkeyNet(
     #     aug_net,
@@ -159,46 +160,46 @@ class AugmentNet(nn.Module):
         self.fast_augment = fast_augment
         self.out_size = np.array((out_size, out_size), dtype=np.int)
         self.re_size = np.ceil(self.out_size * RESIZE_FACTOR).astype(np.int)
+        self.augmentation = None
+        self.train()
 
-        self.augmentation = {
-            'train': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Interpolate(self.re_size.tolist()),
-                    RandomCrop(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                ) if self.fast_augment
-                else nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    RandomCrop(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                )
-            ),
-            'eval': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Interpolate(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                ) if self.fast_augment
-                else nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Stack(),
-                    Normalize()
-                )
+    def train(self, mode=True):
+        self.augmentation = (
+            nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Interpolate(self.re_size.tolist()),
+                RandomCrop(self.out_size.tolist()),
+                Stack(),
+                Normalize()
+            ) if self.fast_augment
+            else nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Stack(),
+                Normalize()
             )
-        }
+        )
+
+    def eval(self, mode=False):
+        self.augmentation = (
+            nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Interpolate(self.out_size.tolist()),
+                Stack(),
+                Normalize()
+            ) if self.fast_augment
+            else nn.Sequential(
+                SwapAxes(),
+                FormatChannels(3),
+                Stack(),
+                Normalize()
+            )
+        )
 
     def forward(self, x):
-        mode = 'train' if self.training else 'eval'
-        with torch.no_grad():
-            x = self.augmentation[mode](x)
+        x = self.augmentation(x)
         return x
 
 
@@ -216,7 +217,7 @@ class FormatChannels(nn.Module):
         if channels < self.channels_des:
             shape = x.shape
             x = x.expand(*shape[:2], int(np.ceil(self.channels_des / channels)), *shape[3:])
-        x = x[:, :, 0:self.channels_des, :, :]
+        x = x[:, :, 0:self.channels_des, :, :].contiguous()
 
         return x
 
@@ -305,7 +306,7 @@ class Normalize(nn.Module):
     def forward(self, x):
         min_val = torch.min(x).cpu().numpy()
 
-        if min_val < 0:
+        if min_val < -0.01:
             x = x + min_val
 
         max_val = torch.max(x).cpu().numpy()

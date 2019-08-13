@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import hjson
 import torch
+from torch.optim.lr_scheduler import StepLR
 from utils import LOGGER
 # from torchhome.hub.autodlcomp_models_master.video.load_models import load_model_and_optimizer, load_loss_criterion
 
@@ -38,15 +39,16 @@ def master_selector(tfsession, dataset, modelargs):
             model_name, checkpoint_file = ('bninception', 'BnT_Image_Input_128.tar')
     else:  # video network
         # model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
-        model_name, checkpoint_file = ('averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar')
+        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
     model, optimizer, loss_fn = torch.hub.load(
         HUBNAME, model_name, pretrained=True, url=checkpoint_file, **modelargs
     )
+    model.dropout = modelargs['initial_dropout']
+    scheduler = StepLR(optimizer, modelargs['lr_step'], 1 - modelargs['lr_gamma'])
     # If not set, amp will not be initialized for this model
-    setattr(model, 'amp_compatible', True)
-    model.dropout = 0
+    setattr(model, 'amp_compatible', False)
 
-    return model, loss_fn, optimizer
+    return model, loss_fn, optimizer, scheduler
 
 
 # Model selectors

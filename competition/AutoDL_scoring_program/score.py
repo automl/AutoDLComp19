@@ -94,6 +94,7 @@ import psutil
 import sys
 import time
 import yaml
+import shutil
 
 def get_logger(verbosity_level, use_error_log=False):
   """Set logging format to something like:
@@ -643,8 +644,9 @@ if __name__ == "__main__":
     time_budget = args.time_budget
 
     # Create the output directory, if it does not already exist and open output files
-    if not os.path.isdir(score_dir):
-      os.mkdir(score_dir)
+    if os.path.isdir(score_dir):
+      shutil.rmtree(score_dir, True)
+    os.mkdir(score_dir)
     detailed_results_filepath = os.path.join(score_dir, 'detailed_results.html')
     # Initialize detailed_results.html
     init_scores_html(detailed_results_filepath)
@@ -790,6 +792,7 @@ if __name__ == "__main__":
                   "The score of your algorithm on the task '{}' is: {:.6f}."\
                   .format(basename, score))
 
-    write_final_score_to_file(score, score_dir)
-
+    write_final_score_to_file(score, score_dir)    
+    if os.path.isdir(prediction_dir):
+      shutil.rmtree(prediction_dir, True)
     logger.info("[Scoring terminated]")
