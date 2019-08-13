@@ -1,4 +1,5 @@
 import time
+import logging
 import subprocess
 import pandas as pd
 import numpy as np
@@ -21,7 +22,8 @@ class default_trainer():
         self.val_err = pd.DataFrame()  # collect train error
         self.val_ewm_window = 1  # window size of the exponential moving average
 
-        self.batch_counter = 0  # keep track of how many batches we trained on
+        self.batch_counter = 0
+        self.ele_counter = 0  # keep track of how many batches we trained on
 
         self.train_ewm_window = None  # np.ceil(split_num[0] / self.parser_args.batch_size)
         self.val_ewm_window = None  # np.ceil(split_num[0] / self.parser_args.batch_size)
@@ -29,7 +31,6 @@ class default_trainer():
         self.train_time = 0
 
     def __call__(self, autodl_model, remaining_time):
-        LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("REMAINING TIME: " + str(remaining_time))
 
         self.update_hyperparams(autodl_model, autodl_model.train_dl['train'])
@@ -61,18 +62,28 @@ class default_trainer():
                     autodl_model.model,
                     autodl_model.optimizer,
                     autodl_model.loss_fn,
+                    autodl_model.lr_scheduler,
                     data,
                     labels
                 )
                 # ### Set dropout
                 autodl_model.model.dropout = autodl_model.model.dropout + self.dropout_diff
                 autodl_model.model.dropout = min(autodl_model.model.dropout, 0.9)
+                autodl_model.model.alphadrop = torch.nn.AlphaDropout(p=autodl_model.model.dropout)
 
                 self.batch_counter += 1
-                if self.check_policy(autodl_model, i, t_train, loss, dl_val):
+                self.ele_counter += data.shape[0]
+                if self.check_policy2(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
-        subprocess.run(['nvidia-smi'])
+        if LOGGER.level == logging.debug:
+            subprocess.run(['nvidia-smi'])
+        LOGGER.info('DROPOUT: {0:.4g}'.format(autodl_model.model.dropout))
+        LOGGER.info('LR: {0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info("MEAN TRAINING FRAMES PER SEC: {0:.2f}".format(
+            self.ele_counter / (time.time() - autodl_model.birthday))
+        )
+        LOGGER.info("TRAINING COUNTER: " + str(self.ele_counter))
         LOGGER.info("TRAINING END: " + str(time.time()))
         return make_final_prediction
 
@@ -122,6 +133,32 @@ class default_trainer():
                         LOGGER.info('BACK TO THE GYM')
         return make_prediction
 
+    def check_policy2(self, autodl_model, i, t_train_start, loss, dl_val):
+        make_prediction = False
+        self.train_err = append_loss(self.train_err, loss)
+        LOGGER.debug('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
+
+        # The first 20 batches just train and make a prediction
+        if self.batch_counter <= 20:
+            pass
+        elif (
+            autodl_model.config.earlystop is not None
+            and time.time() - autodl_model.birthday > autodl_model.config.earlystop
+        ):
+            make_prediction = True
+        else:
+            if autodl_model.testing_round == 0:
+                make_prediction = True
+            ct_diff = (
+                transform_time_abs(time.time() - autodl_model.birthday)
+                - transform_time_abs(t_train_start - autodl_model.birthday)
+            )
+            if ct_diff < self.t_diff:
+                pass
+            else:
+                make_prediction = True
+        return make_prediction
+
     def update_batch_size(self, autodl_model):
         batch_size = int(self.bn_prod_limit / autodl_model.model.num_segments)
         trainloader_args = autodl_model.config.dataloader_args['train']
@@ -149,7 +186,7 @@ class default_trainer():
         num_segments = 1
         if dl.dataset.max_shape[0] > 1:
             # video dataset
-            num_segments = 2**int(self.batch_counter / self.num_segments_step + 1)
+            num_segments = 2**int(self.ele_counter / self.num_segments_step + 1)
             avg_frames = dl.dataset.mean_shape[0]
             if avg_frames > 64:
                 upper_limit = 16
@@ -163,13 +200,14 @@ class default_trainer():
 # ########################################################
 # Helpers
 # ########################################################
-def train_step(model, optimizer, criterion, data, labels):
+def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
     model.train()
     optimizer.zero_grad()
     output = model(data.cuda())
     loss = criterion(output, labels.cuda())
     loss.backward()
     optimizer.step()
+    lr_scheduler.step()
 
     return output, loss
 

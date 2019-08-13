@@ -99,6 +99,7 @@ class Model(algorithm.Algorithm):
         self.transforms = None
         self.model = None
         self.optimizer = None
+        self.lr_scheduler = None
         self.loss_fn = None
 
         # Set the algorithms to use from the config file
@@ -114,18 +115,20 @@ class Model(algorithm.Algorithm):
             training,
             self.config.trainer
         )
+        trainer_args = self.config.trainer_args[self.config.trainer]
         self.trainer = self.trainer if isinstance(
             self.trainer,
             types.FunctionType
-        ) else self.trainer(**self.config.trainer_args[self.config.trainer])
+        ) else self.trainer(**trainer_args)
         self.tester = getattr(
             testing,
             self.config.tester
         )
+        tester_args = self.config.tester_args[self.config.tester]
         self.tester = self.tester if isinstance(
             self.tester,
             types.FunctionType
-        ) else self.tester(**self.config.tester_args[self.config.tester])
+        ) else self.tester(**tester_args)
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -149,7 +152,7 @@ class Model(algorithm.Algorithm):
                 self.config.model_selector
             ]
         )
-        self.model, self.loss_fn, self.optimizer = selected
+        self.model, self.loss_fn, self.optimizer, self.lr_scheduler = selected
 
     def setup_transforms(self, ds_temp):
         self.transforms = self.select_transformations(
@@ -270,6 +273,7 @@ class Model(algorithm.Algorithm):
             remaining_time_budget,
             **train_args
         )
+        LOGGER.info("TRAINING TOOK: " + str(time.time() - train_start))
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
 
@@ -330,7 +334,7 @@ class Model(algorithm.Algorithm):
             remaining_time_budget,
             **test_args
         )
-        LOGGER.info("TESTING END: " + str(time.time()))
+        LOGGER.info("TESTING TOOK: " + str(time.time() - test_start))
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
         return predicitons
