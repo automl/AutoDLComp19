@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -29,10 +30,10 @@ def aug_net(autodl_model, dataset):
     #     aug_net,
     #     model
     # )
-    autodl_model.model = MonkeyNet(
-        aug_net,
-        model
-    )
+    autodl_model.model = MonkeyNet(OrderedDict([
+        ('aug_net', aug_net),
+        ('main_net', model)
+    ]))
     transf_dict = {
         'train': {
             'samples': transforms.Compose(
@@ -160,46 +161,43 @@ class AugmentNet(nn.Module):
         self.fast_augment = fast_augment
         self.out_size = np.array((out_size, out_size), dtype=np.int)
         self.re_size = np.ceil(self.out_size * RESIZE_FACTOR).astype(np.int)
-        self.augmentation = None
-        self.train()
-
-    def train(self, mode=True):
-        self.augmentation = (
-            nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate(self.re_size.tolist()),
-                RandomCrop(self.out_size.tolist()),
-                Stack(),
-                Normalize()
-            ) if self.fast_augment
-            else nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize()
+        self.augmentation = {
+            'train': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate(self.re_size.tolist()),
+                    RandomCrop(self.out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment
+                else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            ),
+            'eval': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate(self.out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment
+                else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
             )
-        )
-
-    def eval(self, mode=False):
-        self.augmentation = (
-            nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate(self.out_size.tolist()),
-                Stack(),
-                Normalize()
-            ) if self.fast_augment
-            else nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize()
-            )
-        )
+        }
 
     def forward(self, x):
-        x = self.augmentation(x)
+        mode = 'train' if self.training else 'eval'
+        x = self.augmentation[mode](x)
         return x
 
 

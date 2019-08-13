@@ -26,7 +26,7 @@
   },
 
   # General
-  log_level: 'INFO',
+  log_level: 'DEBUG',
   earlystop: 120, # Stop after 300 seconds
   use_gpu_augment: true,
   benchmark_transformations: false,

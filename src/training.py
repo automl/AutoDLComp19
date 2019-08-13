@@ -78,6 +78,7 @@ class default_trainer():
                 if self.check_policy2(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
+
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
         LOGGER.info('DROPOUT: {0:.4g}'.format(autodl_model.model.dropout))
@@ -276,7 +277,7 @@ def check_ema_improvement_min(err, ema, threshold):
 
 
 def evaluate_on(model, dl_val):
-    val_err = np.Inf
+    err = np.Inf
     dl_val.dataset.reset()
     with torch.no_grad():
         for i, (vdata, vlabels) in enumerate(dl_val):
@@ -286,8 +287,8 @@ def evaluate_on(model, dl_val):
                 vdata,
                 vlabels
             )
-            val_err = loss if np.isinf(val_err) else val_err + loss
-    return val_err
+            err = loss if np.isinf(err) else err + loss
+    return err
 
 
 def accuracy(output, labels):

@@ -19,15 +19,17 @@ class default_tester():
 
         self.update_batch_size(autodl_model)
 
-        test_start = time.time()
-        autodl_model.test_dl.dataset.reset()
-        for i, (data, _) in enumerate(autodl_model.test_dl):
-            autodl_model.model.eval()
-            LOGGER.debug('TEST BATCH #' + str(i))
-            data = data.to(DEVICE)
-            output = autodl_model.model(data)
-            predictions += output.cpu().tolist()
-            i += 1
+        autodl_model.model.eval()
+        with torch.no_grad():
+            test_start = time.time()
+            autodl_model.test_dl.dataset.reset()
+            for i, (data, _) in enumerate(autodl_model.test_dl):
+                LOGGER.debug('TEST BATCH #' + str(i))
+                data = data.to(DEVICE)
+                output = autodl_model.model(data)
+                predictions += output.cpu().tolist()
+                i += 1
+
         autodl_model.test_time.append(time.time() - test_start)
         return np.array(predictions)
 

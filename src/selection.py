@@ -30,6 +30,7 @@ def master_selector(tfsession, dataset, modelargs):
     modelargs.update(OrderedDict({
         'num_classes': dataset.num_classes,
         'classification_type': 'multilabel' if dataset.is_multilabel else 'multiclass',
+        'partial_bn': False,
     }))
     if dataset.mean_shape[0] == 1:  # image network
         num_pixel = np.prod(dataset.mean_shape[1:2])
@@ -47,6 +48,31 @@ def master_selector(tfsession, dataset, modelargs):
     scheduler = StepLR(optimizer, modelargs['lr_step'], 1 - modelargs['lr_gamma'])
     # If not set, amp will not be initialized for this model
     setattr(model, 'amp_compatible', False)
+
+    model.partialBN(False)
+    LOGGER.debug('##########################################################')
+    LOGGER.debug('MODEL IS IN BIRTHDAY SUIT')
+    LOGGER.debug('##########################################################')
+    for m in model.modules():
+        if not m.training:
+            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    model.eval()
+    LOGGER.debug('##########################################################')
+    LOGGER.debug('MODEL IS IN EVAL MODE')
+    LOGGER.debug('##########################################################')
+    for m in model.modules():
+        if not m.training:
+            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    model.train()
+    LOGGER.debug('##########################################################')
+    LOGGER.debug('MODEL IS IN TRAIN MODE')
+    LOGGER.debug('##########################################################')
+    for m in model.modules():
+        if not m.training:
+            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    LOGGER.debug('##########################################################')
+    LOGGER.debug('All done. You can get back to work now!')
+    LOGGER.debug('##########################################################')
 
     return model, loss_fn, optimizer, scheduler
 
