@@ -160,7 +160,7 @@ class Normalize(nn.Module):
     def forward(self, x):
         min_val = torch.min(x).cpu().numpy()
 
-        if min_val < -0.01:
+        if min_val < 0:
             x = x + min_val
 
         max_val = torch.max(x).cpu().numpy()

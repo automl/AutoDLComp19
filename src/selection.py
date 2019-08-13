@@ -44,6 +44,7 @@ def master_selector(tfsession, dataset, modelargs):
     )
     # If not set, amp will not be initialized for this model
     setattr(model, 'amp_compatible', True)
+    model.dropout = 0
 
     return model, loss_fn, optimizer
 

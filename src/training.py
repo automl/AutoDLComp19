@@ -10,7 +10,12 @@ from utils import LOGGER
 # which is like the loop but has methods and variables
 # and is prefered
 class default_trainer():
-    def __init__(self):
+    def __init__(self, t_diff, dropout_diff, num_segments_step, bn_prod_limit):
+        self.t_diff = t_diff
+        self.dropout_diff = dropout_diff
+        self.num_segments_step = num_segments_step
+        self.bn_prod_limit = bn_prod_limit
+
         self.train_err = pd.DataFrame()  # collect train error
         self.train_ewm_window = 1  # window size of the exponential moving average
         self.val_err = pd.DataFrame()  # collect train error
@@ -23,11 +28,16 @@ class default_trainer():
 
         self.train_time = 0
 
-    def __call__(self, autodl_model, remaining_time, t_diff, dropout_diff):
+    def __call__(self, autodl_model, remaining_time):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("REMAINING TIME: " + str(remaining_time))
+
+        self.update_hyperparams(autodl_model, autodl_model.train_dl['train'])
+        self.update_batch_size(autodl_model)
+
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
+
         t_train = time.time() if autodl_model.training_round > 0 else autodl_model.birthday
         make_prediction = False
         make_final_prediction = False
@@ -54,19 +64,19 @@ class default_trainer():
                     data,
                     labels
                 )
+                # ### Set dropout
+                autodl_model.model.dropout = autodl_model.model.dropout + self.dropout_diff
+                autodl_model.model.dropout = min(autodl_model.model.dropout, 0.9)
+
                 self.batch_counter += 1
-                self.update_model(
-                    autodl_model, dl_train.dataset,
-                    dropout_diff, self.batch_counter
-                )
-                if self.check_policy(autodl_model, i, t_train, loss, dl_val, t_diff):
+                if self.check_policy(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
         subprocess.run(['nvidia-smi'])
         LOGGER.info("TRAINING END: " + str(time.time()))
         return make_final_prediction
 
-    def check_policy(self, autodl_model, i, t_train_start, loss, dl_val, t_diff):
+    def check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
         make_prediction = False
         self.train_err = append_loss(self.train_err, loss)
         LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
@@ -88,7 +98,7 @@ class default_trainer():
                 transform_time_abs(time.time() - autodl_model.birthday)
                 - transform_time_abs(t_train_start - autodl_model.birthday)
             )
-            if ct_diff < t_diff:
+            if ct_diff < self.t_diff:
                 pass
             else:
                 make_prediction = True
@@ -112,23 +122,42 @@ class default_trainer():
                         LOGGER.info('BACK TO THE GYM')
         return make_prediction
 
-    def update_model(self, autodl_model, dataset, dropout_diff, batches_seen):
+    def update_batch_size(self, autodl_model):
+        batch_size = int(self.bn_prod_limit / autodl_model.model.num_segments)
+        trainloader_args = autodl_model.config.dataloader_args['train']
+        trainloader_args['batch_size'] = batch_size
+        autodl_model.train_dl['val'] = torch.utils.data.DataLoader(
+            autodl_model.train_dl['val'].dataset,
+            **trainloader_args
+        )
+
+        batch_size_des = autodl_model.config.dataloader_args['train']['batch_size']
+        if autodl_model.model.training:
+            bn_prod_des = batch_size_des * autodl_model.model.num_segments
+            if bn_prod_des <= self.bn_prod_limit:
+                batch_size = batch_size_des
+
+        trainloader_args['batch_size'] = batch_size
+        autodl_model.train_dl['train'] = torch.utils.data.DataLoader(
+            autodl_model.train_dl['train'].dataset,
+            **trainloader_args
+        )
+        LOGGER.info('SET BATCH SIZE: ' + str(batch_size))
+
+    def update_hyperparams(self, autodl_model, dl):
         # ### Set number segments
         num_segments = 1
-        if autodl_model.get_sequence_size() > 1:
+        if dl.dataset.max_shape[0] > 1:
             # video dataset
-            # num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
-            num_segments = 8
-            avg_frames = dataset.mean_shape[0]
+            num_segments = 2**int(self.batch_counter / self.num_segments_step + 1)
+            avg_frames = dl.dataset.mean_shape[0]
             if avg_frames > 64:
                 upper_limit = 16
             else:
                 upper_limit = 8
             num_segments = min(max(num_segments, 2), upper_limit)
-
-        # ### Set dropout
-        autodl_model.model.dropout = autodl_model.model.dropout + dropout_diff
-        autodl_model.model.dropout = min(autodl_model.model.dropout, 0.9)
+            autodl_model.model.num_segments = num_segments
+            # TODO(Philipp): set num_segments in the transforms
 
 
 # ########################################################
@@ -151,21 +180,6 @@ def eval_step(model, criterion, data, labels):
     loss = criterion(output, labels.cuda())
 
     return output, loss
-
-
-def get_batch_size(num_segments, istraining):
-    if is_training:
-        bn_prod_des = self.parser_args.batch_size_train*num_segments
-        if bn_prod_des <= self.parser_args.bn_prod_limit:
-            batch_size = self.parser_args.batch_size_train
-        else:
-            batch_size = int(self.parser_args.bn_prod_limit / num_segments)
-    else:
-        batch_size = int(self.parser_args.bn_prod_limit / num_segments)
-
-    logger.info('SET BATCH SIZE: ' + str(batch_size))
-
-    return batch_size
 
 
 def transform_time_abs(t_abs):
@@ -191,7 +205,7 @@ def get_time_wo_final_prediction(remaining_time, train_start, model):
     ) if len(model.test_time) > 0 else None
 
 
-def append_loss(self, err_list, loss):
+def append_loss(err_list, loss):
     # Convenience function to increase readability
     return err_list.append(
         [loss.detach().cpu().tolist()],

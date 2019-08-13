@@ -36,7 +36,7 @@ def aug_net(autodl_model, dataset):
         'train': {
             'samples': transforms.Compose(
                 [
-                    SelectSamples(model.num_segments),
+                    CPUSelectSegmentsDynamic(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.re_size.tolist()), )
                         if need_to_resize else ()
@@ -50,7 +50,7 @@ def aug_net(autodl_model, dataset):
         'test': {
             'samples': transforms.Compose(
                 [
-                    SelectSamples(model.num_segments),
+                    CPUSelectSegmentsDynamic(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.out_size), )
                         if need_to_resize else ()
@@ -109,47 +109,21 @@ def default_transformations_selector(dataset, model, resize):
 # ########################################################
 # Helpers
 # ########################################################
-def monkey_getter(obj_a, obj_b, attr):
-    try:
-        return obj_a.__dict[attr]
-    except KeyError:
-        try:
-            return obj_b.__dict[attr]
-        except KeyError:
-            msg = "'{0}' object has no attribute '{1}'"
-            raise AttributeError(msg.format(type(obj_a).__name__, attr))
-
-
-def monkey_setter(obj_a, obj_b, attr, val):
-    try:
-        obj_a.__dict[attr] = val
-    except KeyError:
-        try:
-            obj_b.__dict[attr] = val
-        except KeyError:
-            msg = "'{0}' object has no attribute '{1}'"
-            raise AttributeError(msg.format(type(obj_a).__name__, attr))
-
-
 class MonkeyNet(nn.Sequential):
     '''
     The idea of the monkeynet is to expose all attributes of the networks
     it's given and is therefore a special kind of Sequential network
     '''
-    def __init__(self, *args):
-        self._nets = args
-        super().__init__(*args)
+    def __init__(self, *nets):
+        super().__init__(*nets)
+        super().__setattr__('__finished_init__', True)
 
     def __getattr__(self, attr):
         try:
-            return self.__dict__[attr]
-        except KeyError:
-            pass
-        try:
-            return getattr(super(nn.Sequential, self), attr)
+            super(nn.Sequential, self).__getattribute__(attr)
         except AttributeError:
-            pass
-        for m in self._nets:
+            super(nn.Sequential, self).__getattribute__('__finished_init__')
+        for m in self.children():
             try:
                 return getattr(m, attr)
             except AttributeError:
@@ -157,35 +131,29 @@ class MonkeyNet(nn.Sequential):
         raise AttributeError('The monkey is sorry because it could not find ''{0}'''.format(attr))
 
     def __setattr__(self, attr, val):
-        if attr == '_nets':
-            self.__dict__.update({attr: val})
+        try:
+            super(nn.Sequential, self).__getattribute__(attr)
+            super(nn.Sequential, self).__setattr__(attr, val)
             return
-        if hasattr(self, attr):
-            self.__dict__[attr] = val
-            return
-        if hasattr(super(nn.Sequential, self), attr):
-            setattr(super(nn.Sequential, self), attr, val)
-            return
-        for m in self._nets:
-            if hasattr(m, attr):
+        except AttributeError:
+            try:
+                super(nn.Sequential, self).__getattribute__('__finished_init__')
+            except AttributeError:
+                super(nn.Sequential, self).__setattr__(attr, val)
+                return
+        for m in self.children():
+            try:
+                getattr(m, attr)
                 setattr(m, attr, val)
                 return
-        self.__dict__.update({attr: val})
-    # def __setattr__(self, attr, val):
-    #     try:
-    #         super().__setattr__(attr, val)
-    #     except AttributeError:
-    #         pass
-    #     for m in self._nets:
-    #         try:
-    #             m.__dict__[attr] = val
-    #         except KeyError:
-    #             continue
-    #     raise AttributeError('The monkey is sorry but could not find ''{0}'''.format(attr))
+            except AttributeError:
+                continue
+        raise AttributeError('The monkey is sorry because it could not set ''{0}'''.format(attr))
 
 
 class CPUFormatLabel(nn.Module):
     def __init__(self, multilabel):
+        super().__init__()
         self.is_multilabel = multilabel
 
     def __call__(self, x: torch.Tensor):
@@ -196,30 +164,44 @@ class CPUFormatLabel(nn.Module):
         return self(x)
 
 
-class CPUSelectSegments(nn.Module):
-    def __init__(self, num_segments, random=True):
-        self.num_segments = num_segments
-        self.random = random
+class CPUSelectSegmentsDynamic(nn.Module):
+    def __init__(self, model, random=True):
+        super().__init__()
+        self.master_model = model
 
     def __call__(self, x: torch.Tensor):
-        seg_idx = list(range(x.shape[0]))
-        self.num_segments = (
-            x.shape[0]
-            if x.shape[0] <= self.num_segments
-            else self.num_segments
-        )
-        choices = np.random.choice(
-            seg_idx,
-            self.num_segments,
-            replace=False,
-        )
-        choices.sort()
-        x = x[choices.tolist(), :, :, :]
+        choices = []
+        num_segments = self.master_model.num_segments
+        if x.shape[0] <= num_segments:
+            choices = np.linspace(0, x.shape[0] - 1, num_segments, dtype=int)
+        else:
+            choices = np.linspace(0, x.shape[0] - 1, x.shape[0], dtype=int)
+            choices = np.array_split(choices, num_segments)
+            choices = np.array([np.random.choice(c, 1) for c in choices]).squeeze()
+        x = x[choices.tolist()]
+        return x
+
+
+class CPUSelectSegments(nn.Module):
+    def __init__(self, num_segments, random=True):
+        super().__init__()
+        self.num_segments = num_segments
+
+    def __call__(self, x: torch.Tensor):
+        choices = []
+        if x.shape[0] <= self.num_segments:
+            choices = np.linspace(0, x.shape[0] - 1, self.num_segments, dtype=int)
+        else:
+            choices = np.linspace(0, x.shape[0] - 1, x.shape[0], dtype=int)
+            choices = np.array_split(choices, self.num_segments)
+            choices = np.array([np.random.choice(c, 1) for c in choices]).squeeze()
+        x = x[choices.tolist()]
         return x
 
 
 class CPUFormatImage(nn.Module):
     def __init__(self, to_pil_image):
+        super().__init__()
         self.to_pil_image = to_pil_image
         self.convert_to_pil = transforms.ToPILImage()
 
@@ -241,6 +223,7 @@ class CPUNormImage(nn.Module):
 
 class CPUResizeImage(nn.Module):
     def __init__(self, target_im_size):
+        super().__init__()
         self.target_im_size = (
             (target_im_size, target_im_size)
             if isinstance(target_im_size, int)
@@ -259,6 +242,7 @@ class CPUResizeImage(nn.Module):
 
 class CPURandomCropPad(nn.Module):
     def __init__(self, target_im_size):
+        super().__init__()
         self.target_im_size = (
             (target_im_size, target_im_size)
             if isinstance(target_im_size, int)

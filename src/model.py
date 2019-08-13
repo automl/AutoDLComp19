@@ -15,7 +15,6 @@ not exceed 300MB.
 import os
 import time
 import types
-import logging
 from functools import partial
 
 # Import the challenge algorithm (model) API from algorithm.py
@@ -25,8 +24,9 @@ import tensorflow as tf
 
 import algorithm
 import selection
-import training
 import transformations
+import training
+import testing
 import utils
 from utils import LOGGER
 from dataset_kakaobrain import TFDataset
@@ -117,7 +117,15 @@ class Model(algorithm.Algorithm):
         self.trainer = self.trainer if isinstance(
             self.trainer,
             types.FunctionType
-        ) else self.trainer()
+        ) else self.trainer(**self.config.trainer_args[self.config.trainer])
+        self.tester = getattr(
+            testing,
+            self.config.tester
+        )
+        self.tester = self.tester if isinstance(
+            self.tester,
+            types.FunctionType
+        ) else self.tester(**self.config.tester_args[self.config.tester])
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -222,8 +230,10 @@ class Model(algorithm.Algorithm):
         if dataset_changed:
             self.tf_train_set = dataset
             # Create a temporary handle to inspect data
+            dataset = dataset.prefetch(
+                self.config.dataloader_args['train']['batch_size']
+            )
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
-            # ds_temp.dataset.prefetch(self.num_train_samples)
             ds_temp.scan_all(50)
 
             self.setup_model(ds_temp)
@@ -246,12 +256,13 @@ class Model(algorithm.Algorithm):
                 )
 
         train_start = time.time()
-        self.make_final_prediction = self.trainer(
+        train_args = self.config.trainer_args[
+            self.config.trainer
+        ] if isinstance(self.trainer, types.FunctionType) else {}
+        self.trainer(
             self,
             remaining_time_budget,
-            **self.config.trainer_args[
-                self.config.trainer
-            ]
+            **train_args
         )
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
@@ -264,6 +275,12 @@ class Model(algorithm.Algorithm):
             transform_sample=self.transforms['test']['samples'],
             transform_label=self.transforms['test']['labels']
         )
+        ds.min_shape = ds_temp.min_shape
+        ds.median_shape = ds_temp.median_shape
+        ds.mean_shape = ds_temp.mean_shape
+        ds.std_shape = ds_temp.std_shape
+        ds.max_shape = ds_temp.max_shape
+        ds.is_multilabel = ds_temp.is_multilabel
         self.test_dl = torch.utils.data.DataLoader(
             ds,
             **self.config.dataloader_args['test']
@@ -290,25 +307,24 @@ class Model(algorithm.Algorithm):
         if dataset_changed:
             self.tf_test_set = dataset
             # Create a temporary handle to inspect data
+            dataset = dataset.prefetch(
+                self.config.dataloader_args['test']['batch_size']
+            )
             ds_temp = TFDataset(self.session, dataset, 1e10)
             ds_temp.scan_all()
             self.num_test_samples = ds_temp.num_samples
-
             self.setup_test_dataset(dataset, ds_temp)
 
         test_start = time.time()
-        predictions = []
-        self.test_dl.dataset.reset()
-        with torch.no_grad():
-            for i, (data, _) in enumerate(self.test_dl):
-                self.model.train()
-                LOGGER.info('test: ' + str(i))
-                data = data.cuda()
-                output = self.model(data)
-                predictions += output.cpu().tolist()
-                i += 1
-
+        test_args = self.config.tester_args[
+            self.config.tester
+        ] if isinstance(self.tester, types.FunctionType) else {}
+        predicitons = self.tester(
+            self,
+            remaining_time_budget,
+            **test_args
+        )
         LOGGER.info("TESTING END: " + str(time.time()))
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
-        return np.array(predictions)
+        return predicitons
