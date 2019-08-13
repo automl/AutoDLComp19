@@ -25,10 +25,10 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 
 class ParserMock():
     # mock class for handing over the correct arguments
-    def __init__(self):
+    def __init__(self, config_path):
         self._parser_args = parser.parse_known_args()[0]
         self.load_manual_parameters()
-        self.load_bohb_parameters()
+        self.load_bohb_parameters(config_path)
         self.load_apex()
 
     def load_manual_parameters(self):
@@ -51,15 +51,16 @@ class ParserMock():
         setattr(self._parser_args, 'lr', 0.01)
         setattr(self._parser_args, 'weight-decay', 0.001)
 
-    def load_bohb_parameters(self):
+    def load_bohb_parameters(self, config_path):
         # parameters from bohb_auc
-        path = os.path.join(os.getcwd(), 'smac_config.txt')
+        path = os.path.join(config_path, 'smac_config.txt')
         if os.path.isfile(path):
             with open(path, 'rb') as file:
-                logger.info('FOUND BOHB CONFIG, OVERRIDING PARAMETERS')
+                logger.info('FOUND SMAC CONFIG, OVERRIDING PARAMETERS')
                 bohb_cfg = pickle.load(file)
-                logger.info('BOHB_CFG: ' + str(bohb_cfg))
-                for key, value in bohb_cfg.items():
+                logger.info('SMAC_CFG: ' + str(bohb_cfg))
+                logger.info(bohb_cfg.__dict__.keys())
+                for key, value in bohb_cfg.__dict__['_values'].items():
                     logger.info(
                         'OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value)
                     )
@@ -86,7 +87,7 @@ class ParserMock():
 class Model(object):
     """Trivial example of valid model. Returns all-zero predictions."""
 
-    def __init__(self, metadata):
+    def __init__(self, metadata, config_file_path):
         """
         Args:
           metadata: an AutoDLMetadata object. Its definition can be found in
@@ -120,9 +121,8 @@ class Model(object):
         self.sequence_size = sequence_size
         print('INPUT SHAPE : ', row_count, col_count, channel, sequence_size)
 
-        parser = ParserMock()
+        parser = ParserMock(config_file_path)
         parser.set_attr('num_classes', self.num_classes)
-        parser.load_bohb_parameters()
 
         self.parser_args = parser.parse_args()
 

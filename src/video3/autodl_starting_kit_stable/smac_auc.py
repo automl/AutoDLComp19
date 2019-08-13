@@ -24,9 +24,16 @@ parser.add_argument(
     type=str,
     default='/data/aad/image_datasets/tf_records/autodl_comp_format/'
 )
+parser.add_argument('--budget', type=float, default=60.0)
+parser.add_argument('--task_id', type=int, default=0)
 args = parser.parse_args()
 
 PATH = '.'
+log_dir = os.path.join(
+    PATH, "scoring_output/{}_{}_{}".format(args.dataset, args.budget, args.task_id)
+)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
 
 
 def build_configspace():
@@ -40,35 +47,33 @@ def build_configspace():
 
 
 def get_arguments():
-    cfg = {}
-    cfg["code_dir"] = os.path.join(PATH, 'AutoDL_sample_code_submission')
-    cfg["dataset_dir"] = os.path.join(args.dataset_path, args.dataset)
-    return cfg
+    arguments = {}
+    arguments["code_dir"] = os.path.join(PATH, 'AutoDL_sample_code_submission')
+    arguments["dataset_dir"] = os.path.join(args.dataset_path, args.dataset)
+    arguments["dataset_name"] = args.dataset
+    arguments["task_id"] = args.task_id
+    return arguments
 
 
-def create_function_call(cfg, budget=60):
-    fc = 'python3 run_local_test.py'
-    fc += ' --code_dir=' + cfg["code_dir"]
-    fc += ' --dataset_dir=' + cfg["dataset_dir"]
+def create_function_call(arguments, budget=60.0):
+    fc = 'python run_local_test.py'
+    fc += ' --code_dir=' + arguments["code_dir"]
+    fc += ' --dataset_dir=' + arguments["dataset_dir"]
     fc += ' --time_budget=' + str(budget)
+    fc += ' --task_id=' + str(args.task_id)
     return fc
 
 
-def read_final_score_from_file(log_path='AutoDL_scoring_output'):
-    path = os.path.join(PATH, log_path)
-    path = os.path.join(path, 'scores.txt')
-
+def read_final_score_from_file():
+    path = os.path.join(log_dir, 'scores.txt')
     with open(path, "r") as file:
         score = [x for x in file.readlines()][0]
         score = float(re.findall(r"[-+]?\d*\.\d+|\d+", score)[0])
-
     return score
 
 
 def write_config_to_file(cfg):
-    paths = get_arguments()
-    path = paths["code_dir"]
-    path = os.path.join(path, 'smac_config.txt')
+    path = os.path.join(log_dir, "smac_config.txt")
     with open(path, 'wb') as file:
         pickle.dump(cfg, file)
 
@@ -86,9 +91,8 @@ def network_from_cfg(cfg):
     AUC of the network on the loaded data-set.
     """
     write_config_to_file(cfg)
-    fc = create_function_call(get_arguments())
+    fc = create_function_call(get_arguments(), args.budget)
     os.system(fc)
-
     auc = read_final_score_from_file()
     return 1 - auc  # Minimize!
 
@@ -100,10 +104,16 @@ cs = build_configspace()
 # Scenario object
 scenario = Scenario(
     {
-        "run_obj": "quality",  # we optimize quality (alternatively runtime)
-        "runcount-limit": 200,  # maximum function evaluations
-        "cs": cs,  # configuration space
-        "deterministic": "true"
+        "run_obj":
+            "quality",  # we optimize quality (alternatively runtime)
+        "runcount-limit":
+            200,  # maximum function evaluations
+        "cs":
+            cs,  # configuration space
+        "deterministic":
+            "false",
+        "output_dir":
+            "smac_outputs/{}_{}_{}".format(args.dataset, args.budget, args.task_id)
     }
 )
 
