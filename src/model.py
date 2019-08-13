@@ -28,8 +28,8 @@ import transformations
 import training
 import testing
 import utils
+from torch_adapter import TFDataset
 from utils import LOGGER
-from dataset_kakaobrain import TFDataset
 
 
 # If apex's amp is available, import it and set a flag to use it
@@ -167,6 +167,11 @@ class Model(algorithm.Algorithm):
             / np.sum(self.config.dataset_split_ratio)
         )
         split_num = np.round((self.num_train_samples * split_percentages))
+
+        if split_num[1] < ds_temp.num_classes * 3 and split_num[1] > 0.:
+            split_percentages = np.array((
+                self.num_train_samples - (ds_temp.num_classes * 5), (ds_temp.num_classes * 5)
+            ))
         assert(sum(split_num) == self.num_train_samples)
 
         tfdataset = ds_temp.dataset
@@ -193,19 +198,20 @@ class Model(algorithm.Algorithm):
         ds_train.max_shape = ds_temp.max_shape
         ds_train.is_multilabel = ds_temp.is_multilabel
 
-        ds_val = TFDataset(
-            session=self.session,
-            dataset=tfdataset_val,
-            num_samples=int(split_num[1]),
-            transform_sample=transform['samples'],
-            transform_label=transform['labels']
-        )
-        ds_val.min_shape = ds_temp.min_shape
-        ds_val.median_shape = ds_temp.median_shape
-        ds_val.mean_shape = ds_temp.mean_shape
-        ds_val.std_shape = ds_temp.std_shape
-        ds_val.max_shape = ds_temp.max_shape
-        ds_val.is_multilabel = ds_temp.is_multilabel
+        if split_num[1] > 0.:
+            ds_val = TFDataset(
+                session=self.session,
+                dataset=tfdataset_val,
+                num_samples=int(split_num[1]),
+                transform_sample=transform['samples'],
+                transform_label=transform['labels']
+            )
+            ds_val.min_shape = ds_temp.min_shape
+            ds_val.median_shape = ds_temp.median_shape
+            ds_val.mean_shape = ds_temp.mean_shape
+            ds_val.std_shape = ds_temp.std_shape
+            ds_val.max_shape = ds_temp.max_shape
+            ds_val.is_multilabel = ds_temp.is_multilabel
 
         self.train_dl = {
             'train': torch.utils.data.DataLoader(
@@ -215,7 +221,7 @@ class Model(algorithm.Algorithm):
             'val': torch.utils.data.DataLoader(
                 ds_val,
                 **self.config.dataloader_args['train']
-            )
+            ) if split_num[1] > 0. else None
         }
 
     def setup_train_dataset(self, dataset, ds_temp=None):
@@ -271,7 +277,7 @@ class Model(algorithm.Algorithm):
         ds = TFDataset(
             session=self.session,
             dataset=dataset,
-            num_samples=self.num_test_samples,
+            num_samples=int(self.num_test_samples),
             transform_sample=self.transforms['test']['samples'],
             transform_label=self.transforms['test']['labels']
         )
@@ -310,7 +316,7 @@ class Model(algorithm.Algorithm):
             dataset = dataset.prefetch(
                 self.config.dataloader_args['test']['batch_size']
             )
-            ds_temp = TFDataset(self.session, dataset, 1e10)
+            ds_temp = TFDataset(self.session, dataset)
             ds_temp.scan_all()
             self.num_test_samples = ds_temp.num_samples
             self.setup_test_dataset(dataset, ds_temp)

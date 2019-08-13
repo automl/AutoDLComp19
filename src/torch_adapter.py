@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 import time
-import logging
-import torch
 from torch.utils.data import Dataset
 import numpy as np
 import tensorflow as tf
@@ -10,7 +6,7 @@ from utils import LOGGER
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples, transform_sample=None, transform_label=None):
+    def __init__(self, session, dataset, num_samples=None, transform_sample=None, transform_label=None):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
@@ -81,7 +77,7 @@ class TFDataset(Dataset):
                 is_multilabel = True
 
         setattr(self, 'num_samples', (
-            self.num_samples if max_samples is None else count
+            self.num_samples if max_samples is not None else count
         ))
         setattr(self, 'num_classes', label.shape[0])
         setattr(self, 'min_shape', min_shape)
@@ -127,96 +123,3 @@ class TFDataset(Dataset):
                 if self.transform_label is not None \
                 else label
         LOGGER.debug('SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
-
-    def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
-        LOGGER.warning('This is deprecated by scan_all!!!')
-        shapes, counts, tensors = [], [], []
-        for i in range(min(self.num_samples, samples)):
-            try:
-                example, label = self.__getitem__(i)
-            except tf.errors.OutOfRangeError:
-                break
-            except StopIteration:
-                break
-
-            shape = example.shape
-            count = np.sum(label, axis=None if not is_batch else -1)
-            shapes.append(shape)
-            counts.append(count)
-            if with_tensors:
-                example = torch.Tensor(example)
-                label = torch.Tensor(label)
-
-                example.data = example.data.to(device=device)
-                if half and example.is_floating_point():
-                    example.data = example.data.half()
-
-                label.data = label.data.to(device=device)
-                if half and label.is_floating_point():
-                    label.data = label.data.half()
-
-                tensors.append([example, label])
-
-        shapes = np.array(shapes)
-        counts = np.array(counts) if not is_batch else np.concatenate(counts)
-
-        info = {
-            'count': len(counts),
-            'is_multilabel': counts.max() > 1.01,
-            'example': {
-                'shape': [int(v) for v in np.median(shapes, axis=0)],  # 1, width, height, channels
-            },
-            'label': {
-                'min': counts.min(),
-                'max': counts.max(),
-                'average': counts.mean(),
-                'median': np.median(counts),
-            }
-        }
-
-        if with_tensors:
-            return info, tensors
-        return info
-
-
-class TransformDataset(Dataset):
-    def __init__(self, dataset, transform=None, index=None):
-        self.dataset = dataset
-        self.transform = transform
-        self.index = index
-
-    def __getitem__(self, index):
-        tensors = self.dataset[index]
-        tensors = list(tensors)
-
-        if self.transform is not None:
-            if self.index is None:
-                tensors = self.transform(*tensors)
-            else:
-                tensors[self.index] = self.transform(tensors[self.index])
-
-        return tuple(tensors)
-
-    def __len__(self):
-        return len(self.dataset)
-
-
-def prefetch_dataset(dataset, num_workers=4, batch_size=32, device=None, half=False):
-    if isinstance(dataset, list) and isinstance(dataset[0], torch.Tensor):
-        tensors = dataset
-    else:
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=False, drop_last=False,
-            num_workers=num_workers, pin_memory=False
-        )
-        tensors = [t for t in dataloader]
-        tensors = [torch.cat(t, dim=0) for t in zip(*tensors)]
-
-    if device is not None:
-        tensors = [t.to(device=device) for t in tensors]
-    if half:
-        tensors = [t.half() if  t.is_floating_point() else t for t in tensors]
-
-    return torch.utils.data.TensorDataset(*tensors)

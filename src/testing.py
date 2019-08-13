@@ -17,7 +17,7 @@ class default_tester():
         autodl_model.test_dl.dataset.reset()
         with torch.no_grad():
             for i, (data, _) in enumerate(autodl_model.test_dl):
-                autodl_model.model.train()
+                autodl_model.model.eval()
                 LOGGER.info('test: ' + str(i))
                 data = data.cuda()
                 output = autodl_model.model(data)
