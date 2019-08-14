@@ -1,55 +1,59 @@
 import time
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
+from utils import LOGGER
 
-RESIZE_FACTOR = 1.3
+RESIZE_FACTOR = 1.3  # isn't this a hyperparameter as well?
 
 class WrapperNet(nn.Module):
     def __init__(self, model, fast_augment):
         super().__init__()
         self.model = model
         self.fast_augment = fast_augment
-        self.augmentation = None
+        self.mode = 'train'
 
-
-    def train(self):
-        if self.fast_augment:
-            i_size = self.model.input_size
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate((int(i_size * RESIZE_FACTOR),
-                             int(i_size * RESIZE_FACTOR))),
-                RandomCrop((i_size, i_size)),
-                Stack(),
-                Normalize())
-        else:
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize())
-
-    def eval(self):
-        if self.fast_augment:
-            i_size = self.model.input_size
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Interpolate((i_size, i_size)),
-                Stack(),
-                Normalize())
-        else:
-            self.augmentation = nn.Sequential(
-                SwapAxes(),
-                FormatChannels(3),
-                Stack(),
-                Normalize())
+        i_size = self.model.input_size
+        self.augmentation = {
+            'train':
+            (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate((int(i_size * RESIZE_FACTOR),
+                                int(i_size * RESIZE_FACTOR))),
+                    RandomCrop((i_size, i_size)),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            ),
+            'eval':
+            (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Interpolate((i_size, i_size)),
+                    Stack(),
+                    Normalize()
+                ) if self.fast_augment else nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            )
+        }
 
     def forward(self, x):
+        mode = 'train' if self.training else 'eval'
         #t1 = time.time()
-        x = self.augmentation(x)
+        x = self.augmentation[self.mode](x)
         #t2 = time.time()
         x = self.model(x)
         #t3 = time.time()
@@ -72,7 +76,7 @@ class FormatChannels(nn.Module):
         if channels < self.channels_des:
             shape = x.shape
             x = x.expand(*shape[:2],int(np.ceil(self.channels_des/channels)),*shape[3:])
-        x = x[:, :, 0:self.channels_des, :, :]
+        x = x[:, :, 0:self.channels_des, :, :].contiguous()  # Needed when we do no fast_augment
 
         return x
 

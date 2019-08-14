@@ -28,19 +28,18 @@ import logging
 import numpy as np
 import os
 import torch
-import sys
 import tensorflow as tf
 import time
 import subprocess
 import torchvision
 import _pickle as pickle
-from functools import partial
 from opts import parser
 from ops.load_models import load_loss_criterion, load_model_and_optimizer
 from transforms import SelectSamples, RandomCropPad
 from dataset_kakaobrain import TFDataset
 from wrapper_net import WrapperNet
 from torch.optim.lr_scheduler import StepLR
+from utils import LOGGER
 
 
 
@@ -54,7 +53,7 @@ class ParserMock():
     def load_manual_parameters(self):
         # manually set parameters
         rootpath = os.path.dirname(__file__)
-        logger.info('ROOT PATH: ' + str(rootpath))
+        LOGGER.setLevel(logging.DEBUG)
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
         setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
         setattr(self._parser_args, 'bn_prod_limit', 256)    # limit of batch_size * num_segments
@@ -69,18 +68,18 @@ class ParserMock():
         setattr(self._parser_args, 'lr_gamma', 0.01)
         setattr(self._parser_args, 'lr_step', 10)
         setattr(self._parser_args, 'print', True)
-        setattr(self._parser_args, 'fast_augment', True)
+        setattr(self._parser_args, 'fast_augment', False)
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
         path = os.path.join(os.getcwd(), 'bohb_config.txt')
         if os.path.isfile(path):
             with open(path, 'rb') as file:
-                logger.info('FOUND BOHB CONFIG, OVERRIDING PARAMETERS')
+                LOGGER.info('FOUND BOHB CONFIG, OVERRIDING PARAMETERS')
                 bohb_cfg = pickle.load(file)
-                logger.info('BOHB_CFG: ' + str(bohb_cfg))
+                LOGGER.info('BOHB_CFG: ' + str(bohb_cfg))
                 for key, value in bohb_cfg.items():
-                    logger.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
+                    LOGGER.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
                     setattr(self._parser_args, key, value)
             os.remove(path)
 
@@ -100,7 +99,7 @@ class Model(object):
           metadata: an AutoDLMetadata object. Its definition can be found in
               AutoDL_ingestion_program/dataset.py
         """
-        logger.info("INIT START: " + str(time.time()))
+        LOGGER.info("INIT START: " + str(time.time()))
         super().__init__()
 
         # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
@@ -135,12 +134,12 @@ class Model(object):
         self.train_counter = 0
 
         self.session = tf.Session()
-        logger.info("INIT END: " + str(time.time()))
+        LOGGER.info("INIT END: " + str(time.time()))
 
 
     def train(self, dataset, remaining_time_budget=None):
-        logger.info("TRAINING START: " + str(time.time()))
-        logger.info("REMAINING TIME: " + str(remaining_time_budget))
+        LOGGER.info("TRAINING START: " + str(time.time()))
+        LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
 
         self.training_round += 1
 
@@ -177,7 +176,7 @@ class Model(object):
                 self.set_dropout()
                 self.train_counter += batch_size
 
-                logger.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
+                LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
                 if int(self.training_round) == 1:
                     if i > 20:
@@ -195,28 +194,27 @@ class Model(object):
             self.training_round += 1
 
         t4 = time.time()
-
-        logger.info(
+        LOGGER.info(
             '\nTIMINGS TRAINING: ' +
             '\n t2-t1 ' + str(t2 - t1) +
             '\n t3-t2 ' + str(t3 - t2) +
             '\n t4-t3 ' + str(t4 - t3))
 
-        logger.info('LR: ')
+        LOGGER.info('LR: ')
         for param_group in self.optimizer.param_groups:
-            logger.info(param_group['lr'])
-        logger.info('DROPOUT: ' + str(self.model.model.dropout))
-        logger.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
-        logger.info("TRAINING COUNTER: " + str(self.train_counter))
-        logger.info("TRAINING END: " + str(time.time()))
+            LOGGER.info(param_group['lr'])
+        LOGGER.info('DROPOUT: ' + str(self.model.model.dropout))
+        LOGGER.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
+        LOGGER.info("TRAINING COUNTER: " + str(self.train_counter))
+        LOGGER.info("TRAINING END: " + str(time.time()))
         self.train_time.append(t4 - t1)
 
 
     def late_init(self, dataset):
-        logger.info('TRAINING: FIRST ROUND')
+        LOGGER.info('TRAINING: FIRST ROUND')
         # show directory structure
         # for root, subdirs, files in os.walk(os.getcwd()):
-        #     logger.info(root)
+        #     LOGGER.info(root)
 
         # get multiclass/multilabel information based on a small subset of videos/images
 
@@ -230,7 +228,7 @@ class Model(object):
 
         t3 = time.time()
 
-        logger.info('AVG SHAPE: ' + str(self.info['avg_shape']))
+        LOGGER.info('AVG SHAPE: ' + str(self.info['avg_shape']))
 
         if self.info['is_multilabel']:
             setattr(self.parser_args, 'classification_type', 'multilabel')
@@ -244,10 +242,12 @@ class Model(object):
         t5 = time.time()
 
         self.model_main, self.optimizer = load_model_and_optimizer(self.parser_args)
+        self.model.partialBN(False)  # bninception default behaviour is to freeze
+                                     # which gets apply after the first .train() call
 
         t6 = time.time()
 
-        self.model = WrapperNet(self.model_main, self.parser_args)
+        self.model = WrapperNet(self.model_main, self.parser_args.fast_augment)
         self.model.cuda()
         self.lr_scheduler = StepLR(self.optimizer,
                                    self.parser_args.lr_step,
@@ -261,7 +261,7 @@ class Model(object):
 
         t8 = time.time()
 
-        logger.info(
+        LOGGER.info(
             '\nTIMINGS FIRST ROUND: ' +
             '\n t2-t1 ' + str(t2 - t1) +
             '\n t3-t2 ' + str(t3 - t2) +
@@ -272,8 +272,8 @@ class Model(object):
             '\n t8-t7 ' + str(t8 - t7))
 
     def test(self, dataset, remaining_time_budget=None):
-        logger.info("TESTING START: " + str(time.time()))
-        logger.info("REMAINING TIME: " + str(remaining_time_budget))
+        LOGGER.info("TESTING START: " + str(time.time()))
+        LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
 
         t1 = time.time()
 
@@ -284,8 +284,8 @@ class Model(object):
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
             info = ds_temp.scan2()
             self.num_samples_testing = info['num_samples']
-            logger.info('SCAN TIME: ' + str(time.time() - scan_start))
-            logger.info('TESTING: FIRST ROUND')
+            LOGGER.info('SCAN TIME: ' + str(time.time() - scan_start))
+            LOGGER.info('TESTING: FIRST ROUND')
 
         t2 = time.time()
 
@@ -299,7 +299,7 @@ class Model(object):
 
         prediction_list = []
         for i, (data, _) in enumerate(dl):
-            logger.info('TEST: ' + str(i))
+            LOGGER.info('TEST: ' + str(i))
             prediction_list.append(self.model(data.cuda()).cpu())
         predictions = np.vstack(prediction_list)
 
@@ -310,14 +310,14 @@ class Model(object):
 
         t4 = time.time()
 
-        logger.info(
+        LOGGER.info(
             '\nTIMINGS TESTING: ' +
             '\n t2-t1 ' + str(t2 - t1) +
             '\n t3-t2 ' + str(t3 - t2) +
             '\n t4-t3 ' + str(t4 - t3)
         )
 
-        logger.info("TESTING END: " + str(time.time()))
+        LOGGER.info("TESTING END: " + str(time.time()))
         self.test_time.append(t3 - t1)
         return predictions
 
@@ -326,12 +326,17 @@ class Model(object):
         '''
         if all input videos/images have the same width/height, we can do faster data augmentation on the GPU
         '''
+        if (
+            hasattr(self.parser_args, 'fast_augment')
+            and not self.parser_args.fast_augment
+        ):
+            return
         row_count, col_count = self.metadata.get_matrix_size(0)
         if row_count > 0 and col_count > 0:
             setattr(self.parser_args, 'fast_augment', True)
         else:
             setattr(self.parser_args, 'fast_augment', False)
-        logger.info('FAST AUGMENT: ' + str(self.parser_args.fast_augment))
+        LOGGER.info('FAST AUGMENT: ' + str(self.parser_args.fast_augment))
 
 
     def select_model(self):
@@ -347,7 +352,7 @@ class Model(object):
                 self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
         else:                                       # video network
             self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Video_input_128.pth.tar'
-        logger.info('USE MODEL: ' + str(self.parser_args.finetune_model))
+        LOGGER.info('USE MODEL: ' + str(self.parser_args.finetune_model))
 
 
     def set_dropout(self, first_round=False):
@@ -383,8 +388,8 @@ class Model(object):
             # else:
             #     num_segments = self.parser_args.num_segments_test
 
-        logger.info('TRAIN COUNTER: ' + str(self.train_counter))
-        logger.info('SET NUM SEGMENTS: ' + str(num_segments))
+        LOGGER.info('TRAIN COUNTER: ' + str(self.train_counter))
+        LOGGER.info('SET NUM SEGMENTS: ' + str(num_segments))
         self.model.model.num_segments = num_segments
         return num_segments
 
@@ -402,7 +407,7 @@ class Model(object):
         else:
             batch_size = int(self.parser_args.bn_prod_limit / num_segments)
 
-        logger.info('SET BATCH SIZE: ' + str(batch_size))
+        LOGGER.info('SET BATCH SIZE: ' + str(batch_size))
 
         return batch_size
 
@@ -480,27 +485,3 @@ def transform_to_time_abs(t_rel):
     convertsion from relative time 0-1 to absolute time 0s-1200s
     '''
     return 60 * (21 ** t_rel - 1)
-
-
-def get_logger(verbosity_level):
-    """Set logging format to something like:
-         2019-04-25 12:52:51,924 INFO model.py: <message>
-    """
-    logger = logging.getLogger(__file__)
-    logging_level = getattr(logging, verbosity_level)
-    logger.setLevel(logging_level)
-    formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s')
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging_level)
-    stdout_handler.setFormatter(formatter)
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.WARNING)
-    stderr_handler.setFormatter(formatter)
-    logger.addHandler(stdout_handler)
-    logger.addHandler(stderr_handler)
-    logger.propagate = False
-    return logger
-
-
-logger = get_logger('INFO')
