@@ -13,7 +13,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Example for a trainer class
 # which is like the loop but has methods and variables
 # and is prefered
-class default_trainer():
+class policy_trainer():
     def __init__(self, t_diff, dropout_diff, num_segments_step, bn_prod_limit):
         self.t_diff = t_diff
         self.dropout_diff = dropout_diff

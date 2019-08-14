@@ -6,8 +6,6 @@ from torchvision import transforms
 
 from utils import LOGGER
 
-from torchhome.hub.autodlcomp_models_master.video.transforms import SelectSamples, RandomCropPad
-
 
 # Set the device which torch should use
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -17,19 +15,17 @@ RESIZE_FACTOR = 1.3
 # ########################################################
 # Perform only necessary transformations on the cpu
 # ########################################################
-def aug_net(autodl_model, dataset):
+def aug_net(autodl_model, dataset, use_gpu_resize):
     model = autodl_model.model
     LOGGER.info('Using ###   aug_net   ### for transformations')
 
     # Inject the WrapperNet at the top of the modules list
-    need_to_resize = np.any(dataset.min_shape[1:] != dataset.max_shape[1:])
-    use_aug_net = autodl_model.config.use_gpu_batch_augmentation
-    aug_net = AugmentNet(model.input_size, not need_to_resize and use_aug_net)
+    cpu_resize = (
+        np.any(dataset.min_shape[1:] != dataset.max_shape[1:])
+        or not use_gpu_resize
+    )
+    aug_net = AugmentNet(model.input_size, not cpu_resize)
     # Monkeypatch the new network to expose the original model's attributes
-    # autodl_model.model = MonkeyNet(
-    #     aug_net,
-    #     model
-    # )
     autodl_model.model = MonkeyNet(OrderedDict([
         ('aug_net', aug_net),
         ('main_net', model)
@@ -41,7 +37,7 @@ def aug_net(autodl_model, dataset):
                     CPUSelectSegmentsDynamic(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.re_size.tolist()), )
-                        if need_to_resize else ()
+                        if cpu_resize else ()
                     )
                 ]
             ),
@@ -55,7 +51,7 @@ def aug_net(autodl_model, dataset):
                     CPUSelectSegmentsDynamic(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.out_size), )
-                        if need_to_resize else ()
+                        if cpu_resize else ()
                     )
                 ]
             ),
@@ -70,42 +66,37 @@ def aug_net(autodl_model, dataset):
 # ########################################################
 # Perform only necessary transformations on the cpu
 # ########################################################
-def default_transformations_selector(dataset, model, resize):
+def dummy_transformations_selector(autodl_model, dataset):
+    '''
     transf_dict = {
         'train': {
             'samples': transforms.Compose(
                 [
-                    SelectSamples(model.num_segments),
-                    *((
-                        (RandomCropPad(model.input_size), CPUFormatImage(False))
-                        if resize
-                        else
-                        (CPUFormatImage(True), CPUResizeImage(model.input_size))
-                    )),
+
                 ]
             ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
+            'labels': transforms.Compose(
+                [
+
+                ]
             )
         },
         'test': {
             'samples': transforms.Compose(
                 [
-                    SelectSamples(model.num_segments),
-                    *((
-                        (RandomCropPad(model.input_size), CPUFormatImage(False))
-                        if resize
-                        else
-                        (CPUFormatImage(True), CPUResizeImage(model.input_size))
-                    )),
+
                 ]
             ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
+            'labels': transforms.Compose(
+                [
+
+                ]
             )
         }
     }
     return transf_dict
+    '''
+    raise NotImplemented
 
 
 # ########################################################

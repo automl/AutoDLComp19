@@ -29,7 +29,6 @@
   # General
   log_level: 'DEBUG',
   earlystop: 120, # Stop after 300 seconds
-  use_gpu_batch_augmentation: true,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
   
@@ -68,6 +67,9 @@
   # Model and Optimizer selection algorithms
   model_selector: 'master_selector',
   model_selector_args: {
+    # dummy_model_selector: {
+    #   resize: true
+    # },
     master_selector: {
       modelargs: {
         # Philipp: I assume these should depend on the selected model
@@ -84,17 +86,18 @@
 
   transformations_selector: 'aug_net',
   transformations_selector_args: {
-    default_transformations_selector: {
-      resize: true
-    },
+    # dummy_transformations_selector: {
+    #   resize: true
+    # },
     aug_net: {
+      use_gpu_resize: false,
     }
   },
 
-  trainer: 'default_trainer',
+  trainer: 'policy_trainer',
   trainer_args: {  # If the chosen trainer is a class the args
                    # will be passed as init arguments
-    default_trainer: {
+    policy_trainer: {
       bn_prod_limit: 256, # limit of batch_size * num_segments
       num_segments_step: 4000,
       t_diff: 0.02,
