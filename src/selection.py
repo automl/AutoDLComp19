@@ -82,11 +82,12 @@ def dummy_model_selector(tfsession, dataset):
     How you decide what model to use given the dataset(TFDataset) is up to you.
 
     Returns model, loss_fn, optimizer, scheduler
-    '''
+
+    These should be set accordingly
     setattr(model, 'amp_compatible', True)
-    raise NotImplemented
     scheduler = None
-    return model, loss_fn, optimizer, scheduler
+    '''
+    raise NotImplemented
 
 
 # ########################################################
