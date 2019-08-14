@@ -69,6 +69,7 @@ class ParserMock():
         setattr(self._parser_args, 'lr_step', 10)
         setattr(self._parser_args, 'print', True)
         setattr(self._parser_args, 'fast_augment', False)
+        setattr(self._parser_args, 'early_stop', 600)
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
@@ -160,10 +161,14 @@ class Model(object):
         t3 = time.time()
 
         t_train = time.time()
-        self.finish_loop = False
-        while not self.finish_loop:
+        finish_loop = False
+        while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
+                if time.time() - self.time_start > self.parser_args.early_stop:
+                    finish_loop = True
+                    break
+
                 self.optimizer.zero_grad()
 
                 output = self.model(data.cuda())
@@ -180,14 +185,14 @@ class Model(object):
 
                 if int(self.training_round) == 1:
                     if i > 20:
-                        self.finish_loop = True
+                        finish_loop = True
                         break
                 else:
                     t_diff = (transform_to_time_rel(time.time() - self.time_start)
                         - transform_to_time_rel(t_train - self.time_start))
 
                     if t_diff > self.parser_args.t_diff:
-                        self.finish_loop = True
+                        finish_loop = True
                         break
 
             subprocess.run(['nvidia-smi'])
@@ -242,8 +247,8 @@ class Model(object):
         t5 = time.time()
 
         self.model_main, self.optimizer = load_model_and_optimizer(self.parser_args)
-        self.model.partialBN(False)  # bninception default behaviour is to freeze
-                                     # which gets apply after the first .train() call
+        self.model_main.partialBN(False)  # bninception default behaviour is to freeze
+                                          # which gets apply after the first .train() call
 
         t6 = time.time()
 
@@ -272,6 +277,9 @@ class Model(object):
             '\n t8-t7 ' + str(t8 - t7))
 
     def test(self, dataset, remaining_time_budget=None):
+        if time.time() - self.time_start > self.parser_args.early_stop:
+            self.done_training = True
+            return None
         LOGGER.info("TESTING START: " + str(time.time()))
         LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
 
@@ -302,11 +310,6 @@ class Model(object):
             LOGGER.info('TEST: ' + str(i))
             prediction_list.append(self.model(data.cuda()).cpu())
         predictions = np.vstack(prediction_list)
-
-        # remove if needed: Only train for 10 mins in order to save time on the submissions
-        if remaining_time_budget < 600:
-            self.done_training = True
-            return None
 
         t4 = time.time()
 
