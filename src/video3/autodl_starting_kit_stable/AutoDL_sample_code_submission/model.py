@@ -165,7 +165,10 @@ class Model(object):
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
-                if time.time() - self.time_start > self.parser_args.early_stop:
+                if (
+                    hasattr(self.parser_args, 'early_stop')
+                    and time.time() - self.time_start > self.parser_args.early_stop
+                ):
                     finish_loop = True
                     break
 
@@ -277,7 +280,10 @@ class Model(object):
             '\n t8-t7 ' + str(t8 - t7))
 
     def test(self, dataset, remaining_time_budget=None):
-        if time.time() - self.time_start > self.parser_args.early_stop:
+        if (
+            hasattr(self.parser_args, 'early_stop')
+            and time.time() - self.time_start > self.parser_args.early_stop
+        ):
             self.done_training = True
             return None
         LOGGER.info("TESTING START: " + str(time.time()))
