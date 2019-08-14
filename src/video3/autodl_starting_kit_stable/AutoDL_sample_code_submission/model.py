@@ -55,20 +55,20 @@ class ParserMock():
         rootpath = os.path.dirname(__file__)
         LOGGER.setLevel(logging.DEBUG)
         setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
-        setattr(self._parser_args, 'arch', 'bninception') # Averagenet or bninception
-        setattr(self._parser_args, 'bn_prod_limit', 256)    # limit of batch_size * num_segments
+        setattr(self._parser_args, 'arch', 'ECOfull_efficient_py') # Averagenet or bninception
+        setattr(self._parser_args, 'bn_prod_limit', 64)    # limit of batch_size * num_segments
         setattr(self._parser_args, 'batch_size_train', 16)
-        setattr(self._parser_args, 'num_segments_test', 2)
+        setattr(self._parser_args, 'num_segments_test', 4)
         setattr(self._parser_args, 'num_segments_step', 4000)
         setattr(self._parser_args, 'optimizer', 'SGD')
         setattr(self._parser_args, 'modality', 'RGB')
         setattr(self._parser_args, 'dropout_diff', 1e-3)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
-        setattr(self._parser_args, 'lr', 0.001)
+        setattr(self._parser_args, 'lr', 0.005)
         setattr(self._parser_args, 'lr_gamma', 0.01)
         setattr(self._parser_args, 'lr_step', 10)
         setattr(self._parser_args, 'print', True)
-        setattr(self._parser_args, 'fast_augment', False)
+        setattr(self._parser_args, 'fast_augment', True)
         setattr(self._parser_args, 'early_stop', 600)
 
     def load_bohb_parameters(self):
@@ -356,11 +356,11 @@ class Model(object):
         if self.metadata.get_sequence_size() == 1:  # image network
             num_pixel = avg_shape[1]*avg_shape[2]
             if num_pixel < 10000:                   # select network based on average number of pixels in the dataset
-                self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_64.pth.tar'
+                self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_64_non_final.pth.tar'
             else:
-                self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Image_Input_128.tar'
+                self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_128_non_final.pth.tar'
         else:                                       # video network
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'BnT_Video_input_128.pth.tar'
+            self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_128_non_final.pth.tar'
         LOGGER.info('USE MODEL: ' + str(self.parser_args.finetune_model))
 
 
@@ -386,16 +386,16 @@ class Model(object):
             num_segments = 1
         else:
             # video dataset
-#            if is_training:
-            num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
-            avg_frames = self.info['avg_shape'][0]
-            if avg_frames > 64:
-                upper_limit = 16
+            if is_training:
+                num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
+                avg_frames = self.info['avg_shape'][0]
+                if avg_frames > 64:
+                    upper_limit = 16
+                else:
+                    upper_limit = 8
+                num_segments = min(max(num_segments, 2), upper_limit)
             else:
-                upper_limit = 8
-            num_segments = min(max(num_segments, 2), upper_limit)
-            # else:
-            #     num_segments = self.parser_args.num_segments_test
+                num_segments = self.parser_args.num_segments_test
 
         LOGGER.info('TRAIN COUNTER: ' + str(self.train_counter))
         LOGGER.info('SET NUM SEGMENTS: ' + str(num_segments))
@@ -414,7 +414,7 @@ class Model(object):
             else:
                 batch_size = int(self.parser_args.bn_prod_limit / num_segments)
         else:
-            batch_size = int(self.parser_args.bn_prod_limit / num_segments)
+            batch_size = int(self.parser_args.bn_prod_limit / num_segments)*4
 
         LOGGER.info('SET BATCH SIZE: ' + str(batch_size))
 
