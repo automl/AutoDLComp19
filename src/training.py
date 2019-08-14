@@ -4,6 +4,7 @@ import subprocess
 import pandas as pd
 import numpy as np
 import torch
+from functools import reduce
 from utils import LOGGER
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -46,7 +47,6 @@ class default_trainer():
         make_final_prediction = False
         while not make_prediction:
             # Set train mode before we go into the train loop over an epoch
-            dl_train.dataset.reset()
             for i, (data, labels) in enumerate(dl_train):
                 t_left = get_time_wo_final_prediction(
                     remaining_time,
@@ -54,7 +54,7 @@ class default_trainer():
                     autodl_model
                 )
                 # Abort training and make final prediction if not enough time is left
-                if t_left is not None and t_left < 10:
+                if t_left is not None and t_left < 5:
                     LOGGER.info('Making final prediciton!')
                     make_final_prediction = True
                     make_prediction = True
@@ -74,15 +74,15 @@ class default_trainer():
                 autodl_model.model.alphadrop = torch.nn.AlphaDropout(p=autodl_model.model.dropout)
 
                 self.batch_counter += 1
-                self.ele_counter += data.shape[0]
+                self.ele_counter += np.prod(data.shape[0:1])
                 if self.check_policy2(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
 
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
-        LOGGER.info('DROPOUT: {0:.4g}'.format(autodl_model.model.dropout))
         LOGGER.info('LR: {0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info('DROPOUT: {0:.4g}'.format(autodl_model.model.dropout))
         LOGGER.info("MEAN TRAINING FRAMES PER SEC: {0:.2f}".format(
             self.ele_counter / (time.time() - autodl_model.birthday))
         )
@@ -178,7 +178,7 @@ class default_trainer():
             autodl_model.train_dl['train'].dataset,
             **trainloader_args
         )
-        LOGGER.info('SET BATCH SIZE: ' + str(autodl_model.train_dl['train'].batch_size))
+        LOGGER.info('BATCH SIZE: ' + str(autodl_model.train_dl['train'].batch_size))
 
     def update_hyperparams(self, autodl_model, dl):
         # ### Set number segments
@@ -206,7 +206,8 @@ def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
     loss = criterion(output, labels)
     loss.backward()
     optimizer.step()
-    lr_scheduler.step()
+    if lr_scheduler is not None:
+        lr_scheduler.step()
     return output, loss
 
 
@@ -236,9 +237,9 @@ def get_time_wo_final_prediction(remaining_time, train_start, model):
             # Calculate current remaining time - time to make a prediction
     return remaining_time - (
         time.time() - train_start
-        + np.mean(model.test_time)
-        + np.std(model.test_time)
-    ) if len(model.test_time) > 0 else None
+        + np.mean(model.test_time[-3:])
+        + np.std(model.test_time[-3:])
+    ) if len(model.test_time) > 3 else None
 
 
 def append_loss(err_list, loss):
@@ -291,8 +292,141 @@ def evaluate_on(model, dl_val):
     return err
 
 
-def accuracy(output, labels):
-    # Right choices +1 wrong choises -1
-    # If multiclass we use a sigmoid
-    # If multilabel ?
-    pass
+################################################################################
+# From the scoring program
+################################################################################
+# Metric used to compute the score of a point on the learning curve
+def autodl_auc(solution, prediction, valid_columns_only=True):
+    """Compute normarlized Area under ROC curve (AUC).
+    Return Gini index = 2*AUC-1 for  binary classification problems.
+    Should work for a vector of binary 0/1 (or -1/1)"solution" and any discriminant values
+    for the predictions. If solution and prediction are not vectors, the AUC
+    of the columns of the matrices are computed and averaged (with no weight).
+    The same for all classification problems (in fact it treats well only the
+    binary and multilabel classification problems). When `valid_columns` is not
+    `None`, only use a subset of columns for computing the score.
+    """
+    if valid_columns_only:
+        valid_columns = get_valid_columns(solution)
+        if len(valid_columns) < solution.shape[-1]:
+            LOGGER.warning(
+                "Some columns in solution have only one class, "
+                + "ignoring these columns for evaluation.")
+        solution = solution[:, valid_columns].copy()
+        prediction = prediction[:, valid_columns].copy()
+    label_num = solution.shape[1]
+    auc = np.empty(label_num)
+    for k in range(label_num):
+        r_ = tiedrank(prediction[:, k])
+        s_ = solution[:, k]
+        if sum(s_) == 0:
+            LOGGER.warning("WARNING: no positive class example in class {}".format(k + 1))
+        npos = sum(s_ == 1)
+        nneg = sum(s_ < 1)
+        auc[k] = (sum(r_[s_ == 1]) - npos * (npos + 1) / 2) / (nneg * npos)
+    return 2 * mvmean(auc) - 1
+
+
+def accuracy(solution, prediction):
+    """Get accuracy of 'prediction' w.r.t true labels 'solution'."""
+    epsilon = 1e-15
+    # normalize prediction
+    prediction_normalized =\
+        prediction / (np.sum(np.abs(prediction), axis=1, keepdims=True) + epsilon)
+    return np.sum(solution * prediction_normalized) / solution.shape[0]
+
+
+def get_valid_columns(solution):
+    """Get a list of column indices for which the column has more than one class.
+    This is necessary when computing BAC or AUC which involves true positive and
+    true negative in the denominator. When some class is missing, these scores
+    don't make sense (or you have to add an epsilon to remedy the situation).
+
+    Args:
+        solution: array, a matrix of binary entries, of shape
+        (num_examples, num_features)
+    Returns:
+        valid_columns: a list of indices for which the column has more than one
+        class.
+    """
+    num_examples = solution.shape[0]
+    col_sum = np.sum(solution, axis=0)
+    valid_columns = np.where(
+        1 - np.isclose(col_sum, 0)
+        - np.isclose(col_sum, num_examples))[0]
+    return valid_columns
+
+
+def is_one_hot_vector(x, axis=None, keepdims=False):
+    """Check if a vector 'x' is one-hot (i.e. one entry is 1 and others 0)."""
+    norm_1 = np.linalg.norm(x, ord=1, axis=axis, keepdims=keepdims)
+    norm_inf = np.linalg.norm(x, ord=np.inf, axis=axis, keepdims=keepdims)
+    return np.logical_and(norm_1 == 1, norm_inf == 1)
+
+
+def is_multiclass(solution):
+    """Return if a task is a multi-class classification task, i.e.  each example
+    only has one label and thus each binary vector in `solution` only has
+    one '1' and all the rest components are '0'.
+
+    This function is useful when we want to compute metrics (e.g. accuracy) that
+    are only applicable for multi-class task (and not for multi-label task).
+
+    Args:
+        solution: a numpy.ndarray object of shape [num_examples, num_classes].
+    """
+    return all(is_one_hot_vector(solution, axis=1))
+
+
+def tiedrank(a):
+    ''' Return the ranks (with base 1) of a list resolving ties by averaging.
+     This works for numpy arrays.'''
+    m = len(a)
+    # Sort a in ascending order (sa=sorted vals, i=indices)
+    i = a.argsort()
+    sa = a[i]
+    # Find unique values
+    uval = np.unique(a)
+    # Test whether there are ties
+    R = np.arange(m, dtype=float) + 1  # Ranks with base 1
+    if len(uval) != m:
+        # Average the ranks for the ties
+        oldval = sa[0]
+        newval = sa[0]
+        k0 = 0
+        for k in range(1, m):
+            newval = sa[k]
+            if newval == oldval:
+                # moving average
+                R[k0:k + 1] = R[k - 1] * (k - k0) / (k - k0 + 1) + R[k] / (k - k0 + 1)
+            else:
+                k0 = k
+                oldval = newval
+    # Invert the index
+    S = np.empty(m)
+    S[i] = R
+    return S
+
+
+def mvmean(R, axis=0):
+    ''' Moving average to avoid rounding errors. A bit slow, but...
+    Computes the mean along the given axis, except if this is a vector, in which case the mean is returned.
+    Does NOT flatten.'''
+    if len(R.shape) == 0:
+        return R
+
+    def average(x):
+        reduce(
+            lambda i, j: (
+                0,
+                (j[0] / (j[0] + 1.)) * i[1] + (1. / (j[0] + 1)) * j[1]
+            ),
+            enumerate(x)
+        )[1]
+    R = np.array(R)
+    if len(R.shape) == 1:
+        return average(R)
+    if axis == 1:
+        return np.array(map(average, R))
+    else:
+        return np.array(map(average, R.transpose()))

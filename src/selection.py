@@ -44,32 +44,27 @@ def master_selector(tfsession, dataset, modelargs):
     model, optimizer, loss_fn = torch.hub.load(
         HUBNAME, model_name, pretrained=True, url=checkpoint_file, **modelargs
     )
+    if hasattr(model, 'partialBN'):
+        model.partialBN(False)
     model.dropout = modelargs['initial_dropout']
     scheduler = StepLR(optimizer, modelargs['lr_step'], 1 - modelargs['lr_gamma'])
     # If not set, amp will not be initialized for this model
     setattr(model, 'amp_compatible', False)
 
-    model.partialBN(False)
     LOGGER.debug('##########################################################')
     LOGGER.debug('MODEL IS IN BIRTHDAY SUIT')
-    LOGGER.debug('##########################################################')
-    for m in model.modules():
-        if not m.training:
-            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    has_frozen = np.any([not m.training for m in model.modules()])
+    LOGGER.debug('MODEL HAS FROZEN MODULES:\t{0}'.format(has_frozen))
     model.eval()
     LOGGER.debug('##########################################################')
     LOGGER.debug('MODEL IS IN EVAL MODE')
-    LOGGER.debug('##########################################################')
-    for m in model.modules():
-        if not m.training:
-            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    has_unfrozen = np.any([m.training for m in model.modules()])
+    LOGGER.debug('MODEL HAS UNFROZEN MODULES:\t{0}'.format(has_unfrozen))
     model.train()
     LOGGER.debug('##########################################################')
     LOGGER.debug('MODEL IS IN TRAIN MODE')
-    LOGGER.debug('##########################################################')
-    for m in model.modules():
-        if not m.training:
-            LOGGER.debug('TRAIN STATES: {0}\t{1}'.format(m.training, m))
+    has_frozen = np.any([not m.training for m in model.modules()])
+    LOGGER.debug('MODEL HAS FROZEN MODULES:\t{0}'.format(has_frozen))
     LOGGER.debug('##########################################################')
     LOGGER.debug('All done. You can get back to work now!')
     LOGGER.debug('##########################################################')
@@ -78,48 +73,20 @@ def master_selector(tfsession, dataset, modelargs):
 
 
 # Model selectors
-def default_model_selector(tfsession, dataset, use_wrappernet=False):
-    models_available = torch.hub.list(HUBNAME)
-    conf = struct(HUBMANIFEST['averagenet']['kinetics'])
+def dummy_model_selector(tfsession, dataset):
+    '''
+    This is a dummy implementation of a selector showing what is expected
+    to be performed by it. You are free to add any additional args to it
+    as long they are set in the config. The standard ones ar listed above.
 
-    LOGGER.info("AVAILABLE MODELS: {0}".format(models_available))
-    LOGGER.info("TRAIN SET LENGTH: {0}".format(dataset.num_samples))
-    LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
-    LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
+    How you decide what model to use given the dataset(TFDataset) is up to you.
 
-    modeloptimargs = {
-        'parser_args': {
-            'dropout': 0.2,
-            'lr': 0.005,
-            'num_classes': dataset.num_classes,
-            'num_segments': 2,
-            'modality': 'RGB',
-            'classification_type': 'multilabel' if dataset.is_multilabel else 'multiclass',
-        }
-    }
-
-    model, optimizer, loss_fn = torch.hub.load(
-        HUBNAME, 'averagenet', pretrained=True, url=conf.checkpoint_file, **modeloptimargs
-    )
-
-    # This is an example how you could get the optimizer from the manifest
-    # ####
-    # optimizer_class = getattr(
-    #     torch.optim,
-    #     conf.optimizer
-    # )
-    # optimizer = optimizer_class(
-    #     model.parameters(),
-    #     optimargs
-    # )
-    # optimizer = torch.optim.Adam(model.parameters(), **optimargs)
-
-    # Return that this model can be trained using amp
-    # Only set this to true if the optimizer and the model can be monkey patched by
-    # nvidia apex's amp and amp should be used!
+    Returns model, loss_fn, optimizer, scheduler
+    '''
     setattr(model, 'amp_compatible', True)
-
-    return model, loss_fn, optimizer
+    raise NotImplemented
+    scheduler = None
+    return model, loss_fn, optimizer, scheduler
 
 
 # ########################################################

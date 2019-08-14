@@ -73,9 +73,10 @@ class Model(algorithm.Algorithm):
         torch.backends.cudnn.deterministic = self.config.cudnn_deterministic
 
         # Seeds
-        np.random.seed = self.config.np_random_seed
-        torch.manual_seed = self.config.torch_manual_seed
-        torch.cuda.manual_seed_all = self.config.torch_cuda_manual_seed_all
+        tf.random.set_random_seed(self.config.tf_seed)
+        np.random.seed(self.config.np_random_seed)
+        torch.manual_seed(self.config.torch_manual_seed)
+        torch.cuda.manual_seed_all(self.config.torch_cuda_manual_seed_all)
 
         # Assume model.py and config.hjson are always in the same folder. Could possibly
         # do this in a nicer fashion, but it must still run during the submission on
@@ -136,9 +137,9 @@ class Model(algorithm.Algorithm):
         self.final_prediction_made = False
         self.done_training = False
 
-        self.training_round = 0  # flag indicating if we are in the first round of training
+        self.training_round = 0  # keep track how often we entered train
         self.train_time = []
-        self.testing_round = 0  # flag indicating if we are in the first round of testing
+        self.testing_round = 0  # keep track how often we entered test
         self.test_time = []
 
         self.session = tf.Session()
@@ -256,6 +257,7 @@ class Model(algorithm.Algorithm):
             self.loss_fn.to(DEVICE)
             if (
                 USE_AMP
+                and self.config.use_amp
                 and hasattr(self.model, 'amp_compatible')
                 and self.model.amp_compatible
             ):
@@ -275,6 +277,7 @@ class Model(algorithm.Algorithm):
             remaining_time_budget,
             **train_args
         )
+
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
@@ -337,7 +340,9 @@ class Model(algorithm.Algorithm):
             remaining_time_budget,
             **test_args
         )
+
         LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
+        LOGGER.info(80 * '#')
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
         return predicitons

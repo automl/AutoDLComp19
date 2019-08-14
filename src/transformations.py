@@ -23,8 +23,8 @@ def aug_net(autodl_model, dataset):
 
     # Inject the WrapperNet at the top of the modules list
     need_to_resize = np.any(dataset.min_shape[1:] != dataset.max_shape[1:])
-    use_gpu_augment = autodl_model.config.use_gpu_augment
-    aug_net = AugmentNet(model.input_size, not need_to_resize and use_gpu_augment)
+    use_aug_net = autodl_model.config.use_gpu_batch_augmentation
+    aug_net = AugmentNet(model.input_size, not need_to_resize and use_aug_net)
     # Monkeypatch the new network to expose the original model's attributes
     # autodl_model.model = MonkeyNet(
     #     aug_net,
