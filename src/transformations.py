@@ -4,11 +4,8 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 
-from utils import LOGGER
+from utils import LOGGER, MonkeyNet
 
-
-# Set the device which torch should use
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 RESIZE_FACTOR = 1.3
 
 
@@ -50,7 +47,7 @@ def aug_net(autodl_model, dataset, use_gpu_resize):
                 [
                     CPUSelectSegmentsDynamic(autodl_model.model),
                     *(
-                        (CPUResizeImage(aug_net.out_size), )
+                        (CPUResizeImage(aug_net.out_size.tolist()), )
                         if cpu_resize else ()
                     )
                 ]
@@ -64,34 +61,18 @@ def aug_net(autodl_model, dataset, use_gpu_resize):
 
 
 # ########################################################
-# Perform only necessary transformations on the cpu
+# Dummy function displaying the api
 # ########################################################
 def dummy_transformations_selector(autodl_model, dataset):
     '''
     transf_dict = {
         'train': {
-            'samples': transforms.Compose(
-                [
-
-                ]
-            ),
-            'labels': transforms.Compose(
-                [
-
-                ]
-            )
+            'samples': transforms.Compose([]),
+            'labels': transforms.Compose([])
         },
         'test': {
-            'samples': transforms.Compose(
-                [
-
-                ]
-            ),
-            'labels': transforms.Compose(
-                [
-
-                ]
-            )
+            'samples': transforms.Compose([]),
+            'labels': transforms.Compose([]),
         }
     }
     return transf_dict
@@ -102,48 +83,6 @@ def dummy_transformations_selector(autodl_model, dataset):
 # ########################################################
 # Helpers
 # ########################################################
-class MonkeyNet(nn.Sequential):
-    '''
-    The idea of the monkeynet is to expose all attributes of the networks
-    it's given and is therefore a special kind of Sequential network
-    '''
-    def __init__(self, *nets):
-        super().__init__(*nets)
-        super().__setattr__('__finished_init__', True)
-
-    def __getattr__(self, attr):
-        try:
-            super(nn.Sequential, self).__getattribute__(attr)
-        except AttributeError:
-            super(nn.Sequential, self).__getattribute__('__finished_init__')
-        for m in self.children():
-            try:
-                return getattr(m, attr)
-            except AttributeError:
-                continue
-        raise AttributeError('The monkey is sorry because it could not find ''{0}'''.format(attr))
-
-    def __setattr__(self, attr, val):
-        try:
-            super(nn.Sequential, self).__getattribute__(attr)
-            super(nn.Sequential, self).__setattr__(attr, val)
-            return
-        except AttributeError:
-            try:
-                super(nn.Sequential, self).__getattribute__('__finished_init__')
-            except AttributeError:
-                super(nn.Sequential, self).__setattr__(attr, val)
-                return
-        for m in self.children():
-            try:
-                getattr(m, attr)
-                setattr(m, attr, val)
-                return
-            except AttributeError:
-                continue
-        raise AttributeError('The monkey is sorry because it could not set ''{0}'''.format(attr))
-
-
 class AugmentNet(nn.Module):
     def __init__(self, out_size: int, fast_augment: bool):
         super().__init__()
@@ -165,6 +104,7 @@ class AugmentNet(nn.Module):
                 else nn.Sequential(
                     SwapAxes(),
                     FormatChannels(3),
+                    RandomCrop(self.out_size.tolist()),
                     Stack(),
                     Normalize()
                 )
@@ -180,6 +120,7 @@ class AugmentNet(nn.Module):
                 else nn.Sequential(
                     SwapAxes(),
                     FormatChannels(3),
+                    RandomCrop(self.out_size.tolist()),
                     Stack(),
                     Normalize()
                 )

@@ -1,10 +1,55 @@
 import os
 import sys
+import torch
+import torch.nn as nn
 import logging
 import hjson
 
 
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class MonkeyNet(nn.Sequential):
+    '''
+    The idea of the monkeynet is to expose all attributes of the networks
+    it's given and is therefore a special kind of Sequential network
+    '''
+    def __init__(self, *nets):
+        super().__init__(*nets)
+        super().__setattr__('__finished_init__', True)
+
+    def __getattr__(self, attr):
+        try:
+            super(nn.Sequential, self).__getattribute__(attr)
+        except AttributeError:
+            super(nn.Sequential, self).__getattribute__('__finished_init__')
+        for m in self.children():
+            try:
+                return getattr(m, attr)
+            except AttributeError:
+                continue
+        raise AttributeError('The monkey is sorry because it could not find ''{0}'''.format(attr))
+
+    def __setattr__(self, attr, val):
+        try:
+            super(nn.Sequential, self).__getattribute__(attr)
+            super(nn.Sequential, self).__setattr__(attr, val)
+            return
+        except AttributeError:
+            try:
+                super(nn.Sequential, self).__getattribute__('__finished_init__')
+            except AttributeError:
+                super(nn.Sequential, self).__setattr__(attr, val)
+                return
+        for m in self.children():
+            try:
+                getattr(m, attr)
+                setattr(m, attr, val)
+                return
+            except AttributeError:
+                continue
+        raise AttributeError('The monkey is sorry because it could not set ''{0}'''.format(attr))
 
 
 class Config:

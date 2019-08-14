@@ -5,9 +5,7 @@ import pandas as pd
 import numpy as np
 import torch
 from functools import reduce
-from utils import LOGGER
-
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+from utils import LOGGER, DEVICE
 
 
 # Example for a trainer class
@@ -75,7 +73,7 @@ class policy_trainer():
 
                 self.batch_counter += 1
                 self.ele_counter += np.prod(data.shape[0:1])
-                if self.check_policy2(autodl_model, i, t_train, loss, dl_val):
+                if self.grid_check_policy(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
 
@@ -89,7 +87,41 @@ class policy_trainer():
         LOGGER.info("TRAINING COUNTER: " + str(self.ele_counter))
         return make_final_prediction
 
-    def check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
+    def update_batch_size(self, autodl_model):
+        batch_size_max = int(self.bn_prod_limit / autodl_model.model.num_segments)
+        trainloader_args = {**autodl_model.config.dataloader_args['train']}
+
+        if autodl_model.train_dl['val'] is not None:
+            trainloader_args['batch_size'] = batch_size_max
+            autodl_model.train_dl['val'] = torch.utils.data.DataLoader(
+                autodl_model.train_dl['val'].dataset,
+                **trainloader_args
+            )
+
+        batch_size_des = autodl_model.config.dataloader_args['train']['batch_size']
+        trainloader_args['batch_size'] = min(batch_size_des, batch_size_max)
+        autodl_model.train_dl['train'] = torch.utils.data.DataLoader(
+            autodl_model.train_dl['train'].dataset,
+            **trainloader_args
+        )
+        LOGGER.info('BATCH SIZE: ' + str(autodl_model.train_dl['train'].batch_size))
+
+    def update_hyperparams(self, autodl_model, dl):
+        # ### Set number segments
+        num_segments = 1
+        if dl.dataset.max_shape[0] > 1:
+            # video dataset
+            num_segments = 2**int(self.ele_counter / self.num_segments_step + 1)
+            avg_frames = dl.dataset.mean_shape[0]
+            if avg_frames > 64:
+                upper_limit = 16
+            else:
+                upper_limit = 8
+            num_segments = min(max(num_segments, 2), upper_limit)
+            autodl_model.model.num_segments = num_segments
+        LOGGER.info('NUM_SEGMENTS: ' + str(autodl_model.model.num_segments))
+
+    def validation_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
         make_prediction = False
         self.train_err = append_loss(self.train_err, loss)
         LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
@@ -135,7 +167,7 @@ class policy_trainer():
                         LOGGER.info('BACK TO THE GYM')
         return make_prediction
 
-    def check_policy2(self, autodl_model, i, t_train_start, loss, dl_val):
+    def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
         make_prediction = False
         self.train_err = append_loss(self.train_err, loss)
         LOGGER.debug('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
@@ -160,40 +192,6 @@ class policy_trainer():
             else:
                 make_prediction = True
         return make_prediction
-
-    def update_batch_size(self, autodl_model):
-        batch_size_max = int(self.bn_prod_limit / autodl_model.model.num_segments)
-        trainloader_args = {**autodl_model.config.dataloader_args['train']}
-
-        if autodl_model.train_dl['val'] is not None:
-            trainloader_args['batch_size'] = batch_size_max
-            autodl_model.train_dl['val'] = torch.utils.data.DataLoader(
-                autodl_model.train_dl['val'].dataset,
-                **trainloader_args
-            )
-
-        batch_size_des = autodl_model.config.dataloader_args['train']['batch_size']
-        trainloader_args['batch_size'] = min(batch_size_des, batch_size_max)
-        autodl_model.train_dl['train'] = torch.utils.data.DataLoader(
-            autodl_model.train_dl['train'].dataset,
-            **trainloader_args
-        )
-        LOGGER.info('BATCH SIZE: ' + str(autodl_model.train_dl['train'].batch_size))
-
-    def update_hyperparams(self, autodl_model, dl):
-        # ### Set number segments
-        num_segments = 1
-        if dl.dataset.max_shape[0] > 1:
-            # video dataset
-            num_segments = 2**int(self.ele_counter / self.num_segments_step + 1)
-            avg_frames = dl.dataset.mean_shape[0]
-            if avg_frames > 64:
-                upper_limit = 16
-            else:
-                upper_limit = 8
-            num_segments = min(max(num_segments, 2), upper_limit)
-            autodl_model.model.num_segments = num_segments
-        LOGGER.info('NUM_SEGMENTS: ' + str(autodl_model.model.num_segments))
 
 
 # ########################################################

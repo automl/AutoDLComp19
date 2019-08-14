@@ -1,27 +1,28 @@
-# Modified by: Shangeth Rajaa, ZhengYing, Isabelle Guyon
-"""An example of code submission for the AutoDL challenge in PyTorch.
+"""
+This class implements the 3 compulsory mehtods
+a submission is required to have namely __init__, train, test
+The main idea is to have a module.py for each phase
+model selection -> transformation selection -> training -> testing
+ie.
+selection.py -> transformations.py -> training.py -> testing.py
 
-It implements 3 compulsory methods: __init__, train, and test.
-model.py follows the template of the abstract class algorithm.py found
-in folder ingestion_program/.
+It is possible to have multiple function/classes in these modules
+and which one to use and it's arguments can be defined in the config.hjson
+This allow for rapid comparison between two or more competing methods
 
-The dataset is in TFRecords and Tensorflow is used to read TFRecords and get the
-Numpy array which can be used in PyTorch to convert it into Torch Tensor.
-
-To create a valid submission, zip model.py together with other necessary files
-such as Python modules/packages, pre-trained weights. The final zip file should
-not exceed 300MB.
+NOTE:
+A hjson is a normal json but allows comments, so no black magic here.
 """
 import os
 import time
 import types
 from functools import partial
 
-# Import the challenge algorithm (model) API from algorithm.py
 import numpy as np
 import torch
 import tensorflow as tf
 
+# Import the challenge algorithm (model) API from algorithm.py
 import algorithm
 import selection
 import transformations
@@ -29,7 +30,7 @@ import training
 import testing
 import utils
 from torch_adapter import TFDataset
-from utils import LOGGER
+from utils import LOGGER, DEVICE
 
 
 # If apex's amp is available, import it and set a flag to use it
@@ -54,8 +55,6 @@ if USE_AMP:
         with amp.scale_loss(loss, optimizer) as scale_loss:
             scale_loss.backward()
 
-# Set the device which torch should use
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -63,6 +62,10 @@ class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
         self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
+        bohb_conf_path = os.path.join(BASEDIR, 'bohb_config.txt')
+        if os.path.isfile(bohb_conf_path):
+            self.side_load_config(bohb_conf_path)
+
         LOGGER.info("INIT START: " + str(time.time()))
         super(Model, self).__init__(metadata)
         # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
@@ -77,10 +80,6 @@ class Model(algorithm.Algorithm):
         np.random.seed(self.config.np_random_seed)
         torch.manual_seed(self.config.torch_manual_seed)
         torch.cuda.manual_seed_all(self.config.torch_cuda_manual_seed_all)
-
-        # Assume model.py and config.hjson are always in the same folder. Could possibly
-        # do this in a nicer fashion, but it must still run during the submission on
-        # codalab.
 
         # In-/Out Dimensions from the train dataset's metadata
         row_count, col_count = metadata.get_matrix_size(0)
@@ -144,6 +143,9 @@ class Model(algorithm.Algorithm):
 
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
+
+    def side_load_config(bohb_conf_path):
+        raise NotImplemented
 
     def setup_model(self, ds_temp):
         selected = self.select_model(

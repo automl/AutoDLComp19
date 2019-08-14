@@ -8,6 +8,8 @@ from src.utils import Config  # noqa: E402
 sys.path.append(".")  # isort:skip
 
 if __name__ == "__main__":
+    # TODO(Philipp): Make this work
+    raise NotImplemented
     # Construct base CLI, later add args dynamically from config file too
     parser = argparse.ArgumentParser()
     parser.add_argument("--submission_dir", default=".codalab_submission")

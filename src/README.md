@@ -1,67 +1,41 @@
 
 ## Overview
-This repository provides a PyTorch implementation of state-of-the-art models on video classification.
-
-
-
-## Current available models:
-* [x] TSM: Temporal Shift Module for Efficient Video Understanding [paper](https://arxiv.org/abs/1811.08383).
-* [x] ECO: Efficient Convolutional Network for Online Video Understanding [paper](https://arxiv.org/abs/1804.09066).
-* [ ] Timeception for Complex Action Recognition [paper](https://arxiv.org/pdf/1812.01289.pdf).
-* [ ] SlowFast Networks for Video Recognition [paper](https://arxiv.org/abs/1812.03982).
-* [ ] I3D [paper](https://arxiv.org/abs/1705.07750).
-
-&nbsp;
-&nbsp;
-
-## Prerequisites
-* [Python 3.5+](https://www.continuum.io/downloads)
-* [PyTorch 0.4.1](http://pytorch.org/)
-
-&nbsp;
-
-## Usage
-
-#### 1. Config datasets and pretrained models
-* Download pretrained models from this [link](https://drive.google.com/open?id=1bNUOYQhb4RF0TDKUNGCS3akypYtK92Ao).
-* Config paths in ops/dataset_config.py and make sure that your list correctly address video folders
-* Modify path and parameters in run bash files.
-
-#### 3. Train
-##### (i) Train
-- To finetune model on UCF101 using TSM method run:
+Woking on it. Have a banana!
 ```
-./run_TSM_UCF101_finetune.sh local
-
+                                :BBkU:  LL;.                                      
+                                iBBBBBZBBBBM:                                    
+                                ,BB8MBM8MMBBBBBBBM02Y:.                         
+                        UEBBBBOU8O8EOE8ZOGMMBMBBBBBBBBBOu                      
+                        .rOBBBBBB88E8E80GE8ZOZOG8GMGO8MMBBBM7                   
+                            rBOOGOZ8ZGEGE8E8Z8ZGEGZ8Z8E8Z88MMBBBL                 
+                        ;BB8OZ8Z8Z8E8E8Z8ZGEGZGZ8EGE8E8Z8Z8GMBBBi               
+                    GBBG8Z8E8E8E8E8EGZ8Z8E8EGZ8Z8ZMMk:::uBBBB;:rBBG            
+                    7BBZ8Z8E8Z8Z8EGZ8E8Z8Z8E8E8ZOG8MO      MB:   qBB1           
+                    BBG8E8Z8EGE8ZGZ8ZGE8ZGZGGO8MOBMBBBBBP  .B  BBBBBBi          
+                    rBM8Z8E8Z8Z8Z8E8E8Z8EOZO8MBBBBBBMOEPXX   v, rYirYBM          
+                    8BMZ8E8ZGZ8E8E8ZGE8Z8GMBBBMFr.                    5i         
+                    MBZ8E8EGEGE8E8Z8ZGZOGBBBY.             .   . .jMr 7j         
+                    BB8E8Z8Z8E8E8Z8EGZ8OBBr        2BBU.  . . .  :ji. rJ         
+                    BBGGZGE8Z8Z8EGZ8E88BZ    . . . :,,:. . . . .      rU         
+                    BB8Z8ZG08Z8E8E8ZGGBB    . . . .     . . . . . . . 7j         
+                    OBOZ8E8GOZ8E8ZGEGMB.  . . . . . . . . . . . . .   U7         
+                    LB88E8EGE8E8Z8EGZMB   .. . . .       . . . .      Y:         
+                    2B8E8ZGZO8MMMG8E8OB.  . . . .         . . .   2MG2E          
+                    YBMEGE8GMBBBMBMZ8EMBL   . . .  .GBBB8:  . . . :u. YBL         
+                    BBGGE8GBBqi  XBMZ8ZBB    . .  UBG:.,rY.. . .       .8.        
+                ,BM8Z8ZMB7    :BMOZ88BM        8N                 FBBBr        
+                :BBG8Z8MM      EBG8Z8OBM.     ...           .:rvNi.. rL        
+                    BBMZ8ZMB,     ;BBG8ZOMBB, :BBBBB, . iqiL77LLr: :F   k:        
+                    7BBMZOGBZ      XBOEGEMB5   :,..  .  .M:Pj      Si  7J         
+                    YBBB8M8BM;    .BZ8Z8MB              .SUL:i;YjY  ,J;          
+                    .MBBBBBBBBMMMBMMG8EBM                  .     iLL.           
+                        :1BBBBBBBBBBBBBBMBB5       .iLUuUJJvYLLijjvi              
+                            .,::::.;LOBBBBBBBJ. .vNGUi       ..PB7                
+                                        :OBBBBJ.    7;UqPjiPX.                 
+                                        ;MMMOBBBBBSBMJrEBBBS,                   
+                            .JBBBB0:     PBBOZ8Z8EMMBBBGBBMOBB                    
+                        rBBBBBBBBBB,   kBBZ8Z8Z8G8ZGZOOMOBBB.                   
+                        2BBBOi   .XBBk   FB8E8Z8Z8E8EOE8ZBZ,                     
+                        :0Zi       :BBU  7BG8ZOZ8E8Z8ZOEMB0                      
+                                    BBu.ZB8E80EEZNZNZNEGB:                      
 ```
-- To finetune model on UCF101 using ECO method and freezing specific layers run:
-```
-./run_ECO_UCF101_finetune_wfreezing.sh local
-
-```
-
-
-## Results
-The performance with Pre-training on Kinetics:
-
-| method      | UCF101   |     SMv2     | EpicK-Object  | EpicK-Action  |    HMDB51     |
-| ----------  | -------  | ------------ | ------------- | ------------- | ------------- |
-| TSM         |   92.7%  |     --       |    34.9%      |   53.6%       |   -----       |
-| ECOfull(16F)|   92.1%  |     --       |    31.7%      |   58.0%       |   -----       |
-| TSM+ECOfull |   -----  |     --       |    38.0%      |   60.3%       |   -----       |
-| SlowFast    |   -----  |     --       |    -----      |   -----       |   -----       |
-| Timeception |   -----  |     --       |    -----      |   -----       |   -----       |
-
-
-
-The performance with Pre-training on Youtube-8M:
-
-| method      | UCF101   |     SMv2     | EpicK-Object  | EpicK-Action  |
-| ----------  | -------  | ------------ | ------------- | ------------- |
-| TSM         |   -----  |     --       |    -----      |   -----       |
-| ECOfull(16F)|   -----  |     --       |    -----      |   -----       |
-| SlowFast    |   -----  |     --       |    -----      |   -----       |
-| Timeception |   -----  |     --       |    -----      |   -----       |
-
-
-
