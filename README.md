@@ -1,5 +1,5 @@
 # AutoDLComp19
-AutoDL Competition 2019 https://autodl.chalearn.org/\
+AutoDL Competition 2019 https://autodl.chalearn.org/<br />
 The starting kit is available at https://github.com/zhengying-liu/autodl_starting_kit_stable
 
 
