@@ -28,7 +28,7 @@ class baseline_trainer():
         # making the decision to continue training or not
         # Maybe move this stuff and just define a policy api?
         LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
-        LOGGER.info('BATCH SIZE:\ŧ' + str(autodl_model.train_dl['train'].batch_size))
+        LOGGER.info('BATCH SIZE:\t' + str(autodl_model.train_dl['train'].batch_size))
 
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
