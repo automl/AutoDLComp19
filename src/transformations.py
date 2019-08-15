@@ -260,7 +260,6 @@ class RandomCrop(nn.Module):
 class RandomCropPad(object):
     def __init__(self, size_des):
         self.size_des = size_des
-        print(self.size_des)
 
     def __call__(self, pics):
         row = pics.shape[1]
@@ -332,7 +331,7 @@ class Normalize(nn.Module):
             x = x / 255
         elif max_val > 255:
             x = x / max_val
-            print('Weird max_val: ' + str(max_val))
+            LOGGER.warning('Weird max_val: ' + str(max_val))
 
         return x
 
