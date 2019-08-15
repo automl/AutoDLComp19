@@ -150,7 +150,7 @@ class Model(algorithm.Algorithm):
         with the only requirement that their type must match
 
         ATTENTION: If bohb_config.json can define dictionaries as values as well
-        so it is possible to overwrite a whole subhirachy. 
+        so it is possible to overwrite a whole subhirachy.
         '''
         with open(bohb_conf_path, 'r') as file:
             bohb_conf = json.load(file)
