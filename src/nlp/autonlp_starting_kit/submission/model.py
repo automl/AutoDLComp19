@@ -85,6 +85,8 @@ class BertTokenizer():
         # print("Threading with {} workers".format(workers))
         p = mp.Pool(workers)
         res = p.map(func, args)
+        p.close()
+        p.join()
         return res
 
     def tokenize_text(self, text, max_str_len, max_tok_len=512):
@@ -372,8 +374,9 @@ class Model(object):
         self.naive_limit = 5
         self.batch_size = 64
         # self.pretrained_path = '/content/'
-        self.pretrained_path = ''
+        # self.pretrained_path = ''
         # self.pretrained_path = os.path.join(*os.path.abspath(__file__).split('/')[:-1])
+        self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
         self.classifier_layers = 2
         self.classifier_units = 256
         self.learning_rate = 0.001
@@ -381,7 +384,8 @@ class Model(object):
         self.t_total = 500
 
         # create tokenizer
-        #         self.tokenizer = BertMultiTokenizer(BERT_PRETRAINED[self.metadata['language']]['name'],
+        #         s
+        # elf.tokenizer = BertMultiTokenizer(BERT_PRETRAINED[self.metadata['language']]['name'],
         #                                             max_len=3000, max_tokens=512)
         self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
 
