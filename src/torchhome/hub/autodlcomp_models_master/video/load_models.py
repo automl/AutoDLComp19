@@ -339,7 +339,7 @@ def init_ECO(model_dict, parser_args):
         except Exception:
             for k1, v in pretrained_dict.items():
                 for k2 in model_dict.keys():
-                    k = k1.replace('module.','bninception_pretrained.')
+                    k = k1.replace('module.efficientnet_pretrained.','base.')
                     if k2 in k and (v.size() == model_dict[k2].size()):
                         new_state_dict[k2] = v
         #new_state_dict = {

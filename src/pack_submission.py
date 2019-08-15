@@ -4,11 +4,10 @@ import zipfile
 import os
 import site
 import subprocess
-from utils import Config
+from utils import Config, BASEDIR
 
 BRANCHNAME = subprocess.check_output(["git", "status"]).strip().decode('utf8').split('\n')[0][10:].replace('/', '_')
 COMMITHASH = subprocess.check_output(["git", "log"]).strip().decode('utf8')[8:16]
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
 PYTHON_LIB_PATH = site.getsitepackages()[0]
 PRETRAINED_WEIGHTS_PATH = os.path.join(BASEDIR, 'torchhome', 'checkpoints')
 

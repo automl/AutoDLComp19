@@ -241,6 +241,8 @@ competition/AutoDL_sample_result_submission/**
 competition/AutoDL_scoring_output/**
 src/torchhome/checkpoints/**
 submissions/**
+bohb_logs/**
+**bohb_config.json
 
 # Don't ignore gitkeep files
 !**/.gitkeep

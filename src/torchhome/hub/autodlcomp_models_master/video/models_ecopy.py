@@ -44,7 +44,7 @@ class ECOfull_efficient(nn.Module):
         #    pl=0.2, endpoint=112, arch='full')
         self.base = EfficientNet(
             num_classes=1000, width_coef=0.7,depth_coef=0.7,scale=0.7,dropout_ratio=0.02,pl=0.02,endpoint=56,arch="full")
-        self.resnet3d_eff = resnet3d_eff()
+        #self.resnet3d_eff = resnet3d_eff()
         self.batch_norm_2do = nn.BatchNorm1d(896, eps=1e-3, momentum=0.01)
         #self.batch_norm_2do = nn.BatchNorm1d((512+896), eps=1e-3, momentum=0.01)
         # changed, because we dont get bias out of efficientnet

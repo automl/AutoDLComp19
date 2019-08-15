@@ -150,7 +150,7 @@ def dummy_model_selector(tfsession, dataset):
     setattr(model, 'amp_compatible', True)
     scheduler = None
     '''
-    raise NotImplemented
+    raise NotImplementedError
 
 
 # ########################################################

@@ -17,6 +17,7 @@ import os
 import time
 import types
 from functools import partial
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -28,20 +29,16 @@ import selection
 import transformations
 import training
 import testing
+import json
 import utils
 from torch_adapter import TFDataset
-from utils import LOGGER, DEVICE
+from utils import LOGGER, DEVICE, BASEDIR
 
 
 # If apex's amp is available, import it and set a flag to use it
 try:
     from apex import amp
-    USE_AMP = True
-except Exception:
-    USE_AMP = False
-    pass
 
-if USE_AMP:
     # Make the use of amp's scaled loss seemless to the training so
     # loss.backward() performs scaled_loss.backward() and training
     # doesn't need to pay attention
@@ -55,14 +52,17 @@ if USE_AMP:
         with amp.scale_loss(loss, optimizer) as scale_loss:
             scale_loss.backward()
 
-BASEDIR = os.path.dirname(os.path.abspath(__file__))
+    USE_AMP = True
+except Exception:
+    USE_AMP = False
+    pass
 
 
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
         self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
-        bohb_conf_path = os.path.join(BASEDIR, 'bohb_config.txt')
+        bohb_conf_path = os.path.join(BASEDIR, 'bohb_config.json')
         if os.path.isfile(bohb_conf_path):
             self.side_load_config(bohb_conf_path)
 
@@ -144,8 +144,25 @@ class Model(algorithm.Algorithm):
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
 
-    def side_load_config(bohb_conf_path):
-        raise NotImplemented
+    def side_load_config(self, bohb_conf_path):
+        '''
+        This overrides all setting config defined in the bohb_config
+        with the only requirement that their type must match
+
+        ATTENTION: If bohb_config.json can define dictionaries as values as well
+        so it is possible to overwrite a whole subhirachy. 
+        '''
+        with open(bohb_conf_path, 'r') as file:
+            bohb_conf = json.load(file)
+
+        dicts = [self.config.__dict__]
+        while len(dicts) > 0:
+            d = dicts.pop()
+            for k, v in d.items():
+                if k in bohb_conf.keys() and isinstance(bohb_conf[k], type(d[k])):
+                    d[k] = bohb_conf[k]
+                elif isinstance(v, OrderedDict):
+                    dicts.append(v)
 
     def setup_model(self, ds_temp):
         selected = self.select_model(

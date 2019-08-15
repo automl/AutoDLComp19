@@ -3,6 +3,7 @@ import traceback
 import _pickle as pickle
 import os
 import time
+import json
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -12,13 +13,14 @@ import hpbandster.visualization as hpvis
 import matplotlib.pyplot as plt
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB as BOHB
+from utils import BASEDIR
 
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='bn_prod_limit', choices = [256]))     # maximum value of batch_size*num_segments
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64,128]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='num_segments_test', choices = [2,4,8,16]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='bn_prod_limit', choices=[256]))     # maximum value of batch_size*num_segments
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices=[16, 32, 64, 128]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='num_segments_test', choices=[2, 4, 8, 16]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='num_segments_step', lower=1e2, upper=1e4, log=True))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout_diff', lower=1e-5, upper=1e-3, log=True))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.1, log=False))
@@ -26,40 +28,47 @@ def get_configspace():
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_gamma', lower=1e-4, upper=1e-1, log=True))
     return cs
 
+
 def get_configuration():
     cfg = {}
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-    cfg["dataset_base_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/datasets/'
+    cfg["code_dir"] = BASEDIR
+    cfg["dataset_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_public_data')
+    cfg["output_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_sample_result_submission')
+    cfg["score_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_scoring_output')
     cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur', 'Decal', 'Hammer']
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = "./logs/" + str(int(time.time()))
+    cfg["bohb_log_dir"] = os.path.joine(BASEDIR, '..', '/bohb_logs/' + str(int(time.time()))
     return cfg
 
 
 def write_config_to_file(cfg):
-    path = os.path.join(os.getcwd(), 'bohb_config.txt')
-    with open(path, 'wb') as file:
-        pickle.dump(cfg, file)  # use `json.loads` to do the reverse
+    path = os.path.join(BASEDIR, 'bohb_config.json')
+
+    with open(path, 'w') as file:
+        json.dump(cfg, file)
 
 
 def create_function_call(cfg, budget):
     fc = 'python3 run_local_test.py'
     fc += ' --code_dir=' + cfg["code_dir"]
     fc += ' --dataset_dir=' + cfg["dataset_dir"]
+    fc += ' --output_dir=' + cfg["output_dir"]
+    fc += ' --score_dir=' + cfg["score_dir"]
     fc += ' --time_budget=' + str(budget)
     return fc
 
 
 def read_final_score_from_file():
-    path = os.path.join(os.getcwd(), 'AutoDL_scoring_output')
+    path = os.path.join(BASEDIR, 'AutoDL_scoring_output')
     path = os.path.join(path, 'final_score.txt')
 
     with open(path, "r") as file:
         score = float(file.read())
 
     return score
+
 
 class BOHBWorker(Worker):
     def __init__(self, cfg, *args, **kwargs):
@@ -77,6 +86,8 @@ class BOHBWorker(Worker):
 
         for dataset in cfg["datasets"]:
             cfg["dataset_dir"] = os.path.join(cfg["dataset_base_dir"], dataset)
+            cfg["output_dir"] = os.path.join(cfg["output_base_dir"], dataset)
+            cfg["score_dir"] = os.path.join(cfg["score_base_dir"], dataset)
 
             score_temp = 0
             try:
