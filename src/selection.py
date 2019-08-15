@@ -13,7 +13,7 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 from utils import LOGGER
 
-HUBNAME = 'autodlcomp/models'
+HUBNAME = 'autodlcomp/videomodels'
 TORCH_HOME = os.path.join(os.path.dirname(__file__), 'torchhome')
 os.environ['TORCH_HOME'] = TORCH_HOME
 models_available = torch.hub.list(HUBNAME)
