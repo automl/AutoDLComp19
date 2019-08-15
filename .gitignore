@@ -240,6 +240,7 @@ competition/AutoDL_sample_data/**
 competition/AutoDL_sample_result_submission/**
 competition/AutoDL_scoring_output/**
 src/torchhome/checkpoints/**
+submissions/**
 
 # Don't ignore gitkeep files
 !**/.gitkeep
