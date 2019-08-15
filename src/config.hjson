@@ -2,7 +2,6 @@
   # Codalab submission
   include: {
     packages: {
-      hjson: null
       apex: [ # This implies to use it when training druing the submission
         apex
         apex-0.1-py3.5.egg-info
@@ -13,12 +12,12 @@
         syncbn.cpython-35m-x86_64-linux-gnu.so
       ]
     },
-    pretrained_weights: [
+    pretrained_weights: [ # List the pretrained weight you want packsubmission.py to include
       Averagenet_RGB_Kinetics_128.pth.tar
     ]
   },
 
-  # Automatic mixed precision ops
+  # Automatic mixed precision ops from the apex module
   use_amp: false,
   amp_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
     opt_level: "O2" # O0 is normal learning and apex does nothing
