@@ -45,7 +45,7 @@ class baseline_trainer():
             # The controlling factor is the tfdataset inside the TFDataset object
             #
             dl_train.dataset.reset()
-            dl_train.dataset.shuffle()
+#            dl_train.dataset.shuffle()
             load_start = time.time()
             for i, (data, labels) in enumerate(dl_train):
                 batch_loading_time += time.time() - load_start
@@ -97,14 +97,15 @@ class baseline_trainer():
         LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
             self.ele_counter / (time.time() - autodl_model.birthday))
         )
-        LOGGER.debug('SEC PER BATCH LOADING:\t{0:.4f}'.format(
-            batch_loading_time
-            / (self.batch_counter - batch_counter_start)
-        ))
-        LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(
-            batch_loading_time
-        ))
         LOGGER.info("TRAINING COUNTER:\t\t" + str(self.ele_counter))
+        if not make_final_prediction:
+            LOGGER.debug('SEC PER BATCH LOADING:\t{0:.4f}'.format(
+                batch_loading_time
+                / (self.batch_counter - batch_counter_start)
+            ))
+            LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(
+                batch_loading_time
+            ))
         return make_final_prediction
 
     def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):

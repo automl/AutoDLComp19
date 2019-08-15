@@ -1,9 +1,9 @@
 import random
 import traceback
-import _pickle as pickle
-import os
 import time
 import json
+import os
+from os.path import join, abspath
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -31,38 +31,36 @@ def get_configspace():
 
 def get_configuration():
     cfg = {}
-    cfg["code_dir"] = BASEDIR
-    cfg["dataset_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_public_data')
-    cfg["output_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_sample_result_submission')
-    cfg["score_base_dir"] = os.path.join(BASEDIR, '..', 'competition', 'AutoDL_scoring_output')
+    cfg["dataset_base_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data'))
     cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur', 'Decal', 'Hammer']
+    cfg["code_dir"] = BASEDIR
+    cfg["score_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output'))
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = os.path.joine(BASEDIR, '..', '/bohb_logs/' + str(int(time.time()))
+    cfg["bohb_log_dir"] = abspath(join(BASEDIR, os.pardir, 'bohb_logs', str(int(time.time()))))
     return cfg
 
 
 def write_config_to_file(cfg):
-    path = os.path.join(BASEDIR, 'bohb_config.json')
+    path = join(BASEDIR, 'bohb_config.json')
 
     with open(path, 'w') as file:
         json.dump(cfg, file)
 
 
-def create_function_call(cfg, budget):
-    fc = 'python3 run_local_test.py'
+def create_function_call(cfg, budget, subdir):
+    fc = 'python3 '
+    fc += abspath(join(BASEDIR, os.pardir, 'competition', 'run_local_test.py'))
     fc += ' --code_dir=' + cfg["code_dir"]
     fc += ' --dataset_dir=' + cfg["dataset_dir"]
-    fc += ' --output_dir=' + cfg["output_dir"]
-    fc += ' --score_dir=' + cfg["score_dir"]
+    fc += ' --score_subdir=' + subdir
     fc += ' --time_budget=' + str(budget)
     return fc
 
 
-def read_final_score_from_file():
-    path = os.path.join(BASEDIR, 'AutoDL_scoring_output')
-    path = os.path.join(path, 'final_score.txt')
+def read_final_score_from_file(path):
+    path = join(path, 'final_score.txt')
 
     with open(path, "r") as file:
         score = float(file.read())
@@ -85,20 +83,19 @@ class BOHBWorker(Worker):
         info = {}
 
         for dataset in cfg["datasets"]:
-            cfg["dataset_dir"] = os.path.join(cfg["dataset_base_dir"], dataset)
-            cfg["output_dir"] = os.path.join(cfg["output_base_dir"], dataset)
-            cfg["score_dir"] = os.path.join(cfg["score_base_dir"], dataset)
-
+            cfg["dataset_dir"] = join(cfg["dataset_base_dir"], dataset)
+            score_subdir = "bohb_" + dataset
+            score_path = os.path.join(cfg["score_dir"], score_subdir)
             score_temp = 0
             try:
                 print('BOHB ON DATASET: ' + str(dataset))
                 # stored bohb config will be readagain in model.py
                 write_config_to_file(config)
                 # execute main function
-                fc = create_function_call(cfg, budget)
+                fc = create_function_call(cfg, budget, score_subdir)
                 os.system(fc)
                 # read final score from score.py
-                score_temp = read_final_score_from_file()
+                score_temp = read_final_score_from_file(score_path)
             except Exception:
                 status = traceback.format_exc()
                 print(status)
