@@ -1,70 +1,80 @@
+#!/usr/bin/env python
 import argparse  # noqa: E402
+import zipfile
 import os
-import shutil
-import sys
+import site
+import subprocess
+from utils import Config
 
-from src.utils import Config  # noqa: E402
-
-sys.path.append(".")  # isort:skip
+BRANCHNAME = subprocess.check_output(["git", "status"]).strip().decode('utf8').split('\n')[0][10:].replace('/', '_')
+COMMITHASH = subprocess.check_output(["git", "log"]).strip().decode('utf8')[8:16]
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+PYTHON_LIB_PATH = site.getsitepackages()[0]
+PRETRAINED_WEIGHTS_PATH = os.path.join(BASEDIR, 'torchhome', 'checkpoints')
 
 if __name__ == "__main__":
-    # TODO(Philipp): Make this work
-    raise NotImplemented
     # Construct base CLI, later add args dynamically from config file too
     parser = argparse.ArgumentParser()
-    parser.add_argument("--submission_dir", default=".codalab_submission")
-    parser.add_argument("--code_dir", default="src")
-    parser.add_argument("--zip_name", default="codalab_submission")
-    parser.add_argument(
-        "--no_clean_up", action="store_true", help="Do not delete submission dir"
+    parser.add_argument("--submission_dir", default=os.path.join(BASEDIR, "../submissions"))
+    parser.add_argument("--code_dir", default=BASEDIR)
+    parser.add_argument("--out_file", default=None)
+    pargs = parser.parse_args()
+    pargs.submission_dir = os.path.abspath(pargs.submission_dir)
+    pargs.code_dir = os.path.abspath(pargs.code_dir)
+    pargs.out_file = os.path.abspath(pargs.out_file) if pargs.out_file is not None else None
+
+    filename = (
+        (BRANCHNAME[-20:] if len(BRANCHNAME) > 20 else BRANCHNAME)  # 20
+        + ':'  # 1
+        + COMMITHASH  # 7
+        + '.zip'  # 4
+    )  # Maxsize is 32 including extension
+    out_file = (
+        os.path.join(pargs.submission_dir, filename)
+        if pargs.out_file is None else pargs.out_file
     )
 
-    # Construct CLI dynamically from default config
-    config = Config("src/config.hjson")  # Hardcode to circumvent argparse issue
-    for key, value in config.__dict__.items():  # TODO(Danny): iter interface or smth
-        parser.add_argument("--" + key, default=value, type=type(value))
+    filelist = []
+    whitelist = []
 
-    # Overwrite config values with parsed values
-    args = parser.parse_args()
-    args_dict = vars(args)
-    for key, _ in config.__dict__.items():
-        config.__dict__[key] = args_dict[key]
+    config = Config(os.path.join(pargs.code_dir, 'config.hjson'))
+    for p, f in config.include['packages'].items():
+        if p == 'apex' and not config.use_amp:
+            continue
+        filelist.append(os.path.join(PYTHON_LIB_PATH, f))
 
-    # Create submission directory
-    if os.path.isdir(args.submission_dir):
-        shutil.rmtree(args.submission_dir)  # shutil does not work with pathlib
-    ignore = shutil.ignore_patterns("__pycache__", "config.hjson")
-    shutil.copytree(args.code_dir, args.submission_dir, ignore=ignore)
+    for p in config.include['pretrained_weights']:
+        whitelist.append(os.path.join(PRETRAINED_WEIGHTS_PATH, p))
 
-    # Copy active models
-    for model_file in config.active_model_files:
-        model_name = model_file + ".pth"
-        shutil.copyfile(
-            config.model_dir + "/" + model_name, args.submission_dir + "/" + model_name
-        )
+    for path, subdirs, files in os.walk(pargs.code_dir, onerror=print):
+        if PRETRAINED_WEIGHTS_PATH in path:
+            print('Skipping Folder {}'.format(path))
+            continue
+        for name in files:
+            fileabspath = os.path.join(path, name)
+            if (
+                '__pycache__' in fileabspath
+                or '.gitkeep' in fileabspath
+            ):
+                continue
+            filelist.append(os.path.join(path, name))
 
-    # Include extra packages
-    for extra_package in config.extra_packages:
-        shutil.copytree(
-            extra_package,
-            args.submission_dir + "/" + os.path.basename(extra_package),
-            ignore=ignore,
-        )
+    filelist += whitelist
 
-    if config.include_mixed_precision:
-        # Include extra packages
-        for pkg in config.mixed_precision_package:
-            shutil.copytree(
-                pkg,
-                args.submission_dir + "/" + os.path.basename(pkg),
-                ignore=ignore,
-            )
+    if not os.path.isdir(pargs.submission_dir):
+        os.mkdir(pargs.submission_dir)
 
-    # Write
-    config.is_codalab_submission = True
-    config.write(args.submission_dir + "/config.hjson")
+    if os.path.isfile(out_file):
+        err = 'Maybe you forgot to commit and push? Anyway ''{}'' already exists.'.format(out_file)
+        raise FileExistsError(err)
 
-    # Zip everything and clean up
-    shutil.make_archive(args.zip_name, "zip", args.submission_dir)
-    if not args.no_clean_up:
-        shutil.rmtree(args.submission_dir)  # TODO(Danny): Maybe wrap in try: finally:
+    with zipfile.ZipFile(out_file, 'w') as zfile:
+        for f in filelist:
+            print('Adding to archive: {}'.format(f))
+            zfile.write(f, f.replace(BASEDIR, ''), zipfile.ZIP_DEFLATED)
+        fsize = os.path.getsize(out_file) / 1024.**2
+        if fsize > 300.:
+            print('\033[1m\033[91mSubmission is bigger than 300 MB! Please double check!\033[0m')
+        print('\033[92mFinished zipping. File has been created at ''{0}''\nand is {1:.2f} MB in size.\033[0m'.format(
+            out_file, fsize
+        ))
