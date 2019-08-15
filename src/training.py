@@ -28,12 +28,14 @@ class baseline_trainer():
         # making the decision to continue training or not
         # Maybe move this stuff and just define a policy api?
         LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
-        LOGGER.info('BATCH SIZE:\t' + str(autodl_model.train_dl['train'].batch_size))
+        LOGGER.info('BATCH SIZE:\t\t' + str(autodl_model.train_dl['train'].batch_size))
 
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
 
         t_train = time.time() if autodl_model.training_round > 0 else autodl_model.birthday
+        batch_counter_start = self.batch_counter
+        batch_loading_time = 0
         make_prediction = False
         make_final_prediction = False
         while not make_prediction:
@@ -42,8 +44,11 @@ class baseline_trainer():
             # just continue where we left of.
             # The controlling factor is the tfdataset inside the TFDataset object
             #
-            # dl_train.dataset.reset()
+            dl_train.dataset.reset()
+            dl_train.dataset.shuffle()
+            load_start = time.time()
             for i, (data, labels) in enumerate(dl_train):
+                batch_loading_time += time.time() - load_start
                 # Check if we need to early stop according to the config's earlystop
                 if (
                     autodl_model.config.earlystop is not None
@@ -82,16 +87,24 @@ class baseline_trainer():
                 if self.grid_check_policy(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
+                load_start = time.time()
 
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
-        LOGGER.info('NUM_SEGMENTS:\t' + str(autodl_model.model.num_segments))
-        LOGGER.info('LR:\t{0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
-        LOGGER.info('DROPOUT:\t{0:.4g}'.format(autodl_model.model.dropout))
+        LOGGER.info('NUM_SEGMENTS:\t\t\t{0}'.format(autodl_model.model.num_segments))
+        LOGGER.info('LR:\t\t\t\t{0:.5e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info('DROPOUT:\t\t\t{0:.4g}'.format(autodl_model.model.dropout))
         LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
             self.ele_counter / (time.time() - autodl_model.birthday))
         )
-        LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
+        LOGGER.debug('SEC PER BATCH LOADING:\t{0:.4f}'.format(
+            batch_loading_time
+            / (self.batch_counter - batch_counter_start)
+        ))
+        LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(
+            batch_loading_time
+        ))
+        LOGGER.info("TRAINING COUNTER:\t\t" + str(self.ele_counter))
         return make_final_prediction
 
     def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
