@@ -25,7 +25,21 @@ The starting kit is available at https://github.com/zhengying-liu/autodl_startin
 |                                                   which call the ingestion and scoring program
 │
 ├── src/                                   <<  Source code
-|   |                                          
+|   |
+│   ├── torchhome                          <<  The following structure results from using torch.hub
+|   |   |                                      to load and list all available models and use a unified
+|   |   |                                      model directory API
+|   |   |
+|   |   ├── checkpoints                    <<  This is where you should put the pretraind model files
+|   |   |                                      see it's readme for the download link
+|   |   |                                      (to which I mount my local pretrain models folder)     
+|   |   |
+|   │   └── hub                            <<  This is where the models' implementation are.
+|   |                                          torch.hub is able to load available model implementations
+|   |                                          from a github repo provided it implements the hubconf.py
+|   |                                          It downloads the repo and keeps it in a folder with
+|   |                                          foldername owner_reponame_branch
+|   │  
 │   ├── bohb_auc.py                        <<  Run bohb on the competition pipeline
 |   |                                          
 │   ├── config.hjson                       <<  Execution parameters for model.py
