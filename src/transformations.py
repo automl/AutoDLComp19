@@ -1,3 +1,4 @@
+import time
 from collections import OrderedDict
 import numpy as np
 import torch
@@ -12,6 +13,70 @@ RESIZE_FACTOR = 1.3
 # ########################################################
 # Perform only necessary transformations on the cpu
 # ########################################################
+def baseline_transforms(autodl_model, dataset):
+    LOGGER.info('Using ###   BaselineAugmentNet   ### for transformations')
+
+    # Monkeypatch the new network to expose the original model's attributes
+    # and stack them
+    autodl_model.model = MonkeyNet(OrderedDict([
+        ('baseline_aug_net', BaselineAugmentNet()),
+        ('main_net', autodl_model.model),
+    ]))
+    transf_dict = {
+        'train': {
+            'samples': transforms.Compose(
+                [
+                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    RandomCropPad(autodl_model.model.input_size)
+                ]
+            ),
+            'labels': transforms.Lambda(
+                lambda x: x if dataset.is_multilabel else np.argmax(x)
+            )
+        },
+        'test': {
+            'samples': transforms.Compose(
+                [
+                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    RandomCropPad(autodl_model.model.input_size)
+                ]
+            ),
+            'labels': transforms.Lambda(
+                lambda x: x if dataset.is_multilabel else np.argmax(x)
+            )
+        }
+    }
+    return transf_dict
+
+
+class BaselineAugmentNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.augmentation = {
+            'train': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            ),
+            'eval': (
+                nn.Sequential(
+                    SwapAxes(),
+                    FormatChannels(3),
+                    Stack(),
+                    Normalize()
+                )
+            )
+        }
+
+    def forward(self, x):
+        mode = 'train' if self.training else 'eval'
+        x = self.augmentation[mode](x)
+        return x
+
+
 def aug_net(autodl_model, dataset, use_gpu_resize):
     model = autodl_model.model
     LOGGER.info('Using ###   aug_net   ### for transformations')
@@ -60,29 +125,6 @@ def aug_net(autodl_model, dataset, use_gpu_resize):
     return transf_dict
 
 
-# ########################################################
-# Dummy function displaying the api
-# ########################################################
-def dummy_transformations_selector(autodl_model, dataset):
-    '''
-    transf_dict = {
-        'train': {
-            'samples': transforms.Compose([]),
-            'labels': transforms.Compose([])
-        },
-        'test': {
-            'samples': transforms.Compose([]),
-            'labels': transforms.Compose([]),
-        }
-    }
-    return transf_dict
-    '''
-    raise NotImplemented
-
-
-# ########################################################
-# Helpers
-# ########################################################
 class AugmentNet(nn.Module):
     def __init__(self, out_size: int, fast_augment: bool):
         super().__init__()
@@ -133,6 +175,9 @@ class AugmentNet(nn.Module):
         return x
 
 
+# ########################################################
+# Helpers
+# ########################################################
 class FormatChannels(nn.Module):
     '''
     Adapt number of channels. If there are more than desired, use only the first n channels.
@@ -212,6 +257,48 @@ class RandomCrop(nn.Module):
         return x
 
 
+class RandomCropPad(object):
+    def __init__(self, size_des):
+        self.size_des = size_des
+        print(self.size_des)
+
+    def __call__(self, pics):
+        row = pics.shape[1]
+        row_des = self.size_des
+        col = pics.shape[2]
+        col_des = self.size_des
+
+        row_rand = -1
+        col_rand = -1
+
+        if row <= row_des: # pad rows
+            row_pad_start = int(np.floor((row_des-row)/2))
+            row_pad_end = row + int(np.floor((row_des-row)/2))
+            row_start = 0
+            row_end = row
+        else: # crop rows
+            row_rand = int(np.random.random() * int(np.floor((row-row_des))))
+            row_pad_start = 0
+            row_pad_end = row_des
+            row_start = row_rand
+            row_end = row_des + row_rand
+        if col <= col_des: # pad columns
+            col_pad_start = int(np.floor((col_des-col)/2))
+            col_pad_end = col + int(np.floor((col_des-col)/2))
+            col_start = 0
+            col_end = col
+        else: # crop columns
+            col_rand = int(np.random.random() * int(np.floor((col-col_des))))
+            col_pad_start = 0
+            col_pad_end = col_des
+            col_start = col_rand
+            col_end = col_des + col_rand
+
+        pics_pad = np.zeros((pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype)
+        pics_pad[:,row_pad_start:row_pad_end,col_pad_start:col_pad_end,:] = pics[:,row_start:row_end,col_start:col_end,:]
+        return pics_pad
+
+
 class Stack(nn.Module):
     '''
     Concatenate subsequent images of one video by stacking the channels
@@ -276,8 +363,8 @@ class CPUSelectSegmentsDynamic(nn.Module):
         else:
             choices = np.linspace(0, x.shape[0] - 1, x.shape[0], dtype=int)
             choices = np.array_split(choices, num_segments)
-            choices = np.array([np.random.choice(c, 1) for c in choices]).squeeze()
-        x = x[choices.tolist()]
+            choices = [np.random.choice(c, 1)[0].tolist() for c in choices]
+        x = x[choices]
         return x
 
 
@@ -349,18 +436,21 @@ class CPURandomCropPad(nn.Module):
         )
 
     def __call__(self, x):
-        im_size = np.array(x.shape[-2:])
+        # expects FxWxHxC Format
+        im_size = np.array(x.shape[1:-1])
         wiggle_room = im_size - self.target_im_size
 
         wi = int(np.random.choice(np.arange(
             wiggle_room[0],
             0,
-            -np.sign(wiggle_room[0])
+            -np.sign(wiggle_room[0]),
+            dtype=np.int
         ), 1))
         hi = int(np.random.choice(np.arange(
             wiggle_room[1],
             0,
-            -np.sign(wiggle_room[1])
+            -np.sign(wiggle_room[1]),
+            dtype=np.int
         ), 1))
 
         wis, wie = (wi, wi + self.target_im_size[0])
@@ -375,9 +465,8 @@ class CPURandomCropPad(nn.Module):
             his, hie = (0, im_size[1])
             nhis, nhie = (-im_size[1] + hi, hi)
 
-        new_x = np.zeros((*x.shape[:-2], *self.target_im_size))
-        new_x[:, :, nwis:nwie, nhis:nhie] = x[:, :, wis:wie, his:hie]
-
+        new_x = np.zeros((x.shape[0], *self.target_im_size, x.shape[-1]), dtype=x.dtype)
+        new_x[:, nwis:nwie, nhis:nhie, :] = x[:, wis:wie, his:hie, :]
         return new_x
 
 

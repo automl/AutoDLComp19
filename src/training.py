@@ -8,9 +8,118 @@ from functools import reduce
 from utils import LOGGER, DEVICE
 
 
-# Example for a trainer class
-# which is like the loop but has methods and variables
-# and is prefered
+class baseline_trainer():
+    def __init__(self, t_diff):
+        self.t_diff = t_diff
+
+        self.train_err = pd.DataFrame()  # collect train error
+
+        self.batch_counter = 0
+        self.ele_counter = 0  # keep track of how many batches we trained on
+
+        self.train_time = 0
+
+    def __call__(self, autodl_model, remaining_time):
+        '''
+        This is called from the model.py and just seperates the
+        training routine from the unchaning code
+        '''
+        # This is one way to split the tedious stuff from
+        # making the decision to continue training or not
+        # Maybe move this stuff and just define a policy api?
+        LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
+        LOGGER.info('BATCH SIZE:\ŧ' + str(autodl_model.train_dl['train'].batch_size))
+
+        dl_train = autodl_model.train_dl['train']
+        dl_val = autodl_model.train_dl['val']
+
+        t_train = time.time() if autodl_model.training_round > 0 else autodl_model.birthday
+        make_prediction = False
+        make_final_prediction = False
+        while not make_prediction:
+            # Uncomment the next line to always start from the beginning
+            # althought we need to decide if we want to reshuffle or
+            # just continue where we left of.
+            # The controlling factor is the tfdataset inside the TFDataset object
+            #
+            # dl_train.dataset.reset()
+            for i, (data, labels) in enumerate(dl_train):
+                # Check if we need to early stop according to the config's earlystop
+                if (
+                    autodl_model.config.earlystop is not None
+                    and time.time() - autodl_model.birthday > autodl_model.config.earlystop
+                ):
+                    make_prediction = True
+                    break
+
+                # Abort training and make final prediction if not enough time is left
+                t_left = get_time_wo_final_prediction(
+                    remaining_time,
+                    t_train,
+                    autodl_model
+                )
+                if t_left is not None and t_left < 5:
+                    LOGGER.info('Making final prediciton!')
+                    make_final_prediction = True
+                    make_prediction = True
+                    break
+
+                # Train on a batch if we re good to go
+                _, loss = train_step(
+                    autodl_model.model,
+                    autodl_model.optimizer,
+                    autodl_model.loss_fn,
+                    autodl_model.lr_scheduler,
+                    data.to(DEVICE),
+                    labels.to(DEVICE)
+                )
+                LOGGER.debug('TRAINED BATCH #{0}:\t{1}'.format(i, loss))
+
+                self.batch_counter += 1
+                self.ele_counter += np.prod(data.shape[0:1])
+
+                # Check if we want to make a prediciton or not
+                if self.grid_check_policy(autodl_model, i, t_train, loss, dl_val):
+                    make_prediction = True
+                    break
+
+        if LOGGER.level == logging.debug:
+            subprocess.run(['nvidia-smi'])
+        LOGGER.info('NUM_SEGMENTS:\t' + str(autodl_model.model.num_segments))
+        LOGGER.info('LR:\t{0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info('DROPOUT:\t{0:.4g}'.format(autodl_model.model.dropout))
+        LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
+            self.ele_counter / (time.time() - autodl_model.birthday))
+        )
+        LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
+        return make_final_prediction
+
+    def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
+        '''
+        return True - make a prediction
+        return False - continue training another batch
+
+        NOTE(Philipp): Maybe extend this with a third option - change/update model
+        '''
+        self.train_err = append_loss(self.train_err, loss)
+
+        # The first 22 batches just train and make a prediction
+        if self.batch_counter <= 21:
+            pass
+        else:
+            if autodl_model.testing_round == 0:
+                return True
+            ct_diff = (
+                transform_time_abs(time.time() - autodl_model.birthday)
+                - transform_time_abs(t_train_start - autodl_model.birthday)
+            )
+            if ct_diff < self.t_diff:
+                pass
+            else:
+                return True
+        return False
+
+
 class policy_trainer():
     def __init__(self, t_diff, dropout_diff, num_segments_step, bn_prod_limit):
         self.t_diff = t_diff
@@ -32,10 +141,11 @@ class policy_trainer():
         self.train_time = 0
 
     def __call__(self, autodl_model, remaining_time):
-        LOGGER.info("TRAINING COUNTER: " + str(self.ele_counter))
-
         self.update_hyperparams(autodl_model, autodl_model.train_dl['train'])
         self.update_batch_size(autodl_model)
+
+        LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
+        LOGGER.info('BATCH SIZE:\t' + str(autodl_model.train_dl['train'].batch_size))
 
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
@@ -66,6 +176,7 @@ class policy_trainer():
                     data.to(DEVICE),
                     labels.to(DEVICE)
                 )
+                LOGGER.debug('TRAINED BATCH #{0}:\t{1}'.format(i, loss))
                 # ### Set dropout
                 autodl_model.model.dropout = autodl_model.model.dropout + self.dropout_diff
                 autodl_model.model.dropout = min(autodl_model.model.dropout, 0.9)
@@ -73,18 +184,20 @@ class policy_trainer():
 
                 self.batch_counter += 1
                 self.ele_counter += np.prod(data.shape[0:1])
+
                 if self.grid_check_policy(autodl_model, i, t_train, loss, dl_val):
                     make_prediction = True
                     break
 
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
-        LOGGER.info('LR: {0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
-        LOGGER.info('DROPOUT: {0:.4g}'.format(autodl_model.model.dropout))
-        LOGGER.info("MEAN TRAINING FRAMES PER SEC: {0:.2f}".format(
+        LOGGER.info('NUM_SEGMENTS:\t' + str(autodl_model.model.num_segments))
+        LOGGER.info('LR:\t{0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info('DROPOUT:\t{0:.4g}'.format(autodl_model.model.dropout))
+        LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
             self.ele_counter / (time.time() - autodl_model.birthday))
         )
-        LOGGER.info("TRAINING COUNTER: " + str(self.ele_counter))
+        LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
         return make_final_prediction
 
     def update_batch_size(self, autodl_model):
@@ -104,7 +217,6 @@ class policy_trainer():
             autodl_model.train_dl['train'].dataset,
             **trainloader_args
         )
-        LOGGER.info('BATCH SIZE: ' + str(autodl_model.train_dl['train'].batch_size))
 
     def update_hyperparams(self, autodl_model, dl):
         # ### Set number segments
@@ -119,7 +231,6 @@ class policy_trainer():
                 upper_limit = 8
             num_segments = min(max(num_segments, 2), upper_limit)
             autodl_model.model.num_segments = num_segments
-        LOGGER.info('NUM_SEGMENTS: ' + str(autodl_model.model.num_segments))
 
     def validation_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
         make_prediction = False
@@ -156,9 +267,9 @@ class policy_trainer():
                     self.val_err = append_loss(self.val_err, self.evaluate_on(dl_val))
                     if self.val_err.size > 1:
                         val_err_ewm = get_ema(self.val_err, self.val_ewm_window)
-                        LOGGER.info('VALIDATION EMA: {0}'.format(val_err_ewm.iloc[-1, 0]))
-                        LOGGER.info('VALIDATION ERR: {0}'.format(self.val_err.iloc[-1, 0]))
-                        LOGGER.info('VALIDATION MIN: {0}'.format(np.min(self.val_err.iloc[:-1, 0])))
+                        LOGGER.info('VALIDATION EMA:\t{0}'.format(val_err_ewm.iloc[-1, 0]))
+                        LOGGER.info('VALIDATION ERR:\t{0}'.format(self.val_err.iloc[-1, 0]))
+                        LOGGER.info('VALIDATION MIN:\t{0}'.format(np.min(self.val_err.iloc[:-1, 0])))
                         # If the last validation error improves upon the minimum of it's exponential moving average
                         # by 10% with window self.train_err_ewm = 5, escalate to test.
                         # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
@@ -170,7 +281,6 @@ class policy_trainer():
     def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):
         make_prediction = False
         self.train_err = append_loss(self.train_err, loss)
-        LOGGER.debug('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
         # The first 20 batches just train and make a prediction
         if self.batch_counter <= 21:
