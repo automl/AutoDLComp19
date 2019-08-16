@@ -62,7 +62,7 @@ class baseline_tester():
                     vram_cached = []
 
                     loader_args = autodl_model.config.dataloader_args['test']
-                    loader_args.update({'batch_size': int(autodl_model.test_dl.batch_size - 25)})
+                    loader_args.update({'batch_size': max(16, int(autodl_model.test_dl.batch_size - 25))})
                     autodl_model.test_dl = TFDataLoader(
                         autodl_model.test_dl.dataset,
                         **loader_args

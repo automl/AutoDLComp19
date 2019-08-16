@@ -13,7 +13,10 @@
       ]
     },
     pretrained_weights: [ # List the pretrained weight you want packsubmission.py to include
-      Averagenet_RGB_Kinetics_128.pth.tar
+      Efficientnet_Image_Input_64_non_final.pth.tar
+      Efficientnet_Image_Input_128_non_final.pth.tar
+      Efficientnet_Image_Input_224_non_final.pth.tar
+      BnT_Video_input_128.pth.tar
     ]
   },
 
@@ -49,12 +52,10 @@
   dataloader_args: { # Shuffle isn't working so don't drop last
     train: {
       batch_size: 16,
-      num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
     }
     test: {
       batch_size: 64, # Currently automatically adjusted to speed up predictions
-      num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
     }
   },
