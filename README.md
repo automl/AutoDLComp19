@@ -3,6 +3,22 @@
 The starting kit is available [here](https://github.com/zhengying-liu/autodl_starting_kit_stable).
 
 
+## Benchmark Results
+### Current
+<img src="docs/baseline/bench_Hammer/learning-curve-Hammer.png" alt="Hammer" title="Hammer" width="200" height="200" />
+<img src="docs/baseline/bench_Kraut/learning-curve-kraut.png" alt="Kraut" title="Kraut" width="200" height="200" />
+<img src="docs/baseline/bench_Kreatur/learning-curve-kreatur.png" alt="Kreatur" title="Kreatur" width="200" height="200" />
+<img src="docs/baseline/bench_Pedro/learning-curve-pedro.png" alt="Pedro" title="Pedro" width="200" height="200" />
+<img src="docs/baseline/bench_Ucf101/learning-curve-Ucf-101.png" alt="Ucf101" title="Ucf101" width="200" height="200" />
+
+### Previous
+<img src="docs/old_baseline/bench_Hammer/learning-curve-Hammer.png" alt="Hammer" title="Hammer" width="200" height="200" />
+<img src="docs/old_baseline/bench_Kraut/learning-curve-kraut.png" alt="Kraut" title="Kraut" width="200" height="200" />
+<img src="docs/old_baseline/bench_Kreatur/learning-curve-kreatur.png" alt="Kreatur" title="Kreatur" width="200" height="200" />
+<img src="docs/old_baseline/bench_Pedro/learning-curve-pedro.png" alt="Pedro" title="Pedro" width="200" height="200" />
+<img src="docs/old_baseline/bench_Ucf101/learning-curve-Ucf-101.png" alt="Ucf101" title="Ucf101" width="200" height="200" />
+
+
 
 ## Overview
 ```
