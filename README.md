@@ -1,30 +1,30 @@
 # AutoDLComp19
-AutoDL Competition 2019 https://autodl.chalearn.org/<br />
-The starting kit is available at https://github.com/zhengying-liu/autodl_starting_kit_stable
+[AutoDL Competition 2019](https://autodl.chalearn.org/)<br />
+The starting kit is available [here](https://github.com/zhengying-liu/autodl_starting_kit_stable).
 
 
 
 ## Overview
 ```
-├── bohb_logs/                             <<  Bohb Log Foler
+├── bohb_logs                              <<  Bohb Log Foler
 |
-├── competition/                           <<  Competition source code for local test
+├── competition                            <<  Competition source code for local test
 |   |                                          
-│   ├── AutoDL_ingestion_program/               <<  Main execution library
+│   ├── AutoDL_ingestion_program                <<  Main execution library
 |   |                                          
-│   ├── AutoDL_public_data/                     <<  This is where you could put the datasets
+│   ├── AutoDL_public_data                      <<  This is where you could put the datasets
 |   |                                               (to which I mount the tfdatasets to)
 |   |                                          
-│   ├── AutoDL_sample_result_submission/        <<  General output dir
+│   ├── AutoDL_sample_result_submission         <<  General output dir
 │   |
-│   ├── AutoDL_scoring_output/                  <<  Scoring output dir
+│   ├── AutoDL_scoring_output                   <<  Scoring output dir
 |   |                                          
-│   ├── AutoDL_scoring_program/                 <<  Source code to produce AUL score
+│   ├── AutoDL_scoring_program                  <<  Source code to produce AUL score
 |   |                                          
 │   └── run_local_test.py                       <<  Execute competition evaluation locally
 |                                                   which call the ingestion and scoring program
 │
-├── src/                                   <<  Source code
+├── src                                    <<  Source code
 |   |
 │   ├── torchhome                          <<  The following structure results from using torch.hub
 |   |   |                                      to load and list all available models and use a unified
@@ -36,9 +36,9 @@ The starting kit is available at https://github.com/zhengying-liu/autodl_startin
 |   |   |
 |   │   └── hub                            <<  This is where the models' implementation are.
 |   |                                          torch.hub is able to load available model implementations
-|   |                                          from a github repo provided it implements the hubconf.py
+|   |                                          from a github repo, provided it implements the hubconf.py
 |   |                                          It downloads the repo and keeps it in a folder with
-|   |                                          foldername owner_reponame_branch
+|   |                                          the name 'owner_reponame_branch'
 |   │  
 │   ├── bohb_auc.py                        <<  Run bohb on the competition pipeline
 |   |                                          
@@ -73,19 +73,19 @@ The starting kit is available at https://github.com/zhengying-liu/autodl_startin
 ```
 
 ## General idea
-The model.py should not really be touched and implements only basic functionality which should not need to be changed.
-To customize the behaviour it loads functions from the selection.py, transformations.py, training.py and testing.py which are executed in said order. Which function of a module is used, can be defined in the config.hjson as well as additional parameters besides what the model.py already passes on. This makes changing the pipeline straight forward, plug-and-play and reduces the risk of introducing errors when comparing two competing implementations.
+The [model.py](src/model.py) should not really be touched and implements only basic functionality which should not need to be changed.
+To customize the behaviour it loads functions from the [selection.py](src/selection.py), [transformations.py](src/transformations.py), [training.py](src/training.py) and [testing.py](src/testing.py) which are executed in said order. Which function of a module is used, can be defined in the [config.hjson](src/config.hjson) as well as additional parameters besides what the model.py already passes on. This makes changing the pipeline straight forward, plug-and-play and reduces the risk of introducing errors when comparing two competing implementations.
 
 ## Running a local test
-To run a local test run_local_test.py can be used as described in the starting-kit's readme. Though it has been slightly changed to accept a subfolder name it will use so multiple runs don't erase each other (prev. behaviour).
+To run a local test [run_local_test.py](competition/run_local_test.py) can be used as described in the starting-kit's readme. Though it has been slightly changed to accept a subfolder name it will use so multiple runs don't erase each other (prev. behaviour).
 ```
 >>> python run_local_test.py --dataset_dir=/some/path/to/a/tfrecord/dataset --code_dir=/home/saitama/AutoDLComp19/src
 --score_subdir=whateverfloatsyourgoat --time_budget=300
 ```
-Behind the scenes this script calls the ingestion and scoring program.
+Behind the scenes this script calls the [ingestion](competition/AutoDL_ingestion_program/ingestion.py) and [scoring](competition/AutoDL_scoring_program/score.py) program.
 
 ## Packing a submission
-To create a submission from the current src folder simply execute pack_submission.py.
+To create a submission from the current src folder simply execute [pack_submission.py](src/pack_submission.py).
 ```
 >>> python pack_submission.py --submission_dir=/path/where/I/hide/all/my/failed/submissions --code_dir=/home/saitama/AutoDLComp19/src --out_file=pleasedontfail
 >>> *ommiting a list of files added to the zip*
