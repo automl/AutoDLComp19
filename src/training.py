@@ -43,9 +43,6 @@ class baseline_trainer():
             # althought we need to decide if we want to reshuffle or
             # just continue where we left of.
             # The controlling factor is the tfdataset inside the TFDataset object
-            #
-            dl_train.dataset.reset()
-#            dl_train.dataset.shuffle()
             load_start = time.time()
             for i, (data, labels) in enumerate(dl_train):
                 batch_loading_time += time.time() - load_start
