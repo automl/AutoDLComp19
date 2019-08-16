@@ -9,8 +9,8 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
-import hpbandster.visualization as hpvis
-import matplotlib.pyplot as plt
+# import hpbandster.visualization as hpvis
+# import matplotlib.pyplot as plt
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB as BOHB
 from utils import BASEDIR
@@ -18,27 +18,26 @@ from utils import BASEDIR
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='bn_prod_limit', choices=[256]))     # maximum value of batch_size*num_segments
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices=[16, 32, 64, 128]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='num_segments_test', choices=[2, 4, 8, 16]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='num_segments_step', lower=1e2, upper=1e4, log=True))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout_diff', lower=1e-5, upper=1e-3, log=True))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='t_diff', lower=0.01, upper=0.1, log=False))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-1, log=True))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_gamma', lower=1e-4, upper=1e-1, log=True))
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_segments', lower=1, upper=16, log=False))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size', choices=[16, 32, 64, 128]))
     return cs
 
 
 def get_configuration():
     cfg = {}
     cfg["dataset_base_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data'))
-    cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur', 'Decal', 'Hammer']
+    cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output'))
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = abspath(join(BASEDIR, os.pardir, 'bohb_logs', str(int(time.time()))))
+    cfg["bohb_log_dir"] = abspath(join(
+        BASEDIR,
+        os.pardir,
+        'bohb_logs',
+        time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+    ))
     return cfg
 
 
@@ -66,6 +65,10 @@ def read_final_score_from_file(path):
         score = float(file.read())
 
     return score
+
+
+def move_config(target_path):
+    os.rename(join(BASEDIR, 'bohb_config.json'), join(target_path, 'bohb_config.json'))
 
 
 class BOHBWorker(Worker):
@@ -100,6 +103,7 @@ class BOHBWorker(Worker):
                 status = traceback.format_exc()
                 print(status)
 
+            move_config(score_path)
             score += score_temp
             info[dataset] = score_temp
 

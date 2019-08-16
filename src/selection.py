@@ -31,7 +31,17 @@ def baseline_selector(tfsession, dataset, modelargs):
         'num_classes': dataset.num_classes,
         'classification_type': 'multilabel' if dataset.is_multilabel else 'multiclass',
     }))
-    model_name, checkpoint_file = ('averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar')
+    if dataset.mean_shape[0] == 1:  # image network
+        modelargs['num_segments'] = 1
+        num_pixel = np.prod(dataset.mean_shape[1:2])
+        if num_pixel < 1e4:                   # select network based on average number of pixels in the dataset
+            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_64_non_final.pth.tar')
+        elif num_pixel < 3e4:
+            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_128_non_final.pth.tar')
+        else:
+            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_224_non_final.pth.tar')
+    else:  # video network
+        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
 
     # NOTE(Philipp): This is the current video api,
     # in the future we just want the model to be returned
@@ -75,6 +85,8 @@ def baseline_selector(tfsession, dataset, modelargs):
     LOGGER.debug('##########################################################')
     LOGGER.debug('All done. You can get back to work now!')
     LOGGER.debug('##########################################################')
+    if hasattr(model, 'partialBN'):
+        model.partialBN(False)
 
     return model, loss_fn, optimizer, scheduler
 
