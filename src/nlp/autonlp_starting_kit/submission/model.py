@@ -7,11 +7,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import os
+import sys
 
 import re
 import six
 from functools import partial
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import multiprocessing as mp
 
 from sklearn.linear_model import LogisticRegression
@@ -19,10 +20,12 @@ from sklearn.ensemble import  AdaBoostClassifier
 from sklearn.feature_extraction.text import HashingVectorizer
 
 from sklearn import metrics
-
+from scoring import autodl_auc
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 # device = torch.device('cpu')
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
@@ -113,7 +116,7 @@ class BertTokenizer():
 
 
 def bucket_shuffle(arr, bucket_size, pad_key=-1):
-    """ shuffle 1-D array in buckets """
+    ''' shuffle 1-D array in buckets'''
 
     # pad so that length divisible by bucket size
     pad_len = len(arr) % bucket_size
@@ -149,6 +152,7 @@ class TextLoader():
         data = tokenizer.tokenize(data, max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']), workers=workers)
         self.data = np.array(data)
         self.label = label
+        self.pad_token = 0
         self.data_size = len(self.data)
 
         self.sort = sort
@@ -168,15 +172,16 @@ class TextLoader():
         text = self.data[indices]
         # pad batch to max batch len
         max_batch_len = max(self.text_lengths[indices, 1])
-        # text = [np.pad(b, (max_batch_len - len(b), 0), mode='constant') for b in text]
-        text = [[0] * (max_batch_len - len(b)) + b for b in text]
+        text = [b + [self.pad_token] * (max_batch_len - len(b)) for b in text]
         # convert to tensor
         text = torch.tensor(text).to(self.device).long()
+        # attention mask: 1 - unmasked, 0 - masked
+        mask = ~text.eq(self.pad_token)
         if self.label is not None:
             label = self.label[indices]
             label = torch.tensor(label).to(self.device).long()
-            return text, label
-        return text, None
+            return text, label, mask
+        return text, None, mask
 
     def __iter__(self):
         """ generate iterator for padding """
@@ -200,7 +205,7 @@ class TextLoader():
 
 
 class NLPBertClassifier(nn.Module):
-    def __init__(self, metadata, pretrained=None, vocab_size=None, encoder_layers=3, attn_heads=2,
+    def __init__(self, metadata, pretrained=None, vocab_size=None, encoder_layers=1, attn_heads=2,
                  classifier_layers=1, classifier_units=768):
         """
         metadata: dict
@@ -235,6 +240,7 @@ class NLPBertClassifier(nn.Module):
             self.config = pytrf.BertConfig(self.vocab_size, num_hidden_layers=self.layers,
                                            num_attention_heads=self.heads)
             self.bert = pytrf.BertModel(self.config)
+            self.bert.apply(self._init_weights)
 
         # classifier layers
         if classifier_layers == 1:
@@ -255,14 +261,14 @@ class NLPBertClassifier(nn.Module):
         self.classifier = nn.Sequential(*classifier)
         self.classifier.apply(self._init_weights)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         """
         input dim = (batch_size, sequence_length)
         output dim = (batch_size, num_classes)
         """
-        x, _ = self.bert(x)
+        _, x = self.bert(x, attention_mask=mask)
         # average over sequence length
-        x = torch.mean(x, dim=1)
+        # x = torch.mean(x, dim=1)
         x = self.relu(x)
         x = self.classifier(x)
         return x
@@ -342,78 +348,14 @@ class NaiveModel():
         return y_test
 
 
-class Model(object):
-    """
-    model of BERT baseline without pretraining
-    """
-
-    def __init__(self, metadata, train_output_path="./", test_input_path="./", config=None):
-        """ Initialization for model
-        :param metadata: a dict
-        """
-        self.done_training = False
+class Preprocess(object):
+    def __init__(self, metadata):
         self.metadata = metadata
-        self.train_output_path = train_output_path
-        self.test_input_path = test_input_path
-
         self.classes = metadata['class_num']
 
-        self.preprocessed_train_dataset = None
-        self.preprocessed_test_dataset = None
-
-        # Run tracker
-        self.run_count = 0
-
-        # Naive model parameters
-        self.features = 2000
-
-        # Parameters
-        # TODO smarter params
-        if config is None:
-            self.classifier_layers = 2
-            self.classifier_units = 256
-            self.learning_rate = 0.001
-            self.batch_size = 64
-        else:
-            self.classifier_layers = config['classifier_layers']
-            self.classifier_units = config['classifier_units']
-            self.learning_rate = config['learning_rate']
-            self.batch_size = config['batch_size']
-
-        self.train_batches = np.inf
-        self.train_epochs = np.inf
-        self.naive_limit = 5
-        self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
-        # self.warmum_steps = 10
-        self.t_total = 500
-
-
-        # create tokenizer
-        #         s
-        # elf.tokenizer = BertMultiTokenizer(BERT_PRETRAINED[self.metadata['language']]['name'],
-        #                                             max_len=3000, max_tokens=512)
-        self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
-
-        # initialize model, optimizer
-        self.model = NLPBertClassifier(metadata, pretrained=self.pretrained_path,
-                                       classifier_layers=self.classifier_layers,
-                                       classifier_units=self.classifier_units)
-        self.model.to(device)
-
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        #         self.optimizer = pytrf.WarmupCosineSchedule(
-        #             optim.Adam(self.model.parameters(), lr=self.learning_rate),
-        #             warmup_steps=self.warmum_steps, t_total=self.t_total)
-
-        self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
-            else nn.CrossEntropyLoss()
-
-        # to store train dataset to avoid tokenizing again
-        self.train_loader = None
-        self.test_loader = None
-
-        # initialize stats
-        self.epochs = 0
+        self.REPLACE_BY_SPACE_EN = re.compile('["/(){}\[\]\|@,;]')
+        self.REPLACE_BY_SPACE_ZH = re.compile('[“”【】/（）：！～「」、|，；。"/(){}\[\]\|@,\.;]')
+        self.BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
 
     def convert_to_unicode(self, text):
         """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
@@ -466,8 +408,6 @@ class Model(object):
         cutoff_len : float
           'cutoff' percentile of string length in data
         '''
-        REPLACE_BY_SPACE_RE = re.compile('["/(){}\[\]\|@,;]')
-        BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
 
         if data_y is None:
             data_y = [0 for i in range(len(data_x))]
@@ -479,8 +419,8 @@ class Model(object):
             line = self.convert_to_unicode(line)
             # line = line.decode('utf-8', 'ignore')
             line = line.lower()  # lowercase text
-            line = REPLACE_BY_SPACE_RE.sub(' ', line)
-            line = BAD_SYMBOLS_RE.sub('', line)
+            line = self.REPLACE_BY_SPACE_EN.sub(' ', line)
+            line = self.BAD_SYMBOLS_RE.sub('', line)
             line = line.strip()
             len_list.append(len(line))
             ret.append(line)
@@ -513,7 +453,6 @@ class Model(object):
         cutoff_len : float
           'cutoff' percentile of string length in data
         '''
-        REPLACE_BY_SPACE_RE = re.compile('[“”【】/（）：！～「」、|，；。"/(){}\[\]\|@,\.;]')
 
         if data_y is None:
             data_y = [0 for i in range(len(data_x))]
@@ -524,7 +463,7 @@ class Model(object):
         for i, line in enumerate(data_x):
             line = self.convert_to_unicode(line)
             # line = line.decode('utf-8', 'ignore')
-            line = REPLACE_BY_SPACE_RE.sub(' ', line)
+            line = self.REPLACE_BY_SPACE_ZH.sub(' ', line)
             line = line.strip()
             len_list.append(len(line))
             ret.append(line)
@@ -544,7 +483,99 @@ class Model(object):
             imbalance.append(max(0, expected - val) / self.metadata['train_num'])
         self.metadata['imbalance'] = imbalance
 
-    def train(self, train_dataset, remaining_time_budget=None, verbose=False):
+
+class Model(object):
+    """
+    model of BERT baseline without pretraining
+    """
+
+    def __init__(self, metadata, train_output_path="./", test_input_path="./", config=None, split_ratio=0.9):
+        """ Initialization for model
+        :param metadata: a dict
+        """
+        self.done_training = False
+        self.metadata = metadata
+        self.train_output_path = train_output_path
+        self.test_input_path = test_input_path
+
+        self.preprocess = Preprocess(metadata)
+
+        self.preprocessed_train_dataset = None
+        self.preprocessed_test_dataset = None
+        self.naive_preds = None
+
+        # Run tracker
+        self.run_count = 0
+        self.epochs = 0
+
+        # Naive model parameters
+        self.features = 2000
+
+        ## Parameters
+        # TODO smarter params
+        self.train_batches = 1.0  # prob of executing a batch during an epoch
+        self.batch_alpha = 1.2  # multiplier to update batch training probability
+        self.train_epochs = np.inf  # num of epochs to train before done_training=True
+        self.naive_limit = 2  # num of train runs before testing using network
+
+        # to split train into train & validation
+        self.split_ratio = split_ratio if split_ratio else 1.0
+        self.score_fn = autodl_auc
+
+        # self.pretrained_path = '/content/'
+        self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
+
+        if config is None:
+            self.classifier_layers = 2
+            self.classifier_units = 256
+            self.learning_rate = 0.001
+            self.batch_size = 64
+        else:
+            self.classifier_layers = config['classifier_layers']
+            self.classifier_units = config['classifier_units']
+            self.learning_rate = config['learning_rate']
+            self.batch_size = config['batch_size']
+
+        self.weight_decay = 0.01
+        self.warmum_steps = 100
+        self.t_total = 500
+
+        # create tokenizer
+        self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
+
+        # initialize model, optimizer
+        self.model = NLPBertClassifier(metadata, pretrained=self.pretrained_path,
+                                       classifier_layers=self.classifier_layers,
+                                       classifier_units=self.classifier_units)
+        #         self.model = NLPBertClassifier(metadata, pretrained=None,
+        #                                        vocab_size=BERT_PRETRAINED[self.metadata['language']]['vocab'],
+        #                                        encoder_layers=1, attn_heads=4,
+        #                                        classifier_layers=self.classifier_layers,
+        #                                        classifier_units=self.classifier_units)
+        self.model.to(device)
+
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        #         self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        #         self.optimizer = optim.Adam([
+        #                 {"params": self.model.bert.parameters(), "lr": 1e-3},
+        #                 {"params": self.model.classifier.parameters(), "lr": 1e-3}],
+        #             lr=1e-3)
+        #         self.optimizer = pytrf.WarmupCosineSchedule(
+        #             optim.Adam(self.model.parameters(), lr=self.learning_rate),
+        #             warmup_steps=self.warmum_steps, t_total=self.t_total)
+
+        self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
+            else nn.CrossEntropyLoss()
+
+        # to store train dataset to avoid tokenizing again
+        self.train_loader = None
+        self.test_loader = None
+
+        print('--' * 40)
+        print('meta -> ', self.metadata)
+        print('--' * 40)
+
+    def train(self, train_dataset, remaining_time_budget=None, verbose=False, interval=100):
         """model training on train_dataset.
 
         :param train_dataset: tuple, (x_train, y_train)
@@ -561,10 +592,24 @@ class Model(object):
         # Running Naive classical model at the start (train_run_count=0)
         if self.run_count == 0:
             x_train, y_train = train_dataset
-            self.preprocessed_train_dataset = self.preprocess_text(train_dataset, cutoff=90)
+
+            if self.split_ratio < 1:
+                # split train data into training & validation
+                train_samples = int(len(x_train) * self.split_ratio)
+                valid_dataset = (x_train[-train_samples:], y_train[-train_samples:])
+                train_dataset = (x_train[:train_samples], y_train[:train_samples])
+                self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset, cutoff=90)
+
+            self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset, cutoff=90)
             # NaiveModel expects metadata to have 'imbalance' and must be after
             self.naive = NaiveModel(self.metadata, self.features)
             self.naive.train(self.preprocessed_train_dataset)
+
+            # evaluate on validation data if available
+            if self.split_ratio < 1:
+                naive_valid = self.naive.test(self.preprocessed_valid_dataset[0])
+                self.best_valid_score = self.score_fn(self.preprocessed_valid_dataset[1], naive_valid)
+                print(self.epochs + 1, 'Score:', self.best_valid_score)
             self.run_count += 1
             return
 
@@ -572,102 +617,104 @@ class Model(object):
         if self.train_loader is None:
             load_time = time.time()
             # preprocess
-            if self.preprocessed_train_dataset is not None:
-                self.preprocessed_train_dataset = self.preprocess_text(train_dataset, cutoff=90)
+            if self.preprocessed_train_dataset is None:
+                self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset, cutoff=90)
             x_train, y_train = self.preprocessed_train_dataset
             # loader
             self.train_loader = TextLoader(data=x_train, label=y_train,
                                            metadata=self.metadata,
                                            tokenizer=self.tokenizer,
                                            batch_size=self.batch_size,
-                                           shuffle=True, sort=True)
+                                           shuffle=True, sort=True,
+                                           device=device)
+            if self.split_ratio < 1:
+                # load validation set
+                if self.preprocessed_valid_dataset is None:
+                    self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset, cutoff=90)
+                x_valid, y_valid = self.preprocessed_valid_dataset
+                # loader
+                self.valid_loader = TextLoader(data=x_valid, label=y_valid,
+                                               metadata=self.metadata,
+                                               tokenizer=self.tokenizer,
+                                               batch_size=self.batch_size,
+                                               shuffle=True, sort=True,
+                                               device=device)
+
             print('Data loading time: ', time.time() - load_time)
 
-        # train model
+        # train model until it performs better than the current best valid score
         epoch_time = time.time()
-        self._train(self.train_loader, verbose)
-        print('Train time: ', time.time() - epoch_time)
+        while True:
+            train_time = time.time()
+            self._train(self.train_loader, verbose, interval)
+            print('Train time:', time.time() - train_time)
 
-        # update stats
-        self.epochs += 1
-        if self.epochs > self.train_epochs:
-            self.done_training = True
+            if self.split_ratio < 1:
+                valid_time = time.time()
+                y_valid, score = self._evaluate(self.valid_loader, verbose, interval)
+                print('Valid time:', time.time() - valid_time)
+                print(self.epochs + 1, 'Score:', score)
+
+                if score > self.best_valid_score:
+                    self.best_valid_score = score
+                    break
+            else:
+                break
+
+            # update stats
+            self.epochs += 1
+            if self.epochs > self.train_epochs:
+                self.done_training = True
+                break
+        print('Total train step time: ', time.time() - epoch_time)
 
         self.run_count += 1
 
-    def _train(self, loader, verbose=False, interval=50):
+    def _train(self, loader, verbose=False, interval=100):
+        ''' trains model on the given data loader '''
 
         self.model.train()
         loss_tracker = []
-        for b, (x_batch, y_batch) in enumerate(loader):
-            batch_time = time.time()
-            self.optimizer.zero_grad()
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-            # forward
-            preds = self.model(x_batch)
-            # backward
-            y_batch = torch.argmax(y_batch, dim=1)
-            if self.metadata['class_num'] == 2:
-                loss = self.criterion(preds.view(-1), y_batch.float())  # for BCE
-            else:
-                loss = self.criterion(preds, y_batch)  # for CE
-            loss.backward()
-            self.optimizer.step()
+        for b, (x_batch, y_batch, mask) in enumerate(loader):
+            if np.random.uniform() < self.train_batches:
+                batch_time = time.time()
+                self.optimizer.zero_grad()
+                # forward
+                preds = self.model(x_batch, mask=mask)
+                # backward
+                y_batch = torch.argmax(y_batch, dim=1)
+                if self.metadata['class_num'] == 2:
+                    loss = self.criterion(preds.view(-1), y_batch.float())  # for BCE
+                else:
+                    loss = self.criterion(preds, y_batch)  # for CE
+                loss.backward()
+                self.optimizer.step()
 
-            if verbose:
-                if (b + 1) % interval == 0:
-                    print('Epoch %d - Step [%d/%d] - loss %.6f  (dur: %.3f)' % (
-                        self.epochs + 1, b + 1, len(loader), loss.item(),
-                        time.time() - batch_time))
+                if verbose:
+                    if (b + 1) % interval == 0:
+                        print('Epoch %d - Step [%d/%d] - loss %.6f  (dur: %.3f)' % (
+                            self.epochs + 1, b + 1, len(loader), loss.item(),
+                            time.time() - batch_time))
 
-            loss_tracker.append(loss.item())
+                loss_tracker.append(loss.item())
 
-            if b >= self.train_batches:
-                print('Interrupting training beacuse batch limit reached...')
-                break
+        # update batch selection probability
+        if self.train_batches < 1.0:
+            self.train_batches = min(1.0, self.train_batches * self.batch_alpha)
 
-        print(self.epochs, 'Avg. loss = ', np.mean(loss_tracker))
+        print(self.epochs + 1, 'Avg. loss = ', np.mean(loss_tracker))
 
-    def test(self, x_test, remaining_time_budget=None, verbose=False, interval=1):
-        """
-        :param x_test: list of str, input test sentences.
-        :param remaining_time_budget:
-        :return: A `numpy.ndarray` matrix of shape (sample_count, class_num).
-                 here `sample_count` is the number of examples in this dataset as test
-                 set and `class_num` is the same as the class_num in metadata. The
-                 values should be binary or in the interval [0,1].
-        """
-        # TODO smarter switch
-        if self.run_count < self.naive_limit:  # 1 classical + 3 transformer epochs
-            self.preprocessed_test_dataset, _ = self.preprocess_text((x_test, None), cutoff=90)
-            preds = self.naive.test(self.preprocessed_test_dataset)
-            return preds
+    def _evaluate(self, loader, verbose=False, interval=100, score_fn=autodl_auc):
+        ''' evaluates model on the given data loader '''
 
-        # create dataloader
-        if self.test_loader is None:
-            load_time = time.time()
-            # preprocess
-            if self.preprocessed_test_dataset is not None:
-                self.preprocessed_test_dataset = self.preprocess_text((x_test, None), cutoff=90)
-            # loader
-            self.test_loader = TextLoader(data=self.preprocessed_test_dataset[0], label=None,
-                                          metadata=self.metadata,
-                                          tokenizer=self.tokenizer,
-                                          batch_size=self.batch_size,
-                                          shuffle=False, sort=True)
-            print('Data loading time: ', time.time() - load_time)
+        y_pred = []
+        y_true = []
 
-        y_test = []
-
-        # get predictions
         self.model.eval()
-        epoch_time = time.time()
-        for b, (x_batch, _) in enumerate(self.test_loader):
+        for b, (x_batch, y_batch, mask) in enumerate(loader):
             batch_time = time.time()
-            x_batch = x_batch.to(device)
             # forward
-            preds = self.model(x_batch)
+            preds = self.model(x_batch, mask=mask)
 
             if self.metadata['class_num'] == 2:
                 preds = torch.round(torch.sigmoid(preds)).view(-1).long()
@@ -677,16 +724,62 @@ class Model(object):
             preds = preds.detach().cpu().numpy()
             labels = np.zeros((preds.shape[0], self.metadata['class_num']))
             labels[np.arange(preds.shape[0]), preds] = 1.0
-            y_test.append(labels)
+            y_pred.append(labels)
+
+            if y_batch is not None:
+                y_true.append(y_batch.cpu().numpy())
 
             if verbose:
                 if (b + 1) % interval == 0:
                     print('Step [%d/%d] - (dur: %.3f)' % (
-                        b + 1, len(self.test_loader), time.time() - batch_time))
+                        b + 1, len(loader), time.time() - batch_time))
 
+        y_pred = np.vstack(y_pred).astype(np.uint8)
+
+        # score
+        score = -0.99999
+        if y_true:
+            y_true = np.vstack(y_true).astype(np.uint8)
+            score = score_fn(y_true, y_pred)
+        return y_pred, score
+
+    def test(self, x_test, remaining_time_budget=None, verbose=False, interval=100):
+        """
+        :param x_test: list of str, input test sentences.
+        :param remaining_time_budget:
+        :return: A `numpy.ndarray` matrix of shape (sample_count, class_num).
+                 here `sample_count` is the number of examples in this dataset as test
+                 set and `class_num` is the same as the class_num in metadata. The
+                 values should be binary or in the interval [0,1].
+        """
+        # TODO smarter switch
+        if self.run_count < self.naive_limit:  # return naive preds for first few runs
+            if self.preprocessed_test_dataset is None:
+                self.preprocessed_test_dataset, _ = self.preprocess.preprocess_text((x_test, None), cutoff=90)
+
+            if self.naive_preds is None:
+                self.naive_preds = self.naive.test(self.preprocessed_test_dataset)
+            return self.naive_preds
+
+        # create dataloader
+        if self.test_loader is None:
+            load_time = time.time()
+            # preprocess
+            if self.preprocessed_test_dataset is None:
+                self.preprocessed_test_dataset, _ = self.preprocess.preprocess_text((x_test, None), cutoff=90)
+
+            # loader
+            self.test_loader = TextLoader(data=self.preprocessed_test_dataset, label=None,
+                                          metadata=self.metadata,
+                                          tokenizer=self.tokenizer,
+                                          batch_size=self.batch_size,
+                                          shuffle=False, sort=True,
+                                          device=device)
+            print('Data loading time: ', time.time() - load_time)
+
+        epoch_time = time.time()
+        y_test, _ = self._evaluate(self.test_loader, verbose, interval)
         print('Test time: ', time.time() - epoch_time)
-
-        y_test = np.vstack(y_test).astype(np.uint8)
 
         # get original order back if sorted
         if self.test_loader.sort:
