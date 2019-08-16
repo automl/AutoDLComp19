@@ -46,20 +46,16 @@
 
   # Dataset/DataLoader
   dataset_split_ratio: [85, 15],
-  dataloader_args: {
+  dataloader_args: { # Shuffle isn't working so don't drop last
     train: {
       batch_size: 128,
-      shuffle: true,
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
-      drop_last: false,
     }
     test: {
       batch_size: 128,
-      shuffle: false,
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
-      drop_last: false,
     }
   },
 
