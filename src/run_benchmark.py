@@ -11,18 +11,12 @@ BENCHTIME = 300
 def get_configuration():
     cfg = {}
     cfg["dataset_base_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data'))
-    cfg["datasets"] = ['Ucf101', 'Hmdb51', 'Kraut', 'Kreatur', 'Pedro', 'Hammer']
+    # cfg["datasets"] = ['Ucf101', 'Hmdb51', 'Kraut', 'Kreatur', 'Pedro', 'Hammer'] Hmdb51 not working
+    cfg["datasets"] = ['Ucf101', 'Kraut', 'Kreatur', 'Pedro', 'Hammer']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output'))
     cfg["earlystop"] = BENCHTIME
     return cfg
-
-
-def write_config_to_file(cfg):
-    path = join(BASEDIR, 'bohb_config.json')
-
-    with open(path, 'w') as file:
-        json.dump(cfg, file)
 
 
 def create_function_call(cfg, subdir):
@@ -55,9 +49,8 @@ def runBENCH(cfg):
             score_path = os.path.join(cfg["score_dir"], score_subdir)
             score_temp = 0
             try:
-                print('BOHB ON DATASET: ' + str(dataset))
-                # stored bohb config will be readagain in model.py
-                write_config_to_file(cfg)
+                print('BENCH ON DATASET: ' + str(dataset))
+                # stored BENCH config will be readagain in model.py
                 # execute main function
                 fc = create_function_call(cfg, score_subdir)
                 os.system(fc)
@@ -71,12 +64,7 @@ def runBENCH(cfg):
             info[dataset] = score_temp
 
         print('FINAL SCORE: ' + str(score))
-        print("END BOHB ITERATION")
-
-        return {
-            "loss": -score,
-            "info": info
-        }
+        print("END BENCH ITERATION")
 
 
 if __name__ == "__main__":

@@ -163,7 +163,7 @@ class ECOfull_efficient(nn.Module):
         count = 0
         if self._enable_pbn:
             logger.debug("Freezing BatchNorm2D except the first one.")
-            for m in self.efficientnet.modules():
+            for m in self.base.modules():
                 if (isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm3d)):
                     count += 1
                     if count >= (2 if self._enable_pbn else 1):

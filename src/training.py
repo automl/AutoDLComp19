@@ -95,7 +95,7 @@ class baseline_trainer():
             self.ele_counter / (time.time() - autodl_model.birthday))
         )
         LOGGER.info("TRAINING COUNTER:\t\t" + str(self.ele_counter))
-        if not make_final_prediction:
+        if (self.batch_counter - batch_counter_start) > 0:
             LOGGER.debug('SEC PER BATCH LOADING:\t{0:.4f}'.format(
                 batch_loading_time
                 / (self.batch_counter - batch_counter_start)
@@ -103,6 +103,8 @@ class baseline_trainer():
             LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(
                 batch_loading_time
             ))
+        else:
+            LOGGER.info('NO BATCH PROCESSED')
         return make_final_prediction
 
     def grid_check_policy(self, autodl_model, i, t_train_start, loss, dl_val):

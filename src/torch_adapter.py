@@ -517,6 +517,8 @@ class _TFDataLoaderIter(object):
                     entries.append(self.dataset[i])
                 except StopIteration:
                     self._end_reached = True
+                    if len(entries) == 0:
+                        raise StopIteration
                     break
             batch = self.collate_fn(entries)
             if self.pin_memory:
