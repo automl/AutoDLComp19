@@ -26,8 +26,6 @@ class TFDataset(Dataset):
         self.median_shape = None
         self.is_multilabel = None
 
-        self._ele_q = None
-
         self.next_element = None
         self.reset()
 
@@ -84,16 +82,14 @@ class TFDataset(Dataset):
             if np.sum(label) > 1:
                 is_multilabel = True
 
-        setattr(self, 'num_samples', (
-            self.num_samples if max_samples is not None else count
-        ))
-        setattr(self, 'num_classes', label.shape[0])
-        setattr(self, 'min_shape', min_shape)
-        setattr(self, 'max_shape', max_shape)
-        setattr(self, 'median_shape', np.median(shape_list, axis=0))
-        setattr(self, 'mean_shape', np.mean(shape_list, axis=0))
-        setattr(self, 'std_shape', np.std(shape_list, axis=0))
-        setattr(self, 'is_multilabel', is_multilabel)
+        self.num_samples = self.num_samples if max_samples is not None else count
+        self.num_classes = label.shape[0]
+        self.min_shape = min_shape
+        self.max_shape = max_shape
+        self.median_shape = np.median(shape_list, axis=0)
+        self.mean_shape = np.mean(shape_list, axis=0)
+        self.std_shape = np.std(shape_list, axis=0)
+        self.is_multilabel = is_multilabel = is_multilabel
         self.reset()
 
     def benchmark_transofrmations(self):

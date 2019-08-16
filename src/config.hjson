@@ -48,12 +48,12 @@
   dataset_split_ratio: [85, 15],
   dataloader_args: { # Shuffle isn't working so don't drop last
     train: {
-      batch_size: 128,
+      batch_size: 16,
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
     }
     test: {
-      batch_size: 128,
+      batch_size: 64, # Currently automatically adjusted to speed up predictions
       num_workers: 0,
       pin_memory: true, # faster transfer of data to gpu if true
     }
@@ -67,10 +67,12 @@
       modelargs: {
         # Philipp: I assume these should depend on the selected model
         # so for now we expose them here to hardcode them
-        optimizer: 'Adam',
         modality: 'RGB',
-        dropout: 0.2, # if we dont want to use it
-        num_segments: 1, # this could be also set in the trainer
+        dropout: 0.3, # if we dont want to use it
+        num_segments: 4, # this could be also set in the trainer
+        optimizer: 'SGD',
+        lr: 0.001
+        weight-decay: 0.001
       },
     },
     master_selector: {
