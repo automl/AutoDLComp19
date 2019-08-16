@@ -347,9 +347,11 @@ class Model(algorithm.Algorithm):
             transform_sample=self.transforms['test']['samples'],
             transform_label=self.transforms['test']['labels']
         )
+        loader_args = self.config.dataloader_args['test']
+        loader_args.update({'batch_size': 200})
         self.test_dl = TFDataLoader(
             ds,
-            **self.config.dataloader_args['test']
+            **loader_args
         )
 
     def test(self, dataset, remaining_time_budget=None):

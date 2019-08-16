@@ -1,6 +1,8 @@
 import time
 import numpy as np
 import torch
+import torch.cuda as cutorch
+from torch_adapter import TFDataLoader
 from utils import LOGGER, DEVICE
 
 
@@ -15,6 +17,7 @@ class baseline_tester():
         testing routine from the unchaning code
         '''
         predictions = []
+        vram_cached = []
 
         LOGGER.info('NUM_SEGMENTS: ' + str(autodl_model.model.num_segments))
         LOGGER.info('LR: {0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
@@ -37,14 +40,37 @@ class baseline_tester():
                 LOGGER.debug('##########################################################')
             else:
                 autodl_model.model.eval()
-            autodl_model.test_dl.dataset.reset()  # Just making sure we start at the beginning
-            for i, (data, _) in enumerate(autodl_model.test_dl):
-                LOGGER.debug('TEST BATCH #' + str(i))
-                data = data.to(DEVICE)
-                output = autodl_model.model(data)
-                predictions += output.cpu().tolist()
-                i += 1
 
+            test_finished = False
+            autodl_model.test_dl.dataset.reset()  # Just making sure we start at the beginning
+            while not test_finished:
+                try:
+                    for i, (data, _) in enumerate(autodl_model.test_dl):
+                        LOGGER.debug('TEST BATCH #' + str(i))
+                        data = data.to(DEVICE)
+                        output = autodl_model.model(data)
+                        predictions += output.cpu().tolist()
+                        i += 1
+
+                        vram_cached.append(cutorch.memory_cached())
+                    test_finished = True
+                except RuntimeError as e:
+                    # If we are out of vram reduce the batchsize by factor 2 and try again
+                    if 'CUDA out of memory.' not in e.args[0]:
+                        raise e
+                    predictions = []
+                    vram_cached = []
+
+                    loader_args = autodl_model.config.dataloader_args['test']
+                    loader_args.update({'batch_size': int(autodl_model.test_dl.batch_size - 25)})
+                    autodl_model.test_dl = TFDataLoader(
+                        autodl_model.test_dl.dataset,
+                        **loader_args
+                    )
+                    autodl_model.test_dl.dataset.reset()
+                    LOGGER.info('BATCH SIZE CHANGED: {}'.format(autodl_model.test_dl.batch_size))
+
+        LOGGER.info('AVERAGE VRAM USAGE: {0:.2f} MB'.format(np.mean(vram_cached) / 1024**2))
         autodl_model.test_time.append(time.time() - test_start)
         return np.array(predictions)
 
