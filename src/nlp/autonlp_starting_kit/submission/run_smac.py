@@ -15,7 +15,8 @@ sys.path.append('../')
 sys.path.append('../../')
 
 from model import Model
-from autonlp_starting_kit.AutoDL_scoring_program.libscores import auc_metric
+from scoring import autodl_auc
+# from autonlp_starting_kit.AutoDL_scoring_program.libscores import auc_metric
 from autonlp_starting_kit.AutoDL_ingestion_program.ingestion import Timer, TimeoutException
 from autonlp_starting_kit.AutoDL_ingestion_program.dataset import AutoNLPDataset
 
@@ -49,7 +50,7 @@ def run_autonlp_model(config, **kwargs):
             while True:  # num_epochs = inf (till timeout)
                 M.train(train_dataset)
                 preds = M.test(test_x)
-                score = auc_metric(test_y.astype(int), preds.astype(int))
+                score = autodl_auc(test_y.astype(int), preds.astype(int))
             pass
     except TimeoutException as e:
         print(e)
@@ -126,5 +127,5 @@ print(incumbent)
 print("Incumbent Score: {}".format(incumbent_score))
 
 from ConfigSpace.read_and_write import json
-with open('incumbent.json', 'w') as f:
-    f.write(json.write(cs))
+with open('incumbent_{}_{}.json'.format(args.dataset_id, args.wallclock_time), 'w') as f:
+    f.write(json.write(incumbent))

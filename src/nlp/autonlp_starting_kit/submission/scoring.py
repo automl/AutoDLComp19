@@ -53,7 +53,7 @@ else:
 # ========= Our score function ==============
 
 # Metric used to compute the score of a point on the learning curve
-def autodl_auc(solution, prediction, valid_columns_only=True):
+def autodl_auc(solution, prediction):
     """Compute normarlized Area under ROC curve (AUC).
     Return Gini index = 2*AUC-1 for  binary classification problems.
     Should work for a vector of binary 0/1 (or -1/1)"solution" and any discriminant values
@@ -63,13 +63,6 @@ def autodl_auc(solution, prediction, valid_columns_only=True):
     binary and multilabel classification problems). When `valid_columns` is not
     `None`, only use a subset of columns for computing the score.
     """
-    if valid_columns_only:
-        valid_columns = get_valid_columns(solution)
-        if len(valid_columns) < solution.shape[-1]:
-            print("WARNING: Some columns in solution have only one class, " +
-                  "ignoring these columns for evaluation.")
-        solution = solution[:, valid_columns].copy()
-        prediction = prediction[:, valid_columns].copy()
     label_num = solution.shape[1]
     auc = np.empty(label_num)
     for k in range(label_num):
