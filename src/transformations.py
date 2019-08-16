@@ -1,8 +1,8 @@
-import time
 from collections import OrderedDict
 import numpy as np
 import torch
 import torch.nn as nn
+from scipy.stats import norm
 from torchvision import transforms
 
 from utils import LOGGER, MonkeyNet
@@ -26,7 +26,7 @@ def baseline_transforms(autodl_model, dataset):
         'train': {
             'samples': transforms.Compose(
                 [
-                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
                     RandomCropPad(autodl_model.model.input_size)
                 ]
             ),
@@ -37,7 +37,7 @@ def baseline_transforms(autodl_model, dataset):
         'test': {
             'samples': transforms.Compose(
                 [
-                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
                     RandomCropPad(autodl_model.model.input_size)
                 ]
             ),
@@ -96,7 +96,7 @@ def aug_net(autodl_model, dataset, use_gpu_resize):
         'train': {
             'samples': transforms.Compose(
                 [
-                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.re_size.tolist()), )
                         if cpu_resize else ()
@@ -110,7 +110,7 @@ def aug_net(autodl_model, dataset, use_gpu_resize):
         'test': {
             'samples': transforms.Compose(
                 [
-                    CPUSelectSegmentsDynamic(autodl_model.model),
+                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
                     *(
                         (CPUResizeImage(aug_net.out_size.tolist()), )
                         if cpu_resize else ()
@@ -349,7 +349,7 @@ class CPUFormatLabel(nn.Module):
         return self(x)
 
 
-class CPUSelectSegmentsDynamic(nn.Module):
+class CPUDynamicSelectSegmentsUniform(nn.Module):
     def __init__(self, model, random=True):
         super().__init__()
         self.master_model = model
@@ -363,6 +363,33 @@ class CPUSelectSegmentsDynamic(nn.Module):
             choices = np.linspace(0, x.shape[0] - 1, x.shape[0], dtype=int)
             choices = np.array_split(choices, num_segments)
             choices = [np.random.choice(c, 1)[0].tolist() for c in choices]
+        x = x[choices]
+        return x
+
+
+class CPUDynamicSelectSegmentsNormal(nn.Module):
+    def __init__(self, model, random=True):
+        super().__init__()
+        self.master_model = model
+
+    def __call__(self, x: torch.Tensor):
+        num_segments = self.master_model.num_segments
+        frame_count = x.shape[0]
+
+        idxs = np.linspace(0, frame_count - 1, frame_count, dtype=int)
+        if frame_count <= num_segments * 2:
+            idxs = np.repeat(idxs, frame_count * num_segments / len(idxs))
+            frame_count *= num_segments
+        seg_sizes = norm.pdf(np.linspace(-1, 1, num_segments))
+        seg_sizes = 1 - seg_sizes if frame_count > num_segments else seg_sizes
+        seg_sizes = (seg_sizes / seg_sizes.sum()) * frame_count
+        seg_sizes = seg_sizes.astype(int)
+
+        choices = []
+        last_idx = 0
+        for seg_size in seg_sizes:
+            choices.append(np.random.choice(idxs[last_idx:last_idx + seg_size], 1)[0].tolist())
+            last_idx += seg_size
         x = x[choices]
         return x
 

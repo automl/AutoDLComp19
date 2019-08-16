@@ -28,6 +28,7 @@
   # General
   log_level: 'DEBUG',
   earlystop: 300, # How many seconds shall we ingest
+  check_for_shuffling: false,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
   

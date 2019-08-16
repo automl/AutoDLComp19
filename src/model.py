@@ -31,7 +31,7 @@ import training
 import testing
 import json
 import utils
-from torch_adapter import TFDataset
+from torch_adapter import TFDataset, TFDataLoader
 from utils import LOGGER, DEVICE, BASEDIR
 
 
@@ -191,7 +191,13 @@ class Model(algorithm.Algorithm):
         )
         split_num = np.round((self.num_train_samples * split_percentages))
 
+        # For now use fermi approx to give n classes a chance of
+        # (1/n)^(3*n) to not be included at all in the validation set
+        # at least
         if split_num[1] < ds_temp.num_classes * 3 and split_num[1] > 0.:
+            LOGGER.warning('Validation split too small to be representative: {0} < {1}'.format(
+                split_num[1], ds_temp.num_classes * 3
+            ))
             split_percentages = np.array((
                 self.num_train_samples - (ds_temp.num_classes * 5), (ds_temp.num_classes * 5)
             ))
@@ -237,15 +243,39 @@ class Model(algorithm.Algorithm):
             ds_val.is_multilabel = ds_temp.is_multilabel
 
         self.train_dl = {
-            'train': torch.utils.data.DataLoader(
+            'train': TFDataLoader(
                 ds_train,
                 **self.config.dataloader_args['train']
             ),
-            'val': torch.utils.data.DataLoader(
+            'val': TFDataLoader(
                 ds_val,
                 **self.config.dataloader_args['train']
             ) if split_num[1] > 0. else None
         }
+
+        if self.config.check_for_shuffling:
+            LOGGER.debug('SANITY CHECKING SHUFFLING')
+            ds_train = TFDataset(
+                session=self.session,
+                dataset=tfdataset_train,
+                num_samples=int(split_num[0])
+            )
+            ds_train.reset()
+            ds_temp.reset()
+            dset1 = [e for e in ds_train]
+            dset2 = [e for e in ds_train]
+            dset3 = [e for e in ds_temp][:int(split_num[0])]
+            i = 0
+            e1vse2 = []
+            e2vse3 = []
+            for e1, e2, e3 in zip(dset1, dset2, dset3):
+                if i % 100 == 0:
+                    LOGGER.debug('Checking i: {}'.format(i))
+                e1vse2.append((np.all((e1[0] == e2[0]))))
+                e2vse3.append((np.all((e2[0] == e3[0]))))
+                i += 1
+            LOGGER.debug('E1 == E2: {}\t should be False'.format(np.all(e1vse2)))
+            LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
 
     def setup_train_dataset(self, dataset, ds_temp=None):
         self.split_dataset(ds_temp, self.transforms['train'])
@@ -259,6 +289,7 @@ class Model(algorithm.Algorithm):
             return
         dataset_changed = self.tf_train_set != dataset
         if dataset_changed:
+            t_s = time.time()
             self.tf_train_set = dataset
             # Create a temporary handle to inspect data
             dataset = dataset.prefetch(
@@ -266,10 +297,17 @@ class Model(algorithm.Algorithm):
             )
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
             ds_temp.scan_all(50)
+            LOGGER.info('SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s))
 
+            t_s = time.time()
             self.setup_model(ds_temp)
+            LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
+            t_s = time.time()
             self.setup_transforms(ds_temp)
+            LOGGER.info('ADDING TRANSFORMATIONS TOOK: {0:.4f} s'.format(time.time() - t_s))
+            t_s = time.time()
             self.setup_train_dataset(dataset, ds_temp)
+            LOGGER.info('SETTING UP THE TRAINSET TOOK: {0:.4f} s'.format(time.time() - t_s))
 
             # Finally move the model to gpu
             self.model.to(DEVICE)
@@ -305,17 +343,11 @@ class Model(algorithm.Algorithm):
         ds = TFDataset(
             session=self.session,
             dataset=dataset,
-            num_samples=int(self.num_test_samples),
+            num_samples=int(1e6),
             transform_sample=self.transforms['test']['samples'],
             transform_label=self.transforms['test']['labels']
         )
-        ds.min_shape = ds_temp.min_shape
-        ds.median_shape = ds_temp.median_shape
-        ds.mean_shape = ds_temp.mean_shape
-        ds.std_shape = ds_temp.std_shape
-        ds.max_shape = ds_temp.max_shape
-        ds.is_multilabel = ds_temp.is_multilabel
-        self.test_dl = torch.utils.data.DataLoader(
+        self.test_dl = TFDataLoader(
             ds,
             **self.config.dataloader_args['test']
         )
@@ -347,8 +379,6 @@ class Model(algorithm.Algorithm):
                 self.config.dataloader_args['test']['batch_size']
             )
             ds_temp = TFDataset(self.session, dataset)
-            ds_temp.scan_all()
-            self.num_test_samples = ds_temp.num_samples
             self.setup_test_dataset(dataset, ds_temp)
 
         test_args = self.config.tester_args[
