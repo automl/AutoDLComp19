@@ -347,7 +347,7 @@ class Model(object):
     model of BERT baseline without pretraining
     """
 
-    def __init__(self, metadata, train_output_path="./", test_input_path="./"):
+    def __init__(self, metadata, train_output_path="./", test_input_path="./", config=None):
         """ Initialization for model
         :param metadata: a dict
         """
@@ -369,19 +369,24 @@ class Model(object):
 
         # Parameters
         # TODO smarter params
+        if config is None:
+            self.classifier_layers = 2
+            self.classifier_units = 256
+            self.learning_rate = 0.001
+            self.batch_size = 64
+        else:
+            self.classifier_layers = config['classifier_layers']
+            self.classifier_units = config['classifier_units']
+            self.learning_rate = config['learning_rate']
+            self.batch_size = config['batch_size']
+
         self.train_batches = np.inf
         self.train_epochs = np.inf
         self.naive_limit = 5
-        self.batch_size = 64
-        # self.pretrained_path = '/content/'
-        # self.pretrained_path = ''
-        # self.pretrained_path = os.path.join(*os.path.abspath(__file__).split('/')[:-1])
         self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
-        self.classifier_layers = 2
-        self.classifier_units = 256
-        self.learning_rate = 0.001
-        self.warmum_steps = 10
+        # self.warmum_steps = 10
         self.t_total = 500
+
 
         # create tokenizer
         #         s
