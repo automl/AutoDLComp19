@@ -1,0 +1,1 @@
+from kakaomodel import KakaoModel

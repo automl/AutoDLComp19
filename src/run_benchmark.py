@@ -68,5 +68,8 @@ def runBENCH(cfg):
 
 
 if __name__ == "__main__":
+    # Making sure nothing gets overwritten
+    if os.path.isfile(os.path.join(BASEDIR, 'bohb_config.json')):
+        os.remove(os.path.join(BASEDIR, 'bohb_config.json'))
     cfg = get_configuration()
     res = runBENCH(cfg)

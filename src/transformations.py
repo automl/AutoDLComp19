@@ -77,7 +77,7 @@ class BaselineAugmentNet(nn.Module):
         return x
 
 
-def aug_net(autodl_model, dataset, use_gpu_resize):
+def test_transforms(autodl_model, dataset, use_gpu_resize):
     model = autodl_model.model
     LOGGER.info('Using ###   aug_net   ### for transformations')
 
@@ -270,31 +270,31 @@ class RandomCropPad(object):
         row_rand = -1
         col_rand = -1
 
-        if row <= row_des: # pad rows
-            row_pad_start = int(np.floor((row_des-row)/2))
-            row_pad_end = row + int(np.floor((row_des-row)/2))
+        if row <= row_des:  # pad rows
+            row_pad_start = int(np.floor((row_des - row) / 2))
+            row_pad_end = row + int(np.floor((row_des - row) / 2))
             row_start = 0
             row_end = row
-        else: # crop rows
-            row_rand = int(np.random.random() * int(np.floor((row-row_des))))
+        else:  # crop rows
+            row_rand = int(np.random.random() * int(np.floor((row - row_des))))
             row_pad_start = 0
             row_pad_end = row_des
             row_start = row_rand
             row_end = row_des + row_rand
-        if col <= col_des: # pad columns
-            col_pad_start = int(np.floor((col_des-col)/2))
-            col_pad_end = col + int(np.floor((col_des-col)/2))
+        if col <= col_des:  # pad columns
+            col_pad_start = int(np.floor((col_des - col) / 2))
+            col_pad_end = col + int(np.floor((col_des - col) / 2))
             col_start = 0
             col_end = col
-        else: # crop columns
-            col_rand = int(np.random.random() * int(np.floor((col-col_des))))
+        else:  # crop columns
+            col_rand = int(np.random.random() * int(np.floor((col - col_des))))
             col_pad_start = 0
             col_pad_end = col_des
             col_start = col_rand
             col_end = col_des + col_rand
 
         pics_pad = np.zeros((pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype)
-        pics_pad[:,row_pad_start:row_pad_end,col_pad_start:col_pad_end,:] = pics[:,row_start:row_end,col_start:col_end,:]
+        pics_pad[:, row_pad_start:row_pad_end, col_pad_start:col_pad_end, :] = pics[:, row_start:row_end, col_start:col_end, :]
         return pics_pad
 
 

@@ -132,7 +132,7 @@ class baseline_trainer():
         return False
 
 
-class policy_trainer():
+class test_trainer():
     def __init__(self, t_diff, dropout_diff, num_segments_step, bn_prod_limit):
         self.t_diff = t_diff
         self.dropout_diff = dropout_diff

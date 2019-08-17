@@ -96,6 +96,8 @@ import time
 import yaml
 import shutil
 
+from PIL import Image, ImageDraw, ImageFont
+
 def get_logger(verbosity_level, use_error_log=False):
   """Set logging format to something like:
        2019-04-25 12:52:51,924 INFO score.py: <message>
@@ -602,8 +604,18 @@ class ScoringError(Exception):
   pass
 
 def write_final_score_to_file(score, score_dir):
-    with open(os.path.join(score_dir, 'final_score.txt'), "w") as file:
-        file.write(str(score))
+  with open(os.path.join(score_dir, 'final_score.txt'), "w") as file:
+      file.write(str(score))
+  # Little hack so I can show it in the readme.md
+  w, h = 132, 30
+  text = '{0:.4f}'.format(score)
+  img = Image.new('RGBA', (w, h), color = (0, 0, 0, 0))
+  
+  fnt = ImageFont.truetype('Ubuntu-B.ttf', 15)
+  d = ImageDraw.Draw(img)
+  w_t, h_t = d.textsize(text)
+  d.text(((w - w_t) / 2, (h - h_t) / 2), text, font=fnt, fill=(0, 0, 0, 255))
+  img.save(os.path.join(score_dir, 'final_score.png'))
 
 # =============================== MAIN ========================================
 

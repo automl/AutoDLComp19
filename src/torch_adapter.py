@@ -13,7 +13,7 @@ from utils import LOGGER
 class TFDataset(Dataset):
     def __init__(self, session, dataset, num_samples=None, transform_sample=None, transform_label=None):
         super(TFDataset, self).__init__()
-        self.session = session if session is not None else tf.Session()
+        self.session = session
         self.dataset = dataset
         self.transform_sample = transform_sample
         self.transform_label = transform_label
@@ -50,6 +50,7 @@ class TFDataset(Dataset):
         return example, label
 
     def _tf_exec(self, args):
+        # Nice try but ingestion doesn't play nice with eager execution
         return args if tf.executing_eagerly() else self.session.run(args)
 
     def reset(self):

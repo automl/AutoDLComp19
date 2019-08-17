@@ -16,6 +16,7 @@ A hjson is a normal json but allows comments, so no black magic here.
 import os
 import time
 import types
+import threading
 from functools import partial
 from collections import OrderedDict
 
@@ -58,6 +59,13 @@ except Exception:
     USE_AMP = False
     pass
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+THREADS = [
+    threading.Thread(target=lambda: torch.cuda.synchronize()),
+    threading.Thread(target=lambda: tf.Session())
+]
+[t.start() for t in THREADS]
+
 
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
@@ -81,7 +89,6 @@ class Model(algorithm.Algorithm):
         np.random.seed(self.config.np_random_seed)
         torch.manual_seed(self.config.torch_manual_seed)
         torch.cuda.manual_seed_all(self.config.torch_cuda_manual_seed_all)
-
         # In-/Out Dimensions from the train dataset's metadata
         row_count, col_count = metadata.get_matrix_size(0)
         channel = metadata.get_num_channels(0)
@@ -90,11 +97,12 @@ class Model(algorithm.Algorithm):
         self.output_dim = metadata.get_output_size()
         self.num_train_samples = metadata.size()
         self.num_test_samples = None
+        self.metadata = metadata
 
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
-        self.tf_train_set = None
-        self.tf_test_set = None
+        self._tf_train_set = None
+        self._tf_test_set = None
         self.train_dl = None
         self.test_dl = None
         self.transforms = None
@@ -133,6 +141,8 @@ class Model(algorithm.Algorithm):
 
         # Attributes for managing time budget
         # Cumulated number of training steps
+        self.starting_budget = None
+        self.current_remaining_time = None
         self.make_final_prediction = False
         self.final_prediction_made = False
         self.done_training = False
@@ -141,9 +151,15 @@ class Model(algorithm.Algorithm):
         self.train_time = []
         self.testing_round = 0  # keep track how often we entered test
         self.test_time = []
+        self._session = None
+        LOGGER.info("INIT END: {}".format(time.time()))
 
-        self.session = tf.Session()
-        LOGGER.info("INIT END: " + str(time.time()))
+    @property
+    def session(self):
+        if self._session is None:
+            [t.join() for t in THREADS]
+            self._session = tf.Session()
+        return self._session
 
     def side_load_config(self, bohb_conf_path):
         '''
@@ -167,7 +183,7 @@ class Model(algorithm.Algorithm):
 
     def setup_model(self, ds_temp):
         selected = self.select_model(
-            self.session,
+            self,
             ds_temp,
             **self.config.model_selector_args[
                 self.config.model_selector
@@ -285,23 +301,27 @@ class Model(algorithm.Algorithm):
 
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
-        LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
+        self.current_remaining_time = remaining_time_budget
+        LOGGER.info("REMAINING TIME: {0:.2f}".format(remaining_time_budget))
         if self.final_prediction_made:
             return
-        dataset_changed = self.tf_train_set != dataset
+        dataset_changed = self._tf_train_set != dataset
         if dataset_changed:
             t_s = time.time()
-            self.tf_train_set = dataset
+            self.starting_budget = t_s - self.birthday + remaining_time_budget
+            self._tf_train_set = dataset
             # Create a temporary handle to inspect data
             dataset = dataset.prefetch(
                 self.config.dataloader_args['train']['batch_size']
             )
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
-            ds_temp.scan_all(50)
+            ds_temp.scan_all(10)
             LOGGER.info('SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s))
 
             t_s = time.time()
             self.setup_model(ds_temp)
+            if self.model is None:
+                return None
             LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
             t_s = time.time()
             self.setup_transforms(ds_temp)
@@ -358,6 +378,7 @@ class Model(algorithm.Algorithm):
 
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
+        self.current_remaining_time = remaining_time_budget
         LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
         if self.config.benchmark_time_till_first_prediction:
             LOGGER.error('TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday))
@@ -375,9 +396,9 @@ class Model(algorithm.Algorithm):
             self.done_training = True
             return None
 
-        dataset_changed = self.tf_test_set != dataset
+        dataset_changed = self._tf_test_set != dataset
         if dataset_changed:
-            self.tf_test_set = dataset
+            self._tf_test_set = dataset
             # Create a temporary handle to inspect data
             dataset = dataset.prefetch(
                 self.config.dataloader_args['test']['batch_size']
@@ -405,7 +426,7 @@ class Model(algorithm.Algorithm):
                     raise e
                 loader_args = self.config.dataloader_args['test']
                 loader_args.update({'batch_size': max(16, int(self.test_dl.batch_size - 25))})
-                self.test_dl.dataset = self.test_dl.dataset.prefetch(loader_args['batch_size'])
+                self.test_dl.dataset.dataset = self.test_dl.dataset.dataset.prefetch(loader_args['batch_size'])
                 self.test_dl = TFDataLoader(
                     self.test_dl.dataset,
                     **loader_args

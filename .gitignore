@@ -244,6 +244,12 @@ submissions/**
 bohb_logs/**
 **bohb_config.json
 
+src/torchhome/hub/*
+!**automl_videomodels_master**
+
+!**kakaobrain_autoclint_master**
+**/kakaobrain_autoclint_master/models/**
+
 # Don't ignore gitkeep files
 !**/.gitkeep
 !**README.md**
