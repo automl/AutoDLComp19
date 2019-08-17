@@ -242,7 +242,7 @@ competition/AutoDL_scoring_output/**
 src/torchhome/checkpoints/**
 submissions/**
 bohb_logs/**
-**bohb_config.json
+**sideload_config.json
 
 src/torchhome/hub/*
 !**automl_videomodels_master**
