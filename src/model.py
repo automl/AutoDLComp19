@@ -405,6 +405,7 @@ class Model(algorithm.Algorithm):
                     raise e
                 loader_args = self.config.dataloader_args['test']
                 loader_args.update({'batch_size': max(16, int(self.test_dl.batch_size - 25))})
+                self.test_dl.dataset = self.test_dl.dataset.prefetch(loader_args['batch_size'])
                 self.test_dl = TFDataLoader(
                     self.test_dl.dataset,
                     **loader_args
