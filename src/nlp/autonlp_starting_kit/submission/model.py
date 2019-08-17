@@ -23,9 +23,11 @@ from sklearn import metrics
 from scoring import autodl_auc
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-# device = torch.device('cpu')
-
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
@@ -489,7 +491,7 @@ class Model(object):
     model of BERT baseline without pretraining
     """
 
-    def __init__(self, metadata, train_output_path="./", test_input_path="./", config=None, split_ratio=0.9):
+    def __init__(self, metadata, train_output_path="./", test_input_path="./", config=None, split_ratio=0.95):
         """ Initialization for model
         :param metadata: a dict
         """
@@ -509,7 +511,7 @@ class Model(object):
         self.epochs = 0
 
         # Naive model parameters
-        self.features = 2000
+
 
         ## Parameters
         # TODO smarter params
@@ -530,13 +532,19 @@ class Model(object):
             self.classifier_units = 256
             self.learning_rate = 0.001
             self.batch_size = 64
+            self.str_cutoff = 90  # percentile of total length
+            self.features = 2000
+            self.weight_decay = 0.01
         else:
             self.classifier_layers = config['classifier_layers']
             self.classifier_units = config['classifier_units']
             self.learning_rate = config['learning_rate']
             self.batch_size = config['batch_size']
+            self.str_cutoff = config['str_cutoff']
+            self.features = config['features']
+            self.weight_decay = config['weight_decay']
 
-        self.weight_decay = 0.01
+
         self.warmum_steps = 100
         self.t_total = 500
 
@@ -554,7 +562,11 @@ class Model(object):
         #                                        classifier_units=self.classifier_units)
         self.model.to(device)
 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        if config is not None and config['optimizer'] == "adamw":
+            self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.learning_rate,
+                                         weight_decay=self.weight_decay)
+        else:
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         #         self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         #         self.optimizer = optim.Adam([
         #                 {"params": self.model.bert.parameters(), "lr": 1e-3},
@@ -570,10 +582,6 @@ class Model(object):
         # to store train dataset to avoid tokenizing again
         self.train_loader = None
         self.test_loader = None
-
-        print('--' * 40)
-        print('meta -> ', self.metadata)
-        print('--' * 40)
 
     def train(self, train_dataset, remaining_time_budget=None, verbose=False, interval=100):
         """model training on train_dataset.
@@ -598,9 +606,14 @@ class Model(object):
                 train_samples = int(len(x_train) * self.split_ratio)
                 valid_dataset = (x_train[-train_samples:], y_train[-train_samples:])
                 train_dataset = (x_train[:train_samples], y_train[:train_samples])
-                self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset, cutoff=90)
+                self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset,
+                                                                                  cutoff=self.str_cutoff)
 
-            self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset, cutoff=90)
+            self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset,
+                                                                              cutoff=self.str_cutoff)
+            print('--' * 60)
+            print('meta -> ', self.preprocess.metadata)
+            print('--' * 60)
             # NaiveModel expects metadata to have 'imbalance' and must be after
             self.naive = NaiveModel(self.metadata, self.features)
             self.naive.train(self.preprocessed_train_dataset)
@@ -618,7 +631,8 @@ class Model(object):
             load_time = time.time()
             # preprocess
             if self.preprocessed_train_dataset is None:
-                self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset, cutoff=90)
+                self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset,
+                                                                                  cutoff=self.str_cutoff)
             x_train, y_train = self.preprocessed_train_dataset
             # loader
             self.train_loader = TextLoader(data=x_train, label=y_train,
@@ -630,7 +644,8 @@ class Model(object):
             if self.split_ratio < 1:
                 # load validation set
                 if self.preprocessed_valid_dataset is None:
-                    self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset, cutoff=90)
+                    self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset,
+                                                                                      cutoff=self.str_cutoff)
                 x_valid, y_valid = self.preprocessed_valid_dataset
                 # loader
                 self.valid_loader = TextLoader(data=x_valid, label=y_valid,
@@ -648,6 +663,7 @@ class Model(object):
             train_time = time.time()
             self._train(self.train_loader, verbose, interval)
             print('Train time:', time.time() - train_time)
+            self.epochs += 1
 
             if self.split_ratio < 1:
                 valid_time = time.time()
@@ -662,7 +678,6 @@ class Model(object):
                 break
 
             # update stats
-            self.epochs += 1
             if self.epochs > self.train_epochs:
                 self.done_training = True
                 break
