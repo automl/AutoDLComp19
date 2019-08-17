@@ -204,6 +204,7 @@ def load_model_and_optimizer(parser_args):
             if parser_args.print:
                 print("------------------------------------")
             model.load_state_dict(new_state_dict)
+
         ###########
         # Resnets
         if "TSM" in parser_args.arch:
@@ -272,6 +273,12 @@ def load_model_and_optimizer(parser_args):
             if parser_args.print:
                 print("------------------------------------")
             model.load_state_dict(new_state_dict)
+
+        # freeze layers except the last linear layer
+        n_params = len([x for x in model.parameters()]) - 2
+        for i, param in enumerate(model.parameters()):
+            if i < parser_args.freeze_portion * n_params:
+                param.requires_grad = False
 
     # TODO: APEX WITH Dataparalell!?!
     if parser_args.apex_available:

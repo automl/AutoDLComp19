@@ -1,4 +1,3 @@
-
 '''
 In this module we define algorithms to select the right starting model,
 optimizer, loss function and if wanted learning rate scheduler.
@@ -7,8 +6,9 @@ no though as of yet
 '''
 import os
 from collections import OrderedDict
-import numpy as np
+
 import hjson
+import numpy as np
 import torch
 from torch.optim.lr_scheduler import StepLR
 from utils import LOGGER
@@ -27,19 +27,31 @@ def baseline_selector(tfsession, dataset, modelargs):
     LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
     LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
 
-    modelargs.update(OrderedDict({
-        'num_classes': dataset.num_classes,
-        'classification_type': 'multilabel' if dataset.is_multilabel else 'multiclass',
-    }))
+    modelargs.update(
+        OrderedDict(
+            {
+                'num_classes':
+                    dataset.num_classes,
+                'classification_type':
+                    'multilabel' if dataset.is_multilabel else 'multiclass',
+            }
+        )
+    )
     if dataset.mean_shape[0] == 1:  # image network
         modelargs['num_segments'] = 1
         num_pixel = np.prod(dataset.mean_shape[1:2])
-        if num_pixel < 1e4:                   # select network based on average number of pixels in the dataset
-            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_64_non_final.pth.tar')
+        if num_pixel < 1e4:  # select network based on average number of pixels in the dataset
+            model_name, checkpoint_file = (
+                'ecofull_efficient_py', 'Efficientnet_Image_Input_64_non_final.pth.tar'
+            )
         elif num_pixel < 3e4:
-            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_128_non_final.pth.tar')
+            model_name, checkpoint_file = (
+                'ecofull_efficient_py', 'Efficientnet_Image_Input_128_non_final.pth.tar'
+            )
         else:
-            model_name, checkpoint_file = ('ecofull_efficient_py', 'Efficientnet_Image_Input_224_non_final.pth.tar')
+            model_name, checkpoint_file = (
+                'ecofull_efficient_py', 'Efficientnet_Image_Input_224_non_final.pth.tar'
+            )
     else:  # video network
         model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
 
@@ -57,6 +69,7 @@ def baseline_selector(tfsession, dataset, modelargs):
     # Not sure if these parameters reach to model so I set them here
     model.dropout = modelargs['dropout']
     model.num_segments = modelargs['num_segments']
+    model.freeze_portion = modelargs['freeze_portion']
     scheduler = None
 
     # If not set to true or at all, amp will not be use
@@ -96,14 +109,21 @@ def master_selector(tfsession, dataset, modelargs):
     LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
     LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
 
-    modelargs.update(OrderedDict({
-        'num_classes': dataset.num_classes,
-        'classification_type': 'multilabel' if dataset.is_multilabel else 'multiclass',
-        'partial_bn': False,
-    }))
+    modelargs.update(
+        OrderedDict(
+            {
+                'num_classes':
+                    dataset.num_classes,
+                'classification_type':
+                    'multilabel' if dataset.is_multilabel else 'multiclass',
+                'partial_bn':
+                    False,
+            }
+        )
+    )
     if dataset.mean_shape[0] == 1:  # image network
         num_pixel = np.prod(dataset.mean_shape[1:2])
-        if num_pixel < 10000:                   # select network based on average number of pixels in the dataset
+        if num_pixel < 10000:  # select network based on average number of pixels in the dataset
             model_name, checkpoint_file = ('bninception', 'BnT_Image_Input_64.pth.tar')
         else:
             model_name, checkpoint_file = ('bninception', 'BnT_Image_Input_128.tar')

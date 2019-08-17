@@ -34,7 +34,7 @@
   check_for_shuffling: false,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
-  
+
 
   # CUDNN
   cudnn_benchmark: false,
@@ -72,8 +72,9 @@
         dropout: 0.3, # if we dont want to use it
         num_segments: 4, # this could be also set in the trainer
         optimizer: 'SGD',
-        lr: 0.001
-        weight_decay: 0.0005
+        lr: 0.001,
+        weight_decay: 0.0005,
+        freeze_portion: 0.0,
       },
     },
     master_selector: {

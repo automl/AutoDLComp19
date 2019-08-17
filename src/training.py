@@ -1,11 +1,12 @@
-import time
 import logging
 import subprocess
-import pandas as pd
-import numpy as np
-import torch
+import time
 from functools import reduce
-from utils import LOGGER, DEVICE
+
+import numpy as np
+import pandas as pd
+import torch
+from utils import DEVICE, LOGGER
 
 
 class baseline_trainer():
@@ -32,7 +33,8 @@ class baseline_trainer():
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
 
-        t_train = time.time() if autodl_model.training_round > 0 else autodl_model.birthday
+        t_train = time.time(
+        ) if autodl_model.training_round > 0 else autodl_model.birthday
         batch_counter_start = self.batch_counter
         batch_loading_time = 0
         make_prediction = False
@@ -47,17 +49,15 @@ class baseline_trainer():
                 batch_loading_time += time.time() - load_start
                 # Check if we need to early stop according to the config's earlystop
                 if (
-                    autodl_model.config.earlystop is not None
-                    and time.time() - autodl_model.birthday > autodl_model.config.earlystop
+                    autodl_model.config.earlystop is not None and
+                    time.time() - autodl_model.birthday > autodl_model.config.earlystop
                 ):
                     make_prediction = True
                     break
 
                 # Abort training and make final prediction if not enough time is left
                 t_left = get_time_wo_final_prediction(
-                    remaining_time,
-                    t_train,
-                    autodl_model
+                    remaining_time, t_train, autodl_model
                 )
                 if t_left is not None and t_left < 5:
                     LOGGER.info('Making final prediciton!')
@@ -67,12 +67,8 @@ class baseline_trainer():
 
                 # Train on a batch if we re good to go
                 _, loss = train_step(
-                    autodl_model.model,
-                    autodl_model.optimizer,
-                    autodl_model.loss_fn,
-                    autodl_model.lr_scheduler,
-                    data.to(DEVICE),
-                    labels.to(DEVICE)
+                    autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
+                    autodl_model.lr_scheduler, data.to(DEVICE), labels.to(DEVICE)
                 )
                 LOGGER.debug('TRAINED BATCH #{0}:\t{1}'.format(i, loss))
 
@@ -88,20 +84,24 @@ class baseline_trainer():
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
         LOGGER.info('NUM_SEGMENTS:\t\t\t{0}'.format(autodl_model.model.num_segments))
-        LOGGER.info('LR:\t\t\t\t{0:.5e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
+        LOGGER.info('FROZEN_PORTION:\t\t\t{0}'.format(autodl_model.model.freeze_portion))
+        LOGGER.info(
+            'LR:\t\t\t\t{0:.5e}'.format(autodl_model.optimizer.param_groups[0]['lr'])
+        )
         LOGGER.info('DROPOUT:\t\t\t{0:.4g}'.format(autodl_model.model.dropout))
-        LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
-            self.ele_counter / (time.time() - autodl_model.birthday))
+        LOGGER.info(
+            "MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
+                self.ele_counter / (time.time() - autodl_model.birthday)
+            )
         )
         LOGGER.info("TRAINING COUNTER:\t\t" + str(self.ele_counter))
         if (self.batch_counter - batch_counter_start) > 0:
-            LOGGER.debug('SEC PER BATCH LOADING:\t{0:.4f}'.format(
-                batch_loading_time
-                / (self.batch_counter - batch_counter_start)
-            ))
-            LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(
-                batch_loading_time
-            ))
+            LOGGER.debug(
+                'SEC PER BATCH LOADING:\t{0:.4f}'.format(
+                    batch_loading_time / (self.batch_counter - batch_counter_start)
+                )
+            )
+            LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(batch_loading_time))
         else:
             LOGGER.info('NO BATCH PROCESSED')
         return make_final_prediction
@@ -122,8 +122,8 @@ class baseline_trainer():
             if autodl_model.testing_round == 0:
                 return True
             ct_diff = (
-                transform_time_abs(time.time() - autodl_model.birthday)
-                - transform_time_abs(t_train_start - autodl_model.birthday)
+                transform_time_abs(time.time() - autodl_model.birthday) -
+                transform_time_abs(t_train_start - autodl_model.birthday)
             )
             if ct_diff < self.t_diff:
                 pass
@@ -162,16 +162,15 @@ class policy_trainer():
         dl_train = autodl_model.train_dl['train']
         dl_val = autodl_model.train_dl['val']
 
-        t_train = time.time() if autodl_model.training_round > 0 else autodl_model.birthday
+        t_train = time.time(
+        ) if autodl_model.training_round > 0 else autodl_model.birthday
         make_prediction = False
         make_final_prediction = False
         while not make_prediction:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(dl_train):
                 t_left = get_time_wo_final_prediction(
-                    remaining_time,
-                    t_train,
-                    autodl_model
+                    remaining_time, t_train, autodl_model
                 )
                 # Abort training and make final prediction if not enough time is left
                 if t_left is not None and t_left < 5:
@@ -181,18 +180,16 @@ class policy_trainer():
                     break
 
                 _, loss = train_step(
-                    autodl_model.model,
-                    autodl_model.optimizer,
-                    autodl_model.loss_fn,
-                    autodl_model.lr_scheduler,
-                    data.to(DEVICE),
-                    labels.to(DEVICE)
+                    autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
+                    autodl_model.lr_scheduler, data.to(DEVICE), labels.to(DEVICE)
                 )
                 LOGGER.debug('TRAINED BATCH #{0}:\t{1}'.format(i, loss))
                 # ### Set dropout
                 autodl_model.model.dropout = autodl_model.model.dropout + self.dropout_diff
                 autodl_model.model.dropout = min(autodl_model.model.dropout, 0.9)
-                autodl_model.model.alphadrop = torch.nn.AlphaDropout(p=autodl_model.model.dropout)
+                autodl_model.model.alphadrop = torch.nn.AlphaDropout(
+                    p=autodl_model.model.dropout
+                )
 
                 self.batch_counter += 1
                 self.ele_counter += np.prod(data.shape[0:1])
@@ -206,8 +203,10 @@ class policy_trainer():
         LOGGER.info('NUM_SEGMENTS:\t' + str(autodl_model.model.num_segments))
         LOGGER.info('LR:\t{0:.4e}'.format(autodl_model.optimizer.param_groups[0]['lr']))
         LOGGER.info('DROPOUT:\t{0:.4g}'.format(autodl_model.model.dropout))
-        LOGGER.info("MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
-            self.ele_counter / (time.time() - autodl_model.birthday))
+        LOGGER.info(
+            "MEAN TRAINING FRAMES PER SEC:\t{0:.2f}".format(
+                self.ele_counter / (time.time() - autodl_model.birthday)
+            )
         )
         LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
         return make_final_prediction
@@ -219,15 +218,13 @@ class policy_trainer():
         if autodl_model.train_dl['val'] is not None:
             trainloader_args['batch_size'] = batch_size_max
             autodl_model.train_dl['val'] = torch.utils.data.DataLoader(
-                autodl_model.train_dl['val'].dataset,
-                **trainloader_args
+                autodl_model.train_dl['val'].dataset, **trainloader_args
             )
 
         batch_size_des = autodl_model.config.dataloader_args['train']['batch_size']
         trainloader_args['batch_size'] = min(batch_size_des, batch_size_max)
         autodl_model.train_dl['train'] = torch.utils.data.DataLoader(
-            autodl_model.train_dl['train'].dataset,
-            **trainloader_args
+            autodl_model.train_dl['train'].dataset, **trainloader_args
         )
 
     def update_hyperparams(self, autodl_model, dl):
@@ -254,8 +251,8 @@ class policy_trainer():
         if t_current <= 15:
             pass
         elif (
-            autodl_model.config.earlystop is not None
-            and time.time() - autodl_model.birthday > autodl_model.config.earlystop
+            autodl_model.config.earlystop is not None and
+            time.time() - autodl_model.birthday > autodl_model.config.earlystop
         ):
             make_prediction = True
         elif t_current < 300 and dl_val is not None:
@@ -263,8 +260,8 @@ class policy_trainer():
                 make_prediction = True
             # The first 5min do grid-like predictions
             ct_diff = (
-                transform_time_abs(time.time() - autodl_model.birthday)
-                - transform_time_abs(t_train_start - autodl_model.birthday)
+                transform_time_abs(time.time() - autodl_model.birthday) -
+                transform_time_abs(t_train_start - autodl_model.birthday)
             )
             if ct_diff < self.t_diff:
                 pass
@@ -279,9 +276,17 @@ class policy_trainer():
                     self.val_err = append_loss(self.val_err, self.evaluate_on(dl_val))
                     if self.val_err.size > 1:
                         val_err_ewm = get_ema(self.val_err, self.val_ewm_window)
-                        LOGGER.info('VALIDATION EMA:\t{0}'.format(val_err_ewm.iloc[-1, 0]))
-                        LOGGER.info('VALIDATION ERR:\t{0}'.format(self.val_err.iloc[-1, 0]))
-                        LOGGER.info('VALIDATION MIN:\t{0}'.format(np.min(self.val_err.iloc[:-1, 0])))
+                        LOGGER.info(
+                            'VALIDATION EMA:\t{0}'.format(val_err_ewm.iloc[-1, 0])
+                        )
+                        LOGGER.info(
+                            'VALIDATION ERR:\t{0}'.format(self.val_err.iloc[-1, 0])
+                        )
+                        LOGGER.info(
+                            'VALIDATION MIN:\t{0}'.format(
+                                np.min(self.val_err.iloc[:-1, 0])
+                            )
+                        )
                         # If the last validation error improves upon the minimum of it's exponential moving average
                         # by 10% with window self.train_err_ewm = 5, escalate to test.
                         # if self.check_ema_improvement(self.val_err, val_err_ewm, 0.1):
@@ -298,16 +303,16 @@ class policy_trainer():
         if self.batch_counter <= 21:
             pass
         elif (
-            autodl_model.config.earlystop is not None
-            and time.time() - autodl_model.birthday > autodl_model.config.earlystop
+            autodl_model.config.earlystop is not None and
+            time.time() - autodl_model.birthday > autodl_model.config.earlystop
         ):
             make_prediction = True
         else:
             if autodl_model.testing_round == 0:
                 make_prediction = True
             ct_diff = (
-                transform_time_abs(time.time() - autodl_model.birthday)
-                - transform_time_abs(t_train_start - autodl_model.birthday)
+                transform_time_abs(time.time() - autodl_model.birthday) -
+                transform_time_abs(t_train_start - autodl_model.birthday)
             )
             if ct_diff < self.t_diff:
                 pass
@@ -350,24 +355,20 @@ def transform_time_rel(t_rel):
     '''
     convertsion from relative time 0-1 to absolute time 0s-1200s
     '''
-    return 60 * (21 ** t_rel - 1)
+    return 60 * (21**t_rel - 1)
 
 
 def get_time_wo_final_prediction(remaining_time, train_start, model):
-            # Calculate current remaining time - time to make a prediction
+    # Calculate current remaining time - time to make a prediction
     return remaining_time - (
-        time.time() - train_start
-        + np.mean(model.test_time[-3:])
-        + np.std(model.test_time[-3:])
+        time.time() - train_start + np.mean(model.test_time[-3:]) +
+        np.std(model.test_time[-3:])
     ) if len(model.test_time) > 3 else None
 
 
 def append_loss(err_list, loss):
     # Convenience function to increase readability
-    return err_list.append(
-        [loss.detach().cpu().tolist()],
-        ignore_index=True
-    )
+    return err_list.append([loss.detach().cpu().tolist()], ignore_index=True)
 
 
 def get_ema(err_df, ema_win):
@@ -382,19 +383,13 @@ def get_ema(err_df, ema_win):
 def check_ema_improvement(err, ema, threshold):
     # Convenience function to increase readability
     # If threshold == 0 this boils down to lesser operation
-    return (
-        err.iloc[-1, 0] / ema.iloc[-1, 0]
-        < 1 - threshold
-    ).all()
+    return (err.iloc[-1, 0] / ema.iloc[-1, 0] < 1 - threshold).all()
 
 
 def check_ema_improvement_min(err, ema, threshold):
     # Convenience function to increase readability
     # If threshold == 0 this boils down to lesser operation
-    return (
-        err.iloc[-1, 0] / np.min(ema.iloc[:-1, 0])
-        < 1 - threshold
-    ).all()
+    return (err.iloc[-1, 0] / np.min(ema.iloc[:-1, 0]) < 1 - threshold).all()
 
 
 def evaluate_on(model, dl_val):
@@ -402,12 +397,7 @@ def evaluate_on(model, dl_val):
     dl_val.dataset.reset()
     with torch.no_grad():
         for i, (vdata, vlabels) in enumerate(dl_val):
-            _, loss = eval_step(
-                model.model,
-                model.loss_fn,
-                vdata,
-                vlabels
-            )
+            _, loss = eval_step(model.model, model.loss_fn, vdata, vlabels)
             err = loss if np.isinf(err) else err + loss
     return err
 
@@ -430,8 +420,9 @@ def autodl_auc(solution, prediction, valid_columns_only=True):
         valid_columns = get_valid_columns(solution)
         if len(valid_columns) < solution.shape[-1]:
             LOGGER.warning(
-                "Some columns in solution have only one class, "
-                + "ignoring these columns for evaluation.")
+                "Some columns in solution have only one class, " +
+                "ignoring these columns for evaluation."
+            )
         solution = solution[:, valid_columns].copy()
         prediction = prediction[:, valid_columns].copy()
     label_num = solution.shape[1]
@@ -472,8 +463,8 @@ def get_valid_columns(solution):
     num_examples = solution.shape[0]
     col_sum = np.sum(solution, axis=0)
     valid_columns = np.where(
-        1 - np.isclose(col_sum, 0)
-        - np.isclose(col_sum, num_examples))[0]
+        1 - np.isclose(col_sum, 0) - np.isclose(col_sum, num_examples)
+    )[0]
     return valid_columns
 
 
@@ -537,12 +528,10 @@ def mvmean(R, axis=0):
 
     def average(x):
         reduce(
-            lambda i, j: (
-                0,
-                (j[0] / (j[0] + 1.)) * i[1] + (1. / (j[0] + 1)) * j[1]
-            ),
+            lambda i, j: (0, (j[0] / (j[0] + 1.)) * i[1] + (1. / (j[0] + 1)) * j[1]),
             enumerate(x)
         )[1]
+
     R = np.array(R)
     if len(R.shape) == 1:
         return average(R)
