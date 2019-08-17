@@ -414,9 +414,6 @@ class Model(algorithm.Algorithm):
                 loader_args.update(
                     {'batch_size': max(16, int(self.test_dl.batch_size - 25))}
                 )
-                self.test_dl.dataset.dataset = self.test_dl.dataset.dataset.prefetch(
-                    loader_args['batch_size']
-                )
                 self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
                 self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
                 self.test_dl.dataset.reset()
