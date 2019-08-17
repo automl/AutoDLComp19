@@ -1,14 +1,17 @@
+import inspect
 import os
+
 import torch
 from torch.nn.init import constant_, xavier_uniform_
-from .models_eco import TSN as TSN_ECO
-from .models_tsm import TSN as TSN_TSM
-from .models_ecopy import ECOfull, ECOfull_efficient, ECO_bninception
-from .models_averagenet import Averagenet, Averagenet_feature
 
+from .models_averagenet import Averagenet, Averagenet_feature
+from .models_eco import TSN as TSN_ECO
+from .models_ecopy import ECO_bninception, ECOfull, ECOfull_efficient
+from .models_tsm import TSN as TSN_TSM
 
 # from opts import parser
 # parser_args = parser.parse_args()
+
 
 def load_model_and_optimizer(parser_args):
     dropout = parser_args.dropout
@@ -18,7 +21,7 @@ def load_model_and_optimizer(parser_args):
     if parser_args.apex_available:
         from apex import amp
 
-    ############################################################        
+    ############################################################
     if parser_args.arch == "ECO" or parser_args.arch == "ECOfull":
         model = TSN_ECO(
             parser_args.num_classes,
@@ -32,9 +35,12 @@ def load_model_and_optimizer(parser_args):
             input_size=224
         )
     elif "TSM" in parser_args.arch:
-        fc_lr5_temp = (not (parser_args.finetune_model
-                            and parser_args.dataset
-                            in parser_args.finetune_model))
+        fc_lr5_temp = (
+            not (
+                parser_args.finetune_model and
+                parser_args.dataset in parser_args.finetune_model
+            )
+        )
         model = TSN_TSM(
             parser_args.num_classes,
             parser_args.num_segments,
@@ -61,7 +67,8 @@ def load_model_and_optimizer(parser_args):
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
-            input_size=224)
+            input_size=224
+        )
     elif parser_args.arch == "bninception":
         model = ECO_bninception(
             dropout=dropout,
@@ -70,7 +77,8 @@ def load_model_and_optimizer(parser_args):
             modality=parser_args.modality,
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
-            input_size=128)			
+            input_size=128
+        )
     elif parser_args.arch == "ECOfull_efficient_py":
         model = ECOfull_efficient(
             dropout=dropout,
@@ -113,21 +121,19 @@ def load_model_and_optimizer(parser_args):
     # the optimizers, and will be used as optimization options for this
     # group.
     policies = model.get_optim_policies()
+
     ############################################################
     # Load optimizer
-    if parser_args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(
-            policies,
-            lr,
-            momentum=parser_args.momentum,
-            weight_decay=parser_args.weight_decay,
-            nesterov=parser_args.nesterov
-        )
-    if parser_args.optimizer == 'Adam':
-        optimizer = torch.optim.Adam(
-            policies,
-            lr
-        )
+
+    def update_params(optimizer_name, **kwargs):
+        return {
+            k: v
+            for k, v in parser_args.__dict__.items()
+            if k in inspect.getargspec(optimizer_name)[0]
+        }
+
+    optimizer_name = eval("torch.optim." + parser_args.optimizer)
+    optimizer = optimizer_name(policies, **update_params(optimizer_name))
 
     # if not parser_args.apex_available:
     #     model = torch.nn.DataParallel(model).cuda()
@@ -139,8 +145,7 @@ def load_model_and_optimizer(parser_args):
     if parser_args.resume:
         if os.path.isfile(parser_args.resume):
             if parser_args.print:
-                print(("=> loading checkpoint '{}'".format(
-                    parser_args.resume)))
+                print(("=> loading checkpoint '{}'".format(parser_args.resume)))
             checkpoint = torch.load(parser_args.resume)
             # if not checkpoint['lr']:
             if "lr" not in checkpoint.keys():
@@ -155,31 +160,31 @@ def load_model_and_optimizer(parser_args):
                 parser_args.best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
             if parser_args.print:
-                print(("=> loaded checkpoint '{}'"
-                       " (epoch: {}, lr: {})".format(
-                    parser_args.resume,
-                    checkpoint['epoch'],
-                    parser_args.lr)))
+                print(
+                    (
+                        "=> loaded checkpoint '{}'"
+                        " (epoch: {}, lr: {})".format(
+                            parser_args.resume, checkpoint['epoch'], parser_args.lr
+                        )
+                    )
+                )
             else:
                 if parser_args.print:
-                    print(("=> no checkpoint found at '{}'".format(
-                        parser_args.resume)))
+                    print(("=> no checkpoint found at '{}'".format(parser_args.resume)))
     #######################
     # Load pretrained
     else:
         ###########
         # ECO
-        if "ECO" in parser_args.arch or "bninception" in parser_args.arch :
+        if "ECO" in parser_args.arch or "bninception" in parser_args.arch:
             new_state_dict = init_ECO(model_dict, parser_args)
-            un_init_dict_keys = [k for k in model_dict.keys() if k
-                                 not in new_state_dict]
+            un_init_dict_keys = [k for k in model_dict.keys() if k not in new_state_dict]
             if parser_args.print:
                 print("un_init_dict_keys: ", un_init_dict_keys)
                 print("\n------------------------------------")
 
             for k in un_init_dict_keys:
-                new_state_dict[k] = torch.DoubleTensor(
-                    model_dict[k].size()).zero_()
+                new_state_dict[k] = torch.DoubleTensor(model_dict[k].size()).zero_()
                 if 'weight' in k:
                     if 'bn' in k:
                         if parser_args.print:
@@ -203,15 +208,13 @@ def load_model_and_optimizer(parser_args):
         # Resnets
         if "TSM" in parser_args.arch:
             if parser_args.print:
-                print(("=> fine-tuning from '{}'".format(
-                    parser_args.finetune_model)))
+                print(("=> fine-tuning from '{}'".format(parser_args.finetune_model)))
             sd = torch.load(parser_args.finetune_model)
             sd = sd['state_dict']
             model_dict = model.state_dict()
             replace_dict = []
             for k, v in sd.items():
-                if k not in model_dict and k.replace(
-                        '.net', '') in model_dict:
+                if k not in model_dict and k.replace('.net', '') in model_dict:
                     if parser_args.print:
                         print('=> Load after remove .net: ', k)
                     replace_dict.append((k, k.replace('.net', '')))
@@ -227,32 +230,29 @@ def load_model_and_optimizer(parser_args):
             keys2 = set(list(model_dict.keys()))
             set_diff = (keys1 - keys2) | (keys2 - keys1)
             if parser_args.print:
-                print(
-                    '#### Notice: keys that failed to load: {}'.format(
-                        set_diff))
+                print('#### Notice: keys that failed to load: {}'.format(set_diff))
             if parser_args.dataset not in parser_args.finetune_model:
                 if parser_args.print:
                     print('=> New dataset, do not load fc weights')
                 sd = {k: v for k, v in sd.items() if 'fc' not in k}
-            if (parser_args.modality == 'Flow'
-                    and 'Flow' not in parser_args.finetune_model):
-                sd = {k: v for k,
-                               v in sd.items() if 'conv1.weight' not in k}
+            if (
+                parser_args.modality == 'Flow' and
+                'Flow' not in parser_args.finetune_model
+            ):
+                sd = {k: v for k, v in sd.items() if 'conv1.weight' not in k}
             model_dict.update(sd)
             model.load_state_dict(model_dict)
         ###########
         # Averagenet
         if "Averagenet" in parser_args.arch:
             new_state_dict = init_Averagenet(model_dict, parser_args)
-            un_init_dict_keys = [k for k in model_dict.keys() if k
-                                 not in new_state_dict]
+            un_init_dict_keys = [k for k in model_dict.keys() if k not in new_state_dict]
             if parser_args.print:
                 print("un_init_dict_keys: ", un_init_dict_keys)
                 print("\n------------------------------------")
 
             for k in un_init_dict_keys:
-                new_state_dict[k] = torch.DoubleTensor(
-                    model_dict[k].size()).zero_()
+                new_state_dict[k] = torch.DoubleTensor(model_dict[k].size()).zero_()
                 if 'weight' in k:
                     if 'bn' in k:
                         if parser_args.print:
@@ -277,8 +277,11 @@ def load_model_and_optimizer(parser_args):
     if parser_args.apex_available:
         model = model.cuda()
         model, optimizer = amp.initialize(
-            model, optimizer, opt_level="O2",
-            keep_batchnorm_fp32=True, loss_scale="dynamic"
+            model,
+            optimizer,
+            opt_level="O2",
+            keep_batchnorm_fp32=True,
+            loss_scale="dynamic"
         )
         # Apex seems to have a problem loading pretrained
         # therefore again load model to gpu
@@ -287,11 +290,15 @@ def load_model_and_optimizer(parser_args):
 
 
 def load_loss_criterion(parser_args):
-    if (parser_args.loss_type == 'nll' and parser_args.classification_type == 'multiclass'):
+    if (
+        parser_args.loss_type == 'nll' and parser_args.classification_type == 'multiclass'
+    ):
         criterion = torch.nn.CrossEntropyLoss().cuda()
         if parser_args.print:
             print("Using CrossEntropyLoss")
-    elif (parser_args.loss_type == 'nll' and parser_args.classification_type == 'multilabel'):
+    elif (
+        parser_args.loss_type == 'nll' and parser_args.classification_type == 'multilabel'
+    ):
         criterion = torch.nn.BCEWithLogitsLoss().cuda()
         if parser_args.print:
             print("Using SigmoidBinaryCrossEntropyLoss")
@@ -302,8 +309,10 @@ def load_loss_criterion(parser_args):
 
 
 def init_ECO(model_dict, parser_args):
-    weight_url_2d = ('https://yjxiong.blob.core.windows.net/ssn-models'
-                     '/bninception_rgb_kinetics_init-d4ee618d3399.pth')
+    weight_url_2d = (
+        'https://yjxiong.blob.core.windows.net/ssn-models'
+        '/bninception_rgb_kinetics_init-d4ee618d3399.pth'
+    )
 
     if not os.path.exists(parser_args.finetune_model):
         print('Path or model file does not exist, can not load pretrained')
@@ -315,31 +324,38 @@ def init_ECO(model_dict, parser_args):
         if parser_args.finetune_model is not None:
             pretrained_dict = torch.load(parser_args.finetune_model)
             if parser_args.print:
-                print(("=> loading model-finetune: '{}'".format(
-                    parser_args.finetune_model)))
+                print(
+                    (
+                        "=> loading model-finetune: '{}'".format(
+                            parser_args.finetune_model
+                        )
+                    )
+                )
         else:
-            pretrained_dict = torch.load("pretrained_models"
-                                         "/eco_fc_rgb_kinetics.pth.tar")
+            pretrained_dict = torch.load(
+                "pretrained_models"
+                "/eco_fc_rgb_kinetics.pth.tar"
+            )
 
             if parser_args.print:
                 print(
                     (
                         "=> loading model-finetune-url: '{}'".
-                            format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
+                        format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
                     )
                 )
         # TODO: Nicer model loading, without iterating and exception
         new_state_dict = {}
-        try: 
+        try:
             for k1, v in pretrained_dict['state_dict'].items():
                 for k2 in model_dict.keys():
-                    k = k1.replace('module.','')
+                    k = k1.replace('module.', '')
                     if k2 in k and (v.size() == model_dict[k2].size()):
                         new_state_dict[k2] = v
         except Exception:
             for k1, v in pretrained_dict.items():
                 for k2 in model_dict.keys():
-                    k = k1.replace('module.efficientnet_pretrained.','base.')
+                    k = k1.replace('module.efficientnet_pretrained.', 'base.')
                     if k2 in k and (v.size() == model_dict[k2].size()):
                         new_state_dict[k2] = v
         #new_state_dict = {
@@ -365,8 +381,13 @@ def init_Averagenet(model_dict, parser_args):
         if parser_args.finetune_model is not None:
             pretrained_dict = torch.load(parser_args.finetune_model)
             if parser_args.print:
-                print(("=> loading model-finetune: '{}'".format(
-                    parser_args.finetune_model)))
+                print(
+                    (
+                        "=> loading model-finetune: '{}'".format(
+                            parser_args.finetune_model
+                        )
+                    )
+                )
         else:
             print('No default model set')
             #pretrained_dict = torch.load("pretrained_models"
@@ -376,7 +397,7 @@ def init_Averagenet(model_dict, parser_args):
                 print(
                     (
                         "=> loading model-finetune-url: '{}'".
-                            format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
+                        format("pretrained_models/eco_fc_rgb_kinetics.pth.tar")
                     )
                 )
         new_state_dict = {}
