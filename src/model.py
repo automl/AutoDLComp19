@@ -21,6 +21,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
+import torch.cuda as cutorch
 import tensorflow as tf
 
 # Import the challenge algorithm (model) API from algorithm.py
@@ -325,6 +326,7 @@ class Model(algorithm.Algorithm):
                     amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
                 )
 
+        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl['train'].batch_size))
         train_start = time.time()
         train_args = self.config.trainer_args[
             self.config.trainer
@@ -383,15 +385,34 @@ class Model(algorithm.Algorithm):
             ds_temp = TFDataset(self.session, dataset)
             self.setup_test_dataset(dataset, ds_temp)
 
-        test_args = self.config.tester_args[
-            self.config.tester
-        ] if isinstance(self.tester, types.FunctionType) else {}
-        predicitons = self.tester(
-            self,
-            remaining_time_budget,
-            **test_args
-        )
+        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.test_dl.batch_size))
+        test_finished = False
+        while not test_finished:
+            try:
+                test_args = self.config.tester_args[
+                    self.config.tester
+                ] if isinstance(self.tester, types.FunctionType) else {}
+                predicitons = self.tester(
+                    self,
+                    remaining_time_budget,
+                    **test_args
+                )
+                test_finished = True
+            except RuntimeError as e:
+                # If we are out of vram reduce the batchsize by 25 and try again
+                # but dont lower it below 16
+                if 'CUDA out of memory.' not in e.args[0]:
+                    raise e
+                loader_args = self.config.dataloader_args['test']
+                loader_args.update({'batch_size': max(16, int(self.test_dl.batch_size - 25))})
+                self.test_dl = TFDataLoader(
+                    self.test_dl.dataset,
+                    **loader_args
+                )
+                self.test_dl.dataset.reset()
+                LOGGER.info('BATCH SIZE CHANGED: {}'.format(self.test_dl.batch_size))
 
+        LOGGER.info('AVERAGE VRAM USAGE: {0:.2f} MB'.format(np.mean(cutorch.memory_cached()) / 1024**2))
         LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
         LOGGER.info(80 * '#')
         self.testing_round += 1
