@@ -11,7 +11,7 @@ def get_configuration():
     cfg = {}
     cfg["dataset_base_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data'))
     # cfg["datasets"] = ['Ucf101', 'Hmdb51', 'Kraut', 'Kreatur', 'Pedro', 'Hammer'] Hmdb51 not working
-    cfg["datasets"] = ['Ucf101', 'Kraut', 'Kreatur', 'Pedro', 'Hammer']
+    cfg["datasets"] = ['Hammer', 'Kraut', 'Kreatur', 'Pedro', 'Ucf101']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output'))
     cfg["earlystop"] = BENCHTIME
