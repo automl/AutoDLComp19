@@ -28,11 +28,11 @@
 
   # General
   log_level: 'DEBUG',
-  earlystop: 300, # How many seconds shall we ingest
+  earlystop: 180, # How many seconds shall we ingest
   check_for_shuffling: false,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
-  
+
 
   # CUDNN
   cudnn_benchmark: false,
@@ -63,15 +63,17 @@
   model_selector: 'test_selector',
   model_selector_args: {
     baseline_selector: {
-      modelargs: {
+      selection_args: {
         # Philipp: I assume these should depend on the selected model
         # so for now we expose them here to hardcode them
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
         optimizer: 'SGD',
-        lr: 0.001,
-        weight_decay: 0.0005
+        optim_args: {
+          lr: 0.001,
+          weight_decay: 0.0005,
+        }
       },
     },
     test_selector: {
@@ -81,6 +83,7 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
+        freeze_portion: 0.2, # freezes a video network's first percent of layers
         optimizer: 'SGD',
         optim_args: {
           lr: 0.001,

@@ -1,7 +1,9 @@
 import time
+
 import numpy as np
 import torch
-from utils import LOGGER, DEVICE
+from selection import CheckModesAndFreezing
+from utils import DEVICE, LOGGER
 
 
 class baseline_tester():
@@ -23,21 +25,11 @@ class baseline_tester():
         with torch.no_grad():
             test_start = time.time()
             if self.never_leave_train_mode:
-                LOGGER.debug('##########################################################')
-                LOGGER.debug('MODEL IS IN TRAIN MODE')
-                has_frozen = np.any([not m.training for m in autodl_model.model.modules()])
-                LOGGER.debug('MODEL HAS FROZEN MODULES:\t{0}'.format(has_frozen))
-                LOGGER.debug('##########################################################')
-                autodl_model.model._modules['baseline_aug_net'].eval()
-                LOGGER.debug('MODEL IS IN EVAL MODE')
-                has_unfrozen = np.any([m.training for m in autodl_model.model.modules()])
-                LOGGER.debug('MODEL HAS UNFROZEN MODULES:\t{0}'.format(has_unfrozen))
-                LOGGER.debug('##########################################################')
-                LOGGER.debug('All done. You can get back to work now!')
-                LOGGER.debug('##########################################################')
+                CheckModesAndFreezing(autodl_model.model)
             else:
                 autodl_model.model.eval()
-            autodl_model.test_dl.dataset.reset()  # Just making sure we start at the beginning
+            autodl_model.test_dl.dataset.reset(
+            )  # Just making sure we start at the beginning
             for i, (data, _) in enumerate(autodl_model.test_dl):
                 LOGGER.debug('TEST BATCH #' + str(i))
                 data = data.to(DEVICE)

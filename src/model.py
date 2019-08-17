@@ -13,29 +13,30 @@ This allow for rapid comparison between two or more competing methods
 NOTE:
 A hjson is a normal json but allows comments, so no black magic here.
 """
+import json
 import os
+import threading
 import time
 import types
-import threading
-from functools import partial
 from collections import OrderedDict
-
-import numpy as np
-import torch
-import torch.cuda as cutorch
-import tensorflow as tf
+from functools import partial
 
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
+import numpy as np
 import selection
-import transformations
-import training
+import tensorflow as tf
 import testing
-import json
+import torch
+import torch.cuda as cutorch
+import training
+import transformations
 import utils
-from torch_adapter import TFDataset, TFDataLoader
-from utils import LOGGER, DEVICE, BASEDIR
+from torch_adapter import TFDataLoader, TFDataset
+from utils import BASEDIR, DEVICE, LOGGER
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 # If apex's amp is available, import it and set a flag to use it
 try:
@@ -59,7 +60,6 @@ except Exception:
     USE_AMP = False
     pass
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 THREADS = [
     threading.Thread(target=lambda: torch.cuda.synchronize()),
     threading.Thread(target=lambda: tf.Session())
@@ -112,32 +112,22 @@ class Model(algorithm.Algorithm):
         self.loss_fn = None
 
         # Set the algorithms to use from the config file
-        self.select_model = getattr(
-            selection,
-            self.config.model_selector
-        )
+        self.select_model = getattr(selection, self.config.model_selector)
         self.select_transformations = getattr(
-            transformations,
-            self.config.transformations_selector
+            transformations, self.config.transformations_selector
         )
-        self.trainer = getattr(
-            training,
-            self.config.trainer
-        )
+        self.trainer = getattr(training, self.config.trainer)
         trainer_args = self.config.trainer_args[self.config.trainer]
-        self.trainer = self.trainer if isinstance(
-            self.trainer,
-            types.FunctionType
-        ) else self.trainer(**trainer_args)
-        self.tester = getattr(
-            testing,
-            self.config.tester
-        )
+        self.trainer = self.trainer if isinstance(self.trainer,
+                                                  types.FunctionType) else self.trainer(
+                                                      **trainer_args
+                                                  )
+        self.tester = getattr(testing, self.config.tester)
         tester_args = self.config.tester_args[self.config.tester]
-        self.tester = self.tester if isinstance(
-            self.tester,
-            types.FunctionType
-        ) else self.tester(**tester_args)
+        self.tester = self.tester if isinstance(self.tester,
+                                                types.FunctionType) else self.tester(
+                                                    **tester_args
+                                                )
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -183,28 +173,20 @@ class Model(algorithm.Algorithm):
 
     def setup_model(self, ds_temp):
         selected = self.select_model(
-            self,
-            ds_temp,
-            **self.config.model_selector_args[
-                self.config.model_selector
-            ]
+            self, ds_temp, **self.config.model_selector_args[self.config.model_selector]
         )
         self.model, self.loss_fn, self.optimizer, self.lr_scheduler = selected
 
     def setup_transforms(self, ds_temp):
         self.transforms = self.select_transformations(
-            self,
-            ds_temp,
-            **self.config.transformations_selector_args[
-                self.config.transformations_selector
-            ]
+            self, ds_temp, **self.config.transformations_selector_args[
+                self.config.transformations_selector]
         )
 
     def split_dataset(self, ds_temp, transform):
         # [train_percent, validation_percent, ...]
         split_percentages = (
-            self.config.dataset_split_ratio
-            / np.sum(self.config.dataset_split_ratio)
+            self.config.dataset_split_ratio / np.sum(self.config.dataset_split_ratio)
         )
         split_num = np.round((self.num_train_samples * split_percentages))
 
@@ -212,13 +194,18 @@ class Model(algorithm.Algorithm):
         # (1/n)^(3*n) to not be included at all in the validation set
         # at least
         if split_num[1] < ds_temp.num_classes * 3 and split_num[1] > 0.:
-            LOGGER.warning('Validation split too small to be representative: {0} < {1}'.format(
-                split_num[1], ds_temp.num_classes * 3
-            ))
-            split_percentages = np.array((
-                self.num_train_samples - (ds_temp.num_classes * 5), (ds_temp.num_classes * 5)
-            ))
-        assert(sum(split_num) == self.num_train_samples)
+            LOGGER.warning(
+                'Validation split too small to be representative: {0} < {1}'.format(
+                    split_num[1], ds_temp.num_classes * 3
+                )
+            )
+            split_percentages = np.array(
+                (
+                    self.num_train_samples - (ds_temp.num_classes * 5),
+                    (ds_temp.num_classes * 5)
+                )
+            )
+        assert (sum(split_num) == self.num_train_samples)
 
         tfdataset = ds_temp.dataset
         tfdataset.shuffle(self.num_train_samples)
@@ -260,14 +247,11 @@ class Model(algorithm.Algorithm):
             ds_val.is_multilabel = ds_temp.is_multilabel
 
         self.train_dl = {
-            'train': TFDataLoader(
-                ds_train,
-                **self.config.dataloader_args['train']
-            ),
-            'val': TFDataLoader(
-                ds_val,
-                **self.config.dataloader_args['train']
-            ) if split_num[1] > 0. else None
+            'train':
+                TFDataLoader(ds_train, **self.config.dataloader_args['train']),
+            'val':
+                TFDataLoader(ds_val, **self.config.dataloader_args['train'])
+                if split_num[1] > 0. else None
         }
 
         if self.config.check_for_shuffling:
@@ -311,33 +295,42 @@ class Model(algorithm.Algorithm):
             self.starting_budget = t_s - self.birthday + remaining_time_budget
             self._tf_train_set = dataset
             # Create a temporary handle to inspect data
-            dataset = dataset.prefetch(
-                self.config.dataloader_args['train']['batch_size']
-            )
+            dataset = dataset.prefetch(self.config.dataloader_args['train']['batch_size'])
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
             ds_temp.scan_all(10)
-            LOGGER.info('SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s))
+            LOGGER.info(
+                'SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s)
+            )
 
             t_s = time.time()
             self.setup_model(ds_temp)
             if self.model is None:
                 return None
             LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
+            LOGGER.info(
+                'FROZEN LAYERS: {}/{}'.format(
+                    len([x for x in self.model.parameters() if not x.requires_grad]),
+                    len([x for x in self.model.parameters()])
+                )
+            )
+
             t_s = time.time()
             self.setup_transforms(ds_temp)
-            LOGGER.info('ADDING TRANSFORMATIONS TOOK: {0:.4f} s'.format(time.time() - t_s))
+            LOGGER.info(
+                'ADDING TRANSFORMATIONS TOOK: {0:.4f} s'.format(time.time() - t_s)
+            )
             t_s = time.time()
             self.setup_train_dataset(dataset, ds_temp)
-            LOGGER.info('SETTING UP THE TRAINSET TOOK: {0:.4f} s'.format(time.time() - t_s))
+            LOGGER.info(
+                'SETTING UP THE TRAINSET TOOK: {0:.4f} s'.format(time.time() - t_s)
+            )
 
             # Finally move the model to gpu
             self.model.to(DEVICE)
             self.loss_fn.to(DEVICE)
             if (
-                USE_AMP
-                and self.config.use_amp
-                and hasattr(self.model, 'amp_compatible')
-                and self.model.amp_compatible
+                USE_AMP and self.config.use_amp and
+                hasattr(self.model, 'amp_compatible') and self.model.amp_compatible
             ):
                 self.model, self.optimizer = amp.initialize(
                     self.model, self.optimizer, **self.config.amp_args
@@ -349,13 +342,8 @@ class Model(algorithm.Algorithm):
         LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl['train'].batch_size))
         train_start = time.time()
         train_args = self.config.trainer_args[
-            self.config.trainer
-        ] if isinstance(self.trainer, types.FunctionType) else {}
-        self.trainer(
-            self,
-            remaining_time_budget,
-            **train_args
-        )
+            self.config.trainer] if isinstance(self.trainer, types.FunctionType) else {}
+        self.trainer(self, remaining_time_budget, **train_args)
 
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
         self.training_round += 1
@@ -370,17 +358,16 @@ class Model(algorithm.Algorithm):
             transform_label=self.transforms['test']['labels']
         )
         loader_args = self.config.dataloader_args['test']
-        self.test_dl = TFDataLoader(
-            ds,
-            **loader_args
-        )
+        self.test_dl = TFDataLoader(ds, **loader_args)
 
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget
         LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
         if self.config.benchmark_time_till_first_prediction:
-            LOGGER.error('TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday))
+            LOGGER.error(
+                'TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday)
+            )
             LOGGER.error('TRAIN ERR SHAPE: {0}'.format(self.trainer.train_err.shape))
             return None
         if self.final_prediction_made:
@@ -389,8 +376,8 @@ class Model(algorithm.Algorithm):
             self.final_prediction_made = True
             self.done_training = True
         if (
-            self.config.earlystop is not None
-            and time.time() - self.birthday > self.config.earlystop
+            self.config.earlystop is not None and
+            time.time() - self.birthday > self.config.earlystop
         ):
             self.done_training = True
             return None
@@ -401,13 +388,11 @@ class Model(algorithm.Algorithm):
             test_initial_batch_size = self.config.dataloader_args['test'].pop(
                 'test_initial_batch_size'
             )
-            self.config.dataloader_args['test'].update({
-                'batch_size': test_initial_batch_size
-            })
-            # Create a temporary handle to inspect data
-            dataset = dataset.prefetch(
-                self.config.dataloader_args['test']['batch_size']
+            self.config.dataloader_args['test'].update(
+                {'batch_size': test_initial_batch_size}
             )
+            # Create a temporary handle to inspect data
+            dataset = dataset.prefetch(self.config.dataloader_args['test']['batch_size'])
             ds_temp = TFDataset(self.session, dataset)
             self.setup_test_dataset(dataset, ds_temp)
 
@@ -415,14 +400,10 @@ class Model(algorithm.Algorithm):
         test_finished = False
         while not test_finished:
             try:
-                test_args = self.config.tester_args[
-                    self.config.tester
-                ] if isinstance(self.tester, types.FunctionType) else {}
-                predicitons = self.tester(
-                    self,
-                    remaining_time_budget,
-                    **test_args
-                )
+                test_args = self.config.tester_args[self.config.tester] if isinstance(
+                    self.tester, types.FunctionType
+                ) else {}
+                predicitons = self.tester(self, remaining_time_budget, **test_args)
                 test_finished = True
             except RuntimeError as e:
                 # If we are out of vram reduce the batchsize by 25 and try again
@@ -430,16 +411,22 @@ class Model(algorithm.Algorithm):
                 if 'CUDA out of memory.' not in e.args[0]:
                     raise e
                 loader_args = self.config.dataloader_args['test']
-                loader_args.update({'batch_size': max(16, int(self.test_dl.batch_size - 25))})
-                self.test_dl.dataset.dataset = self.test_dl.dataset.dataset.prefetch(loader_args['batch_size'])
-                self.test_dl = TFDataLoader(
-                    self.test_dl.dataset,
-                    **loader_args
+                loader_args.update(
+                    {'batch_size': max(16, int(self.test_dl.batch_size - 25))}
                 )
+                self.test_dl.dataset.dataset = self.test_dl.dataset.dataset.prefetch(
+                    loader_args['batch_size']
+                )
+                self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
+                self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
                 self.test_dl.dataset.reset()
                 LOGGER.info('BATCH SIZE CHANGED: {}'.format(self.test_dl.batch_size))
 
-        LOGGER.info('AVERAGE VRAM USAGE: {0:.2f} MB'.format(np.mean(cutorch.memory_cached()) / 1024**2))
+        LOGGER.info(
+            'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
+                np.mean(cutorch.memory_cached()) / 1024**2
+            )
+        )
         LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
         LOGGER.info(80 * '#')
         self.testing_round += 1
