@@ -70,6 +70,7 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
+        freeze_portion: 0.2, # freezes a video network's first percent of layers
         optimizer: 'SGD',
         optim_args: {
           lr: 0.001,
@@ -84,7 +85,6 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
-        freeze_portion: 0.2, # freezes a video network's first percent of layers
         optimizer: 'SGD',
         optim_args: {
           lr: 0.001,
