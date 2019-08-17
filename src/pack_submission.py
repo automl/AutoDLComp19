@@ -35,6 +35,7 @@ if __name__ == "__main__":
 
     filelist = []
     whitelist = []
+    blacklist = ['bohb_config.json']
 
     config = Config(os.path.join(pargs.code_dir, 'config.hjson'))
     for p, f in config.include['packages'].items():
@@ -54,6 +55,7 @@ if __name__ == "__main__":
             if (
                 '__pycache__' in fileabspath
                 or '.gitkeep' in fileabspath
+                or np.any([e in fileabspath for e in blacklist])
             ):
                 continue
             filelist.append(os.path.join(path, name))
