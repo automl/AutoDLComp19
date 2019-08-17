@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     filelist = []
     whitelist = []
-    blacklist = ['src/bohb_config.json']
+    blacklist = ['src/bohb_config.json', 'run.log', '.pth', '.pth.tar', '.tar']
 
     config = Config(os.path.join(pargs.code_dir, 'config.hjson'))
     for p, f in config.include['packages'].items():
@@ -45,23 +45,25 @@ if __name__ == "__main__":
         filelist.append(os.path.join(PYTHON_LIB_PATH, f))
 
     for p in config.include['pretrained_weights']:
-        whitelist.append(os.path.join(PRETRAINED_WEIGHTS_PATH, p))
+        whitelist.append(p)
 
     for path, subdirs, files in os.walk(pargs.code_dir, onerror=print):
-        if PRETRAINED_WEIGHTS_PATH in path:
-            print('Skipping Folder {}'.format(path))
-            continue
         for name in files:
             fileabspath = os.path.join(path, name)
             if (
-                '__pycache__' in fileabspath
-                or '.gitkeep' in fileabspath
-                or np.any([e in fileabspath for e in blacklist])
+                (
+                    '__pycache__' in fileabspath
+                    or '.gitkeep' in fileabspath
+                    or np.any([e in fileabspath for e in blacklist])
+                )
+                and not np.any([e in fileabspath for e in whitelist])
             ):
                 continue
-            filelist.append(os.path.join(path, name))
-
-    filelist += whitelist
+            if not os.path.isfile(fileabspath):
+                print('\033[91mZip does not support symlinks!!!: {}\033[0m'.format(fileabspath))
+                continue
+            print('Adding to zip-list: {}'.format(fileabspath))
+            filelist.append(fileabspath)
 
     if not os.path.isdir(pargs.submission_dir):
         os.mkdir(pargs.submission_dir)
@@ -72,7 +74,6 @@ if __name__ == "__main__":
 
     with zipfile.ZipFile(out_file, 'w') as zfile:
         for f in filelist:
-            print('Adding to archive: {}'.format(f))
             zfile.write(f, f.replace(BASEDIR, ''), zipfile.ZIP_DEFLATED)
         fsize = os.path.getsize(out_file) / 1024.**2
         if fsize > 300.:

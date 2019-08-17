@@ -370,7 +370,6 @@ class Model(algorithm.Algorithm):
             transform_label=self.transforms['test']['labels']
         )
         loader_args = self.config.dataloader_args['test']
-        loader_args.update({'batch_size': 200})
         self.test_dl = TFDataLoader(
             ds,
             **loader_args
@@ -399,6 +398,12 @@ class Model(algorithm.Algorithm):
         dataset_changed = self._tf_test_set != dataset
         if dataset_changed:
             self._tf_test_set = dataset
+            test_initial_batch_size = self.config.dataloader_args['test'].pop(
+                'test_initial_batch_size'
+            )
+            self.config.dataloader_args['test'].update({
+                'batch_size': test_initial_batch_size
+            })
             # Create a temporary handle to inspect data
             dataset = dataset.prefetch(
                 self.config.dataloader_args['test']['batch_size']
@@ -406,7 +411,7 @@ class Model(algorithm.Algorithm):
             ds_temp = TFDataset(self.session, dataset)
             self.setup_test_dataset(dataset, ds_temp)
 
-        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.test_dl.batch_size))
+        LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
         test_finished = False
         while not test_finished:
             try:
