@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import traceback
 import os
 from os.path import join, abspath

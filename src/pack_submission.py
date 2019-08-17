@@ -4,6 +4,7 @@ import zipfile
 import os
 import site
 import subprocess
+import numpy as np
 from utils import Config, BASEDIR
 
 BRANCHNAME = subprocess.check_output(["git", "status"]).strip().decode('utf8').split('\n')[0][10:].replace('/', '_')
@@ -35,7 +36,7 @@ if __name__ == "__main__":
 
     filelist = []
     whitelist = []
-    blacklist = ['bohb_config.json']
+    blacklist = ['src/bohb_config.json']
 
     config = Config(os.path.join(pargs.code_dir, 'config.hjson'))
     for p, f in config.include['packages'].items():
