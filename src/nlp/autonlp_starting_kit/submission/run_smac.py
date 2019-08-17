@@ -61,7 +61,8 @@ def run_autonlp_model(config, **kwargs):
 def run_smac():
     cs = ConfigurationSpace()
 
-    # classifier hyperparams
+    # model hyperparams
+    encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=6, default_value=2, log=False)
     # TODO : increase batch_size upper when running on cluster
     batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=64,
                                               default_value=32, log=False)
@@ -70,7 +71,7 @@ def run_smac():
     classifier_units = UniformIntegerHyperparameter("classifier_units",
                                                     lower=min(metadata['class_num'], 512),
                                                     upper=512, default_value=256, log=False)
-    cs.add_hyperparameters([batch_size, layers, classifier_units])
+    cs.add_hyperparameters([encoder_layers, batch_size, layers, classifier_units])
 
     #preprocessing hyperparameters
     str_cutoff = UniformIntegerHyperparameter("str_cutoff", lower=50, upper=100,
@@ -85,7 +86,9 @@ def run_smac():
     optimizer = CategoricalHyperparameter("optimizer", ["adam", "adamw"], default_value="adam")
     weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
                                               default_value=0.01, log=True)
-    cs.add_hyperparameters([learning_rate, optimizer, weight_decay])
+    stop_count = UniformIntegerHyperparameter("stop_count", lower=2, upper=5, default_value=5,
+                                              log=False)
+    cs.add_hyperparameters([learning_rate, optimizer, weight_decay, stop_count])
     optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
     cs.add_condition(optim_cond)
 
@@ -93,7 +96,7 @@ def run_smac():
     scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternative runtime)
                          "cs": cs,               # configuration space
                          "deterministic": "true",
-                         "runcount_limit": 10})
+                         "runcount_limit": args.runcount})
                          # "wallclock_limit": args.wallclock_time})
 
     # To optimize, we pass the function to the SMAC-object
@@ -122,10 +125,10 @@ parser.add_argument("-d", "--dataset", dest="dataset_id", type=int, default=1, c
                     help='Which dataset to evaluate on from {1, 2, 3, 4, 5}')
 parser.add_argument("-p", "--path", dest="data_dir", type=str, default='offline_data/',
                     help='The path to offline data')
-parser.add_argument('-w', "--wallclock", dest="wallclock_time", type=float, default=300,
-                    help='Total time to run for SMAC in seconds.')
+parser.add_argument('-r', "--runcount", dest="runcount", type=int, default=50,
+                    help='Total evaluations of the model.')
 parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=60,
-                    help='Maximum time for function evaluation.')
+                    help='Maximum time for target function evaluation.')
 
 args, kwargs = parser.parse_known_args()
 
@@ -142,6 +145,6 @@ print("Incumbent configuration: ")
 print(incumbent)
 print("Incumbent Score: {}".format(incumbent_score))
 
-from ConfigSpace.read_and_write import json
+import json
 with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.wallclock_time)), 'w') as f:
-    f.write(json.write(incumbent))
+    json.dump(incumbent.get_dictionary(), f)

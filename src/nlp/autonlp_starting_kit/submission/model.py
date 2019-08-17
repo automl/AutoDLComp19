@@ -18,6 +18,7 @@ import multiprocessing as mp
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import  AdaBoostClassifier
 from sklearn.feature_extraction.text import HashingVectorizer
+from sklearn.model_selection import train_test_split
 
 from sklearn import metrics
 from scoring import autodl_auc
@@ -68,13 +69,15 @@ class AbstractTokenizer():
 
 
 class BertTokenizer():
-    def __init__(self, language='EN', pretrained_path='./'):
+    def __init__(self, bert_metadata, language='EN', pretrained_path='./'):
         super().__init__()
 
-        name = BERT_PRETRAINED[language]['name'] + '-vocab.txt'
+        self.bert_metadata = bert_metadata
+        name = self.bert_metadata[language]['name'] + '-vocab.txt'
         # self.tokenizer = pytrf.BertTokenizer.from_pretrained(name)
         self.tokenizer = pytrf.BertTokenizer(vocab_file=os.path.join(pretrained_path, name),
                                              do_lower_case=True)
+        print("Loaded BERT tokenizer")
 
     # TODO revisit threading
     def _multithreading(self, func, args, workers):
@@ -206,8 +209,8 @@ class TextLoader():
 
 
 class NLPBertClassifier(nn.Module):
-    def __init__(self, metadata, pretrained=None, vocab_size=None, encoder_layers=1, attn_heads=2,
-                 classifier_layers=1, classifier_units=768):
+    def __init__(self, metadata, bert_metadata, pretrained=None, vocab_size=None, encoder_layers=1, attn_heads=2,
+                 classifier_layers=3, classifier_units=768):
         """
         metadata: dict
             metadata from AutoNLP dataset
@@ -229,10 +232,11 @@ class NLPBertClassifier(nn.Module):
         super().__init__()
         self.language = metadata['language']
         self.out_dim = metadata['class_num'] if metadata['class_num'] > 2 else 1
+        self.bert_metadata = bert_metadata
 
-        self.layers = encoder_layers if pretrained is None else BERT_PRETRAINED[self.language]['layers']
-        self.heads = attn_heads if pretrained is None else BERT_PRETRAINED[self.language]['heads']
-        self.vocab_size = vocab_size if pretrained is None else BERT_PRETRAINED[self.language]['vocab']
+        self.layers = encoder_layers if pretrained is None else bert_metadata[self.language]['layers']
+        self.heads = attn_heads if pretrained is None else bert_metadata[self.language]['heads']
+        self.vocab_size = vocab_size if pretrained is None else bert_metadata[self.language]['vocab']
 
         # load BERT
         if pretrained is not None:
@@ -267,9 +271,9 @@ class NLPBertClassifier(nn.Module):
         input dim = (batch_size, sequence_length)
         output dim = (batch_size, num_classes)
         """
-        _, x = self.bert(x, attention_mask=mask)
+        x, _ = self.bert(x, attention_mask=mask)
         # average over sequence length
-        # x = torch.mean(x, dim=1)
+        x = torch.mean(x, dim=1)
         x = self.relu(x)
         x = self.classifier(x)
         return x
@@ -290,7 +294,11 @@ class NLPBertClassifier(nn.Module):
 
         # load pretrained model
         self.bert.half()
-        self.bert.load_state_dict(torch.load(os.path.join(pretrained_path, BERT_PRETRAINED[self.language]['file'])))
+        # example model names: bert_english_1.model, bert_chinese_5.model
+        model_name = "{}_{}.{}".format(self.bert_metadata[self.language]['file'].split('.')[0],
+                                       self.bert_metadata[self.language]['layers'],
+                                       self.bert_metadata[self.language]['file'].split('.')[1])
+        self.bert.load_state_dict(torch.load(os.path.join(pretrained_path, model_name)))
         self.bert.float()
 
         # disable gradient for bert embedding layer
@@ -518,6 +526,7 @@ class Model(object):
         self.batch_alpha = 1.2  # multiplier to update batch training probability
         self.train_epochs = np.inf  # num of epochs to train before done_training=True
         self.naive_limit = 2  # num of train runs before testing using network
+        self.test_runtime = None  # time taken for inference of test_dataset
 
         # to split train into train & validation
         self.split_ratio = split_ratio if split_ratio else 1.0
@@ -526,6 +535,10 @@ class Model(object):
         # self.pretrained_path = '/content/'
         self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
 
+        self.BERT_PRETRAINED = {
+            'EN': {'layers': 2, 'heads': 3, 'vocab': 30522, 'file': 'bert_english.model', 'name': 'bert-base-uncased'},
+            'ZH': {'layers': 2, 'heads': 3, 'vocab': 21128, 'file': 'bert_chinese.model', 'name': 'bert-base-chinese'}
+        }
         if config is None:
             self.classifier_layers = 2
             self.classifier_units = 256
@@ -534,6 +547,7 @@ class Model(object):
             self.str_cutoff = 90  # percentile of total length
             self.features = 2000
             self.weight_decay = 0.01
+            self.stop_count = 5
         else:
             self.classifier_layers = config['classifier_layers']
             self.classifier_units = config['classifier_units']
@@ -542,23 +556,21 @@ class Model(object):
             self.str_cutoff = config['str_cutoff']
             self.features = config['features']
             self.weight_decay = config['weight_decay']
+            self.BERT_PRETRAINED['layers'] = config['layers']
+            self.stop_count = config['stop_count']
 
-
-        self.warmum_steps = 100
-        self.t_total = 500
+        # self.warmum_steps = 100
+        # self.t_total = 500
 
         # create tokenizer
-        self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
+        self.tokenizer = BertTokenizer(self.BERT_PRETRAINED, self.metadata['language'], self.pretrained_path)
 
         # initialize model, optimizer
-        self.model = NLPBertClassifier(metadata, pretrained=self.pretrained_path,
+        self.model = NLPBertClassifier(metadata, bert_metadata=self.BERT_PRETRAINED,
+                                       pretrained=self.pretrained_path,
                                        classifier_layers=self.classifier_layers,
                                        classifier_units=self.classifier_units)
-        #         self.model = NLPBertClassifier(metadata, pretrained=None,
-        #                                        vocab_size=BERT_PRETRAINED[self.metadata['language']]['vocab'],
-        #                                        encoder_layers=1, attn_heads=4,
-        #                                        classifier_layers=self.classifier_layers,
-        #                                        classifier_units=self.classifier_units)
+
         self.model.to(device)
 
         if config is not None and config['optimizer'] == "adamw":
@@ -566,19 +578,11 @@ class Model(object):
                                          weight_decay=self.weight_decay)
         else:
             self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        #         self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
-        #         self.optimizer = optim.Adam([
-        #                 {"params": self.model.bert.parameters(), "lr": 1e-3},
-        #                 {"params": self.model.classifier.parameters(), "lr": 1e-3}],
-        #             lr=1e-3)
-        #         self.optimizer = pytrf.WarmupCosineSchedule(
-        #             optim.Adam(self.model.parameters(), lr=self.learning_rate),
-        #             warmup_steps=self.warmum_steps, t_total=self.t_total)
 
         self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
             else nn.CrossEntropyLoss()
 
-        # to store train dataset to avoid tokenizing again
+        # to store train dataset and avoid tokenizing again
         self.train_loader = None
         self.test_loader = None
 
@@ -591,20 +595,23 @@ class Model(object):
                      here `sample_count` is the number of examples in this dataset as train
                      set and `class_num` is the same as the class_num in metadata. The
                      values should be binary.
-        :param remaining_time_budget:
+        :param remaining_time_budget: float
         """
         if self.done_training:
             return
 
-        # Running Naive classical model at the start (train_run_count=0)
+        # Running Naive classical model at the start (run_count=0)
         if self.run_count == 0:
             x_train, y_train = train_dataset
 
             if self.split_ratio < 1:
-                # split train data into training & validation
-                train_samples = int(len(x_train) * self.split_ratio)
-                valid_dataset = (x_train[-train_samples:], y_train[-train_samples:])
-                train_dataset = (x_train[:train_samples], y_train[:train_samples])
+                # Stratified split to create representative validation set
+                x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train,
+                                                                      test_size=1-self.split_ratio,
+                                                                      stratify=ohe2cat(y_train))
+                valid_dataset = (x_valid, y_valid)
+                train_dataset = (x_train, y_train)
+
                 self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset,
                                                                                   cutoff=self.str_cutoff)
 
@@ -621,7 +628,7 @@ class Model(object):
             if self.split_ratio < 1:
                 naive_valid = self.naive.test(self.preprocessed_valid_dataset[0])
                 self.best_valid_score = self.score_fn(self.preprocessed_valid_dataset[1], naive_valid)
-                print(self.epochs + 1, 'Score:', self.best_valid_score)
+                print('Score = ', self.best_valid_score)
             self.run_count += 1
             return
 
@@ -656,33 +663,53 @@ class Model(object):
 
             print('Data loading time: ', time.time() - load_time)
 
+        # tracker to check if validation score doesn't improve against self.stop_count
+        not_improved_count = 0
         # train model until it performs better than the current best valid score
         epoch_time = time.time()
-        while True:
+        while not self.done_training:
+            print('---', self.epochs + 1, '---')
             train_time = time.time()
             self._train(self.train_loader, verbose, interval)
             print('Train time:', time.time() - train_time)
-            self.epochs += 1
 
+            # update stats
+            self.epochs += 1
+            if self.epochs > self.train_epochs:
+                # Signals end of program (training)
+                self.done_training = True
+
+            # validation test
             if self.split_ratio < 1:
                 valid_time = time.time()
                 y_valid, score = self._evaluate(self.valid_loader, verbose, interval)
                 print('Valid time:', time.time() - valid_time)
-                print(self.epochs + 1, 'Score:', score)
+                print('Score = ', score)
 
                 if score > self.best_valid_score:
                     self.best_valid_score = score
+                    # signal from the validation set score to fetch new test evaluations
+                    self.update_test = True
                     break
+                else:
+                    self.update_test = False
+                    not_improved_count += 1
+                    if not_improved_count > self.stop_count:
+                        # Signals end of program (training)
+                        self.done_training = True
+                        return
             else:
                 break
 
-            # update stats
-            if self.epochs > self.train_epochs:
-                self.done_training = True
-                break
-        print('Total train step time: ', time.time() - epoch_time)
-
+        epoch_runtime = time.time() - epoch_time
+        print('Total train step time: ', epoch_runtime)
         self.run_count += 1
+
+        if remaining_time_budget is not None and remaining_time_budget < epoch_runtime:
+            # Not enough time left for one more epoch
+            # Signals end of program (training)
+            self.done_training = True
+            return
 
     def _train(self, loader, verbose=False, interval=100):
         ''' trains model on the given data loader '''
@@ -760,12 +787,15 @@ class Model(object):
     def test(self, x_test, remaining_time_budget=None, verbose=False, interval=100):
         """
         :param x_test: list of str, input test sentences.
-        :param remaining_time_budget:
+        :param remaining_time_budget: float
         :return: A `numpy.ndarray` matrix of shape (sample_count, class_num).
                  here `sample_count` is the number of examples in this dataset as test
                  set and `class_num` is the same as the class_num in metadata. The
                  values should be binary or in the interval [0,1].
         """
+        if remaining_time_budget is not None and self.test_runtime is not None and remaining_time_budget < self.test_runtime:
+            return self.latest_test_preds
+
         # TODO smarter switch
         if self.run_count < self.naive_limit:  # return naive preds for first few runs
             if self.preprocessed_test_dataset is None:
@@ -773,7 +803,13 @@ class Model(object):
 
             if self.naive_preds is None:
                 self.naive_preds = self.naive.test(self.preprocessed_test_dataset)
+
+            self.latest_test_preds = self.naive_preds
             return self.naive_preds
+
+        # Return previously found predictions if validation score (self.best_valid_score) hasn't improved
+        if self.update_test is not True:
+            return self.latest_test_preds
 
         # create dataloader
         if self.test_loader is None:
@@ -793,11 +829,13 @@ class Model(object):
 
         epoch_time = time.time()
         y_test, _ = self._evaluate(self.test_loader, verbose, interval)
-        print('Test time: ', time.time() - epoch_time)
+        self.test_runtime = time.time() - epoch_time
+        print('Test time: ', self.test_runtime)
 
         # get original order back if sorted
         if self.test_loader.sort:
             orig_order = self.test_loader.indices.argsort()
             y_test = y_test[orig_order]
 
+        self.latest_test_preds = y_test
         return y_test
