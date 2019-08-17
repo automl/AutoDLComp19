@@ -4,6 +4,7 @@ The starting kit is available [here](https://github.com/zhengying-liu/autodl_sta
 
 
 ## Benchmark Results
+If your IDE supports previewing of the this README, "Yours" will show the results of the last run benchmark.
 
 | |Hammer|Kraut|Kreatur|Pedro|Ucf101|
 |-|------|-----|-------|-----|------|
