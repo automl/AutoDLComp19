@@ -114,7 +114,7 @@ def test_selector(autodl_model, dataset, selection_args):
         kakaomodel = torch.hub.load(
             'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata
         )
-        LOGGER.info('LETTING SOMEONE ESLE FLY OUR BANANA PLANE!')
+        LOGGER.info('LETTING SOMEONE ELSE FLY OUR BANANA PLANE!')
         LOGGER.info('BRACE FOR IMPACT!')
         LOGGER.info('AND REMEMBER THAT I AM NOT RESPONSABLE!')
         autodl_model.train = EarlyStop(kakaomodel.train, autodl_model)
