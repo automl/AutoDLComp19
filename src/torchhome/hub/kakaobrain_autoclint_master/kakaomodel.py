@@ -25,6 +25,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 LOGGER = get_logger(__name__)
 
 
+# TODO(Philipp): Create symlinks kakaobrain needs which might not be included in the zip
 class KakaoModel(LogicModel):
     def __init__(self, metadata):
         super(KakaoModel, self).__init__(metadata)
