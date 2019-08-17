@@ -24,7 +24,6 @@ from scoring import autodl_auc
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 SEED = 42
-random.seed(SEED)
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
