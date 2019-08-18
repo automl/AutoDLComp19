@@ -13,6 +13,7 @@
       ]
     },
     pretrained_weights: [ # List the pretrained weight you want packsubmission.py to include
+      BnT_Video_input_128.pth.tar
       Averagenet_RGB_Kinetics_128.pth.tar
       resnet18-5c106cde.pth
     ]
@@ -28,7 +29,7 @@
 
   # General
   log_level: 'DEBUG',
-  earlystop: 180, # How many seconds shall we ingest
+  earlystop: 300, # How many seconds shall we ingest
   check_for_shuffling: false,
   benchmark_transformations: false,
   benchmark_time_till_first_prediction: false,
@@ -60,7 +61,11 @@
 
 
   # Model and Optimizer selection algorithms
+<<<<<<< HEAD
   model_selector: 'test_selector',
+=======
+  model_selector: 'baseline_selector',
+>>>>>>> e4aa85183816d769f379c907f3aaa361a6ef8758
   model_selector_args: {
     baseline_selector: {
       selection_args: {
@@ -69,6 +74,7 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
+        freeze_portion: 0.2, # freezes a video network's first percent of layers
         optimizer: 'SGD',
         optim_args: {
           lr: 0.001,
@@ -83,8 +89,11 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
+<<<<<<< HEAD
         freeze_portion: 0.2, # freezes a video network's first percent of layers
 	momentum: 0.9,
+=======
+>>>>>>> e4aa85183816d769f379c907f3aaa361a6ef8758
         optimizer: 'SGD',
         optim_args: {
           lr: 0.001,

@@ -71,7 +71,7 @@ class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
         self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
-        bohb_conf_path = os.path.join(BASEDIR, 'bohb_config.json')
+        bohb_conf_path = os.path.join(BASEDIR, 'sideload_config.json')
         if os.path.isfile(bohb_conf_path):
             self.side_load_config(bohb_conf_path)
 
@@ -153,10 +153,10 @@ class Model(algorithm.Algorithm):
 
     def side_load_config(self, bohb_conf_path):
         '''
-        This overrides all setting config defined in the bohb_config
+        This overrides all setting config defined in the sideload_config
         with the only requirement that their type must match
 
-        ATTENTION: If bohb_config.json can define dictionaries as values as well
+        ATTENTION: If sideload_config.json can define dictionaries as values as well
         so it is possible to overwrite a whole subhirachy.
         '''
         with open(bohb_conf_path, 'r') as file:
@@ -413,9 +413,6 @@ class Model(algorithm.Algorithm):
                 loader_args = self.config.dataloader_args['test']
                 loader_args.update(
                     {'batch_size': max(16, int(self.test_dl.batch_size - 25))}
-                )
-                self.test_dl.dataset.dataset = self.test_dl.dataset.dataset.prefetch(
-                    loader_args['batch_size']
                 )
                 self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
                 self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)

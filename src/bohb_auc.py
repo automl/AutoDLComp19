@@ -1,9 +1,9 @@
-import random
-import traceback
-import time
 import json
 import os
-from os.path import join, abspath
+import random
+import time
+import traceback
+from os.path import abspath, join
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -18,31 +18,41 @@ from utils import BASEDIR
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
-    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_segments', lower=1, upper=16, log=False))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size', choices=[16, 32, 64, 128]))
+    cs.add_hyperparameter(
+        CSH.UniformIntegerHyperparameter(
+            name='num_segments', lower=1, upper=16, log=False
+        )
+    )
+    cs.add_hyperparameter(
+        CSH.CategoricalHyperparameter(name='batch_size', choices=[16, 32, 64, 128])
+    )
     return cs
 
 
 def get_configuration():
     cfg = {}
-    cfg["dataset_base_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data'))
+    cfg["dataset_base_dir"] = abspath(
+        join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data')
+    )
     cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
     cfg["code_dir"] = BASEDIR
-    cfg["score_dir"] = abspath(join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output'))
-    cfg["bohb_min_budget"] = 30
-    cfg["bohb_max_budget"] = 300
+    cfg["score_dir"] = abspath(
+        join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
+    )
+    cfg["bohb_min_budget"] = 180
+    cfg["bohb_max_budget"] = 180
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = abspath(join(
-        BASEDIR,
-        os.pardir,
-        'bohb_logs',
-        time.strftime("%Y%m%d_%H%M%S", time.gmtime())
-    ))
+    cfg["bohb_log_dir"] = abspath(
+        join(
+            BASEDIR, os.pardir, 'bohb_logs',
+            time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+        )
+    )
     return cfg
 
 
 def write_config_to_file(cfg):
-    path = join(BASEDIR, 'bohb_config.json')
+    path = join(BASEDIR, 'sideload_config.json')
 
     with open(path, 'w') as file:
         json.dump(cfg, file)
@@ -68,7 +78,9 @@ def read_final_score_from_file(path):
 
 
 def move_config(target_path):
-    os.rename(join(BASEDIR, 'bohb_config.json'), join(target_path, 'bohb_config.json'))
+    os.rename(
+        join(BASEDIR, 'sideload_config.json'), join(target_path, 'sideload_config.json')
+    )
 
 
 class BOHBWorker(Worker):
@@ -110,10 +122,7 @@ class BOHBWorker(Worker):
         print('FINAL SCORE: ' + str(score))
         print("END BOHB ITERATION")
 
-        return {
-            "loss": -score,
-            "info": info
-        }
+        return {"loss": -score, "info": info}
 
 
 def runBOHB(cfg):
