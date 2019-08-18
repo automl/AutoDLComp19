@@ -112,7 +112,8 @@ def test_selector(autodl_model, dataset, selection_args):
     )
     if dataset.mean_shape[0] == 1:  # image network
         kakaomodel = torch.hub.load(
-            'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata
+            'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata,
+            parser_args=selection_args
         )
         LOGGER.info('LETTING SOMEONE ESLE FLY OUR BANANA PLANE!')
         LOGGER.info('BRACE FOR IMPACT!')

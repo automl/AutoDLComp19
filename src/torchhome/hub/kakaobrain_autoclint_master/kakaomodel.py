@@ -27,9 +27,24 @@ LOGGER = get_logger(__name__)
 
 # TODO(Philipp): Create symlinks kakaobrain needs which might not be included in the zip
 class KakaoModel(LogicModel):
-    def __init__(self, metadata):
+    def __init__(self, metadata, parser_args=None):
         super(KakaoModel, self).__init__(metadata)
         self.use_test_time_augmentation = False
+
+        # arguments from configuration file
+        if parser_args is not None:
+            self.hyper_params['optimizer']['lr'] = parser_args['lr']
+            self.hyper_params['optimizer']['optimizer'] = parser_args['optimizer']
+            self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
+            self.hyper_params['optimizer']['weight_decay'] = parser_args['weight_decay']
+            #self.hyper_params['dataset']['batch_size'] = parser_args.batch_size_train
+            #self.hyper_params['dataset']['batch_size_test'] = parser_args.batch_size_test
+            self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
+
+            print('PARSER_ARGS')
+            print(parser_args)
+            print('###########################')
+            print(self.hyper_params['model']['freeze_portion'])
 
     def build(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -54,7 +69,9 @@ class KakaoModel(LogicModel):
             model_path = os.path.join(base_dir, 'models')
             LOGGER.info('model path: %s', model_path)
 
-            self.model.init(model_dir=model_path, gain=1.0)
+            print(self.hyper_params['model']['freeze_portion'])
+            self.model.init(model_dir=model_path, gain=1.0,
+                            freeze_portion=self.hyper_params['model']['freeze_portion'])
         else:
             self.model.init(gain=1.0)
         # torch.cuda.synchronize()
@@ -94,9 +111,10 @@ class KakaoModel(LogicModel):
 
         warmup_multiplier = 2.0
         lr_multiplier = max(1.0, batch_size / 32)
+        lr = self.hyper_params['optimizer']['lr']
         scheduler_lr = skeleton.optim.gradual_warm_up(
             skeleton.optim.get_reduce_on_plateau_scheduler(
-                0.025 * lr_multiplier / warmup_multiplier,
+                lr * lr_multiplier / warmup_multiplier,
                 patience=10, factor=.5, metric_name='train_loss'
             ),
             warm_up_epoch=5,
@@ -104,13 +122,13 @@ class KakaoModel(LogicModel):
         )
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
-            torch.optim.SGD,
+            eval("torch.optim."+self.hyper_params['optimizer']['optimizer']),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=0.9,
-            weight_decay=0.001 * 1 / 4,
+            momentum=self.hyper_params['optimizer']['momentum'],
+            weight_decay=self.hyper_params['optimizer']['weight_decay'] * 1 / 4,
             nesterov=True
         )
         LOGGER.info('[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__, batch_size)

@@ -59,6 +59,15 @@ class LogicModel(Model):
 
         # TODO: adaptive logic for hyper parameter
         self.hyper_params = {
+            'model': {
+                'freeze_portion': 0.0,
+            },
+            'optimizer': {
+                'optimizer': 'SGD',
+                'momentum': 0.9,
+                'lr': 0.025,
+                'weight_decay': 0.001,
+            },
             'dataset': {
                 'train_info_sample': 256,
                 'cv_valid_ratio': 0.1,

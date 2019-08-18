@@ -54,12 +54,25 @@ class ResNet18(models.ResNet):
         self._half = False
         self._class_normalize = True
 
-    def init(self, model_dir, gain=1.):
+    def init(self, model_dir, gain=1., freeze_portion=0.0):
         sd = model_zoo.load_url(model_urls['resnet18'], model_dir=model_dir)
         # sd = model_zoo.load_url(model_urls['resnet34'], model_dir='./models/')
         del sd['fc.weight']
         del sd['fc.bias']
         self.load_state_dict(sd, strict=False)
+
+        # NOTE: freeze layers except the last linear layer; this has to be
+        # learned eventually
+        print('###################')
+        print(freeze_portion)
+        n_params = len([x for x in self.parameters()])
+        print(n_params)
+        for i, param in enumerate(self.parameters()):
+            if i < freeze_portion * n_params:
+                param.requires_grad = False
+                print(param.requires_grad)
+
+        sys.exit(0)
 
         for idx in range(len(self.stem)):
             m = self.stem[idx]

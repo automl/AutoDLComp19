@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import logging
+import inspect
 
 import torch
 
@@ -16,13 +17,14 @@ class ScheduledOptimizer:
         self.steps_per_epoch = steps_per_epoch
         self.clip_grad_max_norm = clip_grad_max_norm
         self._opt_params = opt_params
+        self.optimizer = optimizer
 
         self._optimizer = optimizer(parameters, **self.update_params(0))
 
     def update_params(self, epoch=None, **kwargs):
         return {
             k: v(self.epoch if epoch is None else epoch, **kwargs) if callable(v) else v
-            for k, v in self._opt_params.items()
+            for k, v in self._opt_params.items() if k in inspect.getargspec(self.optimizer)[0]
         }
 
     def update(self, epoch=None, **kwargs):
