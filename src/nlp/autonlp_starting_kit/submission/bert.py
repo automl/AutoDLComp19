@@ -6,8 +6,8 @@ import numpy as np
 import os
 import time
 from functools import partial
-# from concurrent.futures import ThreadPoolExecutor
-# import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing as mp
 
 
 BERT_PRETRAINED = {
@@ -44,21 +44,21 @@ class BertTokenizer():
         print("Loaded BERT tokenizer")
 
     # TODO revisit threading
-    # def _multithreading(self, func, args, workers):
-    #     begin_time = time.time()
-    #     # print("Threading with {} workers".format(workers))
-    #     with ThreadPoolExecutor(max_workers=workers) as executor:
-    #         res = executor.map(func, args)
-    #     return list(res)
-    #
-    # def _multiprocessing(self, func, args, workers):
-    #     begin_time = time.time()
-    #     # print("Threading with {} workers".format(workers))
-    #     p = mp.Pool(workers)
-    #     res = p.map(func, args)
-    #     p.close()
-    #     p.join()
-    #     return res
+    def _multithreading(self, func, args, workers):
+        begin_time = time.time()
+        # print("Threading with {} workers".format(workers))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            res = executor.map(func, args)
+        return list(res)
+
+    def _multiprocessing(self, func, args, workers):
+        begin_time = time.time()
+        # print("Threading with {} workers".format(workers))
+        p = mp.Pool(workers)
+        res = p.map(func, args)
+        p.close()
+        p.join()
+        return res
 
     def tokenize_text(self, text, max_str_len, max_tok_len=512):
         max_tok_len = max_tok_len - 3  # to account for [CLS] and [SEP]

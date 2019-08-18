@@ -146,7 +146,7 @@ parser.add_argument('-r', "--runcount", dest="runcount", type=int, default=50,
                     help='Total evaluations of the model.')
 parser.add_argument('-w', "--wallclock", dest="wallclock", type=float, default=300,
                     help='Total wallclock time to run SMAC in seconds.')
-parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=600,
+parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=60,
                     help='Maximum time for target function evaluation.')
 
 args, kwargs = parser.parse_known_args()

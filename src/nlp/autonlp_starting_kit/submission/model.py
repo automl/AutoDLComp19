@@ -9,11 +9,6 @@ import torch.optim as optim
 import os
 
 import re
-# import multiprocessing as mp
-
-# if not mp.get_start_method() == 'spawn':  # fix for cuda runtime error with multiprocessing
-#     print('Setting multiprocessing context.....')
-#     mp.set_start_method('spawn', force=True)
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import  AdaBoostClassifier
