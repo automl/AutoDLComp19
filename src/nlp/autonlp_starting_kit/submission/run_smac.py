@@ -83,7 +83,7 @@ def run_smac():
     # TODO : increase batch_size upper when running on cluster
     batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=128,
                                               default_value=32, log=False)
-    layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=3,
+    layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=5,
                                               default_value=2, log=False)
     classifier_units = UniformIntegerHyperparameter("classifier_units", lower=32, upper=512,
                                                     default_value=256, log=False)
@@ -114,6 +114,7 @@ def run_smac():
                          "deterministic": "true",
                          "runcount_limit": args.runcount,
                          "wallclock_limit": args.wallclock,
+                         "abort_on_first_run_crash": False,
                          "output_dir": out_dir})
 
     # To optimize, we pass the function to the SMAC-object
