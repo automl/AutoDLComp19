@@ -52,9 +52,12 @@ def run_autonlp_model(config, **kwargs):
             # Training loop
             while True:  # num_epochs = inf (till timeout)
                 M.train(train_dataset)
+                preds = M.test(test_x)
+                if M.done_training:
+                    break
     except TimeoutException as e:
         print(e)
-    preds = M.test(test_x)
+    #preds = M.test(test_x)
     score = autodl_auc(test_y.astype(int), preds.astype(int))
     print("run_autonlp_model score: {}".format(score))
     return -1*score  # since smac minimizes
@@ -119,12 +122,12 @@ def run_smac():
 
     print('SMAC optimization begins !')
     print('---'*40)
-    try:
-        incumbent = smac.optimize()
-        print("try")
-    except:
-        incumbent = smac.solver.incumbent
-        print("except")
+    #try:
+    incumbent = smac.optimize()
+    #    print("try")
+    #except:
+    #    incumbent = smac.solver.incumbent
+    #    print("except")
     print("Inside SMAC, incumbent found: ")
     print(incumbent)
     incumbent = cs.get_default_configuration()
@@ -166,7 +169,8 @@ incumbent, incumbent_score = run_smac()
 
 print("Incumbent configuration: ")
 print(incumbent)
-print("Incumbent Score: {}".format(incumbent_score))
+print("Incumbent Score: {}".format(-1 * incumbent_score))
+print("=" * 40)
 
 with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.cutoff)), 'w') as f:
     json.dump(incumbent.get_dictionary(), f)
