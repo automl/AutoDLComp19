@@ -621,7 +621,7 @@ class Model(object):
                 return self.naive_preds
 
         # Return previously found predictions if validation score (self.best_valid_score) hasn't improved
-        if not self.update_test and self.latest_test_preds:
+        if not self.update_test and self.latest_test_preds is not None:
             return self.latest_test_preds
 
         # create dataloader
