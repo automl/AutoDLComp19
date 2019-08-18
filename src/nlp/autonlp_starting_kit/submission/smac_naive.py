@@ -8,7 +8,7 @@ import json
 from smac.configspace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
     UniformFloatHyperparameter, UniformIntegerHyperparameter
-from ConfigSpace.conditions import EqualsCondition
+from ConfigSpace.conditions import EqualsCondition, AndConjunction
 
 from smac.scenario.scenario import Scenario
 from smac.facade.smac_hpo_facade import SMAC4HPO
@@ -19,8 +19,6 @@ sys.path.append('../../')
 
 from model import Model
 from scoring import autodl_auc
-# from autonlp_starting_kit.AutoDL_scoring_program.libscores import auc_metric
-from autonlp_starting_kit.AutoDL_ingestion_program.ingestion import Timer, TimeoutException
 from autonlp_starting_kit.AutoDL_ingestion_program.dataset import AutoNLPDataset
 
 
@@ -38,26 +36,15 @@ def load_test_dataset(num = 1):
 
 
 def run_autonlp_model(config, **kwargs):
-    timeout = kwargs['cutoff'] if 'cutoff' in kwargs else args.cutoff
-
-    timer = Timer()
-    timer.set(timeout)
 
     # ASSUME: train and test dataset defined in the script
     test_x, test_y = test_dataset
 
     M = Model(metadata=metadata, config=config)
-    try:
-        with timer.time_limit('training'):
-            # Training loop
-            while True:  # num_epochs = inf (till timeout)
-                M.train(train_dataset)
-                preds = M.test(test_x)
-                if M.done_training:
-                    break
-    except TimeoutException as e:
-        print(e)
-    #preds = M.test(test_x)
+    # train & evaluate model
+    M.train(train_dataset)
+    preds = M.test(test_x)
+
     score = autodl_auc(test_y.astype(int), preds.astype(int))
     print("run_autonlp_model score: {}".format(score))
     return -1*score  # since smac minimizes
@@ -71,42 +58,36 @@ def run_smac():
 
     cs = ConfigurationSpace()
 
-    # model hyperparams
-    if dataset.get_metadata()['language'] == 'EN':
-        transformer_choices = ['bert', 'xlnet']
-    else:
-        transformer_choices = ['bert']
+    # preprocessing hyperparameters
+    str_cutoff = UniformIntegerHyperparameter("str_cutoff", 50, 100, default_value=75, log=False)
+    cs.add_hyperparameters([str_cutoff])
 
-    transformer = CategoricalHyperparameter("transformer", transformer_choices, default_value="bert")
-    classifier = CategoricalHyperparameter("classifier", ["lr", "ada"], default_value="ada")
-    encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=5, default_value=2, log=False)
-    # TODO : increase batch_size upper when running on cluster
-    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=128,
-                                              default_value=32, log=False)
-    layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=5,
-                                              default_value=2, log=False)
-    classifier_units = UniformIntegerHyperparameter("classifier_units", lower=32, upper=512,
-                                                    default_value=256, log=False)
-    cs.add_hyperparameters([transformer, classifier, encoder_layers, batch_size, layers, classifier_units])
+    # naive classifier parameters
+    classifier = CategoricalHyperparameter("classifier", ["lr", "ada", "svc"], default_value="ada")
+    features = UniformIntegerHyperparameter("features", 500, 3000, default_value=2000, log=False)
+    cs.add_hyperparameters([classifier, features])
 
-    #preprocessing hyperparameters
-    str_cutoff = UniformIntegerHyperparameter("str_cutoff", lower=50, upper=100,
-                                                default_value=75, log=False)
-    features = UniformIntegerHyperparameter("features", lower=500, upper=3000,
-                                            default_value=2000, log=False)
-    cs.add_hyperparameters([str_cutoff, features])
+    # add LR parameters
+    lr_multi = CategoricalHyperparameter('lr_multi', ['ovr', 'multinomial'], default_value='multinomial')
+    lr_opt = CategoricalHyperparameter('lr_opt', ['lbfgs', 'saga', 'newton-cg'], default_value = 'lbfgs')
+    cs.add_hyperparameters([lr_multi, lr_opt])
+    lr_multi_cond = EqualsCondition(lr_multi, classifier, 'lr')
+    lr_opt_cond = EqualsCondition(lr_opt, classifier, 'lr')
+    cs.add_conditions([lr_multi_cond, lr_opt_cond])
 
-    # training hyperparams
-    learning_rate = UniformFloatHyperparameter("learning_rate", lower=0.0001, upper=0.1,
-                                               default_value=0.001, log=True)
-    optimizer = CategoricalHyperparameter("optimizer", ["adam", "adamw"], default_value="adam")
-    weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
-                                              default_value=0.01, log=True)
-    stop_count = UniformIntegerHyperparameter("stop_count", lower=1, upper=15, default_value=5,
-                                              log=False)
-    cs.add_hyperparameters([learning_rate, optimizer, weight_decay, stop_count])
-    optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
-    cs.add_condition(optim_cond)
+    # add AdaBoost parameters
+    ada_estimators = UniformIntegerHyperparameter('ada_estimators', 10, 100, default_value=50, log=False)
+    ada_rate = UniformFloatHyperparameter('ada_rate', 0.01, 1, default_value=1, log=False)
+    cs.add_hyperparameters([ada_estimators, ada_rate])
+    ada_estim_cond = EqualsCondition(ada_estimators, classifier, 'ada')
+    ada_rate_cond = EqualsCondition(ada_rate, classifier, 'ada')
+    cs.add_conditions([ada_estim_cond, ada_rate_cond])
+
+    # add SVC parameters
+    svc_kernel = CategoricalHyperparameter('svc_kernel', ['rbf', 'poly'], default_value='rbf')
+    cs.add_hyperparameters([svc_kernel])
+    svc_kernel_cond = EqualsCondition(svc_kernel, classifier, 'svc')
+    cs.add_conditions([svc_kernel_cond])
 
     # SMAC scenario oject
     scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternative runtime)
@@ -114,7 +95,8 @@ def run_smac():
                          "deterministic": "true",
                          "runcount_limit": args.runcount,
                          "wallclock_limit": args.wallclock,
-                         "abort_on_first_run_crash": False,
+                         # "abort_on_first_run_crash": False,
+                         "cutoff": args.cutoff,
                          "output_dir": out_dir})
 
     # To optimize, we pass the function to the SMAC-object
@@ -148,9 +130,9 @@ parser.add_argument("-p", "--path", dest="data_dir", type=str, default='offline_
                     help='The path to offline data')
 parser.add_argument('-r', "--runcount", dest="runcount", type=int, default=50,
                     help='Total evaluations of the model.')
-parser.add_argument('-w', "--wallclock", dest="wallclock", type=float, default=300,
+parser.add_argument('-w', "--wallclock", dest="wallclock", type=float, default=3000,
                     help='Total wallclock time to run SMAC in seconds.')
-parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=60,
+parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=10,
                     help='Maximum time for target function evaluation.')
 
 args, kwargs = parser.parse_known_args()
