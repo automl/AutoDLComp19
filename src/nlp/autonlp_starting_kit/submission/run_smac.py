@@ -44,7 +44,7 @@ def run_autonlp_model(config, **kwargs):
     # ASSUME: train and test dataset defined in the script
     test_x, test_y = test_dataset
 
-    M = Model(metadata, config)
+    M = Model(metadata=metadata, config=config)
     try:
         with timer.time_limit('training'):
             # Training loop
@@ -62,21 +62,21 @@ def run_smac():
     cs = ConfigurationSpace()
 
     # model hyperparams
+    classifier = CategoricalHyperparameter("classifier", ["lr", "ada"], default_value="ada")
     encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=6, default_value=2, log=False)
     # TODO : increase batch_size upper when running on cluster
-    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=64,
+    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=256,
                                               default_value=32, log=False)
     layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=3,
                                               default_value=2, log=False)
-    classifier_units = UniformIntegerHyperparameter("classifier_units",
-                                                    lower=min(metadata['class_num'], 512),
-                                                    upper=512, default_value=256, log=False)
-    cs.add_hyperparameters([encoder_layers, batch_size, layers, classifier_units])
+    classifier_units = UniformIntegerHyperparameter("classifier_units", lower=32, upper=512,
+                                                    default_value=256, log=False)
+    cs.add_hyperparameters([classifier, encoder_layers, batch_size, layers, classifier_units])
 
     #preprocessing hyperparameters
     str_cutoff = UniformIntegerHyperparameter("str_cutoff", lower=50, upper=100,
                                                 default_value=75, log=False)
-    features = UniformIntegerHyperparameter("features", lower=500, upper=2500,
+    features = UniformIntegerHyperparameter("features", lower=500, upper=3000,
                                             default_value=2000, log=False)
     cs.add_hyperparameters([str_cutoff, features])
 
@@ -86,7 +86,7 @@ def run_smac():
     optimizer = CategoricalHyperparameter("optimizer", ["adam", "adamw"], default_value="adam")
     weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
                                               default_value=0.01, log=True)
-    stop_count = UniformIntegerHyperparameter("stop_count", lower=2, upper=5, default_value=5,
+    stop_count = UniformIntegerHyperparameter("stop_count", lower=2, upper=15, default_value=5,
                                               log=False)
     cs.add_hyperparameters([learning_rate, optimizer, weight_decay, stop_count])
     optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
@@ -96,8 +96,8 @@ def run_smac():
     scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternative runtime)
                          "cs": cs,               # configuration space
                          "deterministic": "true",
-                         "runcount_limit": args.runcount})
-                         # "wallclock_limit": args.wallclock_time})
+                         "runcount_limit": args.runcount,
+                         "wallclock_limit": args.wallclock})
 
     # To optimize, we pass the function to the SMAC-object
     smac = SMAC4HPO(scenario=scenario, rng=np.random.RandomState(42),
@@ -127,6 +127,8 @@ parser.add_argument("-p", "--path", dest="data_dir", type=str, default='offline_
                     help='The path to offline data')
 parser.add_argument('-r', "--runcount", dest="runcount", type=int, default=50,
                     help='Total evaluations of the model.')
+parser.add_argument('-w', "--wallclock", dest="wallclock", type=float, default=300,
+                    help='Total wallclock time to run SMAC in seconds.')
 parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=60,
                     help='Maximum time for target function evaluation.')
 
@@ -146,5 +148,5 @@ print(incumbent)
 print("Incumbent Score: {}".format(incumbent_score))
 
 import json
-with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.wallclock_time)), 'w') as f:
+with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.wallclock)), 'w') as f:
     json.dump(incumbent.get_dictionary(), f)

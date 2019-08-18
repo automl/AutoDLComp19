@@ -326,18 +326,24 @@ class NLPBertClassifier(nn.Module):
 
 
 class NaiveModel():
-    def __init__(self, metadata, features):
+    def __init__(self, metadata, features, classifier=None):
         self.metadata = metadata
         self.classes = metadata['class_num']
         self.features = features
         self.hv = HashingVectorizer(n_features=features)
-        # Run logistic (multinomial) regression for all inputs except when
-        # 1) class imbalance is more than 0.2 and
-        # 2) number of training samples are more than 80000
-        if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 80000:
-            self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+        if classifier is not None:
+            if classifier == 'lr':
+                self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+            else:
+                self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
         else:
-            self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
+            # # Run logistic (multinomial) regression for all inputs except when
+            # # 1) class imbalance is more than 0.2 and
+            # # 2) number of training samples are more than 80000
+            if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 80000:
+                self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+            else:
+                self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
 
     def _transform(self, data):
         return self.hv.transform(data)
@@ -539,6 +545,7 @@ class Model(object):
             'EN': {'layers': 2, 'heads': 3, 'vocab': 30522, 'file': 'bert_english.model', 'name': 'bert-base-uncased'},
             'ZH': {'layers': 2, 'heads': 3, 'vocab': 21128, 'file': 'bert_chinese.model', 'name': 'bert-base-chinese'}
         }
+        print(config)
         if config is None:
             self.classifier_layers = 2
             self.classifier_units = 256
@@ -548,6 +555,7 @@ class Model(object):
             self.features = 2000
             self.weight_decay = 0.01
             self.stop_count = 5
+            self.classifier = None
         else:
             self.classifier_layers = config['classifier_layers']
             self.classifier_units = config['classifier_units']
@@ -558,6 +566,7 @@ class Model(object):
             self.weight_decay = config['weight_decay']
             self.BERT_PRETRAINED['layers'] = config['layers']
             self.stop_count = config['stop_count']
+            self.classifier = config['classifier']
 
         # self.warmum_steps = 100
         # self.t_total = 500
@@ -621,7 +630,7 @@ class Model(object):
             print('meta -> ', self.preprocess.metadata)
             print('--' * 60)
             # NaiveModel expects metadata to have 'imbalance' and must be after
-            self.naive = NaiveModel(self.metadata, self.features)
+            self.naive = NaiveModel(self.metadata, self.features, self.classifier)
             self.naive.train(self.preprocessed_train_dataset)
 
             # evaluate on validation data if available
@@ -808,7 +817,7 @@ class Model(object):
             return self.naive_preds
 
         # Return previously found predictions if validation score (self.best_valid_score) hasn't improved
-        if self.update_test is not True:
+        if self.update_test is False:
             return self.latest_test_preds
 
         # create dataloader
