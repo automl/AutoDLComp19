@@ -63,16 +63,10 @@ class ResNet18(models.ResNet):
 
         # NOTE: freeze layers except the last linear layer; this has to be
         # learned eventually
-        print('###################')
-        print(freeze_portion)
         n_params = len([x for x in self.parameters()])
-        print(n_params)
         for i, param in enumerate(self.parameters()):
             if i < freeze_portion * n_params:
                 param.requires_grad = False
-                print(param.requires_grad)
-
-        sys.exit(0)
 
         for idx in range(len(self.stem)):
             m = self.stem[idx]

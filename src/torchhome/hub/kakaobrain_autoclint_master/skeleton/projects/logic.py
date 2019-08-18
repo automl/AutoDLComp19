@@ -19,7 +19,7 @@ LOGGER = get_logger(__name__)
 
 
 class LogicModel(Model):
-    def __init__(self, metadata, session=None):
+    def __init__(self, metadata, session=None, parser_args=None):
         super(LogicModel, self).__init__(metadata)
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
@@ -99,6 +99,15 @@ class LogicModel(Model):
                 'use_fast_auto_aug': True
             }
         }
+
+        if parser_args is not None:
+            self.hyper_params['optimizer']['lr'] = parser_args['optim_args']['lr']
+            self.hyper_params['optimizer']['optimizer'] = parser_args['optimizer']
+            self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
+            self.hyper_params['optimizer']['weight_decay'] = parser_args['optim_args']['weight_decay']
+            self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
+
+
         self.checkpoints = []
         LOGGER.info('[init] build')
 

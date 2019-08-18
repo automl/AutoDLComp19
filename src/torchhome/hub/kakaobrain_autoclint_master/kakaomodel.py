@@ -28,23 +28,8 @@ LOGGER = get_logger(__name__)
 # TODO(Philipp): Create symlinks kakaobrain needs which might not be included in the zip
 class KakaoModel(LogicModel):
     def __init__(self, metadata, parser_args=None):
-        super(KakaoModel, self).__init__(metadata)
+        super(KakaoModel, self).__init__(metadata, parser_args=parser_args)
         self.use_test_time_augmentation = False
-
-        # arguments from configuration file
-        if parser_args is not None:
-            self.hyper_params['optimizer']['lr'] = parser_args['lr']
-            self.hyper_params['optimizer']['optimizer'] = parser_args['optimizer']
-            self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
-            self.hyper_params['optimizer']['weight_decay'] = parser_args['weight_decay']
-            #self.hyper_params['dataset']['batch_size'] = parser_args.batch_size_train
-            #self.hyper_params['dataset']['batch_size_test'] = parser_args.batch_size_test
-            self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
-
-            print('PARSER_ARGS')
-            print(parser_args)
-            print('###########################')
-            print(self.hyper_params['model']['freeze_portion'])
 
     def build(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -69,7 +54,8 @@ class KakaoModel(LogicModel):
             model_path = os.path.join(base_dir, 'models')
             LOGGER.info('model path: %s', model_path)
 
-            print(self.hyper_params['model']['freeze_portion'])
+            LOGGER.info('[init] Freeze portion: \
+                        %.1f'%(self.hyper_params['model']['freeze_portion']))
             self.model.init(model_dir=model_path, gain=1.0,
                             freeze_portion=self.hyper_params['model']['freeze_portion'])
         else:
