@@ -2,6 +2,8 @@ import os
 import logging
 import argparse
 import numpy as np
+import time
+import json
 
 from smac.configspace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
@@ -59,9 +61,20 @@ def run_autonlp_model(config, **kwargs):
 
 
 def run_smac():
+
+    # get output dir from arguments
+    time_id = time.strftime('%Y%m%d-%H%M%S')
+    out_dir = 'smac_output_{}d_{}c_{}'.format(args.dataset_id, args.cutoff, time_id)
+
     cs = ConfigurationSpace()
 
     # model hyperparams
+    if dataset.get_metadata()['language'] == 'EN':
+        transformer_choices = ['bert', 'xlnet']
+    else:
+        transformer_choices = ['bert']
+
+    transformer = CategoricalHyperparameter("transformer", transformer_choices, default_value="bert")
     classifier = CategoricalHyperparameter("classifier", ["lr", "ada"], default_value="ada")
     encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=6, default_value=2, log=False)
     # TODO : increase batch_size upper when running on cluster
@@ -71,7 +84,7 @@ def run_smac():
                                               default_value=2, log=False)
     classifier_units = UniformIntegerHyperparameter("classifier_units", lower=32, upper=512,
                                                     default_value=256, log=False)
-    cs.add_hyperparameters([classifier, encoder_layers, batch_size, layers, classifier_units])
+    cs.add_hyperparameters([transformer, classifier, encoder_layers, batch_size, layers, classifier_units])
 
     #preprocessing hyperparameters
     str_cutoff = UniformIntegerHyperparameter("str_cutoff", lower=50, upper=100,
@@ -86,7 +99,7 @@ def run_smac():
     optimizer = CategoricalHyperparameter("optimizer", ["adam", "adamw"], default_value="adam")
     weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
                                               default_value=0.01, log=True)
-    stop_count = UniformIntegerHyperparameter("stop_count", lower=2, upper=15, default_value=5,
+    stop_count = UniformIntegerHyperparameter("stop_count", lower=1, upper=15, default_value=5,
                                               log=False)
     cs.add_hyperparameters([learning_rate, optimizer, weight_decay, stop_count])
     optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
@@ -97,12 +110,15 @@ def run_smac():
                          "cs": cs,               # configuration space
                          "deterministic": "true",
                          "runcount_limit": args.runcount,
-                         "wallclock_limit": args.wallclock})
+                         "wallclock_limit": args.wallclock,
+                         "output_dir": out_dir})
 
     # To optimize, we pass the function to the SMAC-object
     smac = SMAC4HPO(scenario=scenario, rng=np.random.RandomState(42),
                     tae_runner=run_autonlp_model)
 
+    print('SMAC optimization begins !')
+    print('---'*40)
     try:
         incumbent = smac.optimize()
         print("try")
@@ -111,13 +127,14 @@ def run_smac():
         print("except")
     print("Inside SMAC, incumbent found: ")
     print(incumbent)
+    incumbent = cs.get_default_configuration()
     incumbent_score = run_autonlp_model(incumbent)
 
     return incumbent, incumbent_score
 
 
 logger = logging.getLogger("AutoNLP-SMAC")
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=10)
 logging.info("Reading arguments")
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -129,10 +146,12 @@ parser.add_argument('-r', "--runcount", dest="runcount", type=int, default=50,
                     help='Total evaluations of the model.')
 parser.add_argument('-w', "--wallclock", dest="wallclock", type=float, default=300,
                     help='Total wallclock time to run SMAC in seconds.')
-parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=60,
+parser.add_argument('-c', "--cutoff", dest="cutoff", type=float, default=600,
                     help='Maximum time for target function evaluation.')
 
 args, kwargs = parser.parse_known_args()
+
+print(args)
 
 data_dir = args.data_dir
 dataset = load_dataset(args.dataset_id)
@@ -141,12 +160,13 @@ train_dataset = dataset.get_train()
 test_dataset = (dataset.test_dataset, dataset.test_label)
 metadata = dataset.metadata_
 
+print('Dataset loaded...')
+
 incumbent, incumbent_score = run_smac()
 
 print("Incumbent configuration: ")
 print(incumbent)
 print("Incumbent Score: {}".format(incumbent_score))
 
-import json
 with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.wallclock)), 'w') as f:
     json.dump(incumbent.get_dictionary(), f)

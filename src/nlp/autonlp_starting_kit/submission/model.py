@@ -7,23 +7,23 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import os
-import sys
 
 import re
-import six
-from functools import partial
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import multiprocessing as mp
+# import multiprocessing as mp
+
+# if not mp.get_start_method() == 'spawn':  # fix for cuda runtime error with multiprocessing
+#     print('Setting multiprocessing context.....')
+#     mp.set_start_method('spawn', force=True)
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import  AdaBoostClassifier
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.model_selection import train_test_split
 
-from sklearn import metrics
 from scoring import autodl_auc
+from bert import BertTokenizer, NLPBertClassifier, BERT_PRETRAINED
+from xlnet import XLNetTokenizer, NLPXLNetClassifier, XLNET_PRETRAINED
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 SEED = 42
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
@@ -32,91 +32,10 @@ torch.backends.cudnn.benchmark = False
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
 
-BERT_PRETRAINED = {
-    'EN': {'layers': 2, 'heads': 3, 'vocab': 30522, 'file': 'bert_english.model', 'name': 'bert-base-uncased'},
-    'ZH': {'layers': 2, 'heads': 3, 'vocab': 21128, 'file': 'bert_chinese.model', 'name': 'bert-base-chinese'}
-}
-
 
 # onhot encode to category
 def ohe2cat(label):
     return np.argmax(label, axis=1)
-
-
-class AbstractTokenizer():
-    def __init__(self):
-        return
-
-    def tokenize(self, line):
-        raise NotImplementedError('No tokenize implemented!')
-
-
-# class BertMultiTokenizer(AbstractTokenizer):
-#     def __init__(self, name, max_len=None, max_tokens=None):
-#         super().__init__()
-#         self.tokenizer = pytrf.BertTokenizer.from_pretrained(name)
-#         self.max_len = max_len
-#         self.max_tokens = max_tokens
-
-#     def tokenize(self, line):
-#         # restrict sentence length if too long (saves read time)
-#         line = line[:self.max_len]
-#         line = '[CLS] '+line+' [SEP]'  # tokens required for bert
-#         line = self.tokenizer.tokenize(line)
-#         line = line[:self.max_tokens]
-#         line = self.tokenizer.convert_tokens_to_ids(line)
-#         return line
-
-
-class BertTokenizer():
-    def __init__(self, bert_metadata, language='EN', pretrained_path='./'):
-        super().__init__()
-
-        self.bert_metadata = bert_metadata
-        name = self.bert_metadata[language]['name'] + '-vocab.txt'
-        # self.tokenizer = pytrf.BertTokenizer.from_pretrained(name)
-        self.tokenizer = pytrf.BertTokenizer(vocab_file=os.path.join(pretrained_path, name),
-                                             do_lower_case=True)
-        print("Loaded BERT tokenizer")
-
-    # TODO revisit threading
-    def _multithreading(self, func, args, workers):
-        begin_time = time.time()
-        # print("Threading with {} workers".format(workers))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            res = executor.map(func, args)
-        return list(res)
-
-    def _multiprocessing(self, func, args, workers):
-        begin_time = time.time()
-        # print("Threading with {} workers".format(workers))
-        p = mp.Pool(workers)
-        res = p.map(func, args)
-        p.close()
-        p.join()
-        return res
-
-    def tokenize_text(self, text, max_str_len, max_tok_len=512):
-        max_tok_len = max_tok_len - 3  # to account for [CLS] and [SEP]
-        text = text[:max_str_len] if np.random.uniform() > 0.5 else text[-max_str_len:]
-        text = self.tokenizer.tokenize(text)
-        text = text[:max_tok_len] if np.random.uniform() > 0.5 else text[-max_tok_len:]
-        # text = text[:max_tok_len]
-        text.insert(0, self.tokenizer.vocab['[CLS]'])
-        text.insert(len(text), self.tokenizer.vocab['[SEP]'])
-        # print(max_tok_len, len(text))
-        return self._encode_tokens(text)
-
-    def _encode_tokens(self, text):
-        return self.tokenizer.convert_tokens_to_ids(text)
-
-    def tokenize(self, data, max_str_len, max_tok_len=512, workers=4):
-        token_fn = partial(self.tokenize_text, max_str_len=max_str_len, max_tok_len=max_tok_len)
-        if workers > 1:
-            res = self._multiprocessing(token_fn, data, workers)
-        else:
-            res = [token_fn(d) for d in data]
-        return res
 
 
 def bucket_shuffle(arr, bucket_size, pad_key=-1):
@@ -208,123 +127,6 @@ class TextLoader():
         return int(np.ceil(len(self.data) / self.batch_size))
 
 
-class NLPBertClassifier(nn.Module):
-    def __init__(self, metadata, bert_metadata, pretrained=None, vocab_size=None, encoder_layers=1, attn_heads=2,
-                 classifier_layers=3, classifier_units=768):
-        """
-        metadata: dict
-            metadata from AutoNLP dataset
-        pretrained: str
-            folder to load a pretrained model from for the given config
-        vocab_size: int or None
-            vocab size for embedding layer in BERT model
-            can be ignored if pretrained model is provided, else, it has to be given
-        encoder_layers: int
-            number of hidden encoder layers in BERT model
-        attn_heads: int
-            number of attention heads in BERT model
-        classifier_layers: int
-            number of linear layers in classifier
-        classifier_units: int
-            number of neurons in intermediate classifier layers
-            only used when classifier_layers > 1
-        """
-        super().__init__()
-        self.language = metadata['language']
-        self.out_dim = metadata['class_num'] if metadata['class_num'] > 2 else 1
-        self.bert_metadata = bert_metadata
-
-        self.layers = encoder_layers if pretrained is None else bert_metadata[self.language]['layers']
-        self.heads = attn_heads if pretrained is None else bert_metadata[self.language]['heads']
-        self.vocab_size = vocab_size if pretrained is None else bert_metadata[self.language]['vocab']
-
-        # load BERT
-        if pretrained is not None:
-            self._load_pretrained(pretrained)
-        else:
-            self.config = pytrf.BertConfig(self.vocab_size, num_hidden_layers=self.layers,
-                                           num_attention_heads=self.heads)
-            self.bert = pytrf.BertModel(self.config)
-            self.bert.apply(self._init_weights)
-
-        # classifier layers
-        if classifier_layers == 1:
-            classifier = [nn.Linear(self.config.hidden_size, self.out_dim)]
-        else:
-            classifier = []
-            for i in range(classifier_layers - 1):
-                if i == 0:
-                    fc = nn.Linear(self.config.hidden_size, classifier_units)
-                else:
-                    fc = nn.Linear(classifier_units, classifier_units)
-                classifier.append(fc)
-                classifier.append(nn.ReLU())
-
-            classifier.append(nn.Linear(classifier_units, self.out_dim))
-
-        self.relu = nn.ReLU()
-        self.classifier = nn.Sequential(*classifier)
-        self.classifier.apply(self._init_weights)
-
-    def forward(self, x, mask=None):
-        """
-        input dim = (batch_size, sequence_length)
-        output dim = (batch_size, num_classes)
-        """
-        x, _ = self.bert(x, attention_mask=mask)
-        # average over sequence length
-        x = torch.mean(x, dim=1)
-        x = self.relu(x)
-        x = self.classifier(x)
-        return x
-
-    def _load_pretrained(self, pretrained_path='./'):
-        """
-        Loads from the pretrained model stored in given folder
-        path: folder path where model is stored
-        """
-        self.config = pytrf.BertConfig(self.vocab_size, num_hidden_layers=self.layers)
-        self.bert = pytrf.BertModel(self.config)
-
-        # prune attention heads
-        prune_heads = {}
-        for i in range(self.layers):
-            prune_heads[i] = np.arange(self.heads, 12).reshape(-1, 1).tolist()
-        self.bert.prune_heads(prune_heads)
-
-        # load pretrained model
-        self.bert.half()
-        # example model names: bert_english_1.model, bert_chinese_5.model
-        model_name = "{}_{}.{}".format(self.bert_metadata[self.language]['file'].split('.')[0],
-                                       self.bert_metadata[self.language]['layers'],
-                                       self.bert_metadata[self.language]['file'].split('.')[1])
-        self.bert.load_state_dict(torch.load(os.path.join(pretrained_path, model_name)))
-        self.bert.float()
-
-        # disable gradient for bert embedding layer
-        for name, param in self.bert.named_parameters():
-            if name.startswith('embeddings'):
-                param.requires_grad = False
-
-    def save(self, file_path='./model.pkl'):
-        torch.save(self.state_dict(), file_path)
-
-    def load(self, file_path):
-        self.load_state_dict(torch.load(file_path))
-
-    def _init_weights(self, m):
-        if type(m) == nn.Linear:
-            nn.init.xavier_normal_(m.weight)
-
-    def count_parameters(self):
-        tot_sum = sum(p.numel() for p in self.parameters())
-        return tot_sum
-
-    def trainable_parameters(self):
-        tot_sum = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        return tot_sum
-
-
 class NaiveModel():
     def __init__(self, metadata, features, classifier=None):
         self.metadata = metadata
@@ -374,15 +176,12 @@ class Preprocess(object):
 
     def convert_to_unicode(self, text):
         """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
-        if six.PY3:
-            if isinstance(text, str):
-                return text
-            elif isinstance(text, bytes):
-                return text.decode("utf-8", "ignore")
-            else:
-                raise ValueError("Unsupported string type: %s" % (type(text)))
+        if isinstance(text, str):
+            return text
+        elif isinstance(text, bytes):
+            return text.decode("utf-8", "ignore")
         else:
-            raise ValueError("Not running on Python2 or Python 3?")
+            raise ValueError("Unsupported string type: %s" % (type(text)))
 
     def preprocess_text(self, data, cutoff=75):
         '''Cleans/preprocesses a list of list of English/Chinese strings
@@ -508,6 +307,10 @@ class Model(object):
         """ Initialization for model
         :param metadata: a dict
         """
+
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        # self.device = torch.device('cpu')
+
         self.done_training = False
         self.metadata = metadata
         self.train_output_path = train_output_path
@@ -533,6 +336,7 @@ class Model(object):
         self.train_epochs = np.inf  # num of epochs to train before done_training=True
         self.naive_limit = 2  # num of train runs before testing using network
         self.test_runtime = None  # time taken for inference of test_dataset
+        self.workers = 1
 
         # to split train into train & validation
         self.split_ratio = split_ratio if split_ratio else 1.0
@@ -541,48 +345,44 @@ class Model(object):
         # self.pretrained_path = '/content/'
         self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
 
-        self.BERT_PRETRAINED = {
-            'EN': {'layers': 2, 'heads': 3, 'vocab': 30522, 'file': 'bert_english.model', 'name': 'bert-base-uncased'},
-            'ZH': {'layers': 2, 'heads': 3, 'vocab': 21128, 'file': 'bert_chinese.model', 'name': 'bert-base-chinese'}
-        }
         print(config)
         if config is None:
-            self.classifier_layers = 2
-            self.classifier_units = 256
-            self.learning_rate = 0.001
-            self.batch_size = 64
-            self.str_cutoff = 90  # percentile of total length
-            self.features = 2000
-            self.weight_decay = 0.01
-            self.stop_count = 5
-            self.classifier = None
-        else:
-            self.classifier_layers = config['classifier_layers']
-            self.classifier_units = config['classifier_units']
-            self.learning_rate = config['learning_rate']
-            self.batch_size = config['batch_size']
-            self.str_cutoff = config['str_cutoff']
-            self.features = config['features']
-            self.weight_decay = config['weight_decay']
-            self.BERT_PRETRAINED['layers'] = config['layers']
-            self.stop_count = config['stop_count']
-            self.classifier = config['classifier']
+            # setting default config if not provided
+            config = {'classifier_layers': 2, 'classifier_units': 256, 'learning_rate': 0.001,
+                      'batch_size': 64, 'str_cutoff': 90, 'features': 2000, 'weight_decay': 0.01, 'stop_count': 5,
+                      'classifier': None, 'transformer': 'bert', 'layers': 2, 'optimizer': 'adamw'}
 
-        # self.warmum_steps = 100
-        # self.t_total = 500
+        self.classifier_layers = config['classifier_layers']
+        self.classifier_units = config['classifier_units']
+        self.learning_rate = config['learning_rate']
+        self.batch_size = config['batch_size']
+        self.str_cutoff = config['str_cutoff']
+        self.features = config['features']
+        self.weight_decay = config['weight_decay']
+        self.stop_count = config['stop_count']
+        self.classifier = config['classifier']
+        self.transformer = config['transformer'] if metadata['language'] == 'EN' else 'bert'  # for chinese/english
 
-        # create tokenizer
-        self.tokenizer = BertTokenizer(self.BERT_PRETRAINED, self.metadata['language'], self.pretrained_path)
+        # initialize model & tokenizer
+        if self.transformer == 'bert':
+            self.metadata_pretrain = BERT_PRETRAINED
+            self.metadata_pretrain['layers'] = config['layers']
+            self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
+            self.model = NLPBertClassifier(metadata, bert_metadata=self.metadata_pretrain,
+                                           pretrained=self.pretrained_path,
+                                           classifier_layers=self.classifier_layers,
+                                           classifier_units=self.classifier_units)
+        elif self.transformer == 'xlnet':
+            self.metadata_pretrain = XLNET_PRETRAINED
+            self.metadata_pretrain['layers'] = config['layers']
+            self.tokenizer = XLNetTokenizer(self.metadata['language'], self.pretrained_path)
+            self.model = NLPXLNetClassifier(metadata, xlnet_metadata=self.metadata_pretrain,
+                                           pretrained=self.pretrained_path,
+                                           classifier_layers=self.classifier_layers,
+                                           classifier_units=self.classifier_units)
+        self.model.to(self.device)
 
-        # initialize model, optimizer
-        self.model = NLPBertClassifier(metadata, bert_metadata=self.BERT_PRETRAINED,
-                                       pretrained=self.pretrained_path,
-                                       classifier_layers=self.classifier_layers,
-                                       classifier_units=self.classifier_units)
-
-        self.model.to(device)
-
-        if config is not None and config['optimizer'] == "adamw":
+        if config['optimizer'] == "adamw":
             self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.learning_rate,
                                          weight_decay=self.weight_decay)
         else:
@@ -617,6 +417,7 @@ class Model(object):
                 # Stratified split to create representative validation set
                 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train,
                                                                       test_size=1-self.split_ratio,
+                                                                      random_state=1,
                                                                       stratify=ohe2cat(y_train))
                 valid_dataset = (x_valid, y_valid)
                 train_dataset = (x_train, y_train)
@@ -655,7 +456,7 @@ class Model(object):
                                            tokenizer=self.tokenizer,
                                            batch_size=self.batch_size,
                                            shuffle=True, sort=True,
-                                           device=device)
+                                           device=self.device, workers=self.workers)
             if self.split_ratio < 1:
                 # load validation set
                 if self.preprocessed_valid_dataset is None:
@@ -668,7 +469,7 @@ class Model(object):
                                                tokenizer=self.tokenizer,
                                                batch_size=self.batch_size,
                                                shuffle=True, sort=True,
-                                               device=device)
+                                               device=self.device, workers=self.workers)
 
             print('Data loading time: ', time.time() - load_time)
 
@@ -833,7 +634,7 @@ class Model(object):
                                           tokenizer=self.tokenizer,
                                           batch_size=self.batch_size,
                                           shuffle=False, sort=True,
-                                          device=device)
+                                          device=self.device, workers=self.workers)
             print('Data loading time: ', time.time() - load_time)
 
         epoch_time = time.time()
