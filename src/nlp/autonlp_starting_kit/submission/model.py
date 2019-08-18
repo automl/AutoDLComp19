@@ -106,7 +106,7 @@ class TextLoader():
 
         if self.sort and self.shuffle:
             # if sorted shuffle, then shuffle only within the buckets
-            self.indices = bucket_shuffle(self.indices, bucket_size=self.batch_size + 1)
+            self.indices = bucket_shuffle(self.indices, bucket_size=self.batch_size*1.1)
         elif self.shuffle:
             # shuffle dataset completely
             np.random.shuffle(self.indices)
