@@ -77,7 +77,7 @@ def baseline_selector(autodl_model, dataset, selection_args):
     return model, loss_fn, optimizer, scheduler
 
 
-def baseline_selector(autodl_model, dataset, selection_args):
+def test_selector(autodl_model, dataset, selection_args):
     LOGGER.info("TRAIN SET LENGTH: {0}".format(dataset.num_samples))
     LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
     LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
