@@ -89,6 +89,10 @@ class Model(algorithm.Algorithm):
         np.random.seed(self.config.np_random_seed)
         torch.manual_seed(self.config.torch_manual_seed)
         torch.cuda.manual_seed_all(self.config.torch_cuda_manual_seed_all)
+
+        ################
+        # Metadata Stuff
+        ################
         # In-/Out Dimensions from the train dataset's metadata
         row_count, col_count = metadata.get_matrix_size(0)
         channel = metadata.get_num_channels(0)
@@ -98,6 +102,13 @@ class Model(algorithm.Algorithm):
         self.num_train_samples = metadata.size()
         self.num_test_samples = None
         self.metadata = metadata
+        test_metadata_filename = self.metadata.get_dataset_name(
+        ).replace('train', 'test') + '/metadata.textproto'
+        self.num_test_samples = [
+            int(line.split(':')[1])
+            for line in open(test_metadata_filename, 'r').readlines()
+            if 'sample_count' in line
+        ][0]
 
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
@@ -183,105 +194,39 @@ class Model(algorithm.Algorithm):
                 self.config.transformations_selector]
         )
 
-    def split_dataset(self, ds_temp, transform):
-        # [train_percent, validation_percent, ...]
-        split_percentages = (
-            self.config.dataset_split_ratio / np.sum(self.config.dataset_split_ratio)
-        )
-        split_num = np.round((self.num_train_samples * split_percentages))
-
-        # For now use fermi approx to give n classes a chance of
-        # (1/n)^(3*n) to not be included at all in the validation set
-        # at least
-        if split_num[1] < ds_temp.num_classes * 3 and split_num[1] > 0.:
-            LOGGER.warning(
-                'Validation split too small to be representative: {0} < {1}'.format(
-                    split_num[1], ds_temp.num_classes * 3
-                )
-            )
-            split_percentages = np.array(
-                (
-                    self.num_train_samples - (ds_temp.num_classes * 5),
-                    (ds_temp.num_classes * 5)
-                )
-            )
-        assert (sum(split_num) == self.num_train_samples)
-
-        tfdataset = ds_temp.dataset
-        tfdataset.shuffle(self.num_train_samples)
-        tfdataset_remaining = tfdataset
-
-        tfdataset_train = tfdataset_remaining.take(split_num[0])
-        tfdataset_remaining = tfdataset_remaining.skip(split_num[0])
-
-        tfdataset_val = tfdataset_remaining.take(split_num[1])
-        tfdataset_remaining = tfdataset_remaining.skip(split_num[1])
-
+    def check_for_shuffling(self, ds_temp, transform):
+        LOGGER.debug('SANITY CHECKING SHUFFLING')
         ds_train = TFDataset(
             session=self.session,
-            dataset=tfdataset_train,
-            num_samples=int(split_num[0]),
-            transform_sample=transform['samples'],
-            transform_label=transform['labels']
+            dataset=self.test_dl.dataset,
+            num_samples=self.num_train_samples
         )
-        ds_train.min_shape = ds_temp.min_shape
-        ds_train.median_shape = ds_temp.median_shape
-        ds_train.mean_shape = ds_temp.mean_shape
-        ds_train.std_shape = ds_temp.std_shape
-        ds_train.max_shape = ds_temp.max_shape
-        ds_train.is_multilabel = ds_temp.is_multilabel
+        ds_train.reset()
+        ds_temp.reset()
+        dset1 = [e for e in ds_train]
+        dset2 = [e for e in ds_train]
+        dset3 = [e for e in ds_temp][:self.num_train_samples]
+        i = 0
+        e1vse2 = []
+        e2vse3 = []
+        for e1, e2, e3 in zip(dset1, dset2, dset3):
+            if i % 100 == 0:
+                LOGGER.debug('Checking i: {}'.format(i))
+            e1vse2.append((np.all((e1[0] == e2[0]))))
+            e2vse3.append((np.all((e2[0] == e3[0]))))
+            i += 1
+        LOGGER.debug('E1 == E2: {}\t should be False'.format(np.all(e1vse2)))
+        LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
 
-        if split_num[1] > 0.:
-            ds_val = TFDataset(
-                session=self.session,
-                dataset=tfdataset_val,
-                num_samples=int(split_num[1]),
-                transform_sample=transform['samples'],
-                transform_label=transform['labels']
-            )
-            ds_val.min_shape = ds_temp.min_shape
-            ds_val.median_shape = ds_temp.median_shape
-            ds_val.mean_shape = ds_temp.mean_shape
-            ds_val.std_shape = ds_temp.std_shape
-            ds_val.max_shape = ds_temp.max_shape
-            ds_val.is_multilabel = ds_temp.is_multilabel
-
-        self.train_dl = {
-            'train':
-                TFDataLoader(ds_train, **self.config.dataloader_args['train']),
-            'val':
-                TFDataLoader(ds_val, **self.config.dataloader_args['train'])
-                if split_num[1] > 0. else None
-        }
-
-        if self.config.check_for_shuffling:
-            LOGGER.debug('SANITY CHECKING SHUFFLING')
-            ds_train = TFDataset(
-                session=self.session,
-                dataset=tfdataset_train,
-                num_samples=int(split_num[0])
-            )
-            ds_train.reset()
-            ds_temp.reset()
-            dset1 = [e for e in ds_train]
-            dset2 = [e for e in ds_train]
-            dset3 = [e for e in ds_temp][:int(split_num[0])]
-            i = 0
-            e1vse2 = []
-            e2vse3 = []
-            for e1, e2, e3 in zip(dset1, dset2, dset3):
-                if i % 100 == 0:
-                    LOGGER.debug('Checking i: {}'.format(i))
-                e1vse2.append((np.all((e1[0] == e2[0]))))
-                e2vse3.append((np.all((e2[0] == e3[0]))))
-                i += 1
-            LOGGER.debug('E1 == E2: {}\t should be False'.format(np.all(e1vse2)))
-            LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
-
-    def setup_train_dataset(self, dataset, ds_temp=None):
-        self.split_dataset(ds_temp, self.transforms['train'])
+    def setup_train_dataset(self, ds_temp):
+        ds_temp.transform_sample = self.transforms['train']['samples']
+        ds_temp.transform_label = self.transforms['train']['labels']
+        loader_args = self.config.dataloader_args['train']
+        self.train_dl = TFDataLoader(ds_temp, **loader_args)
         if self.config.benchmark_transformations:
-            self.train_dl['train'].dataset.benchmark_transofrmations()
+            self.train_dl.dataset.benchmark_transofrmations()
+        if self.config.check_for_shuffling:
+            self.check_for_shuffling()
 
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
@@ -295,9 +240,10 @@ class Model(algorithm.Algorithm):
             self.starting_budget = t_s - self.birthday + remaining_time_budget
             self._tf_train_set = dataset
             # Create a temporary handle to inspect data
-            dataset = dataset.prefetch(self.config.dataloader_args['train']['batch_size'])
+            dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
             ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
             ds_temp.scan_all(10)
+            ds_temp.reset()
             LOGGER.info(
                 'SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s)
             )
@@ -319,8 +265,9 @@ class Model(algorithm.Algorithm):
             LOGGER.info(
                 'ADDING TRANSFORMATIONS TOOK: {0:.4f} s'.format(time.time() - t_s)
             )
+
             t_s = time.time()
-            self.setup_train_dataset(dataset, ds_temp)
+            self.setup_train_dataset(ds_temp)
             LOGGER.info(
                 'SETTING UP THE TRAINSET TOOK: {0:.4f} s'.format(time.time() - t_s)
             )
@@ -339,7 +286,7 @@ class Model(algorithm.Algorithm):
                     amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
                 )
 
-        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl['train'].batch_size))
+        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl.batch_size))
         train_start = time.time()
         train_args = self.config.trainer_args[
             self.config.trainer] if isinstance(self.trainer, types.FunctionType) else {}
@@ -349,11 +296,11 @@ class Model(algorithm.Algorithm):
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
 
-    def setup_test_dataset(self, dataset, ds_temp=None):
+    def setup_test_dataset(self, dataset):
         ds = TFDataset(
             session=self.session,
             dataset=dataset,
-            num_samples=int(1e6),
+            num_samples=int(self.num_test_samples),
             transform_sample=self.transforms['test']['samples'],
             transform_label=self.transforms['test']['labels']
         )
@@ -363,7 +310,7 @@ class Model(algorithm.Algorithm):
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget
-        LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
+        LOGGER.info("REMAINING TIME: {}".format(remaining_time_budget))
         if self.config.benchmark_time_till_first_prediction:
             LOGGER.error(
                 'TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday)
@@ -391,10 +338,8 @@ class Model(algorithm.Algorithm):
             self.config.dataloader_args['test'].update(
                 {'batch_size': test_initial_batch_size}
             )
-            # Create a temporary handle to inspect data
-            dataset = dataset.prefetch(self.config.dataloader_args['test']['batch_size'])
-            ds_temp = TFDataset(self.session, dataset)
-            self.setup_test_dataset(dataset, ds_temp)
+            dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+            self.setup_test_dataset(dataset)
 
         LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
         test_finished = False

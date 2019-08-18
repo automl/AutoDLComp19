@@ -1,17 +1,25 @@
-import time
+import multiprocessing
 import queue
 import threading
-import multiprocessing
+import time
+
 import numpy as np
 import tensorflow as tf
 import torch
 import torch.utils.data._utils as _utils
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from utils import LOGGER
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples=None, transform_sample=None, transform_label=None):
+    def __init__(
+        self,
+        session,
+        dataset,
+        num_samples=None,
+        transform_sample=None,
+        transform_label=None
+    ):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
@@ -26,6 +34,8 @@ class TFDataset(Dataset):
         self.median_shape = None
         self.is_multilabel = None
 
+        self.current_idx = 0
+
         self.next_element = None
         self.reset()
 
@@ -35,6 +45,7 @@ class TFDataset(Dataset):
     def __getitem__(self, _):
         try:
             example, label = self._tf_exec(self.next_element)
+            self.current_idx += 1
             # example = torch.as_tensor(example)
             # label = torch.as_tensor(example)
         except tf.errors.OutOfRangeError:
@@ -57,6 +68,7 @@ class TFDataset(Dataset):
         dataset = self.dataset
         iterator = dataset.make_one_shot_iterator()
         self.next_element = iterator.get_next()
+        self.current_idx = 0
         return self
 
     def scan_all(self, max_samples=None):
@@ -108,7 +120,9 @@ class TFDataset(Dataset):
             except tf.errors.OutOfRangeError:
                 self.reset()
                 break
-        LOGGER.debug('SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
+        LOGGER.debug(
+            'SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
+        )
 
         idx = 0
         self.reset()
@@ -126,11 +140,14 @@ class TFDataset(Dataset):
             label = self.transform_label(label) \
                 if self.transform_label is not None \
                 else label
-        LOGGER.debug('SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
+        LOGGER.debug(
+            'SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
+        )
 
 
 class TFDataLoader(DataLoader):
     def __init__(self, *args, **kwargs):
+        self.validation_idxs = []
         kwargs.update({'num_workers': 0})
         super().__init__(*args, **kwargs)
 
@@ -402,10 +419,12 @@ class _TFDataLoaderIter(object):
                 index_queue.cancel_join_thread()
                 w = multiprocessing.Process(
                     target=_utils.worker._worker_loop,
-                    args=(self.dataset, index_queue,
-                          self.worker_result_queue, self.done_event,
-                          self.collate_fn, base_seed + i,
-                          self.worker_init_fn, i))
+                    args=(
+                        self.dataset, index_queue, self.worker_result_queue,
+                        self.done_event, self.collate_fn, base_seed + i,
+                        self.worker_init_fn, i
+                    )
+                )
                 w.daemon = True
                 # NB: Process.start() actually take some time as it needs to
                 #     start a process and pass the arguments over via a pipe.
@@ -421,8 +440,11 @@ class _TFDataLoaderIter(object):
                 self.data_queue = queue.Queue()
                 pin_memory_thread = threading.Thread(
                     target=_utils.pin_memory._pin_memory_loop,
-                    args=(self.worker_result_queue, self.data_queue,
-                          torch.cuda.current_device(), self.done_event))
+                    args=(
+                        self.worker_result_queue, self.data_queue,
+                        torch.cuda.current_device(), self.done_event
+                    )
+                )
                 pin_memory_thread.daemon = True
                 pin_memory_thread.start()
                 # Similar to workers (see comment above), we only register
@@ -431,7 +453,9 @@ class _TFDataLoaderIter(object):
             else:
                 self.data_queue = self.worker_result_queue
 
-            _utils.signal_handling._set_worker_pids(id(self), tuple(w.pid for w in self.workers))
+            _utils.signal_handling._set_worker_pids(
+                id(self), tuple(w.pid for w in self.workers)
+            )
             _utils.signal_handling._set_SIGCHLD_handler()
             self.worker_pids_set = True
 
@@ -464,7 +488,9 @@ class _TFDataLoaderIter(object):
             # worker failures.
             if not all(w.is_alive() for w in self.workers):
                 pids_str = ', '.join(str(w.pid) for w in self.workers if not w.is_alive())
-                raise RuntimeError('DataLoader worker (pid(s) {}) exited unexpectedly'.format(pids_str))
+                raise RuntimeError(
+                    'DataLoader worker (pid(s) {}) exited unexpectedly'.format(pids_str)
+                )
             if isinstance(e, queue.Empty):
                 return (False, None)
             raise
@@ -485,7 +511,9 @@ class _TFDataLoaderIter(object):
             if success:
                 return data
             else:
-                raise RuntimeError('DataLoader timed out after {} seconds'.format(self.timeout))
+                raise RuntimeError(
+                    'DataLoader timed out after {} seconds'.format(self.timeout)
+                )
         elif self.pin_memory:
             while self.pin_memory_thread.is_alive():
                 success, data = self._try_get_batch()
