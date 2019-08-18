@@ -2,21 +2,16 @@
 # to torch.hub.list
 
 import os
+
+from .load_models import load_loss_criterion, load_model_and_optimizer
 from .opts import parser
-from .load_models import load_model_and_optimizer, load_loss_criterion
 
 # HACK(Philipp J.): We can't use the normal load_state_dict_from_url because we got our own
 TORCH_HOME = os.environ['TORCH_HOME']
 
 __all__ = [
-    'eco',
-    'ecofull',
-    'ecofull_py',
-    'ecofull_efficient_py',
-    'bninception',
-    'tsm',
-    'averagenet',
-    'averagenet_feature',
+    'eco', 'ecofull', 'ecofull_py', 'ecofull_efficient_py', 'bninception', 'tsm',
+    'averagenet', 'averagenet_feature', 'stagedaveragenet'
 ]
 
 model_urls = {
@@ -28,6 +23,7 @@ model_urls = {
     'TSM': None,
     'Averagenet': None,
     'Averagenet_feature': None,
+    'StagedAveragenet': None,
 }
 
 
@@ -138,6 +134,20 @@ def averagenet_feature(pretrained=False, url=None, **kwargs):
             url = os.path.join(TORCH_HOME, 'checkpoints', url)
         setattr(pargs, 'finetune_model', url)
     setattr(pargs, 'arch', 'Averagenet_feature')
+    model, optimizer = load_model_and_optimizer(pargs)
+    loss_fn = load_loss_criterion(pargs)
+    return model, optimizer, loss_fn
+
+
+def stagedaveragenet(pretrained=False, url=None, **kwargs):
+    pargs = parser.parse_known_args()[0]
+    for k, v in kwargs.items():
+        setattr(pargs, k, v)
+    if pretrained:
+        if url is not None:
+            url = os.path.join(TORCH_HOME, 'checkpoints', url)
+        setattr(pargs, 'finetune_model', url)
+    setattr(pargs, 'arch', 'StagedAveragenet')
     model, optimizer = load_model_and_optimizer(pargs)
     loss_fn = load_loss_criterion(pargs)
     return model, optimizer, loss_fn

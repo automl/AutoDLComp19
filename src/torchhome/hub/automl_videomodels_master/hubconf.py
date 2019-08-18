@@ -1,3 +1,6 @@
 dependencies = ['torch', 'math']
 
-from video import eco, ecofull, tsm, ecofull_py, ecofull_efficient_py, bninception, averagenet, averagenet_feature
+from video import (
+    averagenet, averagenet_feature, bninception, eco, ecofull, ecofull_efficient_py,
+    ecofull_py, stagedaveragenet, tsm
+)
