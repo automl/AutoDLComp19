@@ -57,7 +57,7 @@ def run_autonlp_model(config, **kwargs):
     preds = M.test(test_x)
     score = autodl_auc(test_y.astype(int), preds.astype(int))
     print("run_autonlp_model score: {}".format(score))
-    return score
+    return -1*score  # since smac minimizes
 
 
 def run_smac():
