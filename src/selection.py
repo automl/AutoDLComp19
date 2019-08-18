@@ -96,7 +96,6 @@ def test_selector(autodl_model, dataset, selection_args):
     if dataset.mean_shape[0] == 1:  # image network
         kakaomodel = torch.hub.load(
             'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata,
-            parser_args=selection_args
         )
         LOGGER.info('LETTING SOMEONE ESLE FLY OUR BANANA PLANE!')
         LOGGER.info('BRACE FOR IMPACT!')
@@ -145,6 +144,73 @@ def test_selector(autodl_model, dataset, selection_args):
         CheckModesAndFreezing(model)
     return model, loss_fn, optimizer, scheduler
 
+def kakao_selector(autodl_model, dataset, selection_args):
+    LOGGER.info("TRAIN SET LENGTH: {0}".format(dataset.num_samples))
+    LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
+    LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
+
+    scheduler = None
+    selection_args.update(
+        OrderedDict(
+            {
+                'num_classes':
+                    dataset.num_classes,
+                'classification_type':
+                    'multilabel' if dataset.is_multilabel else 'multiclass',
+            }
+        )
+    )
+    if dataset.mean_shape[0] == 1:  # image network
+        kakaomodel = torch.hub.load(
+            'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata,
+            parser_args=selection_args
+        )
+        LOGGER.info('LETTING SOMEONE ESLE FLY OUR BANANA PLANE!')
+        LOGGER.info('BRACE FOR IMPACT!')
+        LOGGER.info('AND REMEMBER THAT I AM NOT RESPONSABLE!')
+        autodl_model.train = EarlyStop(kakaomodel.train, autodl_model)
+        autodl_model.test = EarlyStop(kakaomodel.test, autodl_model)
+        autodl_model.train(dataset.dataset, autodl_model.current_remaining_time)
+        model = None
+        optimizer = None
+        loss_fn = None
+    else:  # video network
+        # NOTE(Philipp): This is the current video api,
+        # in the future we just want the model to be returned
+        # NOTE(Philipp): Currently all parameters the model might require
+        # but aren't set here are loaded from the parser_args default
+        # at 'torchhome/hub/autodlcomp_models_master/video/opts.py' or on the
+        # model __init__ args itself
+        selection_args.update(selection_args.pop('optim_args'))
+        selection_args.update(
+            OrderedDict(
+                {
+                    'num_classes':
+                        dataset.num_classes,
+                    'classification_type':
+                        'multilabel' if dataset.is_multilabel else 'multiclass',
+                }
+            )
+        )
+        model_name, checkpoint_file = (
+            'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
+        )
+        model, optimizer, loss_fn = torch.hub.load(
+            HUBNAME, model_name, pretrained=True, url=checkpoint_file, **selection_args
+        )
+        model.dropout = selection_args['dropout']
+        model.num_segments = selection_args['num_segments']
+
+    # If not set to true or at all, amp will not be use
+    # If I remember correctly, freezing layers might break amp in which
+    # case we set this to false. So in a sense, this flag has the final
+    # say in the matter of wheter or not to use amp
+    if model is not None:
+        setattr(model, 'amp_compatible', False)
+        if hasattr(model, 'partialBN'):
+            model.partialBN(False)
+        CheckModesAndFreezing(model)
+    return model, loss_fn, optimizer, scheduler
 
 # Model selectors
 def dummy_model_selector(tfsession, dataset):
