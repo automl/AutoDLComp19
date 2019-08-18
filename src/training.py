@@ -45,23 +45,12 @@ class baseline_trainer():
             load_start = time.time()
             for i, (data, labels) in enumerate(self.dl_train):
                 batch_loading_time += time.time() - load_start
-                # Check if we need to early stop according to the config's earlystop
-                if (
-                    autodl_model.config.earlystop is not None and
-                    time.time() - autodl_model.birthday > autodl_model.config.earlystop
-                ):
-                    make_prediction = True
+                # Run prechecks whether we abort training or not (earlystop or final pred.)
+                abort, final = precheck(autodl_model, t_train, remaining_time)
+                if abort:
+                    make_final_prediction = final
                     break
 
-                # Abort training and make final prediction if not enough time is left
-                t_left = get_time_wo_final_prediction(
-                    remaining_time, t_train, autodl_model
-                )
-                if t_left is not None and t_left < 5:
-                    LOGGER.info('Making final prediciton!')
-                    make_final_prediction = True
-                    make_prediction = True
-                    break
                 data = data.to(DEVICE)
                 labels = labels.to(DEVICE)
 
@@ -189,23 +178,12 @@ class validation_trainer():
             load_start = time.time()
             for i, (data, labels) in enumerate(self.dl_train):
                 batch_loading_time += time.time() - load_start
-                # Check if we need to early stop according to the config's earlystop
-                if (
-                    autodl_model.config.earlystop is not None and
-                    time.time() - autodl_model.birthday > autodl_model.config.earlystop
-                ):
-                    make_prediction = True
+                # Run prechecks whether we abort training or not (earlystop or final pred.)
+                abort, final = precheck(autodl_model, t_train, remaining_time)
+                if abort:
+                    make_final_prediction = final
                     break
 
-                # Abort training and make final prediction if not enough time is left
-                t_left = get_time_wo_final_prediction(
-                    remaining_time, t_train, autodl_model
-                )
-                if t_left is not None and t_left < 5:
-                    LOGGER.info('Making final prediciton!')
-                    make_final_prediction = True
-                    make_prediction = True
-                    break
                 data = data.to(DEVICE)
                 labels = labels.to(DEVICE)
 
@@ -308,6 +286,23 @@ class validation_trainer():
 # ########################################################
 # Helpers
 # ########################################################
+def precheck(autodl_model, t_train, remaining_time):
+    make_prediction, make_final_prediction = False, False
+    # Check if we need to early stop according to the config's earlystop
+    if (
+        autodl_model.config.earlystop is not None and
+        time.time() - autodl_model.birthday > autodl_model.config.earlystop
+    ):
+        make_prediction = True
+    # Abort training and make final prediction if not enough time is left
+    t_left = get_time_wo_final_prediction(remaining_time, t_train, autodl_model)
+    if t_left is not None and t_left < 5:
+        LOGGER.info('Making final prediciton!')
+        make_final_prediction = True
+        make_prediction = True
+    return make_prediction, make_final_prediction
+
+
 def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
     model.train()
     optimizer.zero_grad()
