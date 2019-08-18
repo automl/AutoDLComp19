@@ -7,7 +7,8 @@ import numpy as np
 import tensorflow as tf
 import torch
 import torch.utils.data._utils as _utils
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import BatchSampler, Dataset, RandomSampler, SequentialSampler
+from torch.utils.data.dataloader import default_collate
 from utils import LOGGER
 
 
@@ -145,11 +146,101 @@ class TFDataset(Dataset):
         )
 
 
-class TFDataLoader(DataLoader):
-    def __init__(self, *args, **kwargs):
-        self.validation_idxs = []
-        kwargs.update({'num_workers': 0})
-        super().__init__(*args, **kwargs)
+class TFDataLoader(object):
+    # I got tired of their implementation...
+    __initialized = False
+
+    def __init__(
+        self,
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        collate_fn=default_collate,
+        pin_memory=False,
+        drop_last=False,
+        timeout=0,
+        worker_init_fn=None
+    ):
+        self.dataset = dataset
+        self.num_workers = num_workers
+        self.collate_fn = collate_fn
+        self.pin_memory = pin_memory
+        self.timeout = timeout
+        self.worker_init_fn = worker_init_fn
+
+        if timeout < 0:
+            raise ValueError('timeout option should be non-negative')
+
+        if batch_sampler is not None:
+            if batch_size > 1 or shuffle or sampler is not None or drop_last:
+                raise ValueError(
+                    'batch_sampler option is mutually exclusive '
+                    'with batch_size, shuffle, sampler, and '
+                    'drop_last'
+                )
+
+        if sampler is not None and shuffle:
+            raise ValueError('sampler option is mutually exclusive with ' 'shuffle')
+
+        if self.num_workers < 0:
+            raise ValueError(
+                'num_workers option cannot be negative; '
+                'use num_workers=0 to disable multiprocessing.'
+            )
+
+        if batch_sampler is None:
+            if sampler is None:
+                if shuffle:
+                    sampler = RandomSampler(dataset)
+                else:
+                    sampler = SequentialSampler(dataset)
+            batch_sampler = BatchSampler(sampler, batch_size, drop_last)
+
+        self.sampler = sampler
+        self.batch_sampler = batch_sampler
+        self.__initialized = True
+
+    def __setattr__(self, attr, val):
+        if self.__initialized and attr in ('sampler'):
+            raise ValueError(
+                '{} attribute should not be set after {} is '
+                'initialized'.format(attr, self.__class__.__name__)
+            )
+        super(TFDataLoader, self).__setattr__(attr, val)
+
+    def __len__(self):
+        return len(self.batch_sampler)
+
+    @property
+    def batch_size(self):
+        if not hasattr(self, 'batch_sampler'):
+            return None
+        return self.batch_sampler.batch_size
+
+    @batch_size.setter
+    def batch_size(self, val):
+        if not hasattr(self, 'batch_sampler'):
+            return
+        self.batch_sampler = torch.utils.data.sampler.BatchSampler(
+            self.sampler, val, self.batch_sampler.drop_last
+        )
+
+    @property
+    def drop_last(self):
+        if not hasattr(self, 'batch_sampler'):
+            return None
+        return self.batch_sampler.drop_last
+
+    @drop_last.setter
+    def drop_last(self, val):
+        if not hasattr(self, 'batch_sampler'):
+            return
+        self.batch_sampler = torch.utils.data.sampler.BatchSampler(
+            self.sampler, self.batch_sampler.batch_size, val
+        )
 
     def __iter__(self):
         return _TFDataLoaderIter(self)
