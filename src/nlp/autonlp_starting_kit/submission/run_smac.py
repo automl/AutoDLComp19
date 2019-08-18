@@ -168,5 +168,5 @@ print("Incumbent configuration: ")
 print(incumbent)
 print("Incumbent Score: {}".format(incumbent_score))
 
-with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.wallclock)), 'w') as f:
+with open('incumbent_{}_{}.json'.format(args.dataset_id, int(args.cutoff)), 'w') as f:
     json.dump(incumbent.get_dictionary(), f)
