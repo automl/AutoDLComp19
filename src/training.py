@@ -59,12 +59,8 @@ class baseline_trainer():
                     autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
                     autodl_model.lr_scheduler, data, labels
                 )
+                train_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
 
-                # Calculate accuracy for the trained on batch
-                out = out > 0 if self.dl_train.dataset.is_multilabel else torch.argmax(
-                    out, dim=1
-                )
-                train_acc = labels.eq(out).sum().float() / float(labels.shape[0])
                 LOGGER.debug(
                     'TRAINED BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
                         i, loss, train_acc * 100
@@ -147,6 +143,9 @@ class validation_trainer():
 
         self.validation_idxs = []
 
+        self.train_acc = pd.DataFrame()
+        self.valation_acc = pd.DataFrame()
+
     def __call__(self, autodl_model, remaining_time):
         '''
         This is called from the model.py and just seperates the
@@ -192,10 +191,9 @@ class validation_trainer():
                     out, loss = eval_step(
                         autodl_model.model, autodl_model.loss_fn, data, labels
                     )
-                    out = out > 0 if self.dl_train.dataset.is_multilabel else torch.argmax(
-                        out, dim=1
-                    )
-                    val_acc = labels.eq(out).sum().float() / float(labels.shape[0])
+                    val_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
+                    self.val_acc.append(val_acc, ignore_index=True)
+
                     LOGGER.debug(
                         'VALIDATED ON BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
                             i, loss, val_acc * 100
@@ -208,12 +206,9 @@ class validation_trainer():
                     autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
                     autodl_model.lr_scheduler, data, labels
                 )
+                train_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
+                self.train_acc.append(train_acc, ignore_index=True)
 
-                # Calculate accuracy for the trained on batch
-                out = out > 0 if self.dl_train.dataset.is_multilabel else torch.argmax(
-                    out, dim=1
-                )
-                train_acc = labels.eq(out).sum().float() / float(labels.shape[0])
                 LOGGER.debug(
                     'TRAINED BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
                         i, loss, train_acc * 100
@@ -334,6 +329,11 @@ def eval_step(model, criterion, data, labels):
     return output, loss
 
 
+def accuracy(labels, out, multilabel):
+    out = out > 0 if multilabel else torch.argmax(out, dim=1)
+    return labels.eq(out).sum().float() / float(labels.shape[0])
+
+
 def transform_time_abs(t_abs):
     '''
     conversion from absolute time 0s-1200s to relative time 0-1
@@ -418,7 +418,7 @@ def autodl_auc(solution, prediction, valid_columns_only=True):
     return 2 * mvmean(auc) - 1
 
 
-def accuracy(solution, prediction):
+def autodl_accuracy(solution, prediction):
     """Get accuracy of 'prediction' w.r.t true labels 'solution'."""
     epsilon = 1e-15
     # normalize prediction
