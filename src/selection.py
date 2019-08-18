@@ -124,7 +124,9 @@ def kakao_selector(autodl_model, dataset, selection_args):
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **selection_args
         )
         model.dropout = selection_args['dropout']
-        model.num_segments = selection_args['num_segments']
+        model.num_segments = int(
+            dataset.median_shape[0] / selection_args['segment_coeff']
+        )
 
     # If not set to true or at all, amp will not be use
     # If I remember correctly, freezing layers might break amp in which
