@@ -15,7 +15,7 @@ class baseline_trainer():
         self.ele_counter = 0  # keep track of how many batches we trained on
         self.train_err = pd.DataFrame()  # collect train error
         self.train_time = 0
-        self.dl_train = None
+        self.dl_train = None  # just for convinience
 
         self.t_diff = t_diff
 

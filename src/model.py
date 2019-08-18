@@ -15,11 +15,12 @@ A hjson is a normal json but allows comments, so no black magic here.
 """
 import json
 import os
+import re
 import threading
 import time
 import types
 from collections import OrderedDict
-from functools import partial
+from functools import partial, wraps
 
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
@@ -65,6 +66,41 @@ THREADS = [
     threading.Thread(target=lambda: tf.Session())
 ]
 [t.start() for t in THREADS]
+
+
+def parse_cumem_error(err_str):
+    mem_search = re.search(
+        r"Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free", err_str
+    )
+    tried, free = mem_search.groups()
+    tried = float(tried[:-2]) * 1024 if tried[-1] == 'G' else float(tried[:-2])
+    free = float(free[:-2]) * 1024 if free[-1] == 'G' else float(free[:-2])
+    return tried, free
+
+
+def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        while True:
+            try:
+                return f(*args, **kwargs)
+            except RuntimeError as e:
+                LOGGER.warn('CAUGHT VMEM ERROR! SCALING DOWN BATCH-SIZE!')
+                if 'CUDA out of memory.' not in e.args[0]:
+                    raise e
+                tried_mem, free_mem = parse_cumem_error(e.args[0])
+                mem_downscale = free_mem / (tried_mem * 2)
+                loader = getattr(autodl_model, dataloader_attr)
+                loader.batch_size = int(loader.batch_size * mem_downscale)
+                if reset_on_fail:
+                    getattr(autodl_model, dataloader_attr).dataset.reset()
+                LOGGER.warn(
+                    'BATCH-SIZE NOW IS {}'.format(
+                        getattr(autodl_model, dataloader_attr).batch_sampler.batch_size
+                    )
+                )
+
+    return decorated
 
 
 class Model(algorithm.Algorithm):
@@ -129,16 +165,16 @@ class Model(algorithm.Algorithm):
         )
         self.trainer = getattr(training, self.config.trainer)
         trainer_args = self.config.trainer_args[self.config.trainer]
-        self.trainer = self.trainer if isinstance(self.trainer,
-                                                  types.FunctionType) else self.trainer(
-                                                      **trainer_args
-                                                  )
+        self.trainer = BSGuard(
+            self.trainer if isinstance(self.trainer, types.FunctionType) else
+            self.trainer(**trainer_args), self, 'train_dl', True
+        )
         self.tester = getattr(testing, self.config.tester)
         tester_args = self.config.tester_args[self.config.tester]
-        self.tester = self.tester if isinstance(self.tester,
-                                                types.FunctionType) else self.tester(
-                                                    **tester_args
-                                                )
+        self.tester = BSGuard(
+            self.tester if isinstance(self.tester, types.FunctionType) else
+            self.tester(**tester_args).__call__, self, 'test_dl', True
+        )
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -152,7 +188,10 @@ class Model(algorithm.Algorithm):
         self.train_time = []
         self.testing_round = 0  # keep track how often we entered test
         self.test_time = []
+
         self._session = None
+        self._trainer_args = None
+        self._tester_args = None
         LOGGER.info("INIT END: {}".format(time.time()))
 
     @property
@@ -161,6 +200,23 @@ class Model(algorithm.Algorithm):
             [t.join() for t in THREADS]
             self._session = tf.Session()
         return self._session
+
+    @property
+    def trainer_args(self):
+        if self._trainer_args is None:
+            self._trainer_args = self.config.trainer_args[
+                self.config.trainer
+            ] if isinstance(getattr(training, self.config.trainer),
+                            types.FunctionType) else {}
+        return self._trainer_args
+
+    @property
+    def tester_args(self):
+        if self._tester_args is None:
+            self._tester_args = self.config.tester_args[self.config.tester] if isinstance(
+                getattr(testing, self.config.tester), types.FunctionType
+            ) else {}
+        return self._tester_args
 
     def side_load_config(self, bohb_conf_path):
         '''
@@ -288,9 +344,8 @@ class Model(algorithm.Algorithm):
 
         LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl.batch_size))
         train_start = time.time()
-        train_args = self.config.trainer_args[
-            self.config.trainer] if isinstance(self.trainer, types.FunctionType) else {}
-        self.trainer(self, remaining_time_budget, **train_args)
+
+        self.trainer(self, remaining_time_budget, **self.trainer_args)
 
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
         self.training_round += 1
@@ -342,27 +397,8 @@ class Model(algorithm.Algorithm):
             self.setup_test_dataset(dataset)
 
         LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
-        test_finished = False
-        while not test_finished:
-            try:
-                test_args = self.config.tester_args[self.config.tester] if isinstance(
-                    self.tester, types.FunctionType
-                ) else {}
-                predicitons = self.tester(self, remaining_time_budget, **test_args)
-                test_finished = True
-            except RuntimeError as e:
-                # If we are out of vram reduce the batchsize by 25 and try again
-                # but dont lower it below 16
-                if 'CUDA out of memory.' not in e.args[0]:
-                    raise e
-                loader_args = self.config.dataloader_args['test']
-                loader_args.update(
-                    {'batch_size': max(16, int(self.test_dl.batch_size - 25))}
-                )
-                self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
-                self.test_dl = TFDataLoader(self.test_dl.dataset, **loader_args)
-                self.test_dl.dataset.reset()
-                LOGGER.info('BATCH SIZE CHANGED: {}'.format(self.test_dl.batch_size))
+
+        predicitons = self.tester(self, remaining_time_budget, **self.tester_args)
 
         LOGGER.info(
             'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
