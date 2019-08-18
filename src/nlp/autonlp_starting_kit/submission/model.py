@@ -404,6 +404,8 @@ class Model(object):
         if self.done_training:
             return
 
+        torch.cuda.empty_cache()
+
         # Running Naive classical model at the start (run_count=0)
         if self.run_count == 0:
             x_train, y_train = train_dataset
@@ -600,6 +602,8 @@ class Model(object):
         """
         if remaining_time_budget is not None and self.test_runtime is not None and remaining_time_budget < self.test_runtime:
             return self.latest_test_preds
+
+        torch.cuda.empty_cache()
 
         # TODO smarter switch
         if self.run_count < self.naive_limit:  # return naive preds for first few runs

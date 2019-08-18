@@ -79,9 +79,9 @@ def run_smac():
 
     transformer = CategoricalHyperparameter("transformer", transformer_choices, default_value="bert")
     classifier = CategoricalHyperparameter("classifier", ["lr", "ada"], default_value="ada")
-    encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=6, default_value=2, log=False)
+    encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=5, default_value=2, log=False)
     # TODO : increase batch_size upper when running on cluster
-    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=256,
+    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=128,
                                               default_value=32, log=False)
     layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=3,
                                               default_value=2, log=False)
