@@ -106,6 +106,8 @@ class LogicModel(Model):
             self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
             self.hyper_params['optimizer']['weight_decay'] = parser_args['optim_args']['weight_decay']
             self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
+            self.hyper_params['dataset']['max_size'] = parser_args['max_size']
+            self.hyper_params['dataset']['base'] = parser_args['base']
 
 
         self.checkpoints = []
