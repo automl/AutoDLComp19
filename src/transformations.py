@@ -1,10 +1,10 @@
 from collections import OrderedDict
+
 import numpy as np
 import torch
 import torch.nn as nn
 from scipy.stats import norm
 from torchvision import transforms
-
 from utils import LOGGER, MonkeyNet
 
 RESIZE_FACTOR = 1.3
@@ -18,33 +18,134 @@ def baseline_transforms(autodl_model, dataset):
 
     # Monkeypatch the new network to expose the original model's attributes
     # and stack them
-    autodl_model.model = MonkeyNet(OrderedDict([
-        ('baseline_aug_net', BaselineAugmentNet()),
-        ('main_net', autodl_model.model),
-    ]))
+    autodl_model.model = MonkeyNet(
+        OrderedDict(
+            [
+                ('baseline_aug_net', BaselineAugmentNet()),
+                ('main_net', autodl_model.model),
+            ]
+        )
+    )
     transf_dict = {
-        'train': {
-            'samples': transforms.Compose(
-                [
-                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                    RandomCropPad(autodl_model.model.input_size)
-                ]
-            ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
-            )
-        },
-        'test': {
-            'samples': transforms.Compose(
-                [
-                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                    RandomCropPad(autodl_model.model.input_size)
-                ]
-            ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
-            )
-        }
+        'train':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
+                            RandomCropPad(autodl_model.model.input_size)
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            },
+        'test':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
+                            RandomCropPad(autodl_model.model.input_size)
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            }
+    }
+    return transf_dict
+
+
+def normal_segment_dist(autodl_model, dataset):
+    LOGGER.info('Using ###   BaselineAugmentNet   ### for transformations')
+
+    # Monkeypatch the new network to expose the original model's attributes
+    # and stack them
+    autodl_model.model = MonkeyNet(
+        OrderedDict(
+            [
+                ('baseline_aug_net', BaselineAugmentNet()),
+                ('main_net', autodl_model.model),
+            ]
+        )
+    )
+    transf_dict = {
+        'train':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsNormal(autodl_model.model),
+                            CPURandomCropPad(autodl_model.model.input_size),
+                            CPURandomHFlip(0.4)
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            },
+        'test':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsNormal(autodl_model.model),
+                            CPURandomCropPad(autodl_model.model.input_size)
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            }
+    }
+    return transf_dict
+
+
+def gpu_resize(autodl_model, dataset, use_gpu_resize):
+    model = autodl_model.model
+    LOGGER.info('Using ###   aug_net   ### for transformations')
+
+    # Inject the WrapperNet at the top of the modules list
+    cpu_resize = (
+        np.any(dataset.min_shape[1:] != dataset.max_shape[1:]) or not use_gpu_resize
+    )
+    aug_net = AugmentNet(model.input_size, not cpu_resize)
+    # Monkeypatch the new network to expose the original model's attributes
+    autodl_model.model = MonkeyNet(
+        OrderedDict([('aug_net', aug_net), ('main_net', model)])
+    )
+    transf_dict = {
+        'train':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsUniform(autodl_model.model), *(
+                                (CPUResizeImage(aug_net.re_size.tolist()), )
+                                if cpu_resize else ()
+                            )
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            },
+        'test':
+            {
+                'samples':
+                    transforms.Compose(
+                        [
+                            CPUDynamicSelectSegmentsUniform(autodl_model.model), *(
+                                (CPUResizeImage(aug_net.out_size.tolist()), )
+                                if cpu_resize else ()
+                            )
+                        ]
+                    ),
+                'labels':
+                    transforms.
+                    Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
+            }
     }
     return transf_dict
 
@@ -53,76 +154,14 @@ class BaselineAugmentNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.augmentation = {
-            'train': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Stack(),
-                    Normalize()
-                )
-            ),
-            'eval': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Stack(),
-                    Normalize()
-                )
-            )
+            'train': (nn.Sequential(SwapAxes(), FormatChannels(3), Stack(), Normalize())),
+            'eval': (nn.Sequential(SwapAxes(), FormatChannels(3), Stack(), Normalize()))
         }
 
     def forward(self, x):
         mode = 'train' if self.training else 'eval'
         x = self.augmentation[mode](x)
         return x
-
-
-def test_transforms(autodl_model, dataset, use_gpu_resize):
-    model = autodl_model.model
-    LOGGER.info('Using ###   aug_net   ### for transformations')
-
-    # Inject the WrapperNet at the top of the modules list
-    cpu_resize = (
-        np.any(dataset.min_shape[1:] != dataset.max_shape[1:])
-        or not use_gpu_resize
-    )
-    aug_net = AugmentNet(model.input_size, not cpu_resize)
-    # Monkeypatch the new network to expose the original model's attributes
-    autodl_model.model = MonkeyNet(OrderedDict([
-        ('aug_net', aug_net),
-        ('main_net', model)
-    ]))
-    transf_dict = {
-        'train': {
-            'samples': transforms.Compose(
-                [
-                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                    *(
-                        (CPUResizeImage(aug_net.re_size.tolist()), )
-                        if cpu_resize else ()
-                    )
-                ]
-            ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
-            )
-        },
-        'test': {
-            'samples': transforms.Compose(
-                [
-                    CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                    *(
-                        (CPUResizeImage(aug_net.out_size.tolist()), )
-                        if cpu_resize else ()
-                    )
-                ]
-            ),
-            'labels': transforms.Lambda(
-                lambda x: x if dataset.is_multilabel else np.argmax(x)
-            )
-        }
-    }
-    return transf_dict
 
 
 class AugmentNet(nn.Module):
@@ -134,39 +173,26 @@ class AugmentNet(nn.Module):
         self.out_size = np.array((out_size, out_size), dtype=np.int)
         self.re_size = np.ceil(self.out_size * RESIZE_FACTOR).astype(np.int)
         self.augmentation = {
-            'train': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Interpolate(self.re_size.tolist()),
-                    RandomCrop(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                ) if self.fast_augment
-                else nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    RandomCrop(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
+            'train':
+                (
+                    nn.Sequential(
+                        SwapAxes(), FormatChannels(3), Interpolate(self.re_size.tolist()),
+                        RandomCrop(self.out_size.tolist()), Stack(), Normalize()
+                    ) if self.fast_augment else nn.Sequential(
+                        SwapAxes(), FormatChannels(3), RandomCrop(self.out_size.tolist()),
+                        Stack(), Normalize()
+                    )
+                ),
+            'eval':
+                (
+                    nn.Sequential(
+                        SwapAxes(), FormatChannels(3),
+                        Interpolate(self.out_size.tolist()), Stack(), Normalize()
+                    ) if self.fast_augment else nn.Sequential(
+                        SwapAxes(), FormatChannels(3), RandomCrop(self.out_size.tolist()),
+                        Stack(), Normalize()
+                    )
                 )
-            ),
-            'eval': (
-                nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    Interpolate(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                ) if self.fast_augment
-                else nn.Sequential(
-                    SwapAxes(),
-                    FormatChannels(3),
-                    RandomCrop(self.out_size.tolist()),
-                    Stack(),
-                    Normalize()
-                )
-            )
         }
 
     def forward(self, x):
@@ -183,6 +209,7 @@ class FormatChannels(nn.Module):
     Adapt number of channels. If there are more than desired, use only the first n channels.
     If there are less, copy existing channels
     '''
+
     def __init__(self, channels_des):
         super().__init__()
         self.channels_des = channels_des
@@ -191,7 +218,9 @@ class FormatChannels(nn.Module):
         channels = x.shape[2]
         if channels < self.channels_des:
             shape = x.shape
-            x = x.expand(*shape[:2], int(np.ceil(self.channels_des / channels)), *shape[3:])
+            x = x.expand(
+                *shape[:2], int(np.ceil(self.channels_des / channels)), *shape[3:]
+            )
         x = x[:, :, 0:self.channels_des, :, :].contiguous()
 
         return x
@@ -201,6 +230,7 @@ class SwapAxes(nn.Module):
     '''
     Swap axes for interpolation
     '''
+
     def __init__(self):
         super().__init__()
         pass
@@ -214,6 +244,7 @@ class Interpolate(nn.Module):
     '''
     Resize image to desired size
     '''
+
     def __init__(self, size):
         super().__init__()
         self.size = size
@@ -234,6 +265,7 @@ class RandomCrop(nn.Module):
     '''
     Randomly crop a selection of the image
     '''
+
     def __init__(self, size):
         super().__init__()
         self.size = size
@@ -293,8 +325,11 @@ class RandomCropPad(object):
             col_start = col_rand
             col_end = col_des + col_rand
 
-        pics_pad = np.zeros((pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype)
-        pics_pad[:, row_pad_start:row_pad_end, col_pad_start:col_pad_end, :] = pics[:, row_start:row_end, col_start:col_end, :]
+        pics_pad = np.zeros(
+            (pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype
+        )
+        pics_pad[:, row_pad_start:row_pad_end, col_pad_start:col_pad_end, :
+                ] = pics[:, row_start:row_end, col_start:col_end, :]
         return pics_pad
 
 
@@ -302,6 +337,7 @@ class Stack(nn.Module):
     '''
     Concatenate subsequent images of one video by stacking the channels
     '''
+
     def __init__(self):
         super().__init__()
 
@@ -316,6 +352,7 @@ class Normalize(nn.Module):
     '''
     Normalize from the 0-255 range to the 0-1 range.
     '''
+
     def __init__(self):
         super().__init__()
 
@@ -388,7 +425,9 @@ class CPUDynamicSelectSegmentsNormal(nn.Module):
         choices = []
         last_idx = 0
         for seg_size in seg_sizes:
-            choices.append(np.random.choice(idxs[last_idx:last_idx + seg_size], 1)[0].tolist())
+            choices.append(
+                np.random.choice(idxs[last_idx:last_idx + seg_size], 1)[0].tolist()
+            )
             last_idx += seg_size
         x = x[choices]
         return x
@@ -437,9 +476,8 @@ class CPUResizeImage(nn.Module):
     def __init__(self, target_im_size):
         super().__init__()
         self.target_im_size = (
-            (target_im_size, target_im_size)
-            if isinstance(target_im_size, int)
-            else target_im_size
+            (target_im_size,
+             target_im_size) if isinstance(target_im_size, int) else target_im_size
         )
         self.convert_to_pil = transforms.ToPILImage()
 
@@ -456,9 +494,8 @@ class CPURandomCropPad(nn.Module):
     def __init__(self, target_im_size):
         super().__init__()
         self.target_im_size = (
-            (target_im_size, target_im_size)
-            if isinstance(target_im_size, int)
-            else target_im_size
+            (target_im_size,
+             target_im_size) if isinstance(target_im_size, int) else target_im_size
         )
 
     def __call__(self, x):
@@ -466,18 +503,16 @@ class CPURandomCropPad(nn.Module):
         im_size = np.array(x.shape[1:-1])
         wiggle_room = im_size - self.target_im_size
 
-        wi = int(np.random.choice(np.arange(
-            wiggle_room[0],
-            0,
-            -np.sign(wiggle_room[0]),
-            dtype=np.int
-        ), 1))
-        hi = int(np.random.choice(np.arange(
-            wiggle_room[1],
-            0,
-            -np.sign(wiggle_room[1]),
-            dtype=np.int
-        ), 1))
+        wi = int(
+            np.random.choice(
+                np.arange(wiggle_room[0], 0, -np.sign(wiggle_room[0]), dtype=np.int), 1
+            )
+        ) if wiggle_room[0] != 0 else 0
+        hi = int(
+            np.random.choice(
+                np.arange(wiggle_room[1], 0, -np.sign(wiggle_room[1]), dtype=np.int), 1
+            )
+        ) if wiggle_room[1] != 0 else 0
 
         wis, wie = (wi, wi + self.target_im_size[0])
         nwis, nwie = (0, self.target_im_size[0])
@@ -499,4 +534,13 @@ class CPURandomCropPad(nn.Module):
 class CPUStackSegments(nn.Module):
     def __call__(self, x):
         x = x.reshape((-1, *x.shape[2:]))
+        return x
+
+
+class CPURandomHFlip(nn.Module):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, x):
+        x = np.array(x if np.random.uniform() > self.p else np.flip(x, axis=2))
         return x
