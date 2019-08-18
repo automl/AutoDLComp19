@@ -61,7 +61,7 @@
 
 
   # Model and Optimizer selection algorithms
-  model_selector: 'kakao_selector',
+  model_selector: 'test_selector',
   model_selector_args: {
     baseline_selector: {
       selection_args: {
@@ -101,14 +101,17 @@
         modality: 'RGB',
         dropout: 0.3, # if we dont want to use it set it to 0
         num_segments: 4, # this could be also set in the trainer
-        freeze_portion: 0.0, # freezes a video network's first percent of layers
-    	momentum: 0.9,
+        freeze_portion: 0.2, # freezes a video network's first percent of layers
+        freeze_portion_image: 0.0, # freezes a video network's first percent of layers
         optimizer: 'SGD',
         max_size: 224, # maximum resolution to resize the input images/frames
         base: 16, # in case the H != W scale them as multiple of 16
         optim_args: {
-          lr: 0.025,
-          weight_decay: 0.001,
+          lr: 0.001,
+          weight_decay: 0.0005,
+          lr_image: 0.025,
+          weight_decay_image: 0.001,
+    	  momentum_image: 0.9,
         }
       },
     },
