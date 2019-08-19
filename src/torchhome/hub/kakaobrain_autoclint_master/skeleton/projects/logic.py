@@ -120,6 +120,8 @@ class LogicModel(Model):
             self.hyper_params['optimizer']['weight_decay'] = parser_args['weight_decay']
             self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
 
+        self.parser_args = parser_args
+
         self.checkpoints = []
         LOGGER.info('[init] build')
 
@@ -191,8 +193,8 @@ class LogicModel(Model):
         aspect_ratio = width / height
 
         if height > 128 and width > 128:
-            self.hyper_params['dataset']['max_size'] = parser_args['max_size']
-            self.hyper_params['dataset']['base'] = parser_args['base']
+            self.hyper_params['dataset']['max_size'] = self.parser_args['max_size']
+            self.hyper_params['dataset']['base'] = self.parser_args['base']
 
         # fit image area to 64x64
         if aspect_ratio > 2 or 1. / aspect_ratio > 2:
