@@ -83,7 +83,6 @@ def kakao_selector(autodl_model, dataset, selection_args):
     LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
 
     scheduler = None
-    selection_args.update(selection_args.pop('optim_args'))
     selection_args.update(
         OrderedDict(
             {
@@ -95,6 +94,9 @@ def kakao_selector(autodl_model, dataset, selection_args):
         )
     )
     if dataset.mean_shape[0] == 1:  # image network
+        optim_image = selection_args.pop('optim_image')
+        optim_image.update(optim_image.pop('optim_args'))
+        selection_args.update(optim_image)
         kakaomodel = torch.hub.load(
             'kakaobrain/autoclint',
             'KakaoModel',
@@ -117,6 +119,9 @@ def kakao_selector(autodl_model, dataset, selection_args):
         # but aren't set here are loaded from the parser_args default
         # at 'torchhome/hub/autodlcomp_models_master/video/opts.py' or on the
         # model __init__ args itself
+        optim_image = selection_args.pop('optim_video')
+        optim_image.update(optim_image.pop('optim_args'))
+        selection_args.update(optim_image)
         model_name, checkpoint_file = (
             'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
         )
