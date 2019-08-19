@@ -39,13 +39,19 @@ python run_local_test.py
 # Can be: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 verbosity_level = 'INFO'
 
+import argparse
 import logging
+import multiprocessing
 import os
-import tensorflow as tf
+import shutil  # for deleting a whole directory
 import time
-import shutil # for deleting a whole directory
 import webbrowser
 from multiprocessing import Process
+
+import tensorflow as tf
+from AutoDL_ingestion_program.ingestion import main as ingest
+
+multiprocessing.set_start_method('spawn', True)
 
 logging.basicConfig(
     level=getattr(logging, verbosity_level),
@@ -53,122 +59,131 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+
 def _HERE(*args):
     h = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(h, *args)
 
-def get_path_to_ingestion_program(starting_kit_dir):
-  return os.path.join(starting_kit_dir,
-                      'AutoDL_ingestion_program', 'ingestion.py')
+
+def get_path_to_ingestion_dir(starting_kit_dir):
+    return os.path.join(starting_kit_dir, 'AutoDL_ingestion_program')
+
 
 def get_path_to_scoring_program(starting_kit_dir):
-  return os.path.join(starting_kit_dir,
-                      'AutoDL_scoring_program', 'score.py')
+    return os.path.join(starting_kit_dir, 'AutoDL_scoring_program', 'score.py')
+
 
 def remove_dir(output_dir):
-  """Remove the directory `output_dir`.
+    """Remove the directory `output_dir`.
 
   This aims to clean existing output of last run of local test.
   """
-  if os.path.isdir(output_dir):
-    logging.info("Cleaning existing output directory of last run: {}"\
-                .format(output_dir))
-    shutil.rmtree(output_dir)
+    if os.path.isdir(output_dir):
+        logging.info("Cleaning existing output directory of last run: {}"\
+                    .format(output_dir))
+        shutil.rmtree(output_dir)
+
 
 def get_basename(path):
-  if len(path) == 0:
-    return ""
-  if path[-1] == os.sep:
-    path = path[:-1]
-  return path.split(os.sep)[-1]
+    if len(path) == 0:
+        return ""
+    if path[-1] == os.sep:
+        path = path[:-1]
+    return path.split(os.sep)[-1]
+
 
 def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=7200):
-  # Current directory containing this script
-  starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
-  path_ingestion = get_path_to_ingestion_program(starting_kit_dir)
-  path_scoring = get_path_to_scoring_program(starting_kit_dir)
-  score_dir = os.path.join(
-    starting_kit_dir,
-    'AutoDL_scoring_output',
-    score_subdir
-  )
-  ingestion_output_dir = os.path.join(
-    starting_kit_dir,
-    'AutoDL_sample_result_submission',
-    score_subdir
-  )
+    # Current directory containing this script
+    starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
+    path_ingestion_dir = get_path_to_ingestion_dir(starting_kit_dir)
+    path_scoring = get_path_to_scoring_program(starting_kit_dir)
+    score_dir = os.path.join(starting_kit_dir, 'AutoDL_scoring_output', score_subdir)
+    ingestion_output_dir = os.path.join(
+        starting_kit_dir, 'AutoDL_sample_result_submission', score_subdir
+    )
 
-  # Run ingestion and scoring at the same time
-  command_ingestion =\
-    "python {} --dataset_dir={} --code_dir={} --score_dir={} --output_dir={} --time_budget={}"\
-    .format(path_ingestion, dataset_dir, code_dir, score_dir, ingestion_output_dir, time_budget)
-  command_scoring =\
-    'python {} --solution_dir={} --score_dir={} --prediction_dir={} --time_budget={}'\
-    .format(path_scoring, dataset_dir, score_dir, ingestion_output_dir, time_budget)
-  def run_ingestion():
-    os.system(command_ingestion)
-  def run_scoring():
-    os.system(command_scoring)
-  ingestion_process = Process(name='ingestion', target=run_ingestion)
-  scoring_process = Process(name='scoring', target=run_scoring)
-  remove_dir(ingestion_output_dir)
-  remove_dir(score_dir)
-  ingestion_process.start()
-  scoring_process.start()
-  # detailed_results_page = os.path.join(starting_kit_dir,
-  #                                      'AutoDL_scoring_output',
-  #                                      'detailed_results.html')
-  # detailed_results_page = os.path.abspath(detailed_results_page)
-  #
-  # Open detailed results page in a browser
-  # time.sleep(2)
-  # for i in range(30):
-  #   if os.path.isfile(detailed_results_page):
-  #     webbrowser.open('file://'+detailed_results_page, new=2)
-  #     break
-  #     time.sleep(1)
+    # Run ingestion and scoring at the same time
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset_dir', type=str, default=dataset_dir)
+    parser.add_argument('--output_dir', type=str, default=ingestion_output_dir)
+    parser.add_argument('--ingestion_program_dir', type=str, default=path_ingestion_dir)
+    parser.add_argument('--code_dir', type=str, default=code_dir)
+    parser.add_argument('--score_dir', type=str, default=score_dir)
+    parser.add_argument('--time_budget', type=float, default=time_budget)
+    ingest_args = parser.parse_known_args()
+    ingest_args = ingest_args[0]
+    command_scoring =\
+      'python {} --solution_dir={} --score_dir={} --prediction_dir={} --time_budget={}'\
+      .format(path_scoring, dataset_dir, score_dir, ingestion_output_dir, time_budget)
+
+    remove_dir(ingestion_output_dir)
+    remove_dir(score_dir)
+
+    scoring_process = Process(
+        name='scoring', target=os.system, args=(command_scoring, ), daemon=True
+    )
+    scoring_process.start()
+    ingest(ingest_args)
+    scoring_process.join()
+    # detailed_results_page = os.path.join(starting_kit_dir,
+    #                                      'AutoDL_scoring_output',
+    #                                      'detailed_results.html')
+    # detailed_results_page = os.path.abspath(detailed_results_page)
+    #
+    # Open detailed results page in a browser
+    # time.sleep(2)
+    # for i in range(30):
+    #   if os.path.isfile(detailed_results_page):
+    #     webbrowser.open('file://'+detailed_results_page, new=2)
+    #     break
+    #     time.sleep(1)
 
 
 if __name__ == '__main__':
-  default_starting_kit_dir = _HERE()
-  # The default dataset is 'miniciao' under the folder AutoDL_sample_data/
-  default_dataset_dir = os.path.join(default_starting_kit_dir,
-                                     'AutoDL_sample_data', 'miniciao')
-  default_code_dir = os.path.join(default_starting_kit_dir,
-                                     'AutoDL_sample_code_submission')
-  default_score_subdir = 'local_test'                                   
-  default_time_budget = 1200
+    default_starting_kit_dir = _HERE()
+    # The default dataset is 'miniciao' under the folder AutoDL_sample_data/
+    default_dataset_dir = os.path.join(
+        default_starting_kit_dir, 'AutoDL_sample_data', 'miniciao'
+    )
+    default_code_dir = os.path.join(
+        default_starting_kit_dir, 'AutoDL_sample_code_submission'
+    )
+    default_score_subdir = 'local_test'
+    default_time_budget = 1200
 
-  tf.flags.DEFINE_string('dataset_dir', default_dataset_dir,
-                        "Directory containing the content (e.g. adult.data/ + "
-                        "adult.solution) of an AutoDL dataset. Specify this "
-                        "argument if you want to test on a different dataset.")
+    tf.flags.DEFINE_string(
+        'dataset_dir', default_dataset_dir,
+        "Directory containing the content (e.g. adult.data/ + "
+        "adult.solution) of an AutoDL dataset. Specify this "
+        "argument if you want to test on a different dataset."
+    )
 
-  tf.flags.DEFINE_string('code_dir', default_code_dir,
-                        "Directory containing a `model.py` file. Specify this "
-                        "argument if you want to test on a different algorithm."
-                        )
-  
-  tf.flags.DEFINE_string('score_subdir', default_score_subdir,
-                        "Subdirectory which will be created in the default directories"
-                        "for this run. If it already exits it will be emptied."
-                        )
+    tf.flags.DEFINE_string(
+        'code_dir', default_code_dir,
+        "Directory containing a `model.py` file. Specify this "
+        "argument if you want to test on a different algorithm."
+    )
 
-  tf.flags.DEFINE_float('time_budget', default_time_budget,
-                        "Time budget for running ingestion " +
-                        "(training + prediction)."
-                        )
+    tf.flags.DEFINE_string(
+        'score_subdir', default_score_subdir,
+        "Subdirectory which will be created in the default directories"
+        "for this run. If it already exits it will be emptied."
+    )
 
+    tf.flags.DEFINE_float(
+        'time_budget', default_time_budget,
+        "Time budget for running ingestion " + "(training + prediction)."
+    )
 
-  FLAGS = tf.flags.FLAGS
-  dataset_dir = FLAGS.dataset_dir
-  code_dir = FLAGS.code_dir
-  score_subdir = FLAGS.score_subdir
-  time_budget = FLAGS.time_budget
-  logging.info("#"*50)
-  logging.info("Begin running local test using")
-  logging.info("code_dir = {}".format(get_basename(code_dir)))
-  logging.info("dataset_dir = {}".format(get_basename(dataset_dir)))
-  logging.info("score_subdir = {}".format(get_basename(score_subdir)))
-  logging.info("#"*50)
-  run_baseline(dataset_dir, code_dir, score_subdir, time_budget)
+    FLAGS = tf.flags.FLAGS
+    dataset_dir = FLAGS.dataset_dir
+    code_dir = FLAGS.code_dir
+    score_subdir = FLAGS.score_subdir
+    time_budget = FLAGS.time_budget
+    logging.info("#" * 50)
+    logging.info("Begin running local test using")
+    logging.info("code_dir = {}".format(get_basename(code_dir)))
+    logging.info("dataset_dir = {}".format(get_basename(dataset_dir)))
+    logging.info("score_subdir = {}".format(get_basename(score_subdir)))
+    logging.info("#" * 50)
+    run_baseline(dataset_dir, code_dir, score_subdir, time_budget)
