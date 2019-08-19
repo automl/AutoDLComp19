@@ -13,7 +13,7 @@
       ]
     },
     pretrained_weights: [ # List the pretrained weight you want packsubmission.py to include
-      BnT_Video_input_128.pth.tar
+      # BnT_Video_input_128.pth.tar
       Averagenet_RGB_Kinetics_128.pth.tar
       resnet18-5c106cde.pth
     ]
