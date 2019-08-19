@@ -1,4 +1,3 @@
-import gc
 import time
 
 import numpy as np
@@ -8,8 +7,8 @@ from utils import DEVICE, LOGGER
 
 
 class baseline_tester():
-    def __init__(self, never_leave_train_mode):
-        self.never_leave_train_mode = never_leave_train_mode
+    def __init__(self, partial_eval_mode):
+        self.partial_eval_mode = partial_eval_mode
         self.test_time = 0
 
     def __call__(self, autodl_model, remaining_time):
@@ -25,7 +24,8 @@ class baseline_tester():
 
         with torch.no_grad():
             test_start = time.time()
-            if self.never_leave_train_mode:
+            if self.partial_eval_mode and hasattr(autodl_model.model, 'baseline_aug_net'):
+                autodl_model.model.baseline_aug_net.eval()
                 CheckModesAndFreezing(autodl_model.model)
             else:
                 autodl_model.model.eval()

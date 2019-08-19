@@ -1,10 +1,10 @@
+import logging
 import os
 import sys
+
+import hjson
 import torch
 import torch.nn as nn
-import logging
-import hjson
-
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,21 +15,34 @@ class MonkeyNet(nn.Sequential):
     The idea of the monkeynet is to expose all attributes of the networks
     it's given and is therefore a special kind of Sequential network
     '''
+
     def __init__(self, *nets):
         super().__init__(*nets)
         super().__setattr__('__finished_init__', True)
 
     def __getattr__(self, attr):
+        ret = None
         try:
-            super(nn.Sequential, self).__getattribute__(attr)
+            ret = super(nn.Sequential, self).__getattribute__(attr)
         except AttributeError:
             super(nn.Sequential, self).__getattribute__('__finished_init__')
+        try:
+            ret = super(nn.Sequential, self).__getattr__(attr)
+        except AttributeError:
+            pass
         for m in self.children():
             try:
-                return getattr(m, attr)
+                ret = getattr(m, attr)
             except AttributeError:
                 continue
-        raise AttributeError('The monkey is sorry because it could not find ''{0}'''.format(attr))
+        if ret is None:
+            raise AttributeError(
+                'The monkey is sorry because it could not find '
+                '{0}'
+                ''.format(attr)
+            )
+        else:
+            return ret
 
     def __setattr__(self, attr, val):
         try:
@@ -49,7 +62,11 @@ class MonkeyNet(nn.Sequential):
                 return
             except AttributeError:
                 continue
-        raise AttributeError('The monkey is sorry because it could not set ''{0}'''.format(attr))
+        raise AttributeError(
+            'The monkey is sorry because it could not set '
+            '{0}'
+            ''.format(attr)
+        )
 
 
 class Config:
@@ -71,7 +88,8 @@ def get_logger():
     logging_level = getattr(logging, conf.log_level)
     logger.setLevel(logging_level)
     formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s')
+        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s'
+    )
     fileout_handler = logging.FileHandler(os.path.join(BASEDIR, 'run.log'), mode='w')
     fileout_handler.setLevel(logging.DEBUG)
     fileout_handler.setFormatter(formatter)

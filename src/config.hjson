@@ -49,11 +49,11 @@
   # Dataset/DataLoader
   dataloader_args: { # Shuffle isn't working so don't drop last
     train: {
-      batch_size: 16,
+      batch_size: 32,
       pin_memory: true, # faster transfer of data to gpu if true
     }
     test: {
-      test_initial_batch_size: 200, # Will be automatically adjusted if too big
+      test_initial_batch_size: 128, # Will be automatically adjusted if too big
       pin_memory: true, # faster transfer of data to gpu if true
     }
   },
@@ -86,9 +86,9 @@
         video:
         {
           segment_coeff: 10, # num_segemts = frame_count / segment_coeff
-          freeze_portion: 0, # freezes a video network's first percent of layers
+          freeze_portion: 0.15, # freezes a video network's first percent of layers
           modality: 'RGB',
-          dropout: 0.3, # on average net this only controls alphadrop
+          dropout: 0.2, # on average net this only controls alphadrop
           optimizer: 'Adam',
           optim_args: {
             lr: 0.001,
@@ -138,7 +138,7 @@
   tester_args: {  # If the chosen trainer is a class the args
                    # will be passed as init arguments
     baseline_tester: {
-      never_leave_train_mode: true
+      partial_eval_mode: true
     },
     classical_tester: {
     },

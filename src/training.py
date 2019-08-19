@@ -278,7 +278,7 @@ class validation_trainer():
             return False
         # Seen all classes at least 10 times
         # NOTE(Philipp): What about multilabel cases?
-        if np.all(self.labels_seen < 10):
+        if np.all(self.labels_seen < 5):
             return False
         # If prev. conditions are fullfilled and it's the first train
         # make a prediction
