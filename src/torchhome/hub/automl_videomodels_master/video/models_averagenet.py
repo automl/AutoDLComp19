@@ -300,7 +300,8 @@ class Averagenet(nn.Module):
         self.reshape = True
         self.scaling = scaleing
         self._dropout = dropout
-        self.alphadrop = nn.AlphaDropout(p=self.dropout)
+        self._alphadropout = dropout
+        self.alphadrop = nn.AlphaDropout(0.2)
         self.modality = modality
 
         self.input_size = input_size
@@ -312,7 +313,7 @@ class Averagenet(nn.Module):
                 width_coef=.7,
                 depth_coef=.7,
                 scale=.7,
-                dropout_ratio=0.2,
+                dropout_ratio=dropout,
                 pl=0.2,
                 endpoint=112,
                 arch='full'
@@ -332,13 +333,22 @@ class Averagenet(nn.Module):
             self.partialBN(True)
 
     @property
-    def dropout(self):
-        return self._dropout
+    def alphadropout(self):
+        return self._alphadropout
 
-    @dropout.setter
-    def dropout(self, val):
+    @alphadropout.setter
+    def alphadropout(self, val):
         self.alphadrop = nn.AlphaDropout(p=val)
-        self._dropout = val
+        self._alphadropout = val
+
+    @property
+    def alphadropout(self):
+        return self._alphadropout
+
+    @alphadropout.setter
+    def alphadropout(self, val):
+        self.alphadrop = nn.AlphaDropout(p=val)
+        self._alphadropout = val
 
     def forward(self, input, num_segments=0):
         """
