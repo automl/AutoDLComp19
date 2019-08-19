@@ -147,7 +147,7 @@ class validation_trainer():
         self.validation_idxs = []
 
         self.train_acc = pd.DataFrame()
-        self.valation_acc = pd.DataFrame()
+        self.valid_acc = pd.DataFrame()
 
         self.labels_seen = None
 
@@ -204,7 +204,7 @@ class validation_trainer():
                         autodl_model.model, autodl_model.loss_fn, data, labels
                     )
                     val_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
-                    self.val_acc = append_to_dataframe(self.val_acc, val_acc)
+                    self.valid_acc = append_to_dataframe(self.valid_acc, val_acc)
 
                     LOGGER.debug(
                         'VALIDATED ON BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
