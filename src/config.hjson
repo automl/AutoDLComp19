@@ -81,27 +81,30 @@
       selection_args: {
         # Philipp: I assume these should depend on the selected model
         # so for now we expose them here to hardcode them
-        modality: 'RGB',
-        dropout: 0.3, # on average net this only controls alphadrop
-        segment_coeff: 10, # num_segemts = frame_count / segment_coeff
-        freeze_portion: 0.2, # freezes a video network's first percent of layers
-        freeze_portion_image: 0.0, # freezes a video network's first percent of layers
-        max_size: 224, # maximum resolution to resize the input images/frames
-        base: 16, # in case the H != W scale them as multiple of 16
-        optim_video:
+        # NOTE(Philipp): Settings before the following stubs are shared
+        # and overwritten if redefine in there
+        video:
         {
+          segment_coeff: 10, # num_segemts = frame_count / segment_coeff
+          freeze_portion: 0, # freezes a video network's first percent of layers
+          modality: 'RGB',
+          dropout: 0.3, # on average net this only controls alphadrop
           optimizer: 'Adam',
           optim_args: {
             lr: 0.001,
           }
         },
-        optim_image:
+        image:
         {
+          max_size: 224, # maximum resolution to resize the input images/frames
+          base: 16, # in case the H != W scale them as multiple of 16
+          freeze_portion: 0.0, # freezes a video network's first percent of layers
+          dropout: 0.3,
           optimizer: 'SGD',
           optim_args: {
-            lr_image: 0.025,
-            weight_decay_image: 0.001,
-            momentum_image: 0.9,
+            lr: 0.025,
+            weight_decay: 0.001,
+            momentum: 0.9,
           }
         },
       },
