@@ -85,13 +85,16 @@ def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
             try:
                 return f(*args, **kwargs)
             except RuntimeError as e:
+                loader = getattr(autodl_model, dataloader_attr)
                 LOGGER.warn('CAUGHT VMEM ERROR! SCALING DOWN BATCH-SIZE!')
-                if 'CUDA out of memory.' not in e.args[0]:
+                if (
+                    'CUDA out of memory.' not in e.args[0]
+                    or loader.batch_size == 1
+                ):
                     raise e
                 tried_mem, free_mem = parse_cumem_error(e.args[0])
                 mem_downscale = free_mem / tried_mem
-                loader = getattr(autodl_model, dataloader_attr)
-                loader.batch_size = int(loader.batch_size * mem_downscale)
+                loader.batch_size = max(1, int(loader.batch_size * mem_downscale))
                 if reset_on_fail:
                     getattr(autodl_model, dataloader_attr).dataset.reset()
                 LOGGER.warn(
