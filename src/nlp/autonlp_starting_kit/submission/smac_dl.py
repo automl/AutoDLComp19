@@ -110,6 +110,11 @@ def run_smac():
     optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
     cs.add_condition(optim_cond)
 
+    # Augmentation parameters
+    # augment = CategoricalHyperparameter("augmentation", ['True', 'False'], default_value='False')
+    # augment_th = UniformFloatHyperparameter("aug_threshold", lower=0.1, upper=0.5, log=False)
+    # cs.add_hyperparameters([augment, augment_th])
+
     # SMAC scenario oject
     scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternative runtime)
                          "cs": cs,               # configuration space

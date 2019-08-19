@@ -66,8 +66,8 @@ class BertTokenizer():
         text = self.tokenizer.tokenize(text)
         text = text[:max_tok_len] if np.random.uniform() > 0.5 else text[-max_tok_len:]
         # text = text[:max_tok_len]
-        text.insert(0, self.tokenizer.vocab['[CLS]'])
-        text.insert(len(text), self.tokenizer.vocab['[SEP]'])
+        text.insert(0, '[CLS]')
+        text.insert(len(text), '[SEP]')
         # print(max_tok_len, len(text))
         return self._encode_tokens(text)
 

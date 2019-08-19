@@ -19,6 +19,7 @@ from sklearn.model_selection import train_test_split
 from scoring import autodl_auc
 from bert import BertTokenizer, NLPBertClassifier, BERT_PRETRAINED
 from xlnet import XLNetTokenizer, NLPXLNetClassifier, XLNET_PRETRAINED
+from text_augmentation import Augmentation
 
 SEED = 42
 torch.manual_seed(SEED)
@@ -28,6 +29,11 @@ torch.backends.cudnn.benchmark = False
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
 
+try:
+    from apex import amp
+    apex_exists = True
+except:
+    apex_exists = False
 
 # onhot encode to category
 def ohe2cat(label):
@@ -49,8 +55,8 @@ def bucket_shuffle(arr, bucket_size, pad_key=-1):
 
 
 class TextLoader():
-    def __init__(self, data, label, metadata, tokenizer, batch_size=1, shuffle=False, sort=False,
-                 device=torch.device('cpu'), workers=4):
+    def __init__(self, data, label, metadata, tokenizer, augmentation=False, batch_size=1,
+                 shuffle=False, sort=False, device=torch.device('cpu'), workers=4):
         """
         tokenizes dataset with given tokenizer and generates batches of data
         data: list of sequences
@@ -69,6 +75,14 @@ class TextLoader():
         # tokenize sentences
         # data = np.array([tokenizer.tokenize(d) for d in data])
         data = tokenizer.tokenize(data, max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']), workers=workers)
+
+        # data augmentation
+        if augmentation:
+            print("Augmenting data...")
+            aug = Augmentation(imbalance=metadata['imbalance'], threshold=metadata['aug_threshold'])
+            data, label = aug.augment_data(data, label)
+            print("Finished augmentation!")
+
         self.data = np.array(data)
         self.label = label
         self.pad_token = 0
@@ -137,15 +151,6 @@ class NaiveModel():
             self.clf = AdaBoostClassifier(n_estimators=config['ada_estimators'], learning_rate=config['ada_rate'])
         else:
             self.clf = SVC(kernel=config['svc_kernel'], gamma='auto', decision_function_shape='ovr')
-
-        # else:
-        #     # # Run logistic (multinomial) regression for all inputs except when
-        #     # # 1) class imbalance is more than 0.2 and
-        #     # # 2) number of training samples are more than 80000
-        #     if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 80000:
-        #         self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
-        #     else:
-        #         self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
 
     def _transform(self, data):
         return self.hv.transform(data)
@@ -349,8 +354,16 @@ class Model(object):
             config = {'transformer': 'bert', 'layers': 2, 'classifier_layers': 2, 'classifier_units': 256,
                       'optimizer': 'adamw', 'learning_rate': 0.001, 'weight_decay': 0.01, 'batch_size': 64,
                       'classifier': 'ada', 'features': 2000, 'ada_estimators': 25, 'ada_rate': 1,
-                      'str_cutoff': 90, 'stop_count': 5}
+                      'str_cutoff': 90, 'stop_count': 5, 'augmentation': 'True', 'aug_threshold': 0.1}
         self.config = config
+
+        # True/False as str to account for categorical parameter in ConfigSpace
+        self.metadata['augmentation'] = True
+        if config['augmentation'] == 'True':
+            self.metadata['augmentation'] = True
+            self.metadata['aug_threshold'] = config['aug_threshold']
+        else:
+            self.metadata['augmentation'] = False
 
         self.classifier = config['classifier'] if config['classifier'] else None
 
@@ -388,6 +401,11 @@ class Model(object):
         # to store train dataset and avoid tokenizing again
         self.train_loader = None
         self.test_loader = None
+
+        if apex_exists:
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer,
+                                                        opt_level="O2", loss_scale="dynamic")
+            print("Apexifying model and optimizer")
 
     def train(self, train_dataset, remaining_time_budget=None, verbose=False, interval=100):
         """model training on train_dataset.
@@ -454,6 +472,7 @@ class Model(object):
             self.train_loader = TextLoader(data=x_train, label=y_train,
                                            metadata=self.metadata,
                                            tokenizer=self.tokenizer,
+                                           augmentation=self.metadata['augmentation'],
                                            batch_size=self.config['batch_size'],
                                            shuffle=True, sort=True,
                                            device=self.device, workers=self.workers)
@@ -467,6 +486,7 @@ class Model(object):
                 self.valid_loader = TextLoader(data=x_valid, label=y_valid,
                                                metadata=self.metadata,
                                                tokenizer=self.tokenizer,
+                                               augmentation=False,
                                                batch_size=self.config['batch_size'],
                                                shuffle=True, sort=True,
                                                device=self.device, workers=self.workers)
@@ -538,7 +558,12 @@ class Model(object):
                     loss = self.criterion(preds.view(-1), y_batch.float())  # for BCE
                 else:
                     loss = self.criterion(preds, y_batch)  # for CE
-                loss.backward()
+
+                if apex_exists:
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
                 self.optimizer.step()
 
                 if verbose:
@@ -635,6 +660,7 @@ class Model(object):
             self.test_loader = TextLoader(data=self.preprocessed_test_dataset, label=None,
                                           metadata=self.metadata,
                                           tokenizer=self.tokenizer,
+                                          augmentation=False,
                                           batch_size=self.config['batch_size'],
                                           shuffle=False, sort=True,
                                           device=self.device, workers=self.workers)
