@@ -148,7 +148,7 @@ if __name__ == '__main__':
     default_code_dir = os.path.join(
         default_starting_kit_dir, 'AutoDL_sample_code_submission'
     )
-    default_score_subdir = 'local_test'
+    default_score_subdir = None
     default_time_budget = 1200
 
     tf.flags.DEFINE_string(
@@ -178,7 +178,9 @@ if __name__ == '__main__':
     FLAGS = tf.flags.FLAGS
     dataset_dir = FLAGS.dataset_dir
     code_dir = FLAGS.code_dir
-    score_subdir = FLAGS.score_subdir
+    score_subdir = FLAGS.score_subdir if FLAGS.score_subdir is not None else os.path.basename(
+        dataset_dir
+    )
     time_budget = FLAGS.time_budget
     logging.info("#" * 50)
     logging.info("Begin running local test using")
