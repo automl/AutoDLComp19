@@ -11,7 +11,6 @@ class baseline_tester():
         self.never_leave_train_mode = never_leave_train_mode
         self.test_time = 0
 
-    @FreeOnExcept(locals, ['data', 'output'])
     def __call__(self, autodl_model, remaining_time):
         '''
         This is called from the model.py and just seperates the
@@ -53,7 +52,6 @@ class classical_tester():
     def __init__(self):
         self.test_time = 0
 
-    @FreeOnExcept(locals, ['data', 'output'])
     def __call__(self, autodl_model, remaining_time):
         '''
         This is called from the model.py and just seperates the
