@@ -119,8 +119,6 @@ class LogicModel(Model):
             self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
             self.hyper_params['optimizer']['weight_decay'] = parser_args['weight_decay']
             self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
-            self.hyper_params['dataset']['max_size'] = parser_args['max_size']
-            self.hyper_params['dataset']['base'] = parser_args['base']
 
         self.checkpoints = []
         LOGGER.info('[init] build')
@@ -191,6 +189,10 @@ class LogicModel(Model):
         # input_shape = [min(s, self.hyper_params['dataset']['max_size']) for s in self.info['dataset']['shape']]
         height, width, channels = self.info['dataset']['train']['example']['shape'][1:]
         aspect_ratio = width / height
+
+        if height > 128 and width > 128:
+            self.hyper_params['dataset']['max_size'] = parser_args['max_size']
+            self.hyper_params['dataset']['base'] = parser_args['base']
 
         # fit image area to 64x64
         if aspect_ratio > 2 or 1. / aspect_ratio > 2:

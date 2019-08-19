@@ -148,8 +148,6 @@ class Model(algorithm.Algorithm):
             if 'sample_count' in line
         ][0]
 
-        test_metadata_filename = self.metadata.get_dataset_name().replace('train', 'test') + '/metadata.textproto'
-        self.num_test_samples = [int(line.split(':')[1]) for line in open(test_metadata_filename, 'r').readlines() if 'sample_count' in line][0]
         LOGGER.info('TEST SET LENGTH:  %d', self.num_test_samples)
 
 

@@ -79,7 +79,6 @@ class ResNet18(models.ResNet):
         LOGGER.debug('initialize classifier weight')
 
     def forward(self, inputs, targets=None, tau=8.0, reduction='avg'):  # pylint: disable=arguments-differ
-        print('################### INPUT: ', str(inputs.shape))
         inputs = self.stem(inputs)
         logits = models.ResNet.forward(self, inputs)
         logits /= tau
