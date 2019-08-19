@@ -71,12 +71,7 @@ def run_smac():
     cs = ConfigurationSpace()
 
     # model hyperparams
-    if dataset.get_metadata()['language'] == 'EN':
-        transformer_choices = ['bert', 'xlnet']
-    else:
-        transformer_choices = ['bert']
-
-    transformer = CategoricalHyperparameter("transformer", transformer_choices, default_value="bert")
+    transformer = CategoricalHyperparameter("transformer", ['bert', 'xlnet'], default_value="xlnet")
     encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=5, default_value=2, log=False)
     finetune_wait = UniformIntegerHyperparameter("finetune_wait", lower=0, upper=5, default_value=2, log=False)
     layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=5, default_value=2, log=False)

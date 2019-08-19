@@ -365,7 +365,7 @@ class Model(object):
         self.naive_limit = 1  # num of train runs before testing using network
         self.test_runtime = None  # time taken for inference of test_dataset
         self.initialized = False
-        self.workers = 1 if self.metadata['language'] == 'ZH' else 3  # since multiprocessing is poor for chinese
+        self.workers = 3
 
         # to split train into train & validation
         self.split_ratio = split_ratio

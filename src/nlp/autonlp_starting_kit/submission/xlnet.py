@@ -11,7 +11,9 @@ import multiprocessing as mp
 
 
 XLNET_PRETRAINED = {
-    'EN': {'layers': 5, 'heads': 12, 'vocab': 32000, 'file': 'xlnet_english.model', 'name': 'xlnet-base-cased',
+    'EN': {'layers': 3, 'heads': 12, 'vocab': 32000, 'file': 'xlnet_english.model', 'name': 'xlnet-base-cased',
+           'd_model': 768, 'd_inner': 3072},
+    'ZH': {'layers': 3, 'heads': 12, 'vocab': 32000, 'file': 'xlnet_chinese.model', 'name': 'xlnet-base-chinese',
            'd_model': 768, 'd_inner': 3072}
 }
 
@@ -19,8 +21,6 @@ XLNET_PRETRAINED = {
 class XLNetTokenizer():
     def __init__(self, language='EN', pretrained_path='./'):
         super().__init__()
-
-        assert language == 'EN'
 
         self.language = language
 
