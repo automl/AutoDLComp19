@@ -163,10 +163,16 @@ class NLPXLNetClassifier(nn.Module):
 
         print('Pretrained model load time:', time.time() - load_time)
 
-    def disable_funetuning(self):
+    def disable_finetuning(self):
         self.finetuning = False
         for name, param in self.xlnet.named_parameters():
             param.requires_grad = False
+
+    def enable_finetuning(self):
+        self.finetuning = True
+        for name, param in self.xlnet.named_parameters():
+            if not 'embedding' in name:
+                param.requires_grad = True
 
     def save(self, file_path='./model.pkl'):
         torch.save(self.state_dict(), file_path)

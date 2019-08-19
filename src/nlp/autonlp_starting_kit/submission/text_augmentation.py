@@ -1,8 +1,6 @@
 import numpy as np
+from model import ohe2cat
 
-# onhot encode to category
-def ohe2cat(label):
-    return np.argmax(label, axis=1)
 
 class Augmentation():
     def __init__(self, imbalance, max_size=100000, threshold=0.1):

@@ -16,23 +16,6 @@ BERT_PRETRAINED = {
 }
 
 
-# class BertMultiTokenizer(AbstractTokenizer):
-#     def __init__(self, name, max_len=None, max_tokens=None):
-#         super().__init__()
-#         self.tokenizer = pytrf.BertTokenizer.from_pretrained(name)
-#         self.max_len = max_len
-#         self.max_tokens = max_tokens
-
-#     def tokenize(self, line):
-#         # restrict sentence length if too long (saves read time)
-#         line = line[:self.max_len]
-#         line = '[CLS] '+line+' [SEP]'  # tokens required for bert
-#         line = self.tokenizer.tokenize(line)
-#         line = line[:self.max_tokens]
-#         line = self.tokenizer.convert_tokens_to_ids(line)
-#         return line
-
-
 class BertTokenizer():
     def __init__(self, language='EN', pretrained_path='./'):
         super().__init__()
@@ -180,8 +163,19 @@ class NLPBertClassifier(nn.Module):
 
         # disable gradient for bert embedding layer
         for name, param in self.bert.named_parameters():
-            if self.finetuning or 'embedding' in name:
+            if not self.finetuning or 'embedding' in name:
                 param.requires_grad = False
+
+    def disable_finetuning(self):
+        self.finetuning = False
+        for name, param in self.bert.named_parameters():
+            param.requires_grad = False
+
+    def enable_finetuning(self):
+        self.finetuning = True
+        for name, param in self.bert.named_parameters():
+            if not 'embedding' in name:
+                param.requires_grad = True
 
     def save(self, file_path='./model.pkl'):
         torch.save(self.state_dict(), file_path)

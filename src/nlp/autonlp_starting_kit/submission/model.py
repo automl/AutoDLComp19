@@ -11,7 +11,7 @@ import os
 import re
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import  AdaBoostClassifier
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.svm import SVC
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.model_selection import train_test_split
@@ -19,6 +19,7 @@ from sklearn.model_selection import train_test_split
 from scoring import autodl_auc
 from bert import BertTokenizer, NLPBertClassifier, BERT_PRETRAINED
 from xlnet import XLNetTokenizer, NLPXLNetClassifier, XLNET_PRETRAINED
+from adabound import Adabound, AdaBoundW
 from text_augmentation import Augmentation
 
 SEED = 42
@@ -28,15 +29,27 @@ torch.backends.cudnn.benchmark = False
 
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
+MAX_VALID_SIZE = 10000
 
 try:
     from apex import amp
     apex_exists = True
-except:
+except Exception:
     apex_exists = False
 
-# onhot encode to category
+
+def convert_to_unicode(text):
+    """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
+    if isinstance(text, str):
+        return text
+    elif isinstance(text, bytes):
+        return text.decode("utf-8", "ignore")
+    else:
+        raise ValueError("Unsupported string type: %s" % (type(text)))
+
+
 def ohe2cat(label):
+    """ onhot encode to category """
     return np.argmax(label, axis=1)
 
 
@@ -79,9 +92,10 @@ class TextLoader():
         # data augmentation
         if augmentation:
             print("Augmenting data...")
+            augment_time = time.time()
             aug = Augmentation(imbalance=metadata['imbalance'], threshold=metadata['aug_threshold'])
             data, label = aug.augment_data(data, label)
-            print("Finished augmentation!")
+            print("Augmentation time:", time.time()-augment_time)
 
         self.data = np.array(data)
         self.label = label
@@ -141,22 +155,37 @@ class NaiveModel():
     def __init__(self, metadata, features, config):
         self.metadata = metadata
         self.classes = metadata['class_num']
+        self.train_samples = config['train_samples'] if config['train_samples'] else 100000
         self.features = features
         self.hv = HashingVectorizer(n_features=features)
 
         # build model based on config
-        if config['classifier'] == 'lr':
-            self.clf = LogisticRegression(solver=config['lr_opt'], multi_class=config['lr_multi'])
-        elif config['classifier'] == 'ada':
-            self.clf = AdaBoostClassifier(n_estimators=config['ada_estimators'], learning_rate=config['ada_rate'])
+        if config['classifier'] == 'auto':
+            # # Run logistic (multinomial) regression for all inputs except when
+            # # 1) class imbalance is more than 0.2 and
+            # # 2) number of training samples are more than 80000
+            if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 50000:
+                self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+            else:
+                self.clf = AdaBoostClassifier(n_estimators=50, learning_rate=1)
         else:
-            self.clf = SVC(kernel=config['svc_kernel'], gamma='auto', decision_function_shape='ovr')
+            if config['classifier'] == 'lr':
+                self.clf = LogisticRegression(solver=config['lr_opt'], multi_class=config['lr_multi'])
+            elif config['classifier'] == 'ada':
+                self.clf = AdaBoostClassifier(n_estimators=config['ada_estimators'], learning_rate=config['ada_rate'])
+            else:
+                self.clf = SVC(kernel=config['svc_kernel'], gamma='auto', decision_function_shape='ovr')
 
     def _transform(self, data):
         return self.hv.transform(data)
 
     def train(self, data):
         data_x, data_y = data
+        # sample only 'train_samples' data for training
+        if self.metadata['train_num'] > self.train_samples:
+            remove_ratio = 1 - self.train_samples/self.metadata['train_num']
+            data_x, _, data_y, _ = train_test_split(data_x, data_y, test_size=remove_ratio,
+                                                    random_state=1, stratify=ohe2cat(data_y))
         data_y = ohe2cat(data_y)
         data_x = self._transform(data_x)
         self.clf.fit(data_x, data_y)
@@ -179,15 +208,6 @@ class Preprocess(object):
         self.REPLACE_BY_SPACE_ZH = re.compile('[“”【】/（）：！～「」、|，；。"/(){}\[\]\|@,\.;]')
         self.BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
 
-    def convert_to_unicode(self, text):
-        """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
-        if isinstance(text, str):
-            return text
-        elif isinstance(text, bytes):
-            return text.decode("utf-8", "ignore")
-        else:
-            raise ValueError("Unsupported string type: %s" % (type(text)))
-
     def preprocess_text(self, data, cutoff=75):
         '''Cleans/preprocesses a list of list of English/Chinese strings
 
@@ -205,7 +225,7 @@ class Preprocess(object):
         clean_text = {'EN': self._clean_en_text, 'ZH': self._clean_zh_text}
         clean_text = clean_text[self.metadata['language']]
         data_x, _, _ = clean_text(data_x, data_y, cutoff)
-        return (data_x, data_y)
+        return data_x, data_y
 
     def _clean_en_text(self, data_x, data_y, cutoff=90, max_str_len=MAX_STR_LEN):
         '''Cleans/preprocesses a list of list of English strings
@@ -229,13 +249,13 @@ class Preprocess(object):
         '''
 
         if data_y is None:
-            data_y = [0 for i in range(len(data_x))]
+            data_y = np.zeros(len(data_x))
 
         ret = []
-        class_freq = [0 for i in range(self.classes)]
+        class_freq = np.zeros(len(self.classes))
         len_list = []
         for i, line in enumerate(data_x):
-            line = self.convert_to_unicode(line)
+            line = convert_to_unicode(line)
             # line = line.decode('utf-8', 'ignore')
             line = line.lower()  # lowercase text
             line = self.REPLACE_BY_SPACE_EN.sub(' ', line)
@@ -252,7 +272,7 @@ class Preprocess(object):
             cutoff_len = class_freq = None
         return ret, class_freq, cutoff_len
 
-    def _clean_zh_text(self, data_x, data_y, cutoff=90, max_str_len=MAX_STR_LEN):
+    def _clean_zh_text(self, data_x, data_y, cutoff=90):
         '''Cleans/preprocesses a list of list of Chinese strings
 
         Parameters
@@ -274,13 +294,13 @@ class Preprocess(object):
         '''
 
         if data_y is None:
-            data_y = [0 for i in range(len(data_x))]
+            data_y = np.zeros(len(data_x))
 
         ret = []
-        class_freq = [0 for i in range(self.classes)]
+        class_freq = np.zeros(len(self.classes))
         len_list = []
         for i, line in enumerate(data_x):
-            line = self.convert_to_unicode(line)
+            line = convert_to_unicode(line)
             # line = line.decode('utf-8', 'ignore')
             line = self.REPLACE_BY_SPACE_ZH.sub(' ', line)
             line = line.strip()
@@ -312,20 +332,24 @@ class Model(object):
         """ Initialization for model
         :param metadata: a dict
         """
-
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        # self.device = torch.device('cpu')
-
         self.done_training = False
         self.metadata = metadata
         self.train_output_path = train_output_path
         self.test_input_path = test_input_path
+
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        # self.device = torch.device('cpu')
+
+        # self.pretrained_path = '/content/'
+        self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
+        self.score_fn = autodl_auc
 
         self.preprocess = Preprocess(metadata)
 
         self.preprocessed_train_dataset = None
         self.preprocessed_test_dataset = None
         self.naive_preds = None
+        self.update_test = False
         self.best_valid_score = -1
 
         # Run tracker
@@ -339,73 +363,86 @@ class Model(object):
         self.train_epochs = np.inf  # num of epochs to train before done_training=True
         self.naive_limit = 1  # num of train runs before testing using network
         self.test_runtime = None  # time taken for inference of test_dataset
-        self.workers = 1
+        self.initialized = False
+        self.workers = 1 if self.metadata['language'] == 'ZH' else 3  # since multiprocessing is poor for chinese
 
         # to split train into train & validation
-        self.split_ratio = split_ratio if split_ratio else 1.0
-        self.score_fn = autodl_auc
+        self.split_ratio = split_ratio
+        if self.split_ratio:
+            # limit validation set size to limit
+            self.split_ratio = min(1 - self.split_ratio, MAX_VALID_SIZE / self.metadata['train_num'])
+        print('Validation split -', self.split_ratio)
 
-        # self.pretrained_path = '/content/'
-        self.pretrained_path = os.path.join(os.path.dirname(__file__), 'pretrained/')
-
-        print(config)
         if config is None:
             # setting default config if not provided
-            config = {'transformer': 'bert', 'layers': 2, 'classifier_layers': 2, 'classifier_units': 256,
-                      'optimizer': 'adamw', 'learning_rate': 0.001, 'weight_decay': 0.01, 'batch_size': 64,
-                      'classifier': 'ada', 'features': 2000, 'ada_estimators': 25, 'ada_rate': 1,
-                      'str_cutoff': 90, 'stop_count': 5, 'augmentation': 'True', 'aug_threshold': 0.1}
+            config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
+                      'classifier_layers': 2, 'classifier_units': 256,
+                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001, 'momentum': 0.8,
+                      'batch_size': 64, 'classifier': 'auto', 'features': 2000, 'train_samples': 100000,
+                      'str_cutoff': 90, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
         self.config = config
 
         # True/False as str to account for categorical parameter in ConfigSpace
-        self.metadata['augmentation'] = True
-        if config['augmentation'] == 'True':
+        if self.config['augmentation']:
             self.metadata['augmentation'] = True
-            self.metadata['aug_threshold'] = config['aug_threshold']
+            self.metadata['aug_threshold'] = self.config['aug_threshold']
         else:
             self.metadata['augmentation'] = False
 
-        self.classifier = config['classifier'] if config['classifier'] else None
-
-        # initialize model & tokenizer
-        if self.config['transformer'] == 'bert':
-            self.metadata_pretrain = BERT_PRETRAINED
-            self.metadata_pretrain['layers'] = config['layers']
-            self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
-            self.model = NLPBertClassifier(metadata, bert_metadata=self.metadata_pretrain,
-                                           pretrained=self.pretrained_path,
-                                           classifier_layers=self.config['classifier_layers'],
-                                           classifier_units=self.config['classifier_units'])
-        elif self.config['transformer'] == 'xlnet':
-            self.metadata_pretrain = XLNET_PRETRAINED
-            self.metadata_pretrain['layers'] = config['layers']
-            self.tokenizer = XLNetTokenizer(self.metadata['language'], self.pretrained_path)
-            self.model = NLPXLNetClassifier(metadata, xlnet_metadata=self.metadata_pretrain,
-                                            pretrained=self.pretrained_path,
-                                            classifier_layers=self.config['classifier_layers'],
-                                            classifier_units=self.config['classifier_units'])
-        else:
-            return  # will only build naive model
-
-        self.model.to(self.device)
-
-        if config['optimizer'] == "adamw":
-            self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.config['learning_rate'],
-                                         weight_decay=self.config['weight_decay'])
-        else:
-            self.optimizer = optim.Adam(self.model.parameters(), lr=self.config['learning_rate'])
-
-        self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
-            else nn.CrossEntropyLoss()
+        self.classifier = self.config['classifier'] if self.config['classifier'] else None
 
         # to store train dataset and avoid tokenizing again
         self.train_loader = None
         self.test_loader = None
 
+    def _init_models(self):
+        """ initialize model & tokenizer for training """
+
+        # initialize model & tokenizer
+        if self.config['transformer'] == 'bert':
+            self.metadata_pretrain = BERT_PRETRAINED
+            self.metadata_pretrain['layers'] = self.config['layers']
+            self.tokenizer = BertTokenizer(self.metadata['language'], self.pretrained_path)
+            self.model = NLPBertClassifier(self.metadata, bert_metadata=self.metadata_pretrain,
+                                           pretrained=self.pretrained_path,
+                                           classifier_layers=self.config['classifier_layers'],
+                                           classifier_units=self.config['classifier_units'], finetuning=False)
+        elif self.config['transformer'] == 'xlnet':
+            self.metadata_pretrain = XLNET_PRETRAINED
+            self.metadata_pretrain['layers'] = self.config['layers']
+            self.tokenizer = XLNetTokenizer(self.metadata['language'], self.pretrained_path)
+            self.model = NLPXLNetClassifier(self.metadata, xlnet_metadata=self.metadata_pretrain,
+                                            pretrained=self.pretrained_path,
+                                            classifier_layers=self.config['classifier_layers'],
+                                            classifier_units=self.config['classifier_units'], finetuning=False)
+
+        # initialize optimizer & loss fn
+        self._init_optim()
+        self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
+            else nn.CrossEntropyLoss()
+
         if apex_exists:
             self.model, self.optimizer = amp.initialize(self.model, self.optimizer,
                                                         opt_level="O2", loss_scale="dynamic")
             print("Apexifying model and optimizer")
+
+        self.model.to(self.device)
+        self.initialized = True
+
+    def _init_optim(self):
+        """ initialize optimizer """
+        if self.config['optimizer'] == 'adabound':
+            self.optimizer = AdaBoundW(self.model.parameters(), lr=self.config['learning_rate'],
+                                       weight_decay=self.config['weight_decay'])
+        elif self.config['optimizer'] == "rmsprop":
+            self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.config['learning_rate'],
+                                           momentum=self.config['momentum'],
+                                           weight_decay=self.config['weight_decay'])
+        elif self.config['optimizer'] == "adamw":
+            self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.config['learning_rate'],
+                                         weight_decay=self.config['weight_decay'])
+        else:
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.config['learning_rate'])
 
     def train(self, train_dataset, remaining_time_budget=None, verbose=False, interval=100):
         """model training on train_dataset.
@@ -427,10 +464,10 @@ class Model(object):
         if self.run_count == 0:
             x_train, y_train = train_dataset
 
-            if self.split_ratio < 1:
+            if self.split_ratio:
                 # Stratified split to create representative validation set
                 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train,
-                                                                      test_size=1-self.split_ratio,
+                                                                      test_size=self.split_ratio,
                                                                       random_state=1,
                                                                       stratify=ohe2cat(y_train))
                 valid_dataset = (x_valid, y_valid)
@@ -448,17 +485,23 @@ class Model(object):
             # run naive model if configured
             if self.classifier:
                 print('Building naive model - ', self.classifier)
+                naive_time = time.time()
                 # NaiveModel expects metadata to have 'imbalance' and must be after
                 self.naive = NaiveModel(self.metadata, self.config['features'], self.config)
                 self.naive.train(self.preprocessed_train_dataset)
 
                 # evaluate on validation data if available
-                if self.split_ratio < 1:
+                if self.split_ratio:
                     naive_valid = self.naive.test(self.preprocessed_valid_dataset[0])
                     self.best_valid_score = self.score_fn(self.preprocessed_valid_dataset[1], naive_valid)
                     print('Score = ', self.best_valid_score)
+                print('Naive model time:', time.time() - naive_time)
                 self.run_count += 1
                 return
+
+        # initialize model if not initialized in init
+        if not self.initialized:
+            self._init_models()
 
         # create dataloader
         if self.train_loader is None:
@@ -476,7 +519,7 @@ class Model(object):
                                            batch_size=self.config['batch_size'],
                                            shuffle=True, sort=True,
                                            device=self.device, workers=self.workers)
-            if self.split_ratio < 1:
+            if self.split_ratio:
                 # load validation set
                 if self.preprocessed_valid_dataset is None:
                     self.preprocessed_valid_dataset = self.preprocess.preprocess_text(valid_dataset,
@@ -503,14 +546,12 @@ class Model(object):
             self._train(self.train_loader, verbose, interval)
             print('Train time:', time.time() - train_time)
 
-            # update stats
-            self.epochs += 1
             if self.epochs > self.train_epochs:
                 # Signals end of program (training)
                 self.done_training = True
 
             # validation test
-            if self.split_ratio < 1:
+            if self.split_ratio:
                 valid_time = time.time()
                 y_valid, score = self._evaluate(self.valid_loader, verbose, interval)
                 print('Valid time:', time.time() - valid_time)
@@ -542,7 +583,7 @@ class Model(object):
             return
 
     def _train(self, loader, verbose=False, interval=100):
-        ''' trains model on the given data loader '''
+        """ trains model on the given data loader """
 
         self.model.train()
         loss_tracker = []
@@ -564,6 +605,7 @@ class Model(object):
                         scaled_loss.backward()
                 else:
                     loss.backward()
+                # optimizer step
                 self.optimizer.step()
 
                 if verbose:
@@ -575,10 +617,17 @@ class Model(object):
                 loss_tracker.append(loss.item())
 
         # update batch selection probability
-        if self.train_batches < 1.0:
+        if self.train_batches:
             self.train_batches = min(1.0, self.train_batches * self.batch_alpha)
 
-        print(self.epochs + 1, 'Avg. loss = ', np.mean(loss_tracker))
+        # update stats
+        self.epochs += 1
+        if not self.model.finetuning and self.epochs >= self.config['finetune_wait']:
+            print('enable finetuning transformer')
+            self.model.enable_finetuning()
+            self._init_optim()  # reinitialize optimizer since model params changed
+
+        print('Avg. loss = ', np.mean(loss_tracker))
 
     def _evaluate(self, loader, verbose=False, interval=100, score_fn=autodl_auc):
         ''' evaluates model on the given data loader '''
@@ -639,7 +688,7 @@ class Model(object):
             if self.preprocessed_test_dataset is None:
                 self.preprocessed_test_dataset, _ = self.preprocess.preprocess_text((x_test, None), cutoff=90)
 
-            if self.classifier and not self.naive_preds:
+            if self.classifier and self.naive_preds is None:
                 print('Generating naive predictions')
                 self.naive_preds = self.naive.test(self.preprocessed_test_dataset)
                 self.latest_test_preds = self.naive_preds
