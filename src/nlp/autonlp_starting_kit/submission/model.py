@@ -253,7 +253,7 @@ class Preprocess(object):
             data_y = np.zeros(len(data_x))
 
         ret = []
-        class_freq = np.zeros(len(self.classes))
+        class_freq = np.zeros(self.classes)
         len_list = []
         for i, line in enumerate(data_x):
             line = convert_to_unicode(line)
@@ -298,7 +298,7 @@ class Preprocess(object):
             data_y = np.zeros(len(data_x))
 
         ret = []
-        class_freq = np.zeros(len(self.classes))
+        class_freq = np.zeros(self.classes)
         len_list = []
         for i, line in enumerate(data_x):
             line = convert_to_unicode(line)
