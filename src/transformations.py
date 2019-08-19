@@ -424,11 +424,10 @@ class CPUDynamicSelectSegmentsNormal(nn.Module):
 
         choices = []
         last_idx = 0
-        for seg_size in seg_sizes:
-            choices.append(
-                np.random.choice(idxs[last_idx:last_idx + seg_size], 1)[0].tolist()
-            )
-            last_idx += seg_size
+        for i, seg_size in enumerate(seg_sizes):
+            next_idx = last_idx + seg_size if i < len(seg_sizes) - 1 else None
+            choices.append(np.random.choice(idxs[last_idx:next_idx], 1)[0].tolist())
+            last_idx = next_idx
         x = x[choices]
         return x
 
