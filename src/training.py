@@ -115,7 +115,9 @@ class baseline_trainer():
         self.train_err = append_loss(self.train_err, loss)
 
         # The first 22 batches just train and make a prediction
-        if self.batch_counter <= 21:
+        init_n_steps = 100 if autodl_model.num_test_samples > 500 else 21
+
+        if self.batch_counter <= init_n_steps:
             pass
         else:
             if autodl_model.testing_round == 0:

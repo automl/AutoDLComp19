@@ -192,9 +192,10 @@ def kakao_selector(autodl_model, dataset, selection_args):
                 }
             )
         )
-        model_name, checkpoint_file = (
-            'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
-        )
+        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
+        #model_name, checkpoint_file = (
+        #    'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
+        #)
         model, optimizer, loss_fn = torch.hub.load(
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **selection_args
         )

@@ -61,7 +61,7 @@
 
 
   # Model and Optimizer selection algorithms
-  model_selector: 'test_selector',
+  model_selector: 'kakao_selector',
   model_selector_args: {
     baseline_selector: {
       selection_args: {

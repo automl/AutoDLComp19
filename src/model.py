@@ -96,8 +96,12 @@ class Model(algorithm.Algorithm):
         self.input_dim = [sequence_size, row_count, col_count, channel]
         self.output_dim = metadata.get_output_size()
         self.num_train_samples = metadata.size()
-        self.num_test_samples = None
         self.metadata = metadata
+
+        test_metadata_filename = self.metadata.get_dataset_name().replace('train', 'test') + '/metadata.textproto'
+        self.num_test_samples = [int(line.split(':')[1]) for line in open(test_metadata_filename, 'r').readlines() if 'sample_count' in line][0]
+        LOGGER.info('TEST SET LENGTH:  %d', self.num_test_samples)
+
 
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
