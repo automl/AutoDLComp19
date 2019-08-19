@@ -19,7 +19,6 @@ sys.path.append('../../')
 
 from model import Model
 from scoring import autodl_auc
-# from autonlp_starting_kit.AutoDL_scoring_program.libscores import auc_metric
 from autonlp_starting_kit.AutoDL_ingestion_program.ingestion import Timer, TimeoutException
 from autonlp_starting_kit.AutoDL_ingestion_program.dataset import AutoNLPDataset
 
@@ -57,7 +56,7 @@ def run_autonlp_model(config, **kwargs):
                     break
     except TimeoutException as e:
         print(e)
-    #preds = M.test(test_x)
+
     score = autodl_auc(test_y.astype(int), preds.astype(int))
     print("run_autonlp_model score: {}".format(score))
     return -1*score  # since smac minimizes
@@ -79,41 +78,35 @@ def run_smac():
 
     transformer = CategoricalHyperparameter("transformer", transformer_choices, default_value="bert")
     encoder_layers = UniformIntegerHyperparameter("layers", lower=1, upper=5, default_value=2, log=False)
-    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=128,
-                                              default_value=32, log=False)
-    layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=5,
-                                              default_value=2, log=False)
+    finetune_wait = UniformIntegerHyperparameter("finetune_wait", lower=0, upper=5, default_value=2, log=False)
+    layers = UniformIntegerHyperparameter("classifier_layers", lower=1, upper=5, default_value=2, log=False)
     classifier_units = UniformIntegerHyperparameter("classifier_units", lower=32, upper=512,
                                                     default_value=256, log=False)
-    cs.add_hyperparameters([transformer, encoder_layers, batch_size, layers, classifier_units])
+    cs.add_hyperparameters([transformer, encoder_layers, finetune_wait, layers, classifier_units])
 
-    # # naive classifier parameters
-    # classifier = CategoricalHyperparameter("classifier", ["lr", "ada"], default_value="ada")
-    # features = UniformIntegerHyperparameter("features", lower=500, upper=3000,
-    #                                         default_value=2000, log=False)
-    # cs.add_hyperparameters([classifier, features])
+    # training hyperparams
+    optimizer = CategoricalHyperparameter("optimizer", ["radam", "adabound", "adamw"], default_value="adabound")
+    learning_rate = UniformFloatHyperparameter("learning_rate", lower=0.0001, upper=0.1,
+                                               default_value=0.001, log=True)
+    weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
+                                              default_value=0.001, log=True)
+    batch_size = UniformIntegerHyperparameter("batch_size", lower=8, upper=128,
+                                              default_value=64, log=False)
+    stop_count = UniformIntegerHyperparameter("stop_count", lower=1, upper=25, default_value=10,
+                                              log=False)
+    cs.add_hyperparameters([learning_rate, optimizer, weight_decay, batch_size, stop_count])
+    optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
+    cs.add_condition(optim_cond)
 
     # preprocessing hyperparameters
     str_cutoff = UniformIntegerHyperparameter("str_cutoff", lower=50, upper=100,
                                               default_value=75, log=False)
     cs.add_hyperparameters([str_cutoff])
 
-    # training hyperparams
-    learning_rate = UniformFloatHyperparameter("learning_rate", lower=0.0001, upper=0.1,
-                                               default_value=0.001, log=True)
-    optimizer = CategoricalHyperparameter("optimizer", ["adam", "adamw"], default_value="adam")
-    weight_decay = UniformFloatHyperparameter("weight_decay", lower=0.00001, upper=0.1,
-                                              default_value=0.01, log=True)
-    stop_count = UniformIntegerHyperparameter("stop_count", lower=1, upper=15, default_value=5,
-                                              log=False)
-    cs.add_hyperparameters([learning_rate, optimizer, weight_decay, stop_count])
-    optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
-    cs.add_condition(optim_cond)
-
     # Augmentation parameters
-    # augment = CategoricalHyperparameter("augmentation", ['True', 'False'], default_value='False')
-    # augment_th = UniformFloatHyperparameter("aug_threshold", lower=0.1, upper=0.5, log=False)
-    # cs.add_hyperparameters([augment, augment_th])
+    augment = CategoricalHyperparameter("augmentation", [True, False], default_value=False)
+    augment_th = UniformFloatHyperparameter("aug_threshold", lower=0.1, upper=0.5, log=False)
+    cs.add_hyperparameters([augment, augment_th])
 
     # SMAC scenario oject
     scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternative runtime)

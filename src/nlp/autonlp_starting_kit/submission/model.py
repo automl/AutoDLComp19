@@ -19,7 +19,8 @@ from sklearn.model_selection import train_test_split
 from scoring import autodl_auc
 from bert import BertTokenizer, NLPBertClassifier, BERT_PRETRAINED
 from xlnet import XLNetTokenizer, NLPXLNetClassifier, XLNET_PRETRAINED
-from adabound import Adabound, AdaBoundW
+from adabound import AdaBound, AdaBoundW
+from radam import RAdam
 from text_augmentation import Augmentation
 
 SEED = 42
@@ -377,7 +378,7 @@ class Model(object):
             # setting default config if not provided
             config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
                       'classifier_layers': 2, 'classifier_units': 256,
-                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001, 'momentum': 0.8,
+                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001,
                       'batch_size': 64, 'classifier': 'auto', 'features': 2000, 'train_samples': 100000,
                       'str_cutoff': 90, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
         self.config = config
@@ -434,10 +435,8 @@ class Model(object):
         if self.config['optimizer'] == 'adabound':
             self.optimizer = AdaBoundW(self.model.parameters(), lr=self.config['learning_rate'],
                                        weight_decay=self.config['weight_decay'])
-        elif self.config['optimizer'] == "rmsprop":
-            self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.config['learning_rate'],
-                                           momentum=self.config['momentum'],
-                                           weight_decay=self.config['weight_decay'])
+        elif self.config['optimizer'] == 'radam':
+            self.optimizer = RAdam(self.model.parameters(), lr=self.config['learning_rate'])
         elif self.config['optimizer'] == "adamw":
             self.optimizer = pytrf.AdamW(self.model.parameters(), lr=self.config['learning_rate'],
                                          weight_decay=self.config['weight_decay'])
