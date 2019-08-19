@@ -90,7 +90,9 @@ def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
                 if ('CUDA out of memory.' not in e.args[0] or loader.batch_size == 1):
                     raise e
                 tried_mem, free_mem = parse_cumem_error(e.args[0])
-                mem_downscale = min(1, free_mem / (tried_mem + 1e-8))
+                # Not working as intended. I blame fragmantation!
+                # mem_downscale = min(1, free_mem / (tried_mem + 1e-8)) if free_mem < tried_mem else 0.9
+                mem_downscale = 0.5
                 loader.batch_size = max(1, int(loader.batch_size * mem_downscale))
                 if reset_on_fail:
                     getattr(autodl_model, dataloader_attr).dataset.reset()
@@ -105,7 +107,6 @@ def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
                         getattr(autodl_model, dataloader_attr).batch_sampler.batch_size
                     )
                 )
-                torch.cuda.empty_cache()
 
     return decorated
 
