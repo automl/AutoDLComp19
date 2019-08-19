@@ -293,7 +293,7 @@ class validation_trainer():
         # make a prediction
         if autodl_model.testing_round == 0:
             return True
-        if self.valid_acc.size > 3 and self.val_acc.iloc[-3:].mean()[0] > 0.4:
+        if self.valid_acc.size > 3 and self.valid_acc.iloc[-3:].mean()[0] > 0.4:
             autodl_model.model.eval()
         # Continue with grid like predictions
         ct_diff = (
