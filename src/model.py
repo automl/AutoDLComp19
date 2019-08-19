@@ -89,7 +89,7 @@ def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
                 if 'CUDA out of memory.' not in e.args[0]:
                     raise e
                 tried_mem, free_mem = parse_cumem_error(e.args[0])
-                mem_downscale = free_mem / tried_mem * 0.5
+                mem_downscale = free_mem / tried_mem
                 loader = getattr(autodl_model, dataloader_attr)
                 loader.batch_size = int(loader.batch_size * mem_downscale)
                 if reset_on_fail:
