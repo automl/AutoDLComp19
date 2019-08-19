@@ -96,7 +96,7 @@
         },
         image:
         {
-          max_size: 224, # maximum resolution to resize the input images/frames
+          max_size: 128, # maximum resolution to resize the input images/frames
           base: 16, # in case the H != W scale them as multiple of 16
           freeze_portion: 0.0, # freezes a video network's first percent of layers
           dropout: 0.3,
