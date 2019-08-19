@@ -46,9 +46,10 @@ class baseline_trainer():
             for i, (data, labels) in enumerate(self.dl_train):
                 batch_loading_time += time.time() - load_start
                 # Run prechecks whether we abort training or not (earlystop or final pred.)
-                abort, final = precheck(autodl_model, t_train, remaining_time)
-                if abort:
-                    make_final_prediction = final
+                make_prediction, make_final_prediction = precheck(
+                    autodl_model, t_train, remaining_time
+                )
+                if make_prediction:
                     break
 
                 data = data.to(DEVICE)
@@ -138,6 +139,8 @@ class validation_trainer():
         self.train_time = 0
         self.dl_train = None
 
+        self._late_init_done = False
+
         self.t_diff = t_diff
         self.validate_every = validate_every
 
@@ -146,21 +149,29 @@ class validation_trainer():
         self.train_acc = pd.DataFrame()
         self.valation_acc = pd.DataFrame()
 
-    def __call__(self, autodl_model, remaining_time):
-        '''
-        This is called from the model.py and just seperates the
-        training routine from the unchaning code
-        '''
+        self.labels_seen = None
+
+    def _late_init(self, autodl_model):
         if self.validate_every > 0 and len(self.validation_idxs) == 0:
             num_evals = int(1 / self.validate_every)
             self.validation_idxs = np.linspace(
                 0, autodl_model.num_train_samples - 1, num_evals + 1, dtype=int
             )[1:-1]
+        if self.labels_seen is None:
+            self.labels_seen = np.zeros(autodl_model.train_dl.dataset.num_classes)
+        self._late_init_done = True
+
+    def __call__(self, autodl_model, remaining_time):
+        '''
+        This is called from the model.py and just seperates the
+        training routine from the unchaning code
+        '''
         # This is one way to split the tedious stuff from
         # making the decision to continue training or not
         # Maybe move this stuff and just define a policy api?
         LOGGER.info("TRAINING COUNTER:\t" + str(self.ele_counter))
-
+        if not self._late_init_done:
+            self._late_init(autodl_model)
         self.dl_train = autodl_model.train_dl
 
         t_train = time.time(
@@ -178,9 +189,10 @@ class validation_trainer():
             for i, (data, labels) in enumerate(self.dl_train):
                 batch_loading_time += time.time() - load_start
                 # Run prechecks whether we abort training or not (earlystop or final pred.)
-                abort, final = precheck(autodl_model, t_train, remaining_time)
-                if abort:
-                    make_final_prediction = final
+                make_prediction, make_final_prediction = precheck(
+                    autodl_model, t_train, remaining_time
+                )
+                if make_prediction:
                     break
 
                 data = data.to(DEVICE)
@@ -217,6 +229,11 @@ class validation_trainer():
 
                 self.batch_counter += 1
                 self.ele_counter += np.prod(data.shape[0:1])
+                onehot_labels = np.zeros(
+                    (len(labels), self.dl_train.dataset.num_classes), dtype=int
+                )
+                onehot_labels[np.arange(labels.shape[0]), labels.cpu().numpy()] = 1
+                self.labels_seen += onehot_labels.sum(axis=0)
 
                 # Check if we want to make a prediciton or not
                 if self.grid_check_policy(autodl_model, i, t_train, out, labels, loss):
@@ -259,26 +276,28 @@ class validation_trainer():
         '''
         self.train_err = append_to_dataframe(self.train_err, loss)
 
-        # The first 22 batches just train and make a prediction
-        if self.train_acc.size <= 5:
+        # The first 5 batches just train
+        if self.train_acc.size < 5:
             return False
-        if self.train_acc:
-            pass
-        if self.batch_counter <= 51 or (
-            autodl_model.num_test_samples > 1000 and self.batch_counter <= 101
-        ):
+        # Don't predict unless train acc is bigger than 10%
+        if self.train_acc.iloc[-5:].mean()[0] < 0.1:
+            return False
+        # Seen all classes at least 10 times
+        if np.all(self.labels_seen < 10):
+            return False
+        # If prev. conditions are fullfilled and it's the first train
+        # make a prediction
+        if autodl_model.testing_round == 0:
+            return True
+        # Continue with grid like predictions
+        ct_diff = (
+            transform_time_abs(time.time() - autodl_model.birthday) -
+            transform_time_abs(t_train_start - autodl_model.birthday)
+        )
+        if ct_diff < self.t_diff:
             pass
         else:
-            if autodl_model.testing_round == 0:
-                return True
-            ct_diff = (
-                transform_time_abs(time.time() - autodl_model.birthday) -
-                transform_time_abs(t_train_start - autodl_model.birthday)
-            )
-            if ct_diff < self.t_diff:
-                pass
-            else:
-                return True
+            return True
         return False
 
 
