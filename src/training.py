@@ -109,11 +109,11 @@ class baseline_trainer():
 
         NOTE(Philipp): Maybe extend this with a third option - change/update model
         '''
-        self.train_err = append_loss(self.train_err, loss)
+        self.train_err = append_to_dataframe(self.train_err, loss)
 
         # The first 22 batches just train and make a prediction
-        if self.batch_counter <= 51 or (
-            autodl_model.num_test_samples > 1000 and self.batch_counter <= 101
+        if self.batch_counter <= 21 or (
+            autodl_model.num_test_samples > 1000 and self.batch_counter <= 51
         ):
             pass
         else:
@@ -192,7 +192,7 @@ class validation_trainer():
                         autodl_model.model, autodl_model.loss_fn, data, labels
                     )
                     val_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
-                    self.val_acc.append(val_acc, ignore_index=True)
+                    self.val_acc = append_to_dataframe(self.val_acc, val_acc)
 
                     LOGGER.debug(
                         'VALIDATED ON BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
@@ -207,7 +207,7 @@ class validation_trainer():
                     autodl_model.lr_scheduler, data, labels
                 )
                 train_acc = accuracy(labels, out, self.dl_train.dataset.is_multilabel)
-                self.train_acc.append(train_acc, ignore_index=True)
+                self.train_acc = append_to_dataframe(self.train_acc, train_acc)
 
                 LOGGER.debug(
                     'TRAINED BATCH #{0}:\t{1:.6f}\t{2:.2f}'.format(
@@ -257,9 +257,13 @@ class validation_trainer():
 
         NOTE(Philipp): Maybe extend this with a third option - change/update model
         '''
-        self.train_err = append_loss(self.train_err, loss)
+        self.train_err = append_to_dataframe(self.train_err, loss)
 
         # The first 22 batches just train and make a prediction
+        if self.train_acc.size <= 5:
+            return False
+        if self.train_acc:
+            pass
         if self.batch_counter <= 51 or (
             autodl_model.num_test_samples > 1000 and self.batch_counter <= 101
         ):
@@ -356,9 +360,9 @@ def get_time_wo_final_prediction(remaining_time, train_start, model):
     ) if len(model.test_time) > 3 else None
 
 
-def append_loss(err_list, loss):
+def append_to_dataframe(frame, val):
     # Convenience function to increase readability
-    return err_list.append([loss.detach().cpu().tolist()], ignore_index=True)
+    return frame.append([val.detach().cpu().tolist()], ignore_index=True)
 
 
 def get_ema(err_df, ema_win):
