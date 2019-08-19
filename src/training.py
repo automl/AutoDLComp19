@@ -268,12 +268,6 @@ class validation_trainer():
         return make_final_prediction
 
     def grid_check_policy(self, autodl_model, i, t_train_start, out, labels, loss):
-        '''
-        return True - make a prediction
-        return False - continue training another batch
-
-        NOTE(Philipp): Maybe extend this with a third option - change/update model
-        '''
         self.train_err = append_to_dataframe(self.train_err, loss)
 
         # The first 5 batches just train
@@ -283,6 +277,7 @@ class validation_trainer():
         if self.train_acc.iloc[-5:].mean()[0] < 0.1:
             return False
         # Seen all classes at least 10 times
+        # NOTE(Philipp): What about multilabel cases?
         if np.all(self.labels_seen < 10):
             return False
         # If prev. conditions are fullfilled and it's the first train

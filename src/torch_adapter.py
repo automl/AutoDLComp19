@@ -75,8 +75,6 @@ class TFDataset(Dataset):
     def scan_all(self, max_samples=None):
         # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
-        # TODO(Philipp J.): Can we do better than going over the whole
-        # to check this?
         min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
         max_shape = (-np.Inf, -np.Inf, -np.Inf, -np.Inf)
         shape_list = []
