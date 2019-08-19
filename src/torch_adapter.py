@@ -1,17 +1,26 @@
-import time
+import multiprocessing
 import queue
 import threading
-import multiprocessing
+import time
+
 import numpy as np
 import tensorflow as tf
 import torch
 import torch.utils.data._utils as _utils
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import BatchSampler, Dataset, RandomSampler, SequentialSampler
+from torch.utils.data.dataloader import default_collate
 from utils import LOGGER
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples=None, transform_sample=None, transform_label=None):
+    def __init__(
+        self,
+        session,
+        dataset,
+        num_samples=None,
+        transform_sample=None,
+        transform_label=None
+    ):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
@@ -26,6 +35,8 @@ class TFDataset(Dataset):
         self.median_shape = None
         self.is_multilabel = None
 
+        self.current_idx = 0
+
         self.next_element = None
         self.reset()
 
@@ -35,6 +46,7 @@ class TFDataset(Dataset):
     def __getitem__(self, _):
         try:
             example, label = self._tf_exec(self.next_element)
+            self.current_idx += 1
             # example = torch.as_tensor(example)
             # label = torch.as_tensor(example)
         except tf.errors.OutOfRangeError:
@@ -57,13 +69,12 @@ class TFDataset(Dataset):
         dataset = self.dataset
         iterator = dataset.make_one_shot_iterator()
         self.next_element = iterator.get_next()
+        self.current_idx = 0
         return self
 
     def scan_all(self, max_samples=None):
         # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
-        # TODO(Philipp J.): Can we do better than going over the whole
-        # to check this?
         min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
         max_shape = (-np.Inf, -np.Inf, -np.Inf, -np.Inf)
         shape_list = []
@@ -108,7 +119,9 @@ class TFDataset(Dataset):
             except tf.errors.OutOfRangeError:
                 self.reset()
                 break
-        LOGGER.debug('SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
+        LOGGER.debug(
+            'SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
+        )
 
         idx = 0
         self.reset()
@@ -126,13 +139,106 @@ class TFDataset(Dataset):
             label = self.transform_label(label) \
                 if self.transform_label is not None \
                 else label
-        LOGGER.debug('SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start))
+        LOGGER.debug(
+            'SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
+        )
 
 
-class TFDataLoader(DataLoader):
-    def __init__(self, *args, **kwargs):
-        kwargs.update({'num_workers': 0})
-        super().__init__(*args, **kwargs)
+class TFDataLoader(object):
+    # I got tired of their implementation...
+    __initialized = False
+
+    def __init__(
+        self,
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        collate_fn=default_collate,
+        pin_memory=False,
+        drop_last=False,
+        timeout=0,
+        worker_init_fn=None
+    ):
+        self.dataset = dataset
+        self.num_workers = num_workers
+        self.collate_fn = collate_fn
+        self.pin_memory = pin_memory
+        self.timeout = timeout
+        self.worker_init_fn = worker_init_fn
+
+        if timeout < 0:
+            raise ValueError('timeout option should be non-negative')
+
+        if batch_sampler is not None:
+            if batch_size > 1 or shuffle or sampler is not None or drop_last:
+                raise ValueError(
+                    'batch_sampler option is mutually exclusive '
+                    'with batch_size, shuffle, sampler, and '
+                    'drop_last'
+                )
+
+        if sampler is not None and shuffle:
+            raise ValueError('sampler option is mutually exclusive with ' 'shuffle')
+
+        if self.num_workers < 0:
+            raise ValueError(
+                'num_workers option cannot be negative; '
+                'use num_workers=0 to disable multiprocessing.'
+            )
+
+        if batch_sampler is None:
+            if sampler is None:
+                if shuffle:
+                    sampler = RandomSampler(dataset)
+                else:
+                    sampler = SequentialSampler(dataset)
+            batch_sampler = BatchSampler(sampler, batch_size, drop_last)
+
+        self.sampler = sampler
+        self.batch_sampler = batch_sampler
+        self.__initialized = True
+
+    def __setattr__(self, attr, val):
+        if self.__initialized and attr in ('sampler'):
+            raise ValueError(
+                '{} attribute should not be set after {} is '
+                'initialized'.format(attr, self.__class__.__name__)
+            )
+        super(TFDataLoader, self).__setattr__(attr, val)
+
+    def __len__(self):
+        return len(self.batch_sampler)
+
+    @property
+    def batch_size(self):
+        if not hasattr(self, 'batch_sampler'):
+            return None
+        return self.batch_sampler.batch_size
+
+    @batch_size.setter
+    def batch_size(self, val):
+        if not hasattr(self, 'batch_sampler'):
+            return
+        self.batch_sampler = torch.utils.data.sampler.BatchSampler(
+            self.sampler, val, self.batch_sampler.drop_last
+        )
+
+    @property
+    def drop_last(self):
+        if not hasattr(self, 'batch_sampler'):
+            return None
+        return self.batch_sampler.drop_last
+
+    @drop_last.setter
+    def drop_last(self, val):
+        if not hasattr(self, 'batch_sampler'):
+            return
+        self.batch_sampler = torch.utils.data.sampler.BatchSampler(
+            self.sampler, self.batch_sampler.batch_size, val
+        )
 
     def __iter__(self):
         return _TFDataLoaderIter(self)
@@ -402,10 +508,12 @@ class _TFDataLoaderIter(object):
                 index_queue.cancel_join_thread()
                 w = multiprocessing.Process(
                     target=_utils.worker._worker_loop,
-                    args=(self.dataset, index_queue,
-                          self.worker_result_queue, self.done_event,
-                          self.collate_fn, base_seed + i,
-                          self.worker_init_fn, i))
+                    args=(
+                        self.dataset, index_queue, self.worker_result_queue,
+                        self.done_event, self.collate_fn, base_seed + i,
+                        self.worker_init_fn, i
+                    )
+                )
                 w.daemon = True
                 # NB: Process.start() actually take some time as it needs to
                 #     start a process and pass the arguments over via a pipe.
@@ -421,8 +529,11 @@ class _TFDataLoaderIter(object):
                 self.data_queue = queue.Queue()
                 pin_memory_thread = threading.Thread(
                     target=_utils.pin_memory._pin_memory_loop,
-                    args=(self.worker_result_queue, self.data_queue,
-                          torch.cuda.current_device(), self.done_event))
+                    args=(
+                        self.worker_result_queue, self.data_queue,
+                        torch.cuda.current_device(), self.done_event
+                    )
+                )
                 pin_memory_thread.daemon = True
                 pin_memory_thread.start()
                 # Similar to workers (see comment above), we only register
@@ -431,7 +542,9 @@ class _TFDataLoaderIter(object):
             else:
                 self.data_queue = self.worker_result_queue
 
-            _utils.signal_handling._set_worker_pids(id(self), tuple(w.pid for w in self.workers))
+            _utils.signal_handling._set_worker_pids(
+                id(self), tuple(w.pid for w in self.workers)
+            )
             _utils.signal_handling._set_SIGCHLD_handler()
             self.worker_pids_set = True
 
@@ -464,7 +577,9 @@ class _TFDataLoaderIter(object):
             # worker failures.
             if not all(w.is_alive() for w in self.workers):
                 pids_str = ', '.join(str(w.pid) for w in self.workers if not w.is_alive())
-                raise RuntimeError('DataLoader worker (pid(s) {}) exited unexpectedly'.format(pids_str))
+                raise RuntimeError(
+                    'DataLoader worker (pid(s) {}) exited unexpectedly'.format(pids_str)
+                )
             if isinstance(e, queue.Empty):
                 return (False, None)
             raise
@@ -485,7 +600,9 @@ class _TFDataLoaderIter(object):
             if success:
                 return data
             else:
-                raise RuntimeError('DataLoader timed out after {} seconds'.format(self.timeout))
+                raise RuntimeError(
+                    'DataLoader timed out after {} seconds'.format(self.timeout)
+                )
         elif self.pin_memory:
             while self.pin_memory_thread.is_alive():
                 success, data = self._try_get_batch()

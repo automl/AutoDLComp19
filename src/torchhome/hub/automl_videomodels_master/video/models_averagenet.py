@@ -1,10 +1,14 @@
 import logging
+
 import torch
-from torch import nn
-import torchvision
 import torch.nn.functional as F
-from .transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip, GroupScale, GroupRandomGrayscale
+import torchvision
+from torch import nn
+
 from .tf_model_zoo.ECOfull_py.efficientnet import EfficientNet
+from .transforms import (
+    GroupMultiScaleCrop, GroupRandomGrayscale, GroupRandomHorizontalFlip, GroupScale
+)
 
 logger = logging.getLogger(__file__)
 
@@ -42,8 +46,8 @@ class Averagenet_feature(nn.Module):
             self.base = EfficientNet(
                 num_classes=num_classes,
                 width_coef=self.scaling,
-                depth_coef=self.scaling ,
-                scale=self.scaling ,
+                depth_coef=self.scaling,
+                scale=self.scaling,
                 dropout_ratio=0.2,
                 pl=0.2,
                 endpoint=112,
@@ -56,7 +60,7 @@ class Averagenet_feature(nn.Module):
         else:
             self.base = base
         self.n_output_base = int(n_output_base * self.scaling)
-        self.fc = nn.Linear(self.n_output_base , num_classes)
+        self.fc = nn.Linear(self.n_output_base, num_classes)
         self._enable_pbn = partial_bn
         self._enable_freeze = freeze
         self._freeze_interval = freeze_interval
@@ -67,14 +71,15 @@ class Averagenet_feature(nn.Module):
         """
         input: (bs, c*ns, h, w)
         """
-        if num_segments != 0: self.num_segments = num_segments
+        if num_segments != 0:
+            self.num_segments = num_segments
         sample_len = 3
         bs, c_ns, h, w = input.shape
         # logger.debug('ip : ', input.shape)
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
         # logger.debug('ip_view : ', input.shape)
         # base model: BNINception pretrained model
-        _, x = self.base(input)
+        x = self.base(input)
         # logger.debug('bs : ', x.shape)
 
         # logger.debug('shape after effnet: ', x.shape)
@@ -287,7 +292,6 @@ class Averagenet(nn.Module):
         freeze=False,
         freeze_interval=[2, 63, -1, -1],
         scaleing=0.7,
-
     ):
         super(Averagenet, self).__init__()
         self.num_segments = num_segments
@@ -295,8 +299,9 @@ class Averagenet(nn.Module):
         self.channel = 3
         self.reshape = True
         self.scaling = scaleing
-        self.dropout = dropout
-        self.alphadrop = nn.AlphaDropout(p=self.dropout)
+        self._dropout = dropout
+        self._alphadropout = dropout
+        self.alphadrop = nn.AlphaDropout(0.2)
         self.modality = modality
 
         self.input_size = input_size
@@ -308,7 +313,7 @@ class Averagenet(nn.Module):
                 width_coef=.7,
                 depth_coef=.7,
                 scale=.7,
-                dropout_ratio=0.2,
+                dropout_ratio=dropout,
                 pl=0.2,
                 endpoint=112,
                 arch='full'
@@ -320,24 +325,42 @@ class Averagenet(nn.Module):
         else:
             self.base = base
         self.n_output_base = int(n_output_base * self.scaling)
-        self.fc = nn.Linear(self.n_output_base,
-                            num_classes)
+        self.fc = nn.Linear(self.n_output_base, num_classes)
         self._enable_pbn = partial_bn
         self._enable_freeze = freeze
         self._freeze_interval = freeze_interval
         if partial_bn:
             self.partialBN(True)
 
+    @property
+    def alphadropout(self):
+        return self._alphadropout
+
+    @alphadropout.setter
+    def alphadropout(self, val):
+        self.alphadrop = nn.AlphaDropout(p=val)
+        self._alphadropout = val
+
+    @property
+    def alphadropout(self):
+        return self._alphadropout
+
+    @alphadropout.setter
+    def alphadropout(self, val):
+        self.alphadrop = nn.AlphaDropout(p=val)
+        self._alphadropout = val
+
     def forward(self, input, num_segments=0):
         """
         input: (bs, c*ns, h, w)
         """
-        if num_segments != 0: self.num_segments = num_segments
+        if num_segments != 0:
+            self.num_segments = num_segments
         sample_len = 3
         bs, c_ns, h, w = input.shape
         input = input.view((-1, sample_len) + input.size()[-2:])  # (bs*ns, c, h, w)
         # base model: BNINception pretrained model
-        _, x = self.base(input)
+        x = self.base(input)
         self.alphadrop(x)
         x = self.fc(x)
         x = x.view(-1, self.num_segments, self.num_classes)  # (bs, 96, ns, 28, 28)
@@ -522,3 +545,65 @@ class Averagenet(nn.Module):
                     GroupRandomHorizontalFlip(is_flow=False)
                 ]
             )
+
+
+class StagedAveragenet(Averagenet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # NOTE(Philipp): This is copied from above but I highly object to
+        # a hard set dropout rate I cannot change from outside even with init!
+        self.base = EfficientNet(
+            num_classes=self.num_classes,
+            width_coef=.7,
+            depth_coef=.7,
+            scale=.7,
+            dropout_ratio=0.2,
+            pl=0.2,
+            endpoint=None,
+            arch='full',
+            eager=True
+        )
+        self.base.arch = ''
+        self.endpoints = [
+            112, 56, 28, 14, 13, 12, 7, 0
+        ]  # Check effnet class if you re curious
+        self.base.endpoint = self.endpoints.pop(0)
+        self._old_fc = None
+        self.fc = None
+
+    def forward(self, input, num_segments=0):
+        """
+        input: (bs, c*ns, h, w)
+        """
+        if num_segments != 0:
+            self.num_segments = num_segments
+        sample_len = 3
+        bs, c_ns, h, w = input.shape
+        input = input.view((-1, sample_len) + input.size()[-2:])
+
+        x = self.base(input)
+
+        self.alphadrop(x)
+        x = x.view(x.shape[0], -1)
+        x = self.fc(x) if self.fc is not None else self.extent_fc(x)
+        x = x.view(-1, self.num_segments, self.num_classes)
+        x = torch.mean(x, dim=1)
+
+        return x
+
+    def unlock_next(self):
+        if len(self.endpoints) > 0:
+            self.base.endpoint = self.endpoints.pop(0)
+        self.fc = None
+
+    def extent_fc(self, input):
+        in_shape = input.view(input.size(0), -1).shape[1:][0]
+        self.fc = nn.Linear(in_shape, self.num_classes)
+        self.fc.to(input.device)
+        # if self._old_fc is not None:
+        #     for p1, p2 in zip(self.fc.parameters(), self._old_fc.parameters()):
+        #         p1.requires_grad = False
+        #         p1.copy_(p2)
+        #         p1.requires_grad = True
+        self._old_fc = self.fc
+        return self.fc(input)

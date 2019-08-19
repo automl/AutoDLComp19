@@ -4,7 +4,7 @@ import os
 import torch
 from torch.nn.init import constant_, xavier_uniform_
 
-from .models_averagenet import Averagenet, Averagenet_feature
+from .models_averagenet import Averagenet, Averagenet_feature, StagedAveragenet
 from .models_eco import TSN as TSN_ECO
 from .models_ecopy import ECO_bninception, ECOfull, ECOfull_efficient
 from .models_tsm import TSN as TSN_TSM
@@ -88,6 +88,16 @@ def load_model_and_optimizer(parser_args):
             freeze_eco=parser_args.freeze_eco,
             freeze_interval=parser_args.freeze_interval,
             input_size=224
+        )
+    elif parser_args.arch == "StagedAveragenet":
+        model = StagedAveragenet(
+            dropout=dropout,
+            num_classes=parser_args.num_classes,
+            num_segments=parser_args.num_segments,
+            modality=parser_args.modality,
+            freeze=parser_args.freeze_eco,
+            freeze_interval=parser_args.freeze_interval,
+            input_size=128
         )
     elif parser_args.arch == "Averagenet":
         model = Averagenet(
@@ -245,7 +255,7 @@ def load_model_and_optimizer(parser_args):
             model.load_state_dict(model_dict)
         ###########
         # Averagenet
-        if "Averagenet" in parser_args.arch:
+        if "Averagenet" in parser_args.arch or 'StagedAveragenet':
             new_state_dict = init_Averagenet(model_dict, parser_args)
             un_init_dict_keys = [k for k in model_dict.keys() if k not in new_state_dict]
             if parser_args.print:
