@@ -122,10 +122,10 @@ def kakao_selector(autodl_model, dataset, selection_args):
         optim_image = selection_args.pop('video')
         optim_image.update(optim_image.pop('optim_args'))
         selection_args.update(optim_image)
-        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
-        #model_name, checkpoint_file = (
-        #    'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
-        #)
+        # model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
+        model_name, checkpoint_file = (
+            'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
+        )
         model, optimizer, loss_fn = torch.hub.load(
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **selection_args
         )
