@@ -130,7 +130,7 @@
     },
     validation_trainer: {
       t_diff: 0.02,
-      validate_every: 0,  #Validate at every x %, with 0 it's the same as the baseline
+      validate_on: 0.15,  #Validate on x %
     },
   },
 
