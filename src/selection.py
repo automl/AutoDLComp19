@@ -119,30 +119,12 @@ def kakao_selector(autodl_model, dataset, selection_args):
         # but aren't set here are loaded from the parser_args default
         # at 'torchhome/hub/autodlcomp_models_master/video/opts.py' or on the
         # model __init__ args itself
-<<<<<<< HEAD
-        selection_args.update(selection_args.pop('optim_args'))
-        selection_args.update(
-            OrderedDict(
-                {
-                    'num_classes':
-                        dataset.num_classes,
-                    'classification_type':
-                        'multilabel' if dataset.is_multilabel else 'multiclass',
-                }
-            )
-        )
-        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
-        #model_name, checkpoint_file = (
-        #    'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
-        #)
-=======
         optim_image = selection_args.pop('video')
         optim_image.update(optim_image.pop('optim_args'))
         selection_args.update(optim_image)
         model_name, checkpoint_file = (
             'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
         )
->>>>>>> ad822de584b43cfd7cd582e1b95e6c12c670fa70
         model, optimizer, loss_fn = torch.hub.load(
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **selection_args
         )

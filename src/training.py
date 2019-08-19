@@ -113,15 +113,9 @@ class baseline_trainer():
         self.train_err = append_to_dataframe(self.train_err, loss)
 
         # The first 22 batches just train and make a prediction
-<<<<<<< HEAD
-        init_n_steps = 100 if autodl_model.num_test_samples > 500 else 21
-
-        if self.batch_counter <= init_n_steps:
-=======
         if self.batch_counter <= 21 or (
             autodl_model.num_test_samples > 1000 and self.batch_counter <= 51
         ):
->>>>>>> ad822de584b43cfd7cd582e1b95e6c12c670fa70
             pass
         else:
             if autodl_model.testing_round == 0:
