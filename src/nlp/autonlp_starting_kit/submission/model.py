@@ -378,8 +378,8 @@ class Model(object):
             # setting default config if not provided
             config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
                       'classifier_layers': 2, 'classifier_units': 256,
-                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001,
-                      'batch_size': 64, 'classifier': 'auto', 'features': 2000, 'train_samples': 100000,
+                      'optimizer': 'adabound', 'learning_rate': 0.001, 'batch_size': 64,
+                      'classifier': 'auto', 'features': 2000, 'train_samples': 100000,
                       'str_cutoff': 90, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
         self.config = config
 

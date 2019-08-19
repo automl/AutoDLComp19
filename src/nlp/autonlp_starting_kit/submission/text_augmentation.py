@@ -1,5 +1,9 @@
 import numpy as np
-from model import ohe2cat
+
+
+def ohe2cat(label):
+    """ onhot encode to category """
+    return np.argmax(label, axis=1)
 
 
 class Augmentation():
