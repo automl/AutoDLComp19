@@ -31,6 +31,7 @@ torch.backends.cudnn.benchmark = False
 MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
 MAX_VALID_SIZE = 10000
+MAX_NAIVE_TRAIN_SIZE = 80000
 
 try:
     from apex import amp
@@ -86,9 +87,8 @@ class TextLoader():
         """
 
         self.device = device
-        # tokenize sentences
-        # data = np.array([tokenizer.tokenize(d) for d in data])
-        data = tokenizer.tokenize(data, max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']), workers=workers)
+        self.tokenizer = tokenizer
+        self.workers = workers
 
         # data augmentation
         if augmentation:
@@ -96,12 +96,17 @@ class TextLoader():
             augment_time = time.time()
             aug = Augmentation(imbalance=metadata['imbalance'], threshold=metadata['aug_threshold'])
             data, label = aug.augment_data(data, label)
-            print("Augmentation time:", time.time()-augment_time)
+            print("Augmentation time:", time.time() - augment_time)
 
-        self.data = np.array(data)
+        self.raw_data = np.array(data)
+        self.data_size = len(self.raw_data)
+
+        # for tokenize while generating batch
+        self.data = np.empty(self.data_size, dtype=object)
+        self.tokenized_size = 0
+
         self.label = label
         self.pad_token = 0
-        self.data_size = len(self.data)
 
         self.sort = sort
         self.shuffle = shuffle
@@ -109,7 +114,7 @@ class TextLoader():
 
         self.indices = np.arange(self.data_size)
 
-        self.text_lengths = np.array([[i, len(d)] for i, d in enumerate(self.data)])
+        self.text_lengths = np.array([[i, len(d)] for i, d in enumerate(self.raw_data)])
 
         if self.sort:
             # sorted indices used for batching
@@ -117,9 +122,22 @@ class TextLoader():
 
     def _generate_batch(self, indices):
         """ generate batch using given indices with padding """
+
+        # tokenize if not done already
+        if self.tokenized_size < self.data_size:
+            batch_tokenized = [t is None for t in self.data[indices]]
+            if all(batch_tokenized):
+                tok_data = self.tokenizer.tokenize(self.raw_data[indices],
+                                                   max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']),
+                                                   workers=self.workers)
+                # TODO looks inefficient
+                for t, i in enumerate(indices):
+                    self.data[i] = tok_data[t]
+                self.tokenized_size += len(indices)
+
         text = self.data[indices]
         # pad batch to max batch len
-        max_batch_len = max(self.text_lengths[indices, 1])
+        max_batch_len = max([len(t) for t in text])
         text = [b + [self.pad_token] * (max_batch_len - len(b)) for b in text]
         # convert to tensor
         text = torch.tensor(text).to(self.device).long()
@@ -134,12 +152,14 @@ class TextLoader():
     def __iter__(self):
         """ generate iterator for padding """
 
-        if self.sort and self.shuffle:
-            # if sorted shuffle, then shuffle only within the buckets
-            self.indices = bucket_shuffle(self.indices, bucket_size=int(self.batch_size*1.1))
-        elif self.shuffle:
-            # shuffle dataset completely
-            np.random.shuffle(self.indices)
+        # shuffle only if all data has been tokenized
+        if self.tokenized_size == self.data_size:
+            if self.sort and self.shuffle:
+                # if sorted shuffle, then shuffle only within the buckets
+                self.indices = bucket_shuffle(self.indices, bucket_size=int(self.batch_size * 1.1))
+            elif self.shuffle:
+                # shuffle dataset completely
+                np.random.shuffle(self.indices)
 
         for i in range(0, self.data_size, self.batch_size):
             if i <= self.data_size - self.batch_size:
@@ -156,7 +176,7 @@ class NaiveModel():
     def __init__(self, metadata, features, config):
         self.metadata = metadata
         self.classes = metadata['class_num']
-        self.train_samples = config['train_samples'] if config['train_samples'] else 100000
+        self.train_samples = config['train_samples'] if config['train_samples'] else MAX_NAIVE_TRAIN_SIZE
         self.features = features
         self.hv = HashingVectorizer(n_features=features)
 
@@ -164,11 +184,13 @@ class NaiveModel():
         if config['classifier'] == 'auto':
             # # Run logistic (multinomial) regression for all inputs except when
             # # 1) class imbalance is more than 0.2 and
-            # # 2) number of training samples are more than 80000
+            # # 2) number of training samples are more than 50000
             if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 50000:
+                print('naive - lr selected')
                 self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
             else:
-                self.clf = AdaBoostClassifier(n_estimators=50, learning_rate=1)
+                print('naive - ada selected')
+                self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
         else:
             if config['classifier'] == 'lr':
                 self.clf = LogisticRegression(solver=config['lr_opt'], multi_class=config['lr_multi'])
@@ -359,13 +381,16 @@ class Model(object):
 
         ## Parameters
         # TODO smarter params
-        self.train_batches = 1.0  # prob of executing a batch during an epoch
-        self.batch_alpha = 1.2  # multiplier to update batch training probability
+
+        # execute % of batches during an epoch before validating
+        self.train_batches = 1.0 if self.metadata['train_num'] < 50000 else 50000 / self.metadata['train_num']
+        self.batch_alpha = 1.2  # multiplier to update % batch used in training
+
         self.train_epochs = np.inf  # num of epochs to train before done_training=True
         self.naive_limit = 1  # num of train runs before testing using network
         self.test_runtime = None  # time taken for inference of test_dataset
         self.initialized = False
-        self.workers = 3
+        self.workers = 1
 
         # to split train into train & validation
         self.split_ratio = split_ratio
@@ -378,8 +403,8 @@ class Model(object):
             # setting default config if not provided
             config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
                       'classifier_layers': 2, 'classifier_units': 256,
-                      'optimizer': 'adabound', 'learning_rate': 0.001, 'batch_size': 64,
-                      'classifier': 'auto', 'features': 2000, 'train_samples': 100000,
+                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001, 'batch_size': 64,
+                      'classifier': 'auto', 'features': 2000, 'train_samples': MAX_NAIVE_TRAIN_SIZE,
                       'str_cutoff': 90, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
         self.config = config
 
@@ -478,7 +503,7 @@ class Model(object):
             self.preprocessed_train_dataset = self.preprocess.preprocess_text(train_dataset,
                                                                               cutoff=self.config['str_cutoff'])
             print('--' * 60)
-            print('meta -> ', self.preprocess.metadata)
+            print('meta -> ', self.metadata)
             print('--' * 60)
 
             # run naive model if configured
@@ -586,6 +611,9 @@ class Model(object):
 
         self.model.train()
         loss_tracker = []
+
+        total_batches = len(loader)
+
         for b, (x_batch, y_batch, mask) in enumerate(loader):
             if np.random.uniform() < self.train_batches:
                 batch_time = time.time()
@@ -614,6 +642,9 @@ class Model(object):
                             time.time() - batch_time))
 
                 loss_tracker.append(loss.item())
+            else:
+                print('Interrupting after %d batches to check for validation....' % b)
+                break
 
         # update batch selection probability
         if self.train_batches:
@@ -689,8 +720,10 @@ class Model(object):
 
             if self.classifier and self.naive_preds is None:
                 print('Generating naive predictions')
+                naive_time = time.time()
                 self.naive_preds = self.naive.test(self.preprocessed_test_dataset)
                 self.latest_test_preds = self.naive_preds
+                print('Naive prediction time:', time.time() - naive_time)
                 return self.naive_preds
 
         # Return previously found predictions if validation score (self.best_valid_score) hasn't improved
