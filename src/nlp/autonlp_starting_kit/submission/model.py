@@ -373,7 +373,7 @@ class Model(object):
         self.best_valid_score = -1
 
         # Run tracker
-        self.run_count = 0
+        self.run_count = -1
         self.epochs = 0
 
         ## Parameters
@@ -394,6 +394,12 @@ class Model(object):
             # limit validation set size to limit
             self.split_ratio = min(1 - self.split_ratio, MAX_VALID_SIZE / self.metadata['train_num'])
         print('Validation split -', self.split_ratio)
+
+        # Optimized Config from SMAC (C1)
+        config = {"aug_threshold": 0.3237993605997761, "augmentation": True, "batch_size": 30,
+                  "classifier_layers": 5, "classifier_units": 340, "finetune_wait": 3, "layers": 5,
+                  "learning_rate": 0.0001517742431082805, "optimizer": "radam", "stop_count": 6, "str_cutoff": 79,
+                  "transformer": "xlnet"}
 
         # setting default config
         self.config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
@@ -480,6 +486,7 @@ class Model(object):
             return
 
         torch.cuda.empty_cache()
+        self.run_count += 1
 
         # Running Naive classical model at the start (run_count=0)
         if self.run_count == 0:
@@ -524,7 +531,6 @@ class Model(object):
                     self.best_valid_score = self.score_fn(self.preprocessed_valid_dataset[1], naive_valid)
                     print('Score = ', self.best_valid_score)
                 print('Naive model time:', time.time() - naive_time)
-                self.run_count += 1
                 return
 
         # initialize model if not initialized in init
@@ -602,7 +608,6 @@ class Model(object):
 
         epoch_runtime = time.time() - epoch_time
         print('Total train step time: ', epoch_runtime)
-        self.run_count += 1
 
         if remaining_time_budget is not None and remaining_time_budget < epoch_runtime:
             # Not enough time left for one more epoch
@@ -718,7 +723,7 @@ class Model(object):
 
         torch.cuda.empty_cache()
 
-        if self.run_count == 1:  # return naive preds for first run
+        if self.run_count == 0:  # return naive preds for first run
             if self.preprocessed_test_dataset is None:
                 self.preprocessed_test_dataset, _ = self.preprocess.preprocess_text((x_test, None), cutoff=90)
 
