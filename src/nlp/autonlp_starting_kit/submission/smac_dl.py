@@ -8,7 +8,7 @@ import json
 from smac.configspace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
     UniformFloatHyperparameter, UniformIntegerHyperparameter
-from ConfigSpace.conditions import EqualsCondition
+from ConfigSpace.conditions import EqualsCondition, InCondition
 
 from smac.scenario.scenario import Scenario
 from smac.facade.smac_hpo_facade import SMAC4HPO
@@ -90,7 +90,7 @@ def run_smac():
     stop_count = UniformIntegerHyperparameter("stop_count", lower=1, upper=25, default_value=10,
                                               log=False)
     cs.add_hyperparameters([learning_rate, optimizer, weight_decay, batch_size, stop_count])
-    optim_cond = EqualsCondition(weight_decay, optimizer, 'adamw')
+    optim_cond = InCondition(weight_decay, optimizer, ['adamw', 'adabound'])
     cs.add_condition(optim_cond)
 
     # preprocessing hyperparameters
