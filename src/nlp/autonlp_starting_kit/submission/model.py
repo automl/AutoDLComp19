@@ -32,6 +32,7 @@ MAX_STR_LEN = 2500
 MAX_TOK_LEN = 512
 MAX_VALID_SIZE = 10000
 MAX_NAIVE_TRAIN_SIZE = 80000
+IMBALANCE_THRESHOLD = 0.9
 
 try:
     from apex import amp
@@ -88,6 +89,7 @@ class TextLoader():
 
         self.device = device
         self.tokenizer = tokenizer
+        self.metadata = metadata
         self.workers = workers
 
         # data augmentation
@@ -128,7 +130,7 @@ class TextLoader():
             batch_tokenized = [t is None for t in self.data[indices]]
             if all(batch_tokenized):
                 tok_data = self.tokenizer.tokenize(self.raw_data[indices],
-                                                   max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']),
+                                                   max_str_len=min(MAX_STR_LEN, self.metadata['train_cutoff_len']),
                                                    workers=self.workers)
                 # TODO looks inefficient
                 for t, i in enumerate(indices):
@@ -182,15 +184,10 @@ class NaiveModel():
 
         # build model based on config
         if config['classifier'] == 'auto':
-            # # Run logistic (multinomial) regression for all inputs except when
-            # # 1) class imbalance is more than 0.2 and
-            # # 2) number of training samples are more than 50000
-            if max(self.metadata['imbalance']) > 0.2 or self.metadata['train_num'] < 50000:
-                print('naive - lr selected')
-                self.clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
-            else:
-                print('naive - ada selected')
-                self.clf = AdaBoostClassifier(n_estimators=25, learning_rate=1)
+            # if dataset is not too big and imbalanced, ignore naive classifier
+            # Run logistic (one-vs-rest) regression for all inputs
+            print('naive - lr selected')
+            self.clf = LogisticRegression(solver='lbfgs', multi_class='ovr')
         else:
             if config['classifier'] == 'lr':
                 self.clf = LogisticRegression(solver=config['lr_opt'], multi_class=config['lr_multi'])
@@ -232,7 +229,7 @@ class Preprocess(object):
         self.BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
 
     def preprocess_text(self, data, cutoff=75):
-        '''Cleans/preprocesses a list of list of English/Chinese strings
+        """Cleans/preprocesses a list of list of English/Chinese strings
 
         Parameters
         ----------
@@ -243,7 +240,7 @@ class Preprocess(object):
         Returns
         -------
         tuple, (List of cleaned training strings, List of one-hot labels)
-        '''
+        """
         data_x, data_y = data
         clean_text = {'EN': self._clean_en_text, 'ZH': self._clean_zh_text}
         clean_text = clean_text[self.metadata['language']]
@@ -251,7 +248,7 @@ class Preprocess(object):
         return data_x, data_y
 
     def _clean_en_text(self, data_x, data_y, cutoff=90, max_str_len=MAX_STR_LEN):
-        '''Cleans/preprocesses a list of list of English strings
+        """Cleans/preprocesses a list of list of English strings
 
         Parameters
         ----------
@@ -269,7 +266,7 @@ class Preprocess(object):
           List of class frequencies in data
         cutoff_len : float
           'cutoff' percentile of string length in data
-        '''
+        """
 
         if data_y is None:
             data_y = np.zeros(len(data_x))
@@ -296,7 +293,7 @@ class Preprocess(object):
         return ret, class_freq, cutoff_len
 
     def _clean_zh_text(self, data_x, data_y, cutoff=90):
-        '''Cleans/preprocesses a list of list of Chinese strings
+        """Cleans/preprocesses a list of list of Chinese strings
 
         Parameters
         ----------
@@ -314,7 +311,7 @@ class Preprocess(object):
           List of class frequencies in data
         cutoff_len : float
           'cutoff' percentile of string length in data
-        '''
+        """
 
         if data_y is None:
             data_y = np.zeros(len(data_x))
@@ -380,11 +377,10 @@ class Model(object):
         self.epochs = 0
 
         ## Parameters
-        # TODO smarter params
 
         # execute % of batches during an epoch before validating
         self.train_batches = 1.0 if self.metadata['train_num'] < 50000 else 50000 / self.metadata['train_num']
-        self.batch_alpha = 1.2  # multiplier to update % batch used in training
+        self.batch_alpha = 1.5  # multiplier to update % batch used in training
 
         self.train_epochs = np.inf  # num of epochs to train before done_training=True
         self.naive_limit = 1  # num of train runs before testing using network
@@ -399,14 +395,15 @@ class Model(object):
             self.split_ratio = min(1 - self.split_ratio, MAX_VALID_SIZE / self.metadata['train_num'])
         print('Validation split -', self.split_ratio)
 
-        if config is None:
-            # setting default config if not provided
-            config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
-                      'classifier_layers': 2, 'classifier_units': 256,
-                      'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001, 'batch_size': 64,
-                      'classifier': 'auto', 'features': 2000, 'train_samples': MAX_NAIVE_TRAIN_SIZE,
-                      'str_cutoff': 90, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
-        self.config = config
+        # setting default config
+        self.config = {'transformer': 'bert', 'layers': 2, 'finetune_wait': 3,
+                       'classifier_layers': 2, 'classifier_units': 256,
+                       'optimizer': 'adabound', 'learning_rate': 0.001, 'weight_decay': 0.0001, 'batch_size': 64,
+                       'classifier': 'auto', 'features': 2700, 'train_samples': MAX_NAIVE_TRAIN_SIZE,
+                       'str_cutoff': 75, 'stop_count': 25, 'augmentation': True, 'aug_threshold': 0.1}
+        # updating config for the ones provided
+        if config is not None:
+            self.config.update(**config)
 
         # True/False as str to account for categorical parameter in ConfigSpace
         if self.config['augmentation']:
@@ -505,6 +502,13 @@ class Model(object):
             print('--' * 60)
             print('meta -> ', self.metadata)
             print('--' * 60)
+
+            # NOTE Decide if naive classifier should be run
+            # - if there is a heavy class imbalance on a large dataset, then dont run naive classifier
+            if self.classifier == 'auto':
+                class_freq = np.array(self.metadata['class_freq']) / self.metadata['train_num']
+                if any(class_freq > IMBALANCE_THRESHOLD):
+                    self.classifier = None
 
             # run naive model if configured
             if self.classifier:
@@ -615,7 +619,7 @@ class Model(object):
         total_batches = len(loader)
 
         for b, (x_batch, y_batch, mask) in enumerate(loader):
-            if np.random.uniform() < self.train_batches:
+            if (b/total_batches) < self.train_batches:
                 batch_time = time.time()
                 self.optimizer.zero_grad()
                 # forward
