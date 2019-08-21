@@ -18,6 +18,14 @@ XLNET_PRETRAINED = {
 }
 
 
+XLNET_PRETRAINED = {
+    'EN': {'layers': 5, 'heads': 12, 'vocab': 32000, 'file': 'xlnet_english.model', 'name': 'xlnet-base-cased',
+           'd_model': 768, 'd_inner': 3072},
+    'ZH': {'layers': 5, 'heads': 12, 'vocab': 32000, 'file': 'xlnet_chinese.model', 'name': 'xlnet-base-chinese',
+           'd_model': 768, 'd_inner': 3072}
+}
+
+
 class XLNetTokenizer():
     def __init__(self, language='EN', pretrained_path='./'):
         super().__init__()
@@ -48,8 +56,7 @@ class XLNetTokenizer():
         text = text[:max_str_len] if np.random.uniform() > 0.5 else text[-max_str_len:]
         text = self.tokenizer.tokenize(text)
         text = text[:max_tok_len] if np.random.uniform() > 0.5 else text[-max_tok_len:]
-        text.insert(0, '[CLS]')
-        text.insert(len(text), '[SEP]')
+        # text.insert(0, '_0')  # NOTE
         return self._encode_tokens(text)
 
     def _encode_tokens(self, text):

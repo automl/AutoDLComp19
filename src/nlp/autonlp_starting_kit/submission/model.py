@@ -88,9 +88,9 @@ class TextLoader():
         """
 
         self.device = device
-        self.tokenizer = tokenizer
-        self.metadata = metadata
-        self.workers = workers
+        # tokenize sentences
+        # data = np.array([tokenizer.tokenize(d) for d in data])
+        data = tokenizer.tokenize(data, max_str_len=min(MAX_STR_LEN, metadata['train_cutoff_len']), workers=workers)
 
         # data augmentation
         if augmentation:
@@ -98,17 +98,12 @@ class TextLoader():
             augment_time = time.time()
             aug = Augmentation(imbalance=metadata['imbalance'], threshold=metadata['aug_threshold'])
             data, label = aug.augment_data(data, label)
-            print("Augmentation time:", time.time() - augment_time)
+            print("Augmentation time:", time.time()-augment_time)
 
-        self.raw_data = np.array(data)
-        self.data_size = len(self.raw_data)
-
-        # for tokenize while generating batch
-        self.data = np.empty(self.data_size, dtype=object)
-        self.tokenized_size = 0
-
+        self.data = np.array(data)
         self.label = label
         self.pad_token = 0
+        self.data_size = len(self.data)
 
         self.sort = sort
         self.shuffle = shuffle
@@ -116,7 +111,7 @@ class TextLoader():
 
         self.indices = np.arange(self.data_size)
 
-        self.text_lengths = np.array([[i, len(d)] for i, d in enumerate(self.raw_data)])
+        self.text_lengths = np.array([[i, len(d)] for i, d in enumerate(self.data)])
 
         if self.sort:
             # sorted indices used for batching
@@ -124,22 +119,9 @@ class TextLoader():
 
     def _generate_batch(self, indices):
         """ generate batch using given indices with padding """
-
-        # tokenize if not done already
-        if self.tokenized_size < self.data_size:
-            batch_tokenized = [t is None for t in self.data[indices]]
-            if all(batch_tokenized):
-                tok_data = self.tokenizer.tokenize(self.raw_data[indices],
-                                                   max_str_len=min(MAX_STR_LEN, self.metadata['train_cutoff_len']),
-                                                   workers=self.workers)
-                # TODO looks inefficient
-                for t, i in enumerate(indices):
-                    self.data[i] = tok_data[t]
-                self.tokenized_size += len(indices)
-
         text = self.data[indices]
         # pad batch to max batch len
-        max_batch_len = max([len(t) for t in text])
+        max_batch_len = max(self.text_lengths[indices, 1])
         text = [b + [self.pad_token] * (max_batch_len - len(b)) for b in text]
         # convert to tensor
         text = torch.tensor(text).to(self.device).long()
@@ -154,14 +136,12 @@ class TextLoader():
     def __iter__(self):
         """ generate iterator for padding """
 
-        # shuffle only if all data has been tokenized
-        if self.tokenized_size == self.data_size:
-            if self.sort and self.shuffle:
-                # if sorted shuffle, then shuffle only within the buckets
-                self.indices = bucket_shuffle(self.indices, bucket_size=int(self.batch_size * 1.1))
-            elif self.shuffle:
-                # shuffle dataset completely
-                np.random.shuffle(self.indices)
+        if self.sort and self.shuffle:
+            # if sorted shuffle, then shuffle only within the buckets
+            self.indices = bucket_shuffle(self.indices, bucket_size=int(self.batch_size*1.1))
+        elif self.shuffle:
+            # shuffle dataset completely
+            np.random.shuffle(self.indices)
 
         for i in range(0, self.data_size, self.batch_size):
             if i <= self.data_size - self.batch_size:
@@ -386,7 +366,7 @@ class Model(object):
         self.naive_limit = 1  # num of train runs before testing using network
         self.test_runtime = None  # time taken for inference of test_dataset
         self.initialized = False
-        self.workers = 1
+        self.workers = 2
 
         # to split train into train & validation
         self.split_ratio = split_ratio
@@ -398,7 +378,7 @@ class Model(object):
         # Optimized Config from SMAC (C1)
         config = {"aug_threshold": 0.3237993605997761, "augmentation": True, "batch_size": 30,
                   "classifier_layers": 5, "classifier_units": 340, "finetune_wait": 3, "layers": 5,
-                  "learning_rate": 0.0001517742431082805, "optimizer": "radam", "stop_count": 6, "str_cutoff": 79,
+                  "learning_rate": 0.0001517742431082805, "optimizer": "radam", "stop_count": 15, "str_cutoff": 79,
                   "transformer": "xlnet"}
 
         # setting default config
