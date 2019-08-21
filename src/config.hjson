@@ -86,9 +86,9 @@
         video:
         {
           segment_coeff: 10, # num_segemts = frame_count / segment_coeff
-          freeze_portion: 0.15, # freezes a video network's first percent of layers
+          freeze_portion: 0.64, # freezes a video network's first percent of layers
           modality: 'RGB',
-          dropout: 0.2, # on average net this only controls alphadrop
+          dropout: 0.1, # on average net this only controls alphadrop
           optimizer: 'Adam',
           optim_args: {
             lr: 0.001,

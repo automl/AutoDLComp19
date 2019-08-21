@@ -348,10 +348,11 @@ def evaluate_on(model, dl_val):
 
 
 def eval_step(model, criterion, data, labels):
-    model.eval()
-    output = model(data)
-    loss = criterion(output, labels)
-    return output, loss
+    with torch.no_grad():
+        model.eval()
+        output = model(data)
+        loss = criterion(output, labels)
+        return output, loss
 
 
 def accuracy(labels, out, multilabel):

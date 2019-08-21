@@ -155,7 +155,6 @@ class Model(algorithm.Algorithm):
 
         LOGGER.info('TEST SET LENGTH:  %d', self.num_test_samples)
 
-
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
         self._tf_train_set = None

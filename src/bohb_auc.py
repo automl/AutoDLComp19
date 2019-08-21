@@ -19,12 +19,18 @@ from utils import BASEDIR
 def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(
-        CSH.UniformIntegerHyperparameter(
-            name='num_segments', lower=1, upper=16, log=False
+        CSH.UniformFloatHyperparameter(
+            name='freeze_portion', lower=0.1, upper=0.9, log=False
         )
     )
     cs.add_hyperparameter(
-        CSH.CategoricalHyperparameter(name='batch_size', choices=[16, 32, 64, 128])
+        CSH.UniformFloatHyperparameter(name='dropout', lower=0.1, upper=0.9, log=False)
+    )
+    cs.add_hyperparameter(
+        CSH.UniformFloatHyperparameter(name='lr', lower=1e-9, upper=1e-2, log=True)
+    )
+    cs.add_hyperparameter(
+        CSH.CategoricalHyperparameter(name='optimizer', choices=['SGD', 'Adam'])
     )
     return cs
 
@@ -34,14 +40,14 @@ def get_configuration():
     cfg["dataset_base_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data')
     )
-    cfg["datasets"] = ['Katze', 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
+    cfg["datasets"] = ['Ucf101']  # , 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
     )
-    cfg["bohb_min_budget"] = 180
-    cfg["bohb_max_budget"] = 180
-    cfg["bohb_iterations"] = 10
+    cfg["bohb_min_budget"] = 240
+    cfg["bohb_max_budget"] = 240
+    cfg["bohb_iterations"] = 20
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',
@@ -104,6 +110,7 @@ class BOHBWorker(Worker):
             score_temp = 0
             try:
                 print('BOHB ON DATASET: ' + str(dataset))
+                config.update({'earlystop': budget - 10})
                 # stored bohb config will be readagain in model.py
                 write_config_to_file(config)
                 # execute main function
