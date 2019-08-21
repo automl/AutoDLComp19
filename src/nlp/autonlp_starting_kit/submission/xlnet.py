@@ -48,6 +48,8 @@ class XLNetTokenizer():
         text = text[:max_str_len] if np.random.uniform() > 0.5 else text[-max_str_len:]
         text = self.tokenizer.tokenize(text)
         text = text[:max_tok_len] if np.random.uniform() > 0.5 else text[-max_tok_len:]
+        text.insert(0, '[CLS]')
+        text.insert(len(text), '[SEP]')
         return self._encode_tokens(text)
 
     def _encode_tokens(self, text):

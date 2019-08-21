@@ -444,7 +444,7 @@ class Model(object):
                                             pretrained=self.pretrained_path,
                                             classifier_layers=self.config['classifier_layers'],
                                             classifier_units=self.config['classifier_units'], finetuning=False)
-
+        self.model.to(self.device)
         # initialize optimizer & loss fn
         self._init_optim()
         self.criterion = nn.BCEWithLogitsLoss() if self.metadata['class_num'] == 2 \
@@ -455,7 +455,6 @@ class Model(object):
                                                         opt_level="O2", loss_scale="dynamic")
             print("Apexifying model and optimizer")
 
-        self.model.to(self.device)
         self.initialized = True
 
     def _init_optim(self):
