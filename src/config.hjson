@@ -140,7 +140,5 @@
     baseline_tester: {
       partial_eval_mode: true
     },
-    classical_tester: {
-    },
   },
 }

@@ -1,7 +1,6 @@
 import logging
 import subprocess
 import time
-from functools import reduce
 
 import numpy as np
 import pandas as pd
