@@ -10,6 +10,20 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
+class AugmentNet(nn.Module):
+    def __init__(self, transfs):
+        super().__init__()
+        self.augmentation = {
+            'train': (nn.Sequential(*transfs['train'])),
+            'eval': (nn.Sequential(*transfs['test']))
+        }
+
+    def forward(self, x):
+        mode = 'train' if self.training else 'eval'
+        x = self.augmentation[mode](x)
+        return x
+
+
 class MonkeyNet(nn.Sequential):
     '''
     The idea of the monkeynet is to expose all attributes of the networks

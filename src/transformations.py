@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from scipy.stats import norm
 from torchvision import transforms
-from utils import LOGGER, MonkeyNet
+from utils import LOGGER, AugmentNet, MonkeyNet
 
 RESIZE_FACTOR = 1.3
 
@@ -14,18 +14,9 @@ RESIZE_FACTOR = 1.3
 # Perform only necessary transformations on the cpu
 # ########################################################
 def baseline_transforms(autodl_model, dataset):
-    LOGGER.info('Using ###   BaselineAugmentNet   ### for transformations')
+    LOGGER.info('Using ###   BaselineAugmentNet   ### for transformationstack')
 
-    # Monkeypatch the new network to expose the original model's attributes
-    # and stack them
-    autodl_model.model = MonkeyNet(
-        OrderedDict(
-            [
-                ('baseline_aug_net', BaselineAugmentNet()),
-                ('main_net', autodl_model.model),
-            ]
-        )
-    )
+    # Classical transformations performed per sample
     transf_dict = {
         'train':
             {
@@ -54,22 +45,29 @@ def baseline_transforms(autodl_model, dataset):
                     Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
             }
     }
+
+    # Prepend an augmentation network performing transformations on the gpu
+    # on a whole batch
+    aug_net = AugmentNet(
+        {
+            'train': [SwapAxes(), FormatChannels(3),
+                      Stack(), Normalize()],
+            'test': [SwapAxes(), FormatChannels(3),
+                     Stack(), Normalize()]
+        }
+    )
+    # To expose the original model's attributes use the MonkeyNet(nn.Sequential)
+    autodl_model.model = MonkeyNet(
+        OrderedDict([
+            ('aug_net', aug_net),
+            ('main_net', autodl_model.model),
+        ])
+    )
     return transf_dict
 
 
 def normal_segment_dist(autodl_model, dataset):
-    LOGGER.info('Using ###   BaselineAugmentNet   ### for transformations')
-
-    # Monkeypatch the new network to expose the original model's attributes
-    # and stack them
-    autodl_model.model = MonkeyNet(
-        OrderedDict(
-            [
-                ('baseline_aug_net', BaselineAugmentNet()),
-                ('main_net', autodl_model.model),
-            ]
-        )
-    )
+    LOGGER.info('Using ###   Normal segment distance   ### for transformationstack')
     transf_dict = {
         'train':
             {
@@ -99,32 +97,41 @@ def normal_segment_dist(autodl_model, dataset):
                     Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
             }
     }
+    aug_net = AugmentNet(
+        {
+            'train': [SwapAxes(), FormatChannels(3),
+                      Stack(), Normalize()],
+            'test': [SwapAxes(), FormatChannels(3),
+                     Stack(), Normalize()]
+        }
+    )
+    autodl_model.model = MonkeyNet(
+        OrderedDict([
+            ('aug_net', aug_net),
+            ('main_net', autodl_model.model),
+        ])
+    )
     return transf_dict
 
 
 def gpu_resize(autodl_model, dataset, use_gpu_resize):
-    model = autodl_model.model
-    LOGGER.info('Using ###   aug_net   ### for transformations')
+    LOGGER.info('Using ###   Resize   ### for transformations')
 
-    # Inject the WrapperNet at the top of the modules list
     cpu_resize = (
         np.any(dataset.min_shape[1:] != dataset.max_shape[1:]) or not use_gpu_resize
     )
-    aug_net = AugmentNet(model.input_size, not cpu_resize)
-    # Monkeypatch the new network to expose the original model's attributes
-    autodl_model.model = MonkeyNet(
-        OrderedDict([('aug_net', aug_net), ('main_net', model)])
-    )
+    out_size = autodl_model.model.input_size
+    out_size = np.array((out_size, out_size), dtype=np.int)
+    re_size = np.ceil(out_size * RESIZE_FACTOR).astype(np.int)
+
     transf_dict = {
         'train':
             {
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsUniform(autodl_model.model), *(
-                                (CPUResizeImage(aug_net.re_size.tolist()), )
-                                if cpu_resize else ()
-                            )
+                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
+                            *((CPUResizeImage(re_size.tolist()), ) if cpu_resize else ())
                         ]
                     ),
                 'labels':
@@ -137,8 +144,8 @@ def gpu_resize(autodl_model, dataset, use_gpu_resize):
                     transforms.Compose(
                         [
                             CPUDynamicSelectSegmentsUniform(autodl_model.model), *(
-                                (CPUResizeImage(aug_net.out_size.tolist()), )
-                                if cpu_resize else ()
+                                (CPUResizeImage(out_size.tolist()), ) if cpu_resize else
+                                ()
                             )
                         ]
                     ),
@@ -147,58 +154,38 @@ def gpu_resize(autodl_model, dataset, use_gpu_resize):
                     Lambda(lambda x: x if dataset.is_multilabel else np.argmax(x))
             }
     }
-    return transf_dict
-
-
-class BaselineAugmentNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.augmentation = {
-            'train': (nn.Sequential(SwapAxes(), FormatChannels(3), Stack(), Normalize())),
-            'eval': (nn.Sequential(SwapAxes(), FormatChannels(3), Stack(), Normalize()))
-        }
-
-    def forward(self, x):
-        mode = 'train' if self.training else 'eval'
-        x = self.augmentation[mode](x)
-        return x
-
-
-class AugmentNet(nn.Module):
-    def __init__(self, out_size: int, fast_augment: bool):
-        super().__init__()
-        if not isinstance(out_size, int):
-            raise ValueError
-        self.fast_augment = fast_augment
-        self.out_size = np.array((out_size, out_size), dtype=np.int)
-        self.re_size = np.ceil(self.out_size * RESIZE_FACTOR).astype(np.int)
-        self.augmentation = {
+    aug_net = AugmentNet(
+        {
             'train':
-                (
-                    nn.Sequential(
-                        SwapAxes(), FormatChannels(3), Interpolate(self.re_size.tolist()),
-                        RandomCrop(self.out_size.tolist()), Stack(), Normalize()
-                    ) if self.fast_augment else nn.Sequential(
-                        SwapAxes(), FormatChannels(3), RandomCrop(self.out_size.tolist()),
-                        Stack(), Normalize()
-                    )
-                ),
-            'eval':
-                (
-                    nn.Sequential(
-                        SwapAxes(), FormatChannels(3),
-                        Interpolate(self.out_size.tolist()), Stack(), Normalize()
-                    ) if self.fast_augment else nn.Sequential(
-                        SwapAxes(), FormatChannels(3), RandomCrop(self.out_size.tolist()),
-                        Stack(), Normalize()
-                    )
-                )
+                [
+                    SwapAxes(),
+                    FormatChannels(3),
+                    *((Interpolate(re_size.tolist()), ) if not cpu_resize else ()),
+                    RandomCrop(out_size.tolist()),
+                    Stack(),
+                    Normalize()
+                ],
+            'test':
+                [
+                    SwapAxes(),
+                    FormatChannels(3),
+                    (
+                        Interpolate(out_size.tolist())
+                        if not cpu_resize else RandomCrop(out_size.tolist())
+                    ),
+                    Stack(),
+                    Normalize()
+                ]
         }
+    )
+    autodl_model.model = MonkeyNet(
+        OrderedDict([
+            ('aug_net', aug_net),
+            ('main_net', autodl_model.model),
+        ])
+    )
 
-    def forward(self, x):
-        mode = 'train' if self.training else 'eval'
-        x = self.augmentation[mode](x)
-        return x
+    return transf_dict
 
 
 # ########################################################

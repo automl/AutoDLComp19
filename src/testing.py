@@ -24,8 +24,8 @@ class baseline_tester():
 
         with torch.no_grad():
             test_start = time.time()
-            if self.partial_eval_mode and hasattr(autodl_model.model, 'baseline_aug_net'):
-                autodl_model.model.baseline_aug_net.eval()
+            if self.partial_eval_mode and hasattr(autodl_model.model, 'aug_net'):
+                autodl_model.model.aug_net.eval()
                 CheckModesAndFreezing(autodl_model.model)
             else:
                 autodl_model.model.eval()
