@@ -1,8 +1,10 @@
 {
   # Codalab submission
   include: {
-    packages: {
-      apex: [ # This implies to use it when training druing the submission
+    packages: { # Packages and files listed here are always assumed to lie in the
+                # currently used site-packages folder. If an entry is a folder
+                # the whole folder gets added to the zip
+      apex: [
         apex
         apex-0.1-py3.5.egg-info
         amp_C.cpython-35m-x86_64-linux-gnu.so

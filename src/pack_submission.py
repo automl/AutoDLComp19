@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse  # noqa: E402
 import os
+import re
 import site
 import subprocess
 import zipfile
@@ -43,13 +44,39 @@ if __name__ == "__main__":
 
     filelist = []
     whitelist = []
-    blacklist = ['src/sideload_config.json', 'run.log', '.pth', '.pth.tar', '.tar']
+    blacklist = [
+        'src/sideload_config.json', 'run.log', '.pth', '.pth.tar', '.tar',
+        'pack_submission.py', 'bohb_auc.py', 'run_benchmark.py', 'README.md'
+    ]
 
     config = Config(os.path.join(pargs.code_dir, 'config.hjson'))
     for p, f in config.include['packages'].items():
         if p == 'apex' and not config.use_amp:
             continue
-        filelist.append(os.path.join(PYTHON_LIB_PATH, f))
+        for fp in f:
+            if os.path.isdir(os.path.join(PYTHON_LIB_PATH, fp)):
+                for path, subdirs, files in os.walk(os.path.join(PYTHON_LIB_PATH, fp)):
+                    for name in files:
+                        fileabspath = os.path.join(path, name)
+                        if (
+                            (
+                                '__pycache__' in fileabspath or '.gitkeep' in fileabspath
+                                or np.any([e in fileabspath for e in blacklist])
+                            ) and not np.any([e in fileabspath for e in whitelist])
+                        ):
+                            continue
+                        if not os.path.isfile(fileabspath):
+                            print(
+                                '\033[91mZip does not support symlinks!!!: {}\033[0m'.
+                                format(fileabspath)
+                            )
+                            continue
+                        print('Adding to zip-list: {}'.format(fileabspath))
+                        filelist.append(fileabspath)
+            else:
+                fileabspath = os.path.join(PYTHON_LIB_PATH, fp)
+                print('Adding to zip-list: {}'.format(fileabspath))
+                filelist.append(fileabspath)
 
     for p in config.include['pretrained_weights']:
         whitelist.append(p)
@@ -84,7 +111,8 @@ if __name__ == "__main__":
 
     with zipfile.ZipFile(out_file, 'w') as zfile:
         for f in filelist:
-            zfile.write(f, f.replace(BASEDIR, ''), zipfile.ZIP_DEFLATED)
+            zf = re.sub(r'^' + BASEDIR, '', re.sub(r'^' + PYTHON_LIB_PATH, '', f))
+            zfile.write(f, zf, zipfile.ZIP_DEFLATED)
         fsize = os.path.getsize(out_file) / 1024.**2
         if fsize > 300.:
             print(
