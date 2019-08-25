@@ -171,17 +171,17 @@ class Model(algorithm.Algorithm):
         ATTENTION: If sideload_config.json can define dictionaries as values as well
         so it is possible to overwrite a whole subhirachy.
         '''
-        with open(sideload_conf_path, 'r') as file:
-            bohb_conf = json.load(file)
-
-        dicts = [self.config.__dict__]
-        while len(dicts) > 0:
-            d = dicts.pop()
+        def walk_dict(d, side_conf, p=''):
             for k, v in d.items():
-                if k in bohb_conf.keys() and isinstance(bohb_conf[k], type(d[k])):
-                    d[k] = bohb_conf[k]
-                elif isinstance(v, OrderedDict):
-                    dicts.append(v)
+                if isinstance(v, OrderedDict):
+                    walk_dict(v, side_conf, p + k + '.')
+                elif p + k in side_conf:
+                    d[k] = side_conf[p + k]
+
+        with open(sideload_conf_path, 'r') as file:
+            side_conf = json.load(file)
+
+        walk_dict(self.config.__dict__, side_conf)
 
     def benchmark_transofrmations(self):
         raise NotImplementedError
