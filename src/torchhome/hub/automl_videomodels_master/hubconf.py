@@ -1,6 +1,3 @@
 dependencies = ['torch', 'math']
 
-from video import (
-    averagenet, averagenet_feature, bninception, eco, ecofull, ecofull_efficient_py,
-    ecofull_py, stagedaveragenet, tsm
-)
+from video import averagenet, bninception, stagedaveragenet  # noqa: E402, F401

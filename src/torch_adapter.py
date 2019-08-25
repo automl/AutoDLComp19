@@ -1,7 +1,6 @@
 import multiprocessing
 import queue
 import threading
-import time
 
 import numpy as np
 import tensorflow as tf
@@ -9,7 +8,6 @@ import torch
 import torch.utils.data._utils as _utils
 from torch.utils.data import BatchSampler, Dataset, RandomSampler, SequentialSampler
 from torch.utils.data.dataloader import default_collate
-from utils import LOGGER
 
 
 class TFDataset(Dataset):
@@ -103,45 +101,6 @@ class TFDataset(Dataset):
         self.std_shape = np.std(shape_list, axis=0)
         self.is_multilabel = is_multilabel = is_multilabel
         self.reset()
-
-    def benchmark_transofrmations(self):
-        LOGGER.debug('STARTING TRANSFORMATION BENCHMARK')
-        if self.transform_sample is None:
-            LOGGER.debug('NO TRANSFORMATION TO BENCHMARK')
-            return
-        idx = 0
-        self.reset()
-        t_start = time.time()
-        while True:
-            try:
-                example, label = self._tf_exec(self.next_element)
-                idx += 1
-            except tf.errors.OutOfRangeError:
-                self.reset()
-                break
-        LOGGER.debug(
-            'SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
-        )
-
-        idx = 0
-        self.reset()
-        t_start = time.time()
-        while True:
-            try:
-                example, label = self._tf_exec(self.next_element)
-                idx += 1
-            except tf.errors.OutOfRangeError:
-                self.reset()
-                break
-            example = self.transform_sample(example) \
-                if self.transform_sample is not None \
-                else example
-            label = self.transform_label(label) \
-                if self.transform_label is not None \
-                else label
-        LOGGER.debug(
-            'SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
-        )
 
 
 class TFDataLoader(object):

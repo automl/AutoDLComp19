@@ -1,26 +1,29 @@
 """
 This class implements the 3 compulsory mehtods
 a submission is required to have namely __init__, train, test
-The main idea is to have a module.py for each phase
-model selection -> transformation selection -> training -> testing
-ie.
-selection.py -> transformations.py -> training.py -> testing.py
 
-It is possible to have multiple function/classes in these modules
-and which one to use and it's arguments can be defined in the config.hjson
-This allow for rapid comparison between two or more competing methods
+The main idea behind the current structure is to split up
+the archtitecture, train and eval as model agnostic as possible
+to accomadate the different modalities and models we need to train.
+
+As compared to last version of the architecture, mutually shared logic
+has been centralized. Only the models' selection
+(their transformations included) and is now the central hub for defining
+the executed pipline's logic.
+
+The biggest change is the config.hjson as it no longer allows
+multiple trainers/testers/
+
 
 NOTE:
 A hjson is a normal json but allows comments, so no black magic here.
 """
 import json
 import os
-import re
 import threading
 import time
-import types
 from collections import OrderedDict
-from functools import partial, wraps
+from functools import partial
 
 # Import the challenge algorithm (model) API from algorithm.py
 import algorithm
@@ -31,10 +34,9 @@ import testing
 import torch
 import torch.cuda as cutorch
 import training
-import transformations
 import utils
 from torch_adapter import TFDataLoader, TFDataset
-from utils import BASEDIR, DEVICE, LOGGER
+from utils import BASEDIR, DEVICE, LOGGER, BSGuard
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -68,56 +70,13 @@ THREADS = [
 [t.start() for t in THREADS]
 
 
-def parse_cumem_error(err_str):
-    mem_search = re.search(
-        r"Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free", err_str
-    )
-    tried, free = mem_search.groups()
-    tried = float(tried[:-2]) * 1024 if tried[-1] == 'G' else float(tried[:-2])
-    free = float(free[:-2]) * 1024 if free[-1] == 'G' else float(free[:-2])
-    return tried, free
-
-
-def BSGuard(f, autodl_model, dataloader_attr, reset_on_fail):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        while True:
-            try:
-                return f(*args, **kwargs)
-            except RuntimeError as e:
-                loader = getattr(autodl_model, dataloader_attr)
-                LOGGER.warn('CAUGHT VMEM ERROR! SCALING DOWN BATCH-SIZE!')
-                if ('CUDA out of memory.' not in e.args[0] or loader.batch_size == 1):
-                    raise e
-                tried_mem, free_mem = parse_cumem_error(e.args[0])
-                # Not working as intended. I blame fragmantation!
-                # mem_downscale = min(1, free_mem / (tried_mem + 1e-8)) if free_mem < tried_mem else 0.9
-                mem_downscale = 0.5
-                loader.batch_size = max(1, int(loader.batch_size * mem_downscale))
-                if reset_on_fail:
-                    getattr(autodl_model, dataloader_attr).dataset.reset()
-
-                LOGGER.warn(
-                    'TRIED TO ALLOCATE {0:.2f} MiB WITH {1:.2f} MiB FREE'.format(
-                        tried_mem, free_mem
-                    )
-                )
-                LOGGER.warn(
-                    'BATCH-SIZE NOW IS {}'.format(
-                        getattr(autodl_model, dataloader_attr).batch_sampler.batch_size
-                    )
-                )
-
-    return decorated
-
-
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
         self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
-        bohb_conf_path = os.path.join(BASEDIR, 'sideload_config.json')
-        if os.path.isfile(bohb_conf_path):
-            self.side_load_config(bohb_conf_path)
+        sideload_conf_path = os.path.join(BASEDIR, 'sideload_config.json')
+        if os.path.isfile(sideload_conf_path):
+            self.side_load_config(sideload_conf_path)
 
         LOGGER.info("INIT START: " + str(time.time()))
         super(Model, self).__init__(metadata)
@@ -143,47 +102,43 @@ class Model(algorithm.Algorithm):
         sequence_size = metadata.get_sequence_size()
         self.input_dim = [sequence_size, row_count, col_count, channel]
         self.output_dim = metadata.get_output_size()
-        self.num_train_samples = metadata.size()
+        self.train_num_samples = metadata.size()
         self.metadata = metadata
         test_metadata_filename = self.metadata.get_dataset_name(
         ).replace('train', 'test') + '/metadata.textproto'
-        self.num_test_samples = [
+        self.test_num_samples = [
             int(line.split(':')[1])
             for line in open(test_metadata_filename, 'r').readlines()
             if 'sample_count' in line
         ][0]
 
-        LOGGER.info('TEST SET LENGTH:  %d', self.num_test_samples)
-
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
         self._tf_train_set = None
-        self._tf_test_set = None
         self.train_dl = None
+        self.train_loader_args = {}
+
+        self._tf_test_set = None
         self.test_dl = None
-        self.transforms = None
+        self.test_loader_args = {}
+
         self.model = None
         self.optimizer = None
-        self.lr_scheduler = None
         self.loss_fn = None
+        self.lr_scheduler = None
+        self.transforms = None
+        self.policy_fn = None
 
-        # Set the algorithms to use from the config file
-        self.select_model = getattr(selection, self.config.model_selector)
-        self.select_transformations = getattr(
-            transformations, self.config.transformations_selector
-        )
-        self.trainer = getattr(training, self.config.trainer)
-        trainer_args = self.config.trainer_args[self.config.trainer]
-        self.trainer = BSGuard(
-            self.trainer if isinstance(self.trainer, types.FunctionType) else
-            self.trainer(**trainer_args), self, 'train_dl', True
-        )
-        self.tester = getattr(testing, self.config.tester)
-        tester_args = self.config.tester_args[self.config.tester]
-        self.tester = BSGuard(
-            self.tester if isinstance(self.tester, types.FunctionType) else
-            self.tester(**tester_args).__call__, self, 'test_dl', True
-        )
+        self.selector = selection.Selector(self.config.selection)
+
+        self.trainer = None
+        self.trainer_args = self.config.trainer_args if hasattr(
+            self.config, 'trainer_args'
+        ) else {}
+
+        self.tester = None
+        self.tester_args = self.config.tester_args if hasattr(self.config,
+                                                              'tester_args') else {}
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -199,8 +154,6 @@ class Model(algorithm.Algorithm):
         self.test_time = []
 
         self._session = None
-        self._trainer_args = None
-        self._tester_args = None
         LOGGER.info("INIT END: {}".format(time.time()))
 
     @property
@@ -210,24 +163,7 @@ class Model(algorithm.Algorithm):
             self._session = tf.Session()
         return self._session
 
-    @property
-    def trainer_args(self):
-        if self._trainer_args is None:
-            self._trainer_args = self.config.trainer_args[
-                self.config.trainer
-            ] if isinstance(getattr(training, self.config.trainer),
-                            types.FunctionType) else {}
-        return self._trainer_args
-
-    @property
-    def tester_args(self):
-        if self._tester_args is None:
-            self._tester_args = self.config.tester_args[self.config.tester] if isinstance(
-                getattr(testing, self.config.tester), types.FunctionType
-            ) else {}
-        return self._tester_args
-
-    def side_load_config(self, bohb_conf_path):
+    def side_load_config(self, sideload_conf_path):
         '''
         This overrides all setting config defined in the sideload_config
         with the only requirement that their type must match
@@ -235,7 +171,7 @@ class Model(algorithm.Algorithm):
         ATTENTION: If sideload_config.json can define dictionaries as values as well
         so it is possible to overwrite a whole subhirachy.
         '''
-        with open(bohb_conf_path, 'r') as file:
+        with open(sideload_conf_path, 'r') as file:
             bohb_conf = json.load(file)
 
         dicts = [self.config.__dict__]
@@ -247,30 +183,58 @@ class Model(algorithm.Algorithm):
                 elif isinstance(v, OrderedDict):
                     dicts.append(v)
 
-    def setup_model(self, ds_temp):
-        selected = self.select_model(
-            self, ds_temp, **self.config.model_selector_args[self.config.model_selector]
+    def benchmark_transofrmations(self):
+        raise NotImplementedError
+        LOGGER.debug('STARTING TRANSFORMATION BENCHMARK')
+        if self.transform_sample is None:
+            LOGGER.debug('NO TRANSFORMATION TO BENCHMARK')
+            return
+        idx = 0
+        self.reset()
+        t_start = time.time()
+        while True:
+            try:
+                example, label = self._tf_exec(self.next_element)
+                idx += 1
+            except tf.errors.OutOfRangeError:
+                self.reset()
+                break
+        LOGGER.debug(
+            'SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
         )
-        self.model, self.loss_fn, self.optimizer, self.lr_scheduler = selected
 
-    def setup_transforms(self, ds_temp):
-        self.transforms = self.select_transformations(
-            self, ds_temp, **self.config.transformations_selector_args[
-                self.config.transformations_selector]
+        idx = 0
+        self.reset()
+        t_start = time.time()
+        while True:
+            try:
+                example, label = self._tf_exec(self.next_element)
+                idx += 1
+            except tf.errors.OutOfRangeError:
+                self.reset()
+                break
+            example = self.transform_sample(example) \
+                if self.transform_sample is not None \
+                else example
+            label = self.transform_label(label) \
+                if self.transform_label is not None \
+                else label
+        LOGGER.debug(
+            'SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
         )
 
-    def check_for_shuffling(self, ds_temp, transform):
+    def check_for_shuffling(self, ds_temp):
         LOGGER.debug('SANITY CHECKING SHUFFLING')
         ds_train = TFDataset(
             session=self.session,
-            dataset=self.test_dl.dataset,
-            num_samples=self.num_train_samples
+            dataset=ds_temp.dataset,
+            num_samples=min(ds_temp.num_samples, 100)
         )
         ds_train.reset()
         ds_temp.reset()
-        dset1 = [e for e in ds_train]
-        dset2 = [e for e in ds_train]
-        dset3 = [e for e in ds_temp][:self.num_train_samples]
+        dset1 = [e for e in ds_train]  # Check if next time around
+        dset2 = [e for e in ds_train]  # the order is shuffled
+        dset3 = [e for e in ds_temp][:self.train_num_samples]
         i = 0
         e1vse2 = []
         e2vse3 = []
@@ -283,15 +247,94 @@ class Model(algorithm.Algorithm):
         LOGGER.debug('E1 == E2: {}\t should be False'.format(np.all(e1vse2)))
         LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
 
-    def setup_train_dataset(self, ds_temp):
-        ds_temp.transform_sample = self.transforms['train']['samples']
-        ds_temp.transform_label = self.transforms['train']['labels']
-        loader_args = self.config.dataloader_args['train']
-        self.train_dl = TFDataLoader(ds_temp, **loader_args)
+    def _setup_dataset(self, dataset, target):
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=int(getattr(self, target + '_num_samples')),
+            transform_sample=self.transforms[target]['samples'],
+            transform_label=self.transforms[target]['labels']
+        )
+        ds.scan_all(1)
+        ds.reset()
+        loader_args = getattr(self, target + '_loader_args')
+        setattr(self, target + '_dl', TFDataLoader(ds, **loader_args))
+
+    def _init_train(self, dataset, remaining_time_budget):
+        t_s = time.time()
+        self.starting_budget = t_s - self.birthday + remaining_time_budget
+
+        self._tf_train_set = dataset
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+        # Create a temporary handle to inspect data
+        ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
+        ds_temp.scan_all(100)
+        ds_temp.reset()
+        LOGGER.info(
+            'FETCHING ADDITIONAL METADATA TOOK: {0:.4f} s'.format(time.time() - t_s)
+        )
+
+        ######### SELECT MODEL
+        t_s = time.time()
+        selected = self.selector.select(self, ds_temp)
+        self.__dict__.update(selected)
+        if self.model is None:
+            return None
+        LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
+
+        ########## SETUP TRAINLOADER
+        t_s = time.time()
+        self._setup_dataset(dataset, 'train')
+        new_vals = {
+            k: getattr(ds_temp, k)
+            for k in [
+                'num_classes', 'min_shape', 'max_shape', 'median_shape', 'mean_shape',
+                'std_shape', 'is_multilabel'
+            ]
+        }
+        self.train_dl.dataset.__dict__.update(new_vals)
+        LOGGER.info(
+            'SETTING UP THE TRAINLOADER TOOK: {0:.4f} s'.format(time.time() - t_s)
+        )
+
+        ########## SETUP TRAINER
+        self.trainer = training.PolicyTrainer(
+            policy_fn=self.policy_fn, **self.trainer_args
+        )
+        self.trainer = BSGuard(self.trainer, self.train_dl, False)
+
+        # Finally move the model/loss_fn to gpu and setup amp if wanted
+        self.model.to(DEVICE)
+        self.loss_fn.to(DEVICE)
+        if (
+            USE_AMP and self.config.use_amp and hasattr(self.model, 'amp_compatible') and
+            self.model.amp_compatible
+        ):
+            self.model, self.optimizer = amp.initialize(
+                self.model, self.optimizer, **self.config.amp_args
+            )
+            self.loss_fn = partial(
+                amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
+            )
+
         if self.config.benchmark_transformations:
-            self.train_dl.dataset.benchmark_transofrmations()
+            self.benchmark_transofrmations()
         if self.config.check_for_shuffling:
-            self.check_for_shuffling()
+            self.check_for_shuffling(ds_temp)
+
+    def _init_test(self, dataset, remaining_time_budget):
+        self._tf_test_set = dataset
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+        ########## SETUP TESTLOADER
+        t_s = time.time()
+        self._setup_dataset(dataset, 'test')
+        LOGGER.info('SETTING UP THE TESTLOADER TOOK: {0:.4f} s'.format(time.time() - t_s))
+
+        ########## SETUP TESTER
+        self.tester = testing.DefaultPredictor(**self.tester_args)
+        self.tester = BSGuard(self.tester, self.test_dl, True)
 
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
@@ -301,75 +344,18 @@ class Model(algorithm.Algorithm):
             return
         dataset_changed = self._tf_train_set != dataset
         if dataset_changed:
-            t_s = time.time()
-            self.starting_budget = t_s - self.birthday + remaining_time_budget
-            self._tf_train_set = dataset
-            # Create a temporary handle to inspect data
-            dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-            ds_temp = TFDataset(self.session, dataset, self.num_train_samples)
-            ds_temp.scan_all(10)
-            ds_temp.reset()
-            LOGGER.info(
-                'SETUP MODEL PREPERATION TOOK: {0:.4f} s'.format(time.time() - t_s)
-            )
-
-            t_s = time.time()
-            self.setup_model(ds_temp)
+            self._init_train(dataset, remaining_time_budget)
             if self.model is None:
-                return None
-            LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
-            LOGGER.info(
-                'FROZEN LAYERS: {}/{}'.format(
-                    len([x for x in self.model.parameters() if not x.requires_grad]),
-                    len([x for x in self.model.parameters()])
-                )
-            )
-
-            t_s = time.time()
-            self.setup_transforms(ds_temp)
-            LOGGER.info(
-                'ADDING TRANSFORMATIONS TOOK: {0:.4f} s'.format(time.time() - t_s)
-            )
-
-            t_s = time.time()
-            self.setup_train_dataset(ds_temp)
-            LOGGER.info(
-                'SETTING UP THE TRAINSET TOOK: {0:.4f} s'.format(time.time() - t_s)
-            )
-
-            # Finally move the model to gpu
-            self.model.to(DEVICE)
-            self.loss_fn.to(DEVICE)
-            if (
-                USE_AMP and self.config.use_amp and
-                hasattr(self.model, 'amp_compatible') and self.model.amp_compatible
-            ):
-                self.model, self.optimizer = amp.initialize(
-                    self.model, self.optimizer, **self.config.amp_args
-                )
-                self.loss_fn = partial(
-                    amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
-                )
+                return
 
         LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl.batch_size))
         train_start = time.time()
 
-        self.trainer(self, remaining_time_budget, **self.trainer_args)
+        self.trainer(self, remaining_time_budget)
 
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
-
-    def setup_test_dataset(self, dataset):
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=int(self.num_test_samples),
-            transform_sample=self.transforms['test']['samples'],
-            transform_label=self.transforms['test']['labels']
-        )
-        loader_args = self.config.dataloader_args['test']
-        self.test_dl = TFDataLoader(ds, **loader_args)
 
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
@@ -379,7 +365,7 @@ class Model(algorithm.Algorithm):
             LOGGER.error(
                 'TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday)
             )
-            LOGGER.error('TRAIN ERR SHAPE: {0}'.format(self.trainer.train_err.shape))
+            LOGGER.error('BATCHES PROCESSED: {0}'.format(self.trainer.batch_counter))
             return None
         if self.final_prediction_made:
             return None
@@ -395,27 +381,19 @@ class Model(algorithm.Algorithm):
 
         dataset_changed = self._tf_test_set != dataset
         if dataset_changed:
-            self._tf_test_set = dataset
-            test_initial_batch_size = self.config.dataloader_args['test'].pop(
-                'test_initial_batch_size'
-            )
-            self.config.dataloader_args['test'].update(
-                {'batch_size': test_initial_batch_size}
-            )
-            dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-            self.setup_test_dataset(dataset)
+            self._init_test(dataset, remaining_time_budget)
 
         LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
 
-        predicitons = self.tester(self, remaining_time_budget, **self.tester_args)
+        predicitons = self.tester(self, remaining_time_budget)
 
+        LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
         LOGGER.info(
             'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
                 np.mean(cutorch.memory_cached()) / 1024**2
             )
         )
-        LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
-        LOGGER.info(80 * '#')
+        LOGGER.info(30 * '#' + ' LET' 'S GO FOR ANOTHER ROUND ' + 30 * '#')
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
         return predicitons

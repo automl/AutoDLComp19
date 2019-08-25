@@ -18,7 +18,7 @@ LOGGER = get_logger(__name__)
 
 
 class LogicModel(Model):
-    def __init__(self, metadata, session=None, parser_args=None):
+    def __init__(self, metadata, session=None, add_args=None):
         super(LogicModel, self).__init__(metadata)
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
@@ -113,14 +113,14 @@ class LogicModel(Model):
                 }
         }
 
-        if parser_args is not None:
-            self.hyper_params['optimizer']['lr'] = parser_args['lr']
-            self.hyper_params['optimizer']['optimizer'] = parser_args['optimizer']
-            self.hyper_params['optimizer']['momentum'] = parser_args['momentum']
-            self.hyper_params['optimizer']['weight_decay'] = parser_args['weight_decay']
-            self.hyper_params['model']['freeze_portion'] = parser_args['freeze_portion']
+        if add_args is not None:
+            self.hyper_params['optimizer']['lr'] = add_args['lr']
+            self.hyper_params['optimizer']['optimizer'] = add_args['optimizer']
+            self.hyper_params['optimizer']['momentum'] = add_args['momentum']
+            self.hyper_params['optimizer']['weight_decay'] = add_args['weight_decay']
+            self.hyper_params['model']['freeze_portion'] = add_args['freeze_portion']
 
-        self.parser_args = parser_args
+        self.add_args = add_args
 
         self.checkpoints = []
         LOGGER.info('[init] build')
@@ -193,8 +193,8 @@ class LogicModel(Model):
         aspect_ratio = width / height
 
         if height > 128 and width > 128:
-            self.hyper_params['dataset']['max_size'] = self.parser_args['max_size']
-            self.hyper_params['dataset']['base'] = self.parser_args['base']
+            self.hyper_params['dataset']['max_size'] = self.add_args['max_size']
+            self.hyper_params['dataset']['base'] = self.add_args['base']
 
         # fit image area to 64x64
         if aspect_ratio > 2 or 1. / aspect_ratio > 2:

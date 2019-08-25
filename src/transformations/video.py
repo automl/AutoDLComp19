@@ -11,9 +11,9 @@ RESIZE_FACTOR = 1.3
 
 
 # ########################################################
-# Perform only necessary transformations on the cpu
+# Transformations and augmentation prepending stacks
 # ########################################################
-def baseline_transforms(autodl_model, dataset):
+def baseline_transforms(model, dataset):
     LOGGER.info('Using ###   BaselineAugmentNet   ### for transformationstack')
 
     # Classical transformations performed per sample
@@ -23,8 +23,8 @@ def baseline_transforms(autodl_model, dataset):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                            RandomCropPad(autodl_model.model.input_size)
+                            CPUDynamicSelectSegmentsUniform(model),
+                            RandomCropPad(model.input_size)
                         ]
                     ),
                 'labels':
@@ -36,8 +36,8 @@ def baseline_transforms(autodl_model, dataset):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
-                            RandomCropPad(autodl_model.model.input_size)
+                            CPUDynamicSelectSegmentsUniform(model),
+                            RandomCropPad(model.input_size)
                         ]
                     ),
                 'labels':
@@ -57,16 +57,14 @@ def baseline_transforms(autodl_model, dataset):
         }
     )
     # To expose the original model's attributes use the MonkeyNet(nn.Sequential)
-    autodl_model.model = MonkeyNet(
-        OrderedDict([
-            ('aug_net', aug_net),
-            ('main_net', autodl_model.model),
-        ])
-    )
-    return transf_dict
+    model = MonkeyNet(OrderedDict([
+        ('aug_net', aug_net),
+        ('main_net', model),
+    ]))
+    return model, transf_dict
 
 
-def normal_segment_dist(autodl_model, dataset):
+def normal_segment_dist(model, dataset):
     LOGGER.info('Using ###   Normal segment distance   ### for transformationstack')
     transf_dict = {
         'train':
@@ -74,8 +72,8 @@ def normal_segment_dist(autodl_model, dataset):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsNormal(autodl_model.model),
-                            CPURandomCropPad(autodl_model.model.input_size),
+                            CPUDynamicSelectSegmentsNormal(model),
+                            CPURandomCropPad(model.input_size),
                             CPURandomHFlip(0.4)
                         ]
                     ),
@@ -88,8 +86,8 @@ def normal_segment_dist(autodl_model, dataset):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsNormal(autodl_model.model),
-                            CPURandomCropPad(autodl_model.model.input_size)
+                            CPUDynamicSelectSegmentsNormal(model),
+                            CPURandomCropPad(model.input_size)
                         ]
                     ),
                 'labels':
@@ -105,22 +103,20 @@ def normal_segment_dist(autodl_model, dataset):
                      Stack(), Normalize()]
         }
     )
-    autodl_model.model = MonkeyNet(
-        OrderedDict([
-            ('aug_net', aug_net),
-            ('main_net', autodl_model.model),
-        ])
-    )
-    return transf_dict
+    model = MonkeyNet(OrderedDict([
+        ('aug_net', aug_net),
+        ('main_net', model),
+    ]))
+    return model, transf_dict
 
 
-def gpu_resize(autodl_model, dataset, use_gpu_resize):
+def gpu_resize(model, dataset, use_gpu_resize):
     LOGGER.info('Using ###   Resize   ### for transformations')
 
     cpu_resize = (
         np.any(dataset.min_shape[1:] != dataset.max_shape[1:]) or not use_gpu_resize
     )
-    out_size = autodl_model.model.input_size
+    out_size = model.input_size
     out_size = np.array((out_size, out_size), dtype=np.int)
     re_size = np.ceil(out_size * RESIZE_FACTOR).astype(np.int)
 
@@ -130,7 +126,7 @@ def gpu_resize(autodl_model, dataset, use_gpu_resize):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsUniform(autodl_model.model),
+                            CPUDynamicSelectSegmentsUniform(model),
                             *((CPUResizeImage(re_size.tolist()), ) if cpu_resize else ())
                         ]
                     ),
@@ -143,7 +139,7 @@ def gpu_resize(autodl_model, dataset, use_gpu_resize):
                 'samples':
                     transforms.Compose(
                         [
-                            CPUDynamicSelectSegmentsUniform(autodl_model.model), *(
+                            CPUDynamicSelectSegmentsUniform(model), *(
                                 (CPUResizeImage(out_size.tolist()), ) if cpu_resize else
                                 ()
                             )
@@ -178,14 +174,12 @@ def gpu_resize(autodl_model, dataset, use_gpu_resize):
                 ]
         }
     )
-    autodl_model.model = MonkeyNet(
-        OrderedDict([
-            ('aug_net', aug_net),
-            ('main_net', autodl_model.model),
-        ])
-    )
+    model = MonkeyNet(OrderedDict([
+        ('aug_net', aug_net),
+        ('main_net', model),
+    ]))
 
-    return transf_dict
+    return model, transf_dict
 
 
 # ########################################################
@@ -196,7 +190,6 @@ class FormatChannels(nn.Module):
     Adapt number of channels. If there are more than desired, use only the first n channels.
     If there are less, copy existing channels
     '''
-
     def __init__(self, channels_des):
         super().__init__()
         self.channels_des = channels_des
@@ -217,7 +210,6 @@ class SwapAxes(nn.Module):
     '''
     Swap axes for interpolation
     '''
-
     def __init__(self):
         super().__init__()
         pass
@@ -231,7 +223,6 @@ class Interpolate(nn.Module):
     '''
     Resize image to desired size
     '''
-
     def __init__(self, size):
         super().__init__()
         self.size = size
@@ -252,7 +243,6 @@ class RandomCrop(nn.Module):
     '''
     Randomly crop a selection of the image
     '''
-
     def __init__(self, size):
         super().__init__()
         self.size = size
@@ -324,7 +314,6 @@ class Stack(nn.Module):
     '''
     Concatenate subsequent images of one video by stacking the channels
     '''
-
     def __init__(self):
         super().__init__()
 
@@ -339,7 +328,6 @@ class Normalize(nn.Module):
     '''
     Normalize from the 0-255 range to the 0-1 range.
     '''
-
     def __init__(self):
         super().__init__()
 

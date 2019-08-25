@@ -1,6 +1,8 @@
 import logging
 import os
+import re
 import sys
+from functools import wraps
 
 import hjson
 import torch
@@ -10,7 +12,57 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
+def parse_cumem_error(err_str):
+    mem_search = re.search(
+        r"Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free", err_str
+    )
+    tried, free = mem_search.groups()
+    tried = float(tried[:-2]) * 1024 if tried[-1] == 'G' else float(tried[:-2])
+    free = float(free[:-2]) * 1024 if free[-1] == 'G' else float(free[:-2])
+    return tried, free
+
+
+def BSGuard(f, loader, reset_on_fail):
+    '''
+    Decorator to safe-guard the execution of f against cuda's out of memory error
+    and to recover from it if possible by reducing the batch-size of the given
+    dataloader
+    '''
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        while True:
+            try:
+                return f(*args, **kwargs)
+            except RuntimeError as e:
+                LOGGER.warn('CAUGHT VMEM ERROR! SCALING DOWN BATCH-SIZE!')
+                if ('CUDA out of memory.' not in e.args[0] or loader.batch_size == 1):
+                    raise e
+                tried_mem, free_mem = parse_cumem_error(e.args[0])
+                # Not working as intended. I blame fragmantation!
+                # mem_downscale = min(1, free_mem / (tried_mem + 1e-8)) if free_mem < tried_mem else 0.9
+                mem_downscale = 0.5
+                loader.batch_size = max(1, int(loader.batch_size * mem_downscale))
+                if reset_on_fail:
+                    loader.dataset.reset()
+
+                LOGGER.warn(
+                    'TRIED TO ALLOCATE {0:.2f} MiB WITH {1:.2f} MiB FREE'.format(
+                        tried_mem, free_mem
+                    )
+                )
+                LOGGER.warn(
+                    'BATCH-SIZE NOW IS {}'.format(loader.batch_sampler.batch_size)
+                )
+
+    return decorated
+
+
 class AugmentNet(nn.Module):
+    '''
+    The augment net's purpose is to perform augmentations on a whole batch at once
+    on the GPU instead of per element on the cpu. If this has benefit still needs
+    to be determined
+    '''
     def __init__(self, transfs):
         super().__init__()
         self.augmentation = {
@@ -29,7 +81,6 @@ class MonkeyNet(nn.Sequential):
     The idea of the monkeynet is to expose all attributes of the networks
     it's given and is therefore a special kind of Sequential network
     '''
-
     def __init__(self, *nets):
         super().__init__(*nets)
         super().__setattr__('__finished_init__', True)

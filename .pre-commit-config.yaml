@@ -1,7 +1,7 @@
 repos:
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3
+    rev: v2.3.0
     hooks:
     -   id: check-merge-conflict
     -   id: check-yaml
@@ -9,19 +9,19 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.27.0
+    rev: v0.28.0
     hooks:
     -   id: yapf
         args: ['-ip']
         verbose: True
 
 -   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.20
+    rev: v4.3.21
     hooks:
     -   id: isort
 
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.7
+    rev: 3.7.8
     hooks:
     -   id: flake8
         args: ['--exit-zero']

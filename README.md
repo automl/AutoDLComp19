@@ -28,18 +28,18 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 ├── bohb_logs                              <<  Bohb Log Foler
 |
 ├── competition                            <<  Competition source code for local test
-|   |                                          
+|   |
 │   ├── AutoDL_ingestion_program                <<  Main execution library
-|   |                                          
+|   |
 │   ├── AutoDL_public_data                      <<  This is where you could put the datasets
 |   |                                               (to which I mount the tfdatasets to)
-|   |                                          
+|   |
 │   ├── AutoDL_sample_result_submission         <<  General output dir
 │   |
 │   ├── AutoDL_scoring_output                   <<  Scoring output dir
-|   |                                          
+|   |
 │   ├── AutoDL_scoring_program                  <<  Source code to produce AUL score
-|   |                                          
+|   |
 │   └── run_local_test.py                       <<  Execute competition evaluation locally
 |                                                   which call the ingestion and scoring program
 │
@@ -51,49 +51,54 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 |   |   |
 |   |   ├── checkpoints                    <<  This is where you should put the pretraind model files
 |   |   |                                      see it's readme for the download link
-|   |   |                                      (to which I mount my local pretrain models folder)     
+|   |   |                                      (to which I mount my local pretrain models folder)
 |   |   |
 |   │   └── hub                            <<  This is where the models' implementation are.
 |   |                                          torch.hub is able to load available model implementations
 |   |                                          from a github repo, provided it implements the hubconf.py
 |   |                                          It downloads the repo and keeps it in a folder with
 |   |                                          the name 'owner_reponame_branch'
-|   │  
+|   |
+│   ├── transformations                    <<  This folder houses the available transformations
+|   |                                          for all modalities where each have their own module
+|   |                                          ie. image.py, video.py, nlp.py, series.py
+|   │
 │   ├── bohb_auc.py                        <<  Run bohb on the competition pipeline
-|   |                                          
+|   |
 │   ├── config.hjson                       <<  Execution parameters for model.py
-|   |                                          
+|   |
 │   ├── pack_submission.py                 <<  Creates a submission.zip according to config.hjson
-|   |                                          
+|   |
 │   ├── model.py                           <<  Main file for competition submission
-|   |                                          and splits the execution pipeline into:
-|   |                                          selection-> transformation-> trainint -> testing
-|   |                                          so this should change the least
-|   |                                          
+|   |                                          implementing the required interface and handling
+|   |                                          the setting up the components and dataloaders
+|   |                                          commonly refered to as autodl_model
+|   |
 │   ├── selection.py                       <<  This module handles model, optimizer, loss function
 |   |                                          and lr-scheduler selection
-|   |                                          
+|   |
 │   ├── testing.py                         <<  This module handles making predictions
 |   |                                          (maybe do custom freezing during testing?)
-|   |                                          
+|   |
 │   ├── torch_adapter.py                   <<  Custom Dataset class to wrap tfdatasets for pytorch
-|   |                                          
+|   |
 │   ├── training.py                        <<  This module handles training the model
 |   |                                          and is where different training schemes are defined
-|   |                                          
-│   ├── transformations.py                 <<  This module handles adding transformations
-|   |                                          to the dataset or extends the model
-|   |                                          
+|   |
 │   └── utils.py                           <<  Utility code providing BASEDIR, LOGGER, DEVICE
 │
 ├── submission/                            <<  Folder where the pack_submission.py will put the zips
 │
 └── utils/                                 <<  General purpose scripts (formating, setup, ..)
+                                               some might be out of date
 ```
 
 ## General idea
-The [model.py](src/model.py) should not really be touched and implements only basic functionality which should not need to be changed.
-To customize the behaviour it loads functions from the [selection.py](src/selection.py), [transformations.py](src/transformations.py), [training.py](src/training.py) and [testing.py](src/testing.py) which are executed in said order. Which function of a module is used, can be defined in the [config.hjson](src/config.hjson) as well as additional parameters besides what the model.py already passes on. This makes changing the pipeline straight forward, plug-and-play and reduces the risk of introducing errors when comparing two competing implementations.
+The [model.py](src/model.py), [training.py](src/training.py) and [testing.py](src/testing.py) should not really be touched and implements shared functionality between modalities which should not need to be changed.
+To perform model and modality specific task in a model and modality agnostic manner, only the definitions in the [selection.py](src/selection.py)/[config.hjson](src/config.hjson) need to be changed/extended to customize the overall behaviour.
+These are structure per modality with the selection providing the autodl_model with the model, optimizer, loss-function and transformation/augmentation stack and training policy for a given modality and dataset.
+The used policy is chosen in the [config.hjson](src/config.hjson) and is intended not to be model agnostic. This means it can/should not only decide when to train/validate/predict but also change a model's state.
+
 
 ## Running a local test
 To run a local test [run_local_test.py](competition/run_local_test.py) can be used as described in the starting-kit's readme. Though it has been slightly changed to accept a subfolder name it will use so multiple runs don't erase each other (prev. behaviour).

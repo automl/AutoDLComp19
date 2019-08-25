@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import os
 import threading
 
+import numpy as np
+import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
-import numpy as np
-
-import skeleton
 from architectures.resnet import ResNet18
 from skeleton.projects import LogicModel, get_logger
-from skeleton.projects.others import NBAC, AUC
-
+from skeleton.projects.others import AUC, NBAC
 
 torch.backends.cudnn.benchmark = True
 threads = [
@@ -27,8 +26,8 @@ LOGGER = get_logger(__name__)
 
 # TODO(Philipp): Create symlinks kakaobrain needs which might not be included in the zip
 class KakaoModel(LogicModel):
-    def __init__(self, metadata, parser_args=None):
-        super(KakaoModel, self).__init__(metadata, parser_args=parser_args)
+    def __init__(self, metadata, add_args=None):
+        super(KakaoModel, self).__init__(metadata, add_args=add_args)
         self.use_test_time_augmentation = False
 
     def build(self):
@@ -54,10 +53,15 @@ class KakaoModel(LogicModel):
             model_path = os.path.join(base_dir, 'models')
             LOGGER.info('model path: %s', model_path)
 
-            LOGGER.info('[init] Freeze portion: \
-                        %.1f'%(self.hyper_params['model']['freeze_portion']))
-            self.model.init(model_dir=model_path, gain=1.0,
-                            freeze_portion=self.hyper_params['model']['freeze_portion'])
+            LOGGER.info(
+                '[init] Freeze portion: \
+                        %.1f' % (self.hyper_params['model']['freeze_portion'])
+            )
+            self.model.init(
+                model_dir=model_path,
+                gain=1.0,
+                freeze_portion=self.hyper_params['model']['freeze_portion']
+            )
         else:
             self.model.init(gain=1.0)
         # torch.cuda.synchronize()
@@ -78,12 +82,18 @@ class KakaoModel(LogicModel):
             self.model.loss_fn = torch.nn.BCEWithLogitsLoss(reduction='none')
             # self.model.loss_fn = skeleton.nn.BinaryCrossEntropyLabelSmooth(num_class, epsilon=epsilon, reduction='none')
             self.tau = 8.0
-            LOGGER.info('[update_model] %s (tau:%f, epsilon:%f)', self.model.loss_fn.__class__.__name__, self.tau, epsilon)
+            LOGGER.info(
+                '[update_model] %s (tau:%f, epsilon:%f)',
+                self.model.loss_fn.__class__.__name__, self.tau, epsilon
+            )
         else:
             self.model.loss_fn = torch.nn.CrossEntropyLoss(reduction='none')
             # self.model.loss_fn = skeleton.nn.CrossEntropyLabelSmooth(num_class, epsilon=epsilon)
             self.tau = 8.0
-            LOGGER.info('[update_model] %s (tau:%f, epsilon:%f)', self.model.loss_fn.__class__.__name__, self.tau, epsilon)
+            LOGGER.info(
+                '[update_model] %s (tau:%f, epsilon:%f)',
+                self.model.loss_fn.__class__.__name__, self.tau, epsilon
+            )
         self.model_pred.loss_fn = self.model.loss_fn
 
         self.init_opt()
@@ -101,14 +111,16 @@ class KakaoModel(LogicModel):
         scheduler_lr = skeleton.optim.gradual_warm_up(
             skeleton.optim.get_reduce_on_plateau_scheduler(
                 lr * lr_multiplier / warmup_multiplier,
-                patience=10, factor=.5, metric_name='train_loss'
+                patience=10,
+                factor=.5,
+                metric_name='train_loss'
             ),
             warm_up_epoch=5,
             multiplier=warmup_multiplier
         )
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
-            eval("torch.optim."+self.hyper_params['optimizer']['optimizer']),
+            eval("torch.optim." + self.hyper_params['optimizer']['optimizer']),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
@@ -117,7 +129,10 @@ class KakaoModel(LogicModel):
             weight_decay=self.hyper_params['optimizer']['weight_decay'] * 1 / 4,
             nesterov=True
         )
-        LOGGER.info('[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__, batch_size)
+        LOGGER.info(
+            '[optimizer] %s (batch_size:%d)',
+            self.optimizer._optimizer.__class__.__name__, batch_size
+        )
 
     def adapt(self, remaining_time_budget=None):
         epoch = self.info['loop']['epoch']
@@ -127,9 +142,10 @@ class KakaoModel(LogicModel):
 
         train_score = np.average([c['train']['score'] for c in self.checkpoints[-5:]])
         valid_score = np.average([c['valid']['score'] for c in self.checkpoints[-5:]])
-        LOGGER.info('[adapt] [%04d/%04d] train:%.3f valid:%.3f',
-                    epoch, self.hyper_params['dataset']['max_epoch'],
-                    train_score, valid_score)
+        LOGGER.info(
+            '[adapt] [%04d/%04d] train:%.3f valid:%.3f', epoch,
+            self.hyper_params['dataset']['max_epoch'], train_score, valid_score
+        )
 
         self.use_test_time_augmentation = self.info['loop']['test'] > 1
 
@@ -160,56 +176,68 @@ class KakaoModel(LogicModel):
             for policy_search in range(num_policy_search):
                 selected_idx = np.random.choice(list(range(len(policy))), num_sub_policy)
                 selected_policy = [policy[i] for i in selected_idx]
-                self.dataloaders['valid'].dataset.transform.transforms = original_valid_policy + [
-                    lambda t: t.cpu().float() if isinstance(t, torch.Tensor) else torch.Tensor(t),
-                    tv.transforms.ToPILImage(),
-                    skeleton.data.augmentations.Augmentation(
-                        selected_policy
-                    ),
-                    tv.transforms.ToTensor(),
-                    lambda t: t.to(device=self.device).half()
-                ]
+                self.dataloaders[
+                    'valid'].dataset.transform.transforms = original_valid_policy + [
+                        lambda t: t.cpu().float()
+                        if isinstance(t, torch.Tensor) else torch.Tensor(t),
+                        tv.transforms.ToPILImage(),
+                        skeleton.data.augmentations.Augmentation(selected_policy),
+                        tv.transforms.ToTensor(),
+                        lambda t: t.to(device=self.device).half()
+                    ]
 
                 metrics = []
                 for policy_eval in range(num_sub_policy):
-                    valid_dataloader = self.build_or_get_dataloader('valid', self.datasets['valid'], self.datasets['num_valids'])
+                    valid_dataloader = self.build_or_get_dataloader(
+                        'valid', self.datasets['valid'], self.datasets['num_valids']
+                    )
                     # original_valid_batch_size = valid_dataloader.batch_sampler.batch_size
                     # valid_dataloader.batch_sampler.batch_size = batch_size
 
-                    valid_metrics = self.epoch_valid(self.info['loop']['epoch'], valid_dataloader, reduction='max')
+                    valid_metrics = self.epoch_valid(
+                        self.info['loop']['epoch'], valid_dataloader, reduction='max'
+                    )
 
                     # valid_dataloader.batch_sampler.batch_size = original_valid_batch_size
                     metrics.append(valid_metrics)
                 loss = np.max([m['loss'] for m in metrics])
                 score = np.max([m['score'] for m in metrics])
-                LOGGER.info('[adapt] [FAA] [%02d/%02d] score: %f, loss: %f, selected_policy: %s',
-                            policy_search, num_policy_search, score, loss, selected_policy)
+                LOGGER.info(
+                    '[adapt] [FAA] [%02d/%02d] score: %f, loss: %f, selected_policy: %s',
+                    policy_search, num_policy_search, score, loss, selected_policy
+                )
 
-                searched_policy.append({
-                    'loss': loss,
-                    'score': score,
-                    'policy': selected_policy
-                })
+                searched_policy.append(
+                    {
+                        'loss': loss,
+                        'score': score,
+                        'policy': selected_policy
+                    }
+                )
 
             flatten = lambda l: [item for sublist in l for item in sublist]
 
-            policy_sorted_index = np.argsort([p['score'] for p in searched_policy])[::-1][:num_select_policy]
-            policy = flatten([searched_policy[idx]['policy'] for idx in policy_sorted_index])
+            policy_sorted_index = np.argsort([p['score'] for p in searched_policy]
+                                            )[::-1][:num_select_policy]
+            policy = flatten(
+                [searched_policy[idx]['policy'] for idx in policy_sorted_index]
+            )
             policy = skeleton.data.augmentations.remove_duplicates(policy)
 
-            LOGGER.info('[adapt] [FAA] scores: %s',
-                        [searched_policy[idx]['score'] for idx in policy_sorted_index])
+            LOGGER.info(
+                '[adapt] [FAA] scores: %s',
+                [searched_policy[idx]['score'] for idx in policy_sorted_index]
+            )
 
             self.dataloaders['valid'].dataset.transform.transforms = original_valid_policy
-            self.dataloaders['train'].dataset.transform.transforms = original_train_policy + [
-                lambda t: t.cpu().float() if isinstance(t, torch.Tensor) else torch.Tensor(t),
-                tv.transforms.ToPILImage(),
-                skeleton.data.augmentations.Augmentation(
-                    policy
-                ),
-                tv.transforms.ToTensor(),
-                lambda t: t.to(device=self.device).half()
-            ]
+            self.dataloaders[
+                'train'].dataset.transform.transforms = original_train_policy + [
+                    lambda t: t.cpu().float()
+                    if isinstance(t, torch.Tensor) else torch.Tensor(t),
+                    tv.transforms.ToPILImage(),
+                    skeleton.data.augmentations.Augmentation(policy),
+                    tv.transforms.ToTensor(), lambda t: t.to(device=self.device).half()
+                ]
 
     def activation(self, logits):
         if self.is_multiclass():
@@ -218,7 +246,9 @@ class KakaoModel(LogicModel):
         else:
             logits = torch.softmax(logits, dim=-1)
             _, k = logits.max(-1)
-            prediction = torch.zeros(logits.shape, dtype=logits.dtype, device=logits.device).scatter_(-1, k.view(-1, 1), 1.0)
+            prediction = torch.zeros(
+                logits.shape, dtype=logits.dtype, device=logits.device
+            ).scatter_(-1, k.view(-1, 1), 1.0)
         return logits, prediction
 
     def get_model_state(self):
@@ -258,7 +288,8 @@ class KakaoModel(LogicModel):
             tpr, tnr, nbac = NBAC(prediction, original_labels.float())
             auc = AUC(logits, original_labels.float())
 
-            score = auc if self.hyper_params['conditions']['score_type'] == 'auc' else float(nbac.detach().float())
+            score = auc if self.hyper_params['conditions'][
+                'score_type'] == 'auc' else float(nbac.detach().float())
             metrics.append({
                 'loss': loss.detach().float().cpu(),
                 'score': score,
@@ -297,7 +328,8 @@ class KakaoModel(LogicModel):
             tpr, tnr, nbac = NBAC(prediction, original_labels.float())
             auc = AUC(logits, original_labels.float())
 
-            score = auc if self.hyper_params['conditions']['score_type'] == 'auc' else float(nbac.detach().float())
+            score = auc if self.hyper_params['conditions'][
+                'score_type'] == 'auc' else float(nbac.detach().float())
             metrics.append({
                 'loss': loss.detach().float().cpu(),
                 'score': score,
@@ -345,8 +377,10 @@ class KakaoModel(LogicModel):
 
         states = self.checkpoints[best_idx]['model']
         self.model_pred.load_state_dict(states)
-        LOGGER.info('best checkpoints at %d/%d (valid loss:%f score:%f) tau:%f',
-                    best_idx + 1, len(self.checkpoints), best_loss, best_score, tau)
+        LOGGER.info(
+            'best checkpoints at %d/%d (valid loss:%f score:%f) tau:%f', best_idx + 1,
+            len(self.checkpoints), best_loss, best_score, tau
+        )
 
         predictions = []
         self.model_pred.eval()
