@@ -165,10 +165,13 @@ class Model(algorithm.Algorithm):
 
     def side_load_config(self, sideload_conf_path):
         '''
-        This overrides all setting config defined in the sideload_config
-        with the only requirement that their type must match
+        This overrides all configs defined in the sideload_config.
+        To target specific leafs in a hirachy use '.' to seperate
+        the parent in the leafes' path:
+        ie. { selection.video.optim_args.lr: 0.1} would overwrite the
+        video optimizer's initial learning rate
 
-        ATTENTION: If sideload_config.json can define dictionaries as values as well
+        ATTENTION: The sideload_config.json can define dictionaries as values as well
         so it is possible to overwrite a whole subhirachy.
         '''
         def walk_dict(d, side_conf, p=''):
