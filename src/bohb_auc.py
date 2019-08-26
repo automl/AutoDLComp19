@@ -45,7 +45,7 @@ def get_configuration():
     cfg["score_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
     )
-    cfg["bohb_min_budget"] = 240
+    cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 240
     cfg["bohb_iterations"] = 20
     cfg["bohb_log_dir"] = abspath(
@@ -108,9 +108,10 @@ class BOHBWorker(Worker):
             score_subdir = "bohb_" + dataset
             score_path = os.path.join(cfg["score_dir"], score_subdir)
             score_temp = 0
+            budget = int(budget)
             try:
                 print('BOHB ON DATASET: ' + str(dataset))
-                config.update({'earlystop': budget - 10})
+                config.update({'earlystop': budget})
                 # stored bohb config will be readagain in model.py
                 write_config_to_file(config)
                 # execute main function
