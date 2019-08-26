@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Class for supervised machine learning algorithms for the autodl project.
 
 This is the API; see model.py, algorithm_scikit.py for implementations.
 """
 
+
 class Algorithm(object):
-  """Algorithm class: API (abstract class)."""
+    """Algorithm class: API (abstract class)."""
+    def __init__(self, metadata):
+        self.done_training = False  # Indicate ingestion to stop further training
+        self.metadata_ = metadata  # An AutoDLMetadata object
 
-  def __init__(self, metadata):
-    self.metadata_ = metadata # An AutoDLMetadata object
-
-  def train(self, dataset, remaining_time_budget=None):
-    """Train this algorithm on the tensorflow |dataset|.
+    def train(self, dataset, remaining_time_budget=None):
+        """Train this algorithm on the tensorflow |dataset|.
 
     This method will be called REPEATEDLY during the whole training/predicting
     process. So your `train` method should be able to handle repeated calls and
@@ -54,10 +54,10 @@ class Algorithm(object):
           should keep track of its execution time to avoid exceeding its time
           budget. If remaining_time_budget is None, no time budget is imposed.
     """
-    raise NotImplementedError("Algorithm class does not have any training.")
+        raise NotImplementedError("Algorithm class does not have any training.")
 
-  def test(self, dataset, remaining_time_budget=None):
-    """Make predictions on the test set `dataset` (which is different from that
+    def test(self, dataset, remaining_time_budget=None):
+        """Make predictions on the test set `dataset` (which is different from that
     of the method `train`).
 
     Args:
@@ -74,4 +74,4 @@ class Algorithm(object):
           performance of the last prediction will be used to compute area under
           learning curve.
     """
-    raise NotImplementedError("Algorithm class does not have any testing.")
+        raise NotImplementedError("Algorithm class does not have any testing.")

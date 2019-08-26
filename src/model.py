@@ -178,7 +178,7 @@ class Model(algorithm.Algorithm):
             for k, v in d.items():
                 if isinstance(v, OrderedDict):
                     walk_dict(v, side_conf, p + k + '.')
-                elif p + k in side_conf:
+                elif p + k in side_conf and isinstance(d[k], type(side_conf[p + k])):
                     d[k] = side_conf[p + k]
 
         with open(sideload_conf_path, 'r') as file:
