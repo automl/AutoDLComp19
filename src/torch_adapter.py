@@ -31,6 +31,8 @@ class TFDataset(Dataset):
         self.min_shape = None
         self.max_shape = None
         self.median_shape = None
+        self.mean_shape = None
+        self.std_shape = None
         self.is_multilabel = None
 
         self.current_idx = 0
