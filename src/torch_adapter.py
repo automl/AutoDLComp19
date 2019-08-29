@@ -10,6 +10,125 @@ from torch.utils.data import BatchSampler, Dataset, RandomSampler, SequentialSam
 from torch.utils.data.dataloader import default_collate
 
 
+class TFAdapterSet(Dataset):
+    def __init__(
+        self,
+        session,
+        dataset,
+        num_samples,
+        batch_size,
+        transformations=None,
+        num_parallel_calls=5,
+        pin_memory=False,
+        shuffle=False,
+        drop_last=False,
+    ):
+        self._session = session
+        self._org_dataset = dataset
+        self._num_samples = num_samples
+        self._batch_size = batch_size
+        self._transformations = transformations
+        self._num_parallel_calls = num_parallel_calls
+        self._dataset = None
+        self._pin_memory = pin_memory
+        self._shuffle = shuffle
+        self._drop_last = drop_last
+
+        self._update_dataset()
+
+        self._next_element = None
+        self.current_idx = 0
+        self.reset()
+
+    def _update_dataset(self):
+        def transform(x, y):
+            ret = (
+                # For some reason this does not work if not
+                # used from the original dict, meaning:
+                # self._transform_samples = transformations['samples']
+                # and then invoking
+                # self._transform_samples(x)
+                # fails
+                self._transformations['samples'](x),
+                self._transformations['labels'](y),
+            )
+            return ret
+
+        def tfwrap(x, y):
+            ret = tf.py_func(transform, [x, y], [tf.float32, tf.int64])
+            return ret
+
+        self._dataset = self._org_dataset.prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE
+        )
+        self._dataset = self._dataset.map(
+            tfwrap, num_parallel_calls=self._num_parallel_calls
+        )
+        self._dataset = self._dataset.batch(self._batch_size)
+
+    @property
+    def dataset(self):
+        return self._org_dataset
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, val):
+        self._batch_size = val
+        self._update_dataset()
+
+    @property
+    def transform_sample(self):
+        return self._transform_sample
+
+    @transform_sample.setter
+    def transform_sample(self, val):
+        self._transform_sample = lambda x: x if val is None else val
+        self._update_dataset()
+
+    @property
+    def transform_label(self):
+        return self._transform_label
+
+    @transform_label.setter
+    def transform_label(self, val):
+        self._transform_label = lambda y: y if val is None else val
+        self._update_dataset()
+
+    @property
+    def num_parallel_calls(self):
+        return self._num_parallel_calls
+
+    @num_parallel_calls.setter
+    def num_parallel_calls(self, val):
+        self._num_parallel_calls = val
+        self._update_dataset()
+
+    def __len__(self):
+        return self._num_samples
+
+    def __getitem__(self, _):
+        try:
+            sample, label = self._session.run(self._next_element)
+            self.current_idx += 1
+        except tf.errors.OutOfRangeError:
+            self.reset()
+            raise StopIteration
+        # NOTE(Philipp): Maybe move this into transformations as well
+        # though I'm not sure if possible
+        sample = torch.from_numpy(sample, pin_memory=self._pin_memory)
+        label = torch.from_numpy(label, pin_memory=self._pin_memory)
+        return sample, label
+
+    def reset(self):
+        iterator = self._dataset.make_one_shot_iterator()
+        self._next_element = iterator.get_next()
+        self.current_idx = 0
+        return self
+
+
 class TFDataset(Dataset):
     def __init__(
         self,
@@ -72,7 +191,7 @@ class TFDataset(Dataset):
         self.current_idx = 0
         return self
 
-    def scan_all(self, max_samples=None):
+    def scan(self, max_samples=None):
         # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
         min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
@@ -105,13 +224,16 @@ class TFDataset(Dataset):
         self.reset()
 
 
+# #######################################################################################
+# vvv                 Leaving this for posterity and testing purposes                 vvv
+# #######################################################################################
 class TFDataLoader(object):
     # I got tired of their implementation...
     __initialized = False
 
     def __init__(
         self,
-        dataset,
+        dataset: TFDataset,
         batch_size=1,
         shuffle=False,
         sampler=None,
@@ -174,6 +296,10 @@ class TFDataLoader(object):
         return len(self.batch_sampler)
 
     @property
+    def current_idx(self):
+        return self.dataset.current_idx
+
+    @property
     def batch_size(self):
         if not hasattr(self, 'batch_sampler'):
             return None
@@ -203,6 +329,9 @@ class TFDataLoader(object):
 
     def __iter__(self):
         return _TFDataLoaderIter(self)
+
+    def reset(self):
+        self.dataset.reset()
 
 
 class _TFDataLoaderIter(object):

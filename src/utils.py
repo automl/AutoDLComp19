@@ -43,16 +43,14 @@ def BSGuard(f, loader, reset_on_fail):
                 mem_downscale = 0.5
                 loader.batch_size = max(1, int(loader.batch_size * mem_downscale))
                 if reset_on_fail:
-                    loader.dataset.reset()
+                    loader.reset()
 
                 LOGGER.warn(
                     'TRIED TO ALLOCATE {0:.2f} MiB WITH {1:.2f} MiB FREE'.format(
                         tried_mem, free_mem
                     )
                 )
-                LOGGER.warn(
-                    'BATCH-SIZE NOW IS {}'.format(loader.batch_sampler.batch_size)
-                )
+                LOGGER.warn('BATCH-SIZE NOW IS {}'.format(loader.batch_size))
 
     return decorated
 

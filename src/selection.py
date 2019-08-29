@@ -30,6 +30,9 @@ class Selector(object):
         self.conf = conf
 
     def _determin_modality(self, dataset):
+        if isinstance(dataset, list):
+            LOGGER.info("DETERMINED MODALITY: NLP")
+            return 'nlp'
         if dataset.mean_shape[0] == 1:
             LOGGER.info("DETERMINED MODALITY: IMAGE")
             return 'image'
@@ -62,7 +65,7 @@ class Selector(object):
         kakaomodel = torch.hub.load(
             'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata, add_args=conf
         )
-        LOGGER.info('LETTING SOMEONE ESLE FLY OUR BANANA PLANE!')
+        LOGGER.info('LETTING SOMEONE ELSE FLY OUR BANANA PLANE!')
         LOGGER.info('BRACE FOR IMPACT!')
         LOGGER.info('AND REMEMBER THAT I AM NOT RESPONSABLE!')
 

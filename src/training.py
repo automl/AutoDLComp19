@@ -39,7 +39,7 @@ class PolicyTrainer():
         make_final_prediction = False
         while not make_prediction:
             # Uncomment the next line to always start from the beginning
-            # althought we need to decide if we want to reshuffle or
+            # although we need to decide if we want to reshuffle or
             # just continue where we left of.
             # The controlling factor is the tfdataset inside the TFDataset object
             load_start = time.time()
@@ -66,7 +66,7 @@ class PolicyTrainer():
                 train_acc = accuracy(labels, out, self.dloader.dataset.is_multilabel)
                 LOGGER.debug(
                     'STEP #{0} TRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}'.format(
-                        i, self.dloader.dataset.current_idx, loss, train_acc * 100
+                        i, self.dloader.current_idx, loss, train_acc * 100
                     )
                 )
                 self.batch_counter += 1
@@ -91,7 +91,7 @@ class PolicyTrainer():
                     )
                     validate = False
 
-                # Check if we want to make a prediciton/validate after next train or not
+                # Check if we want to make a prediction/validate after next train or not
                 make_prediction, validate = self.check_policy(
                     autodl_model.model, autodl_model.test_num_samples,
                     autodl_model.testing_round, remaining_time - (time.time() - t_train),
@@ -105,7 +105,7 @@ class PolicyTrainer():
         if LOGGER.level == logging.debug:
             subprocess.run(['nvidia-smi'])
         LOGGER.info(
-            "MEAN TRAINING ELEMENTS PER SEC:\t{0:.2f}".format(
+            "MEAN FRAMES PER SEC TRAINED:\t{0:.2f}".format(
                 self.ele_counter / (time.time() - autodl_model.birthday)
             )
         )
@@ -171,7 +171,8 @@ class grid_check_policy():
 # Helpers
 # ########################################################
 def get_time_wo_final_prediction(remaining_time, train_start, model):
-    # Calculate current remaining time - time to make a prediction
+    # Calculate current remaining time - the time to make a prediction,
+    # approximated by the last 3 testing durations' average
     return remaining_time - (
         time.time() - train_start + np.mean(model.test_time[-3:]) +
         np.std(model.test_time[-3:])
@@ -189,7 +190,7 @@ def precheck(autodl_model, t_train, remaining_time):
     # Abort training and make final prediction if not enough time is left
     t_left = get_time_wo_final_prediction(remaining_time, t_train, autodl_model)
     if t_left is not None and t_left < 5:
-        LOGGER.info('Making final prediciton!')
+        LOGGER.info('Making final prediction!')
         make_final_prediction = True
         make_prediction = True
     return make_prediction, make_final_prediction

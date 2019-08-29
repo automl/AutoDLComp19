@@ -19,8 +19,8 @@ class DefaultPredictor():
 
     def __call__(self, autodl_model, remaining_time):
         '''
-        This is called from the model.py and just seperates the
-        testing routine from the unchaning code
+        This is called from the model.py and just separates the
+        testing routine from the unchanging code
         '''
         predictions = []
         temp_cache = None
@@ -34,14 +34,19 @@ class DefaultPredictor():
             #######################################################################
 
             # Just making sure we start at the beginning
-            autodl_model.test_dl.dataset.reset()
+            autodl_model.test_dl.reset()
             e = enumerate(autodl_model.test_dl) if self.cache is None else enumerate(
                 zip(
                     chunk(self.cache, batch_size),
                     range(int(np.ceil(num_samples / batch_size)))
                 )
             )
+            batch_loading_time = 0
+            i = -1
+            load_start = time.time()
             for i, (data, _) in e:
+                batch_loading_time += time.time() - load_start
+
                 LOGGER.debug('TEST BATCH #{}'.format(i))
                 cudata = data.to(DEVICE)
                 output = autodl_model.model(cudata)
@@ -56,15 +61,18 @@ class DefaultPredictor():
                 if self.use_cache and self.cache is None:
                     if temp_cache is None:
                         # Preallocate space for the data
-                        temp_cache = torch.full(
+                        temp_cache = torch.empty(
                             (num_samples, *data.size()[1:]),
-                            float('nan'),
                             dtype=data.dtype,
                             pin_memory=True
                         )
                     si = (i - 1) * batch_size
                     temp_cache[si:si + data.size()[0]] = data
-
+            if i >= 0:
+                i += 1
+                LOGGER.debug(
+                    'SEC PER BATCH LOADING:\t{0:.4f}'.format(batch_loading_time / i)
+                )
         if self.use_cache and self.cache is None:
             # assert(not torch.any(torch.isnan(temp_cache)))
             self.cache = temp_cache

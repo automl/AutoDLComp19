@@ -1,10 +1,10 @@
 """
-This class implements the 3 compulsory mehtods
+This class implements the 3 compulsory methods
 a submission is required to have namely __init__, train, test
 
 The main idea behind the current structure is to split up
-the archtitecture, train and eval as model agnostic as possible
-to accomadate the different modalities and models we need to train.
+the architecture, train and eval as model agnostic as possible
+to accommodate the different modalities and models we need to train.
 
 As compared to last version of the architecture, mutually shared logic
 has been centralized. Only the models' selection
@@ -35,7 +35,7 @@ import torch
 import torch.cuda as cutorch
 import training
 import utils
-from torch_adapter import TFDataLoader, TFDataset
+from torch_adapter import TFAdapterSet, TFDataLoader, TFDataset
 from utils import BASEDIR, DEVICE, LOGGER, BSGuard
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -97,13 +97,16 @@ class Model(algorithm.Algorithm):
         # Metadata Stuff
         ################
         # In-/Out Dimensions from the train dataset's metadata
+        self.metadata = metadata
+
         row_count, col_count = metadata.get_matrix_size(0)
         channel = metadata.get_num_channels(0)
         sequence_size = metadata.get_sequence_size()
         self.input_dim = [sequence_size, row_count, col_count, channel]
         self.output_dim = metadata.get_output_size()
+
+        # Train/Test length
         self.train_num_samples = metadata.size()
-        self.metadata = metadata
         test_metadata_filename = self.metadata.get_dataset_name(
         ).replace('train', 'test') + '/metadata.textproto'
         self.test_num_samples = [
@@ -166,13 +169,13 @@ class Model(algorithm.Algorithm):
     def side_load_config(self, sideload_conf_path):
         '''
         This overrides all configs defined in the sideload_config.
-        To target specific leafs in a hirachy use '.' to seperate
-        the parent in the leafes' path:
+        To target specific leafs in a hierarchy use '.' to separate
+        the parent in the leafs' path:
         ie. { selection.video.optim_args.lr: 0.1} would overwrite the
         video optimizer's initial learning rate
 
         ATTENTION: The sideload_config.json can define dictionaries as values as well
-        so it is possible to overwrite a whole subhirachy.
+        so it is possible to overwrite a whole subhierarchy.
         '''
         def walk_dict(d, side_conf, p=''):
             for k, v in d.items():
@@ -186,47 +189,133 @@ class Model(algorithm.Algorithm):
 
         walk_dict(self.config.__dict__, side_conf)
 
-    def benchmark_transofrmations(self):
-        raise NotImplementedError
-        LOGGER.debug('STARTING TRANSFORMATION BENCHMARK')
-        if self.transform_sample is None:
-            LOGGER.debug('NO TRANSFORMATION TO BENCHMARK')
-            return
-        idx = 0
-        self.reset()
-        t_start = time.time()
-        while True:
-            try:
-                example, label = self._tf_exec(self.next_element)
-                idx += 1
-            except tf.errors.OutOfRangeError:
-                self.reset()
-                break
-        LOGGER.debug(
-            'SCAN WITHOUT TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
-        )
+    def _benchmark_loading_and_transformations(self, ds_temp):
+        import transformations.video
 
-        idx = 0
-        self.reset()
-        t_start = time.time()
-        while True:
-            try:
-                example, label = self._tf_exec(self.next_element)
-                idx += 1
-            except tf.errors.OutOfRangeError:
-                self.reset()
-                break
-            example = self.transform_sample(example) \
-                if self.transform_sample is not None \
-                else example
-            label = self.transform_label(label) \
-                if self.transform_label is not None \
-                else label
-        LOGGER.debug(
-            'SCAN WITH TRANSFORMATIONS TOOK:\t{0:.6g}s'.format(time.time() - t_start)
-        )
+        def test_pipelinespeed(ds_temp, max_i=999, model=self.model):
+            dl_loadtime = 0
+            numel = 1e-12
+            t_s = time.time()
+            for i, (d, l) in enumerate(ds_temp):
+                if type(d) is not torch.Tensor:
+                    d = torch.Tensor(d).pin_memory()
+                dl_loadtime += time.time() - t_s
+                numel += len(d)
 
-    def check_for_shuffling(self, ds_temp):
+                d = d.to(DEVICE)
+                model(d)
+                if i > max_i:
+                    break
+                t_s = time.time()
+            LOGGER.debug('{0:.6f} s/d'.format(dl_loadtime / numel))
+
+        # Test chosen transformation against...
+        LOGGER.debug(50 * '#')
+        get_and_apply_transformations = getattr(
+            transformations.video, 'normal_segment_dist'
+        )
+        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
+        model.to(DEVICE)
+
+        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        ds_temp = TFDataset(
+            self.session, dataset, self.train_num_samples, transf['train']['samples'],
+            transf['train']['labels']
+        )
+        dl_temp = TFDataLoader(ds_temp, 16)
+
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+
+        # Another transformation stack
+        LOGGER.debug(50 * '#')
+        get_and_apply_transformations = getattr(
+            transformations.video, 'resize_normal_seg_selection'
+        )
+        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
+        model.to(DEVICE)
+
+        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        ds_temp = TFDataset(
+            self.session, dataset, self.train_num_samples, transf['train']['samples'],
+            transf['train']['labels']
+        )
+        dl_temp = TFDataLoader(ds_temp, 16)
+
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+        dl_temp.dataset.reset()
+        test_pipelinespeed(dl_temp, 60, model)
+
+        # Using the transformation stack's cpu part with the tf pipeline
+        LOGGER.debug(50 * '#')
+        get_and_apply_transformations = getattr(
+            transformations.video, 'normal_segment_dist'
+        )
+        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
+        model.to(DEVICE)
+
+        def trans(x, y):
+            ret = (
+                transf['train']['samples'](x),
+                transf['train']['labels'](y),
+            )
+            return ret
+
+        def tfwrap(x, y):
+            ret = tf.py_func(trans, [x, y], [tf.float32, tf.int64])
+            return ret
+
+        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(tfwrap, num_parallel_calls=10)
+        dataset = dataset.batch(16)
+        ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
+
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+
+        # Using the transformation stack's cpu part with the tf pipeline
+        LOGGER.debug(50 * '#')
+        get_and_apply_transformations = getattr(
+            transformations.video, 'resize_normal_seg_selection'
+        )
+        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
+        model.to(DEVICE)
+
+        def trans2(x, y):
+            ret = (
+                transf['train']['samples'](x),
+                transf['train']['labels'](y),
+            )
+            return ret
+
+        def tfwrap2(x, y):
+            ret = tf.py_func(trans2, [x, y], [tf.float32, tf.int64])
+            return ret
+
+        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(tfwrap2, num_parallel_calls=10)
+        dataset = dataset.batch(16)
+        ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
+
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+        ds_temp.reset()
+        test_pipelinespeed(ds_temp, 60, model)
+
+    def _check_for_shuffling(self, ds_temp):
         LOGGER.debug('SANITY CHECKING SHUFFLING')
         ds_train = TFDataset(
             session=self.session,
@@ -251,29 +340,26 @@ class Model(algorithm.Algorithm):
         LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
 
     def _setup_dataset(self, dataset, target):
-        ds = TFDataset(
+        loader_args = getattr(self, target + '_loader_args')
+        ds = TFAdapterSet(
             session=self.session,
             dataset=dataset,
             num_samples=int(getattr(self, target + '_num_samples')),
-            transform_sample=self.transforms[target]['samples'],
-            transform_label=self.transforms[target]['labels']
+            transformations=self.transforms[target],
+            **loader_args
         )
-        ds.scan_all(1)
-        ds.reset()
-        loader_args = getattr(self, target + '_loader_args')
-        setattr(self, target + '_dl', TFDataLoader(ds, **loader_args))
+        setattr(self, target + '_dl', ds)
 
     def _init_train(self, dataset, remaining_time_budget):
         t_s = time.time()
         self.starting_budget = t_s - self.birthday + remaining_time_budget
 
         self._tf_train_set = dataset
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         # Create a temporary handle to inspect data
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
-        ds_temp.scan_all(100)
-        ds_temp.reset()
+        ds_temp.scan(100)
         LOGGER.info(
             'FETCHING ADDITIONAL METADATA TOOK: {0:.4f} s'.format(time.time() - t_s)
         )
@@ -285,18 +371,27 @@ class Model(algorithm.Algorithm):
         if self.model is None:
             return None
         LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
+        if self.config.benchmark_loading_and_transformations:
+            self._benchmark_loading_and_transformations(ds_temp)
+            exit(0)
 
         ########## SETUP TRAINLOADER
         t_s = time.time()
-        self._setup_dataset(dataset, 'train')
-        new_vals = {
+        self._setup_dataset(self._tf_train_set, 'train')
+        datashape = {
             k: getattr(ds_temp, k)
             for k in [
-                'num_classes', 'min_shape', 'max_shape', 'median_shape', 'mean_shape',
-                'std_shape', 'is_multilabel'
+                'num_samples',
+                'num_classes',
+                'is_multilabel',
+                'min_shape',
+                'max_shape',
+                'median_shape',
+                'mean_shape',
+                'std_shape',
             ]
         }
-        self.train_dl.dataset.__dict__.update(new_vals)
+        self.train_dl.dataset.__dict__.update(datashape)
         LOGGER.info(
             'SETTING UP THE TRAINLOADER TOOK: {0:.4f} s'.format(time.time() - t_s)
         )
@@ -320,19 +415,16 @@ class Model(algorithm.Algorithm):
             self.loss_fn = partial(
                 amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
             )
-
-        if self.config.benchmark_transformations:
-            self.benchmark_transofrmations()
         if self.config.check_for_shuffling:
-            self.check_for_shuffling(ds_temp)
+            self._check_for_shuffling(ds_temp)
+            exit(0)
 
     def _init_test(self, dataset, remaining_time_budget):
         self._tf_test_set = dataset
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         ########## SETUP TESTLOADER
         t_s = time.time()
-        self._setup_dataset(dataset, 'test')
+        self._setup_dataset(self._tf_test_set, 'test')
         LOGGER.info('SETTING UP THE TESTLOADER TOOK: {0:.4f} s'.format(time.time() - t_s))
 
         ########## SETUP TESTER
@@ -388,7 +480,7 @@ class Model(algorithm.Algorithm):
 
         LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
 
-        predicitons = self.tester(self, remaining_time_budget)
+        predictions = self.tester(self, remaining_time_budget)
 
         LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
         LOGGER.info(
@@ -399,4 +491,4 @@ class Model(algorithm.Algorithm):
         LOGGER.info(30 * '#' + ' LET' 'S GO FOR ANOTHER ROUND ' + 30 * '#')
         self.testing_round += 1
         self.test_time.append(time.time() - test_start)
-        return predicitons
+        return predictions

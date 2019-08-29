@@ -33,7 +33,7 @@
   log_level: 'DEBUG',
   earlystop: 300, # How many seconds shall we ingest
   check_for_shuffling: false,
-  benchmark_transformations: false,
+  benchmark_loading_and_transformations: false,
   benchmark_time_till_first_prediction: false,
 
 
@@ -78,10 +78,12 @@
       optimizer: 'Adam',
       optim_args: {
         lr: 0.001,
-      }
-      transformations: 'normal_segment_dist', # Name of the function in transformations.video
-                                              # augmenting the model and returning transformations
-                                              # for the datasets to use
+      },
+      # Name of the function in transformations.video
+      # augmenting the model and returning transformations
+      # for the datasets to use
+      transformations: 'resize_normal_seg_selection',
+
       # If the chosen function needs additional agruments, specify them here
       # transformations_args: {
       #   use_gpu_resize: false,
@@ -90,11 +92,11 @@
         t_diff: 0.02,
       },
       train_loader_args: {
-        batch_size: 32, # Will be automatically adjusted if too big
+        batch_size: 16, # Will be automatically adjusted if too big
         pin_memory: true,
       }
       test_loader_args: {
-        batch_size: 128, # Will be automatically adjusted if too big
+        batch_size: 64, # Will be automatically adjusted if too big
         pin_memory: true,
       }
     },
