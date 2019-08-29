@@ -40,6 +40,7 @@ python run_local_test.py
 verbosity_level = 'INFO'
 
 import argparse
+import atexit
 import logging
 import multiprocessing
 import os
@@ -124,6 +125,8 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=7200):
     )
     scoring_process.start()
     ingest(ingest_args)
+
+    atexit.register(scoring_process.terminate)
     scoring_process.join()
     # detailed_results_page = os.path.join(starting_kit_dir,
     #                                      'AutoDL_scoring_output',
