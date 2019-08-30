@@ -129,6 +129,7 @@ def resize_normal_seg_selection(model, dataset, crop_size):
                         [
                             CPU.DynamicSelectSegmentsNormal(model),
                             CPU.CropResizeImage(model.input_size, crop_size),
+                            CPU.PILToNumpy(),
                         ]
                     ),
                 'labels':
@@ -141,6 +142,7 @@ def resize_normal_seg_selection(model, dataset, crop_size):
                         [
                             CPU.DynamicSelectSegmentsNormal(model),
                             CPU.CropResizeImage(model.input_size),
+                            CPU.PILToNumpy(),
                         ]
                     ),
                 'labels':
@@ -421,10 +423,7 @@ class CPU():
         def __call__(self, x):
             '''
             Expects SxHxWxC
-            and
-            Returns SxCxHxW unnormalize (ie. [0-255])
             '''
-            xdtpye = x.dtype
             new_sizes = 2 * (self.target_im_size, )
             center = [0.5, 0.5]
             xmin, xmax = (x.min(), x.max())
@@ -440,7 +439,14 @@ class CPU():
                 offset = np.random.randint(0, offset, 4)
                 offset[2:] = offset[:2] + crop_size
                 x = [e.crop(offset).resize(new_sizes) for e in x]
-            x = np.array([np.array(e, dtype=xdtpye) for e in x])
+            return x
+
+    class PILToNumpy(nn.Module):
+        def __call__(self, x):
+            '''
+            Returns SxCxHxW unnormalize (ie. [0-255])
+            '''
+            x = np.array([np.array(e, dtype=np.float32) for e in x])
             if len(x.shape) < 4:
                 # Only have a single frame, ie. it's an image
                 x = np.expand_dims(x, -1)
