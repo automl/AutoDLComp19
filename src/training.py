@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import torch
+from sklearn import metrics
 from utils import DEVICE, LOGGER
 
 PREDICT_AND_VALIDATE = (True, True)
@@ -50,6 +51,7 @@ class PolicyTrainer():
             load_start = time.time()
             for i, (data, labels) in enumerate(self.dloader):
                 batch_loading_time += time.time() - load_start
+
                 # Run prechecks whether we abort training or not (earlystop or final pred.)
                 make_prediction, make_final_prediction = precheck(
                     autodl_model, t_train, remaining_time
@@ -57,44 +59,61 @@ class PolicyTrainer():
                 if make_prediction:
                     break
 
+                # Copy data to DEVICE for training
                 data = data.to(DEVICE, non_blocking=True)
                 labels = labels.to(DEVICE, non_blocking=True)
 
                 # If the current batch is a validation batch we validate and continue
                 train_acc = None
                 val_acc = None
+                train_auc = None
+                val_auc = None
+
                 # Train on a batch if we re good to go
                 out, loss = train_step(
                     autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
                     autodl_model.lr_scheduler, data, labels
                 )
-                train_acc = accuracy(labels, out, self.dloader.dataset.is_multilabel)
-                LOGGER.debug(
-                    'STEP #{0} TRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}'.format(
-                        i, self.dloader.current_idx, loss, train_acc * 100
-                    )
+                labels, out, loss = (
+                    labels.cpu().numpy(), out.detach().cpu().numpy(),
+                    loss.detach().cpu().numpy()
                 )
-                self.batch_counter += 1
-                self.ele_counter += np.prod(data.shape[0:2])
-
-                onehot_labels = np.zeros(
-                    (len(labels), self.dloader.dataset.num_classes), dtype=int
-                )
-                onehot_labels[np.arange(labels.shape[0]), labels.cpu().numpy()] = 1
 
                 if validate:
                     raise NotImplementedError
                     # Under construction
+                    vdata, vlabels = None, None
                     vout, vloss = eval_step(
                         autodl_model.model, autodl_model.loss_fn, data, labels
                     )
-                    val_acc = accuracy(labels, vout, self.dloader.dataset.is_multilabel)
+                    vout, vloss = (
+                        vout.detach().cpu().numpy(), vloss.detach().cpu().numpy()
+                    )
+                    val_acc = accuracy(vlabels, vout, self.dloader.dataset.is_multilabel)
+                    val_auc = auc(vlabels, vout, self.dloader.dataset.is_multilabel)
                     LOGGER.debug(
-                        'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}'.format(
-                            i, self.dloader.dataset.current_idx, vloss, val_acc * 100
+                        'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.
+                        format(
+                            i, self.dloader.current_idx, vloss, val_acc * 100, val_auc
                         )
                     )
                     validate = False
+
+                self.batch_counter += 1
+                self.ele_counter += np.prod(data.shape[0:2])
+                # ################# No Torch Tensors from here onwards #################
+                train_acc = accuracy(labels, out, self.dloader.dataset.is_multilabel)
+                train_auc = auc(labels, out, self.dloader.dataset.is_multilabel)
+                LOGGER.debug(
+                    'STEP #{0} TRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
+                        i, self.dloader.current_idx, loss, train_acc * 100, train_auc
+                    )
+                )
+
+                onehot_labels = labels
+                if labels.shape != out.shape:
+                    onehot_labels = np.zeros_like(out, dtype=int)
+                    onehot_labels[np.arange(len(out)), labels] = 1
 
                 # Check if we want to make a prediction/validate after next train or not
                 make_prediction, validate = self.check_policy(
@@ -103,6 +122,7 @@ class PolicyTrainer():
                     t_train, autodl_model.birthday, out, onehot_labels, loss, train_acc,
                     val_acc
                 )
+
                 if make_prediction:
                     break
                 load_start = time.time()
@@ -127,6 +147,11 @@ class PolicyTrainer():
 
 
 class grid_check_policy():
+    '''
+    This is the default policy if no other is chosen
+    it makes a prediction every t_diff percent along
+    the log timescale
+    '''
     def __init__(self, t_diff):
         self.t_diff = t_diff
         self.batch_counter = 0
@@ -135,49 +160,48 @@ class grid_check_policy():
         self, model, test_num_samples, predictions_made, r_budget, t_start, birthday, out,
         labels, loss, acc, val_acc
     ):
-        '''
-        This is the default policy if no other is chosen
-
-        return make_a_prediction, skip_next_trainbatch_for_validation
-        '''
-        def transform_time_abs(t_abs):
-            '''
-            conversion from absolute time 0s-1200s to relative time 0-1
-            '''
-            return np.log(1 + t_abs / 60.0) / np.log(21)
-
-        def transform_time_rel(t_rel):
-            '''
-            convertsion from relative time 0-1 to absolute time 0s-1200s
-            '''
-            return 60 * (21**t_rel - 1)
-
         self.batch_counter += 1
         # The first 22 batches just train and make a prediction
         if self.batch_counter <= 21 or (
             test_num_samples > 1000 and self.batch_counter <= 51
         ):
-            pass
+            return TRAIN
         else:
             if predictions_made == 0:
-                return True, False
+                return PREDICT
             ct_diff = (
                 transform_time_abs(time.time() - birthday) -
                 transform_time_abs(t_start - birthday)
             )
             if ct_diff < self.t_diff:
-                pass
+                return TRAIN
             else:
-                return True, False
-        return False, False
+                return PREDICT
+        return TRAIN
 
 
 # ########################################################
 # Helpers
 # ########################################################
+def transform_time_abs(t_abs):
+    '''
+    conversion from absolute time 0s-1200s to relative time 0-1
+    '''
+    return np.log(1 + t_abs / 60.0) / np.log(21)
+
+
+def transform_time_rel(t_rel):
+    '''
+    convertsion from relative time 0-1 to absolute time 0s-1200s
+    '''
+    return 60 * (21**t_rel - 1)
+
+
 def get_time_wo_final_prediction(remaining_time, train_start, model):
-    # Calculate current remaining time - the time to make a prediction,
-    # approximated by the last 3 testing durations' average
+    '''
+    Calculate current remaining time - the time to make a prediction,
+    approximated by the last 3 testing durations' average
+    '''
     return remaining_time - (
         time.time() - train_start + np.mean(model.test_time[-3:]) +
         np.std(model.test_time[-3:])
@@ -185,6 +209,10 @@ def get_time_wo_final_prediction(remaining_time, train_start, model):
 
 
 def precheck(autodl_model, t_train, remaining_time):
+    '''
+    Checks wether or not there is enough time left to train.
+    If not a final prediction request is returned
+    '''
     make_prediction, make_final_prediction = False, False
     # Check if we need to early stop according to the config's earlystop
     if (
@@ -202,11 +230,58 @@ def precheck(autodl_model, t_train, remaining_time):
 
 
 def accuracy(labels, out, multilabel):
-    out = out > 0 if multilabel else torch.argmax(out, dim=1)
-    return labels.eq(out).sum().float() / float(labels.shape[0])
+    '''
+    Returns the TPR
+    '''
+    if multilabel:
+        out = (out > 0).astype(int)
+    else:
+        ooh = np.zeros_like(out)
+        ooh[np.arange(len(out)), np.argmax(out, axis=1)] = 1
+        out = ooh
+        loh = np.zeros_like(out)
+        loh[np.arange(len(labels)), labels] = 1
+        labels = loh
+    nout = out / (np.sum(np.abs(out), axis=1, keepdims=True) + 1e-15)
+    true_pos = (labels * nout).sum() / float(labels.shape[0])
+    return true_pos
+
+
+def auc(labels, out, multilabel):
+    '''
+    Returns the average auc-roc score
+    '''
+    roc_auc = -1
+    if not multilabel:
+        loh = np.zeros_like(out)
+        loh[np.arange(len(out)), labels] = 1
+        ooh = out
+
+        # Remove classes without positive examples
+        col_to_keep = (loh.sum(axis=0) > 0)
+        loh = loh[:, col_to_keep]
+        ooh = out[:, col_to_keep]
+
+        fpr, tpr, _ = metrics.roc_curve(loh.ravel(), ooh.ravel())
+        roc_auc = metrics.auc(fpr, tpr)
+    else:
+        loh = labels
+        ooh = out
+
+        # Remove classes without positive examples
+        col_to_keep = (loh.sum(axis=0) > 0)
+        loh = loh[:, col_to_keep]
+        ooh = out[:, col_to_keep]
+
+        roc_auc = metrics.roc_auc_score(loh, ooh, average='macro')
+    return 2 * roc_auc - 1
 
 
 def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
+    '''
+    Executes a single train step
+    It expects the tensors given to be already cast to the target device
+    '''
     model.train()
     optimizer.zero_grad()
     output = model(data)
@@ -219,19 +294,25 @@ def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
 
 
 def evaluate_on(model, dl_val):
+    '''
+    Evaluates the given model on a dataset given as a dataloader
+    '''
     err = np.Inf
-    dl_val.dataset.reset()
-    with torch.no_grad():
-        for i, (vdata, vlabels) in enumerate(dl_val):
-            _, loss = eval_step(
-                model.model, model.loss_fn, vdata.to(DEVICE, non_blocking=True),
-                vlabels.to(DEVICE, non_blocking=True)
-            )
-            err = loss if np.isinf(err) else err + loss
+    dl_val.reset()
+    for i, (vdata, vlabels) in enumerate(dl_val):
+        _, loss = eval_step(
+            model.model, model.loss_fn, vdata.to(DEVICE, non_blocking=True),
+            vlabels.to(DEVICE, non_blocking=True)
+        )
+        err = loss if np.isinf(err) else err + loss
     return err
 
 
 def eval_step(model, criterion, data, labels):
+    '''
+    Executes a evaluation train step
+    It expects the tensors given to be already cast to the target device
+    '''
     with torch.no_grad():
         model.eval()
         output = model(data)

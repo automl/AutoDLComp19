@@ -16,7 +16,9 @@ import torch
 import torch.nn as nn  # noqa: F401
 import transformations
 from torch.optim.lr_scheduler import StepLR  # noqa: F401
-from training import PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE  # noqa: F401
+from training import (  # noqa: F401
+    PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, transform_time_abs
+)
 from utils import LOGGER
 
 TORCH_HOME = os.path.join(os.path.dirname(__file__), 'torchhome')
@@ -169,8 +171,8 @@ class adaptive_policy():
         self.labels_seen = np.zeros((num_classes, ))
 
     def __call__(
-        self, model, test_num_samples, predictions_made, r_budget, t_start, birthday, out,
-        labels, loss, acc, val_acc
+        self, model, test_num_samples, predictions_made, r_budget, t_start, birthday,
+        out: np.array, labels: np.array, loss: np.array, acc: np.array, val_acc: np.array
     ):
         self.train_err = append_to_dataframe(self.train_err, loss)
         self.train_acc = append_to_dataframe(self.train_acc, acc)
@@ -192,6 +194,12 @@ class adaptive_policy():
         # make a prediction
         if predictions_made == 0:
             return PREDICT
+        ct_diff = (
+            transform_time_abs(time.time() - birthday) -
+            transform_time_abs(t_start - birthday)
+        )
+        if ct_diff < self.t_diff:
+            return TRAIN
         if self.valid_acc.size > 3 and self.valid_acc.iloc[-3:].mean()[0] > 0.4:
             model.eval()  # This will be preserved until the next train/eval step
             return PREDICT
@@ -222,7 +230,7 @@ class adaptive_policy():
 # ########################################################
 def append_to_dataframe(frame, val):
     # Convenience function to increase readability
-    return frame.append([val.detach().cpu().tolist()], ignore_index=True)
+    return frame.append([val.tolist()], ignore_index=True)
 
 
 class struct:
