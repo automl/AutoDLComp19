@@ -310,13 +310,13 @@ def load_loss_criterion(parser_args):
     if (
         parser_args.loss_type == 'nll' and parser_args.classification_type == 'multiclass'
     ):
-        criterion = torch.nn.CrossEntropyLoss().cuda()
+        criterion = torch.nn.CrossEntropyLoss()
         if parser_args.print:
             print("Using CrossEntropyLoss")
     elif (
         parser_args.loss_type == 'nll' and parser_args.classification_type == 'multilabel'
     ):
-        criterion = torch.nn.BCEWithLogitsLoss().cuda()
+        criterion = torch.nn.BCEWithLogitsLoss()
         if parser_args.print:
             print("Using SigmoidBinaryCrossEntropyLoss")
     else:
