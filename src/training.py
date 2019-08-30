@@ -117,7 +117,7 @@ class PolicyTrainer():
             )
             LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(batch_loading_time))
         else:
-            LOGGER.info('NO BATCH PROCESSED')
+            LOGGER.debug('NO BATCH PROCESSED')
         return make_final_prediction
 
 

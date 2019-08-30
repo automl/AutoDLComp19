@@ -25,7 +25,7 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 
 ## Overview
 ```
-├── bohb_logs                              <<  Bohb Log Foler
+├── bohb_logs                              <<  Bohb Log Folder
 |
 ├── competition                            <<  Competition source code for local test
 |   |
@@ -49,9 +49,9 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 |   |   |                                      to load and list all available models and use a unified
 |   |   |                                      model directory API
 |   |   |
-|   |   ├── checkpoints                    <<  This is where you should put the pretraind model files
+|   |   ├── checkpoints                    <<  This is where you should put the pretrained model files
 |   |   |                                      see it's readme for the download link
-|   |   |                                      (to which I mount my local pretrain models folder)
+|   |   |                                      (to which I mount my local pretrained models folder)
 |   |   |
 |   │   └── hub                            <<  This is where the models' implementation are.
 |   |                                          torch.hub is able to load available model implementations
@@ -72,7 +72,7 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 │   ├── model.py                           <<  Main file for competition submission
 |   |                                          implementing the required interface and handling
 |   |                                          the setting up the components and dataloaders
-|   |                                          commonly refered to as autodl_model
+|   |                                          commonly referred to as autodl_model
 |   |
 │   ├── selection.py                       <<  This module handles model, optimizer, loss function
 |   |                                          and lr-scheduler selection
@@ -95,13 +95,13 @@ If your IDE supports previewing of the this README, "Yours" will show the result
 
 ## General idea
 The [model.py](src/model.py), [training.py](src/training.py) and [testing.py](src/testing.py) should not really be touched and implements shared functionality between modalities which should not need to be changed.
-To perform model and modality specific task in a model and modality agnostic manner, only the definitions in the [selection.py](src/selection.py)/[config.hjson](src/config.hjson) need to be changed/extended to customize the overall behaviour.
+To perform model and modality specific task in a model and modality agnostic manner, only the definitions in the [selection.py](src/selection.py)/[config.hjson](src/config.hjson) need to be changed/extended to customize the overall behavior.
 These are structure per modality with the selection providing the autodl_model with the model, optimizer, loss-function and transformation/augmentation stack and training policy for a given modality and dataset.
 The used policy is chosen in the [config.hjson](src/config.hjson) and is intended not to be model agnostic. This means it can/should not only decide when to train/validate/predict but also change a model's state.
 
 
 ## Running a local test
-To run a local test [run_local_test.py](competition/run_local_test.py) can be used as described in the starting-kit's readme. Though it has been slightly changed to accept a subfolder name it will use so multiple runs don't erase each other (prev. behaviour).
+To run a local test [run_local_test.py](competition/run_local_test.py) can be used as described in the starting-kit's readme. Though it has been slightly changed to accept a subfolder name it will use so multiple runs don't erase each other (prev. behavior).
 ```
 >>> python run_local_test.py --dataset_dir=/some/path/to/a/tfrecord/dataset --code_dir=/home/saitama/AutoDLComp19/src
 --score_subdir=whateverfloatsyourgoat --time_budget=300
@@ -112,7 +112,7 @@ Behind the scenes this script calls the [ingestion](competition/AutoDL_ingestion
 To create a submission from the current src folder simply execute [pack_submission.py](src/pack_submission.py).
 ```
 >>> python pack_submission.py --submission_dir=/path/where/I/hide/all/my/failed/submissions --code_dir=/home/saitama/AutoDLComp19/src --out_file=pleasedontfail
->>> *ommiting a list of files added to the zip*
+>>> *omitting a list of files added to the zip*
 >>> ...
 >>> Finished zipping. File has been created at /path/where/I/hide/all/my/failed/submissions/pleasedontfail.zip
 and is 7.18 MB in size.
