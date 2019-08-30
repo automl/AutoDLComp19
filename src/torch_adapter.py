@@ -20,8 +20,8 @@ class TFAdapterSet(Dataset):
         transformations=None,
         num_parallel_calls=5,
         pin_memory=False,
-        shuffle=False,
-        drop_last=False,
+        shuffle=False,  # currently not working
+        drop_last=False,  # currently not working
     ):
         self._session = session
         self._org_dataset = dataset
