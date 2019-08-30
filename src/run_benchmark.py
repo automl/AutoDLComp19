@@ -21,8 +21,6 @@ def get_configuration():
     cfg["dataset_base_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data')
     )
-    # cfg["datasets"] = ['Ucf101', 'Hmdb51', 'Kraut', 'Kreatur', 'Pedro', 'Hammer'] Hmdb51 not working
-    cfg["datasets"] = ['Hammer', 'Kraut', 'Kreatur', 'Pedro', 'Ucf101']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
@@ -92,10 +90,16 @@ if __name__ == "__main__":
     if os.path.isfile(os.path.join(BASEDIR, 'sideload_config.json')):
         os.remove(os.path.join(BASEDIR, 'sideload_config.json'))
     cfg = get_configuration()
+    default_datasets = ['Hammer', 'Kraut', 'Kreatur', 'Pedro', 'Ucf101']
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--time_budget", default=BENCHTIME, type=int)
+    parser.add_argument("--datasets", default=default_datasets, type=str, nargs='+')
     pargs = parser.parse_args()
+
     BENCHTIME = pargs.time_budget
+    cfg["datasets"] = pargs.datasets
+
     print('TIME BUDGET PER DATASET IS \033[92m{} s\033[0m'.format(BENCHTIME))
+    print('\033[92m{}\033[0m'.format(cfg["datasets"]))
     res = runBENCH(cfg)
