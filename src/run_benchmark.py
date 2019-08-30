@@ -1,12 +1,19 @@
 #!/usr/bin/env python
+import argparse  # noqa: E402
 import json
 import os
+import shutil
+import subprocess
 import traceback
 from os.path import abspath, join
 
 from utils import BASEDIR
 
 BENCHTIME = 300
+BRANCHNAME = subprocess.check_output(
+    ["git", "status"]
+).strip().decode('utf8').split('\n')[0][10:].replace('/', '_')
+COMMITHASH = subprocess.check_output(["git", "log"]).strip().decode('utf8')[8:16]
 
 
 def get_configuration():
@@ -65,6 +72,10 @@ def runBENCH(cfg):
             os.system(fc)
             # read final score from score.py
             score_temp = read_final_score_from_file(score_path)
+            shutil.copy(
+                os.path.join(BASEDIR, 'config.hjson'),
+                os.path.join(score_path, BRANCHNAME + '-' + COMMITHASH + '.hjson')
+            )
         except Exception:
             status = traceback.format_exc()
             print(status)
@@ -81,4 +92,10 @@ if __name__ == "__main__":
     if os.path.isfile(os.path.join(BASEDIR, 'sideload_config.json')):
         os.remove(os.path.join(BASEDIR, 'sideload_config.json'))
     cfg = get_configuration()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--time_budget", default=BENCHTIME, type=int)
+    pargs = parser.parse_args()
+    BENCHTIME = pargs.time_budget
+    print('TIME BUDGET PER DATASET IS \033[92m{} s\033[0m'.format(BENCHTIME))
     res = runBENCH(cfg)
