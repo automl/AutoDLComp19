@@ -6,6 +6,11 @@ import numpy as np
 import torch
 from utils import DEVICE, LOGGER
 
+PREDICT_AND_VALIDATE = (True, True)
+PREDICT = (True, False)
+VALIDATE = (False, True)
+TRAIN = (False, False)
+
 
 class PolicyTrainer():
     def __init__(self, validation_buffer, policy_fn=None):

@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn  # noqa: F401
 import transformations
 from torch.optim.lr_scheduler import StepLR  # noqa: F401
+from training import PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE  # noqa: F401
 from utils import LOGGER
 
 TORCH_HOME = os.path.join(os.path.dirname(__file__), 'torchhome')
@@ -92,7 +93,7 @@ class Selector(object):
         # As the transformations are dependend on the modality and maybe even
         # the model we set/apply it here
         get_and_apply_transformations = getattr(
-            transformations.video, conf['transformations']
+            transformations.video, conf['transformation']
         )
         transf_args = conf['transformation_args'] if 'transformation_args' in conf else {}
         model, transf = get_and_apply_transformations(model, dataset, **transf_args)
@@ -179,22 +180,22 @@ class adaptive_policy():
 
         # The first 5 batches just train
         if self.train_acc.size < 5:
-            return False, False
+            return TRAIN
         # Don't predict unless train acc is bigger than 10%
         if self.train_acc.iloc[-5:].mean()[0] < 0.1:
-            return False, False
-        # Seen all classes at least 10 times
+            return TRAIN
+        # Seen all classes at least 5 times
         # NOTE(Philipp): What about multilabel cases?
         if np.all(self.labels_seen < 5):
-            return False, False
+            return TRAIN
         # If prev. conditions are fullfilled and it's the first train
         # make a prediction
         if predictions_made == 0:
-            return True, False
+            return PREDICT
         if self.valid_acc.size > 3 and self.valid_acc.iloc[-3:].mean()[0] > 0.4:
             model.eval()  # This will be preserved until the next train/eval step
-            return True, False
-        return True, False
+            return PREDICT
+        return PREDICT
 
 
 # def get_ema(err_df, ema_win):
