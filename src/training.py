@@ -70,7 +70,7 @@ class PolicyTrainer():
                     )
                 )
                 self.batch_counter += 1
-                self.ele_counter += np.prod(data.shape[0:1])
+                self.ele_counter += np.prod(data.shape[0:2])
 
                 onehot_labels = np.zeros(
                     (len(labels), self.dloader.dataset.num_classes), dtype=int
@@ -102,9 +102,9 @@ class PolicyTrainer():
                     break
                 load_start = time.time()
 
-        if LOGGER.level == logging.debug:
+        if LOGGER.level == logging.DEBUG:
             subprocess.run(['nvidia-smi'])
-        LOGGER.info(
+        LOGGER.debug(
             "MEAN FRAMES PER SEC TRAINED:\t{0:.2f}".format(
                 self.ele_counter / (time.time() - autodl_model.birthday)
             )

@@ -68,6 +68,7 @@ class DefaultPredictor():
                         )
                     si = (i - 1) * batch_size
                     temp_cache[si:si + data.size()[0]] = data
+                load_start = time.time()
             if i >= 0:
                 i += 1
                 LOGGER.debug(
