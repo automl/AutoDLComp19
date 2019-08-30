@@ -13,7 +13,7 @@ RESIZE_FACTOR = 1.3
 # ########################################################
 # Transformations and augmentation prepending stacks
 # ########################################################
-def baseline_transforms(model, dataset):
+def baseline_transforms(model, dataset, transf_args):
     LOGGER.info('Using ###   BaselineAugmentNet   ### for transformationstack')
 
     # Classical transformations performed per sample
@@ -110,15 +110,25 @@ def normal_segment_dist(model, dataset):
     return model, transf_dict
 
 
-def gpu_resize(model, dataset, use_gpu_resize):
+def gpu_resize(model, dataset, transf_args):
     LOGGER.info('Using ###   Resize   ### for transformations')
+    use_gpu_resize = (transf_args['use_gpu_resize'] == 'True')
+    resize_factor = float(transf_args['resize_factor'])
+    flip_factor = float(transf_args['flip_factor'])
+
+    print('???????????????????')
+    print(transf_args['use_gpu_resize'])
+    print(use_gpu_resize)
+    print(resize_factor)
+    print(flip_factor)
+    print('???????????????????')
 
     cpu_resize = (
         np.any(dataset.min_shape[1:] != dataset.max_shape[1:]) or not use_gpu_resize
     )
     out_size = model.input_size
     out_size = np.array((out_size, out_size), dtype=np.int)
-    re_size = np.ceil(out_size * RESIZE_FACTOR).astype(np.int)
+    re_size = np.ceil(out_size * resize_factor).astype(np.int)
 
     transf_dict = {
         'train':
@@ -127,7 +137,8 @@ def gpu_resize(model, dataset, use_gpu_resize):
                     transforms.Compose(
                         [
                             CPUDynamicSelectSegmentsUniform(model),
-                            *((CPUResizeImage(re_size.tolist()), ) if cpu_resize else ())
+                            *((CPUResizeImage(re_size.tolist()), ) if cpu_resize else ()),
+                            CPURandomHFlip(float(transf_args['flip_factor']))
                         ]
                     ),
                 'labels':

@@ -79,13 +79,15 @@
       optim_args: {
         lr: 0.001,
       }
-      transformations: 'normal_segment_dist', # Name of the function in transformations.video
+      transformations: 'gpu_resize', # Name of the function in transformations.video
                                               # augmenting the model and returning transformations
                                               # for the datasets to use
       # If the chosen function needs additional agruments, specify them here
-      # transformations_args: {
-      #   use_gpu_resize: false,
-      # },
+      transformation_args: {
+        use_gpu_resize: 'True',
+        resize_factor: 1.2,
+        flip_factor: 0.4
+      },
       policy_args: { # This will be passed on expanded
         t_diff: 0.02,
       },

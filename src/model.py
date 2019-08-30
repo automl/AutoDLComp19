@@ -354,7 +354,7 @@ class Model(algorithm.Algorithm):
         LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl.batch_size))
         train_start = time.time()
 
-        self.trainer(self, remaining_time_budget)
+        self.trainer(self, remaining_time_budget, self.birthday)
 
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
         self.training_round += 1

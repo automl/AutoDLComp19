@@ -82,7 +82,9 @@ class Selector(object):
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **conf
         )
         # Not sure if these parameters reached the model so I set them here
+        print(conf)
         model.dropout = conf['dropout']
+        self.alphadrop = nn.AlphaDropout(p=conf['dropout'])
         model.num_segments = int(dataset.mean_shape[0] / conf['segment_coeff'])
         model.freeze_portion = conf['freeze_portion']
 
@@ -92,7 +94,7 @@ class Selector(object):
             transformations.video, conf['transformations']
         )
         transf_args = conf['transformation_args'] if 'transformation_args' in conf else {}
-        model, transf = get_and_apply_transformations(model, dataset, **transf_args)
+        model, transf = get_and_apply_transformations(model, dataset, transf_args)
 
         if hasattr(model, 'partialBN'):
             model.partialBN(False)
