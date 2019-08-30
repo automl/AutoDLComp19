@@ -104,7 +104,7 @@ def kill_scoring(a, b):
     exit(0)
 
 
-def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=7200):
+def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
     # Current directory containing this script
     starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
     path_ingestion_dir = get_path_to_ingestion_dir(starting_kit_dir)

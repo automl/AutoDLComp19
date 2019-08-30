@@ -304,7 +304,7 @@ def plot_learning_curve(
     timestamps,
     scores,
     start_time=0,
-    time_budget=7200,
+    time_budget=1200,
     method='step',
     transform=None,
     task_name=None,
@@ -429,9 +429,9 @@ def plot_learning_curve(
     ax.grid(True, zorder=5)
     # Show real time in seconds in a second x-axis
     ax2 = ax.twiny()
-    ticks = [10, 60, 300, 600, 1200] +\
-            list(range(1800, int(time_budget) + 1, 1800))
-    ax2.set_xticks([transform(t) for t in ticks])
+    ticks = np.linspace(0.2, 1, 5)
+    ax2.set_xticks(ticks)
+    ticks = (((1 + time_budget / 60)**ticks - 1) * 60).astype(int)
     ax2.set_xticklabels(ticks)
     ax.legend()
     return alc, ax
