@@ -142,6 +142,16 @@ class Config:
             save_file.write(hjson.dumps(self.__dict__))
 
 
+class LessThanFilter(logging.Filter):
+    def __init__(self, exclusive_maximum, name=""):
+        super(LessThanFilter, self).__init__(name)
+        self.max_level = exclusive_maximum
+
+    def filter(self, record):
+        # non-zero return means we log this message
+        return 1 if record.levelno < self.max_level else 0
+
+
 def get_logger():
     """Set logging format to something like:
             2019-04-25 12:52:51,924 INFO model.py: <message>
@@ -158,6 +168,7 @@ def get_logger():
     fileout_handler.setFormatter(formatter)
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(logging_level)
+    stdout_handler.addFilter(LessThanFilter(logging.WARNING))
     stdout_handler.setFormatter(formatter)
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(logging.WARNING)
