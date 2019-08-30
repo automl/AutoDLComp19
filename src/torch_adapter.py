@@ -118,8 +118,10 @@ class TFAdapterSet(Dataset):
             raise StopIteration
         # NOTE(Philipp): Maybe move this into transformations as well
         # though I'm not sure if possible
-        sample = torch.from_numpy(sample, pin_memory=self._pin_memory)
-        label = torch.from_numpy(label, pin_memory=self._pin_memory)
+        sample = torch.from_numpy(sample).pin_memory(
+        ) if self._pin_memory else torch.from_numpy(sample)
+        label = torch.from_numpy(label).pin_memory(
+        ) if self._pin_memory else torch.from_numpy(label)
         return sample, label
 
     def reset(self):

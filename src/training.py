@@ -52,8 +52,8 @@ class PolicyTrainer():
                 if make_prediction:
                     break
 
-                data = data.to(DEVICE)
-                labels = labels.to(DEVICE)
+                data = data.to(DEVICE, non_blocking=True)
+                labels = labels.to(DEVICE, non_blocking=True)
 
                 # If the current batch is a validation batch we validate and continue
                 train_acc = None
@@ -219,7 +219,8 @@ def evaluate_on(model, dl_val):
     with torch.no_grad():
         for i, (vdata, vlabels) in enumerate(dl_val):
             _, loss = eval_step(
-                model.model, model.loss_fn, vdata.to(DEVICE), vlabels.to(DEVICE)
+                model.model, model.loss_fn, vdata.to(DEVICE, non_blocking=True),
+                vlabels.to(DEVICE, non_blocking=True)
             )
             err = loss if np.isinf(err) else err + loss
     return err

@@ -202,7 +202,7 @@ class Model(algorithm.Algorithm):
                 dl_loadtime += time.time() - t_s
                 numel += len(d)
 
-                d = d.to(DEVICE)
+                d = d.to(DEVICE, non_blocking=True)
                 model(d)
                 if i > max_i:
                     break
@@ -215,7 +215,7 @@ class Model(algorithm.Algorithm):
             transformations.video, 'normal_segment_dist'
         )
         model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE)
+        model.to(DEVICE, non_blocking=True)
 
         dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds_temp = TFDataset(
@@ -237,7 +237,7 @@ class Model(algorithm.Algorithm):
             transformations.video, 'resize_normal_seg_selection'
         )
         model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE)
+        model.to(DEVICE, non_blocking=True)
 
         dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds_temp = TFDataset(
@@ -259,7 +259,7 @@ class Model(algorithm.Algorithm):
             transformations.video, 'normal_segment_dist'
         )
         model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE)
+        model.to(DEVICE, non_blocking=True)
 
         def trans(x, y):
             ret = (
@@ -290,7 +290,7 @@ class Model(algorithm.Algorithm):
             transformations.video, 'resize_normal_seg_selection'
         )
         model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE)
+        model.to(DEVICE, non_blocking=True)
 
         def trans2(x, y):
             ret = (
@@ -403,8 +403,8 @@ class Model(algorithm.Algorithm):
         self.trainer = BSGuard(self.trainer, self.train_dl, False)
 
         # Finally move the model/loss_fn to gpu and setup amp if wanted
-        self.model.to(DEVICE)
-        self.loss_fn.to(DEVICE)
+        self.model.to(DEVICE, non_blocking=True)
+        self.loss_fn.to(DEVICE, non_blocking=True)
         if (
             USE_AMP and self.config.use_amp and hasattr(self.model, 'amp_compatible') and
             self.model.amp_compatible

@@ -48,7 +48,7 @@ class DefaultPredictor():
                 batch_loading_time += time.time() - load_start
 
                 LOGGER.debug('TEST BATCH #{}'.format(i))
-                cudata = data.to(DEVICE)
+                cudata = data.to(DEVICE, non_blocking=True)
                 output = autodl_model.model(cudata)
                 predictions += output.cpu().tolist()
                 i += 1

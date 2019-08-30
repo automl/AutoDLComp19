@@ -53,6 +53,11 @@
                           # during training in a buffer for later use
                           # and skip them if seen again
   },
+  tester_args: {
+    use_cache: true, # Caches the dataset during the first
+                      # testing round to increase speed of
+                      # subsequent testing (hogs a lot of ram)
+  },
 
 ###############################################################################
 # Beyond this point come specialized configurations
