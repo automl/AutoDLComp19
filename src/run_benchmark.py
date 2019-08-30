@@ -40,7 +40,7 @@ def write_config_to_file():
 def create_function_call(cfg, subdir):
     fc = 'python3 {}  --code_dir={} --dataset_dir={} --score_subdir={} --time_budget={}'.format(
         abspath(join(BASEDIR, os.pardir, 'competition', 'run_local_test.py')),
-        cfg["code_dir"], cfg["dataset_dir"], subdir, BENCHTIME + 10
+        cfg["code_dir"], cfg["dataset_dir"], subdir, BENCHTIME
     )
     return fc
 

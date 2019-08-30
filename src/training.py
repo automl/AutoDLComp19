@@ -204,7 +204,7 @@ def get_time_wo_final_prediction(remaining_time, train_start, model):
     '''
     return remaining_time - (
         time.time() - train_start + np.mean(model.test_time[-3:]) +
-        np.std(model.test_time[-3:])
+        np.std(model.test_time[-3:]) - 10
     ) if len(model.test_time) > 3 else None
 
 
