@@ -119,7 +119,7 @@ def normal_segment_dist(model, dataset):
     return model, transf_dict
 
 
-def resize_normal_seg_selection(model, dataset):
+def resize_normal_seg_selection(model, dataset, crop_size):
     LOGGER.info('Using ###   resize_normal_seg_selection   ### for transformationstack')
     transf_dict = {
         'train':
@@ -128,7 +128,7 @@ def resize_normal_seg_selection(model, dataset):
                     transforms.Compose(
                         [
                             CPU.DynamicSelectSegmentsNormal(model),
-                            CPU.CropResizeImage(model.input_size, 0.75),
+                            CPU.CropResizeImage(model.input_size, crop_size),
                         ]
                     ),
                 'labels':
