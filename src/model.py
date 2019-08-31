@@ -36,7 +36,7 @@ import torch.cuda as cutorch
 import training
 import utils
 from torch_adapter import TFAdapterSet, TFDataLoader, TFDataset
-from utils import BASEDIR, DEVICE, LOGGER, BSGuard
+from utils import BASEDIR, DEVICE, LOGGER, BSGuard, profile
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -431,6 +431,7 @@ class Model(algorithm.Algorithm):
         self.tester = testing.DefaultPredictor(**self.tester_args)
         self.tester = BSGuard(self.tester, self.test_dl, True)
 
+    @profile(precision=2)
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
         self.current_remaining_time = remaining_time_budget
@@ -452,6 +453,7 @@ class Model(algorithm.Algorithm):
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
 
+    @profile(precision=2)
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget

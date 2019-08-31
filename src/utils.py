@@ -12,6 +12,44 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 
+class Config:
+    def __init__(self, config_path):
+        with open(config_path) as config_file:
+            self.__dict__ = hjson.load(config_file)
+
+    def write(self, save_path):
+        with open(save_path, "w") as save_file:
+            save_file.write(hjson.dumps(self.__dict__))
+
+
+CONFIG = Config(os.path.join(BASEDIR, "config.hjson"))
+
+try:
+    if CONFIG.profile_mem:
+        from memory_profiler import profile
+    else:
+        raise Exception
+except Exception:
+    # Fake version of the memory_profiler's profile decorator
+    def profile(func=None, stream=None, precision=1, backend='psutil'):
+        """
+        Stripped version of memory_profile's profile decorator
+        """
+        if func is not None:
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+
+            return wrapper
+        else:
+
+            def inner_wrapper(f):
+                return profile(f, stream=stream, precision=precision, backend=backend)
+
+            return inner_wrapper
+
+
 def parse_cumem_error(err_str):
     mem_search = re.search(
         r"Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free", err_str
@@ -132,16 +170,6 @@ class MonkeyNet(nn.Sequential):
         )
 
 
-class Config:
-    def __init__(self, config_path):
-        with open(config_path) as config_file:
-            self.__dict__ = hjson.load(config_file)
-
-    def write(self, save_path):
-        with open(save_path, "w") as save_file:
-            save_file.write(hjson.dumps(self.__dict__))
-
-
 class LessThanFilter(logging.Filter):
     def __init__(self, exclusive_maximum, name=""):
         super(LessThanFilter, self).__init__(name)
@@ -156,9 +184,8 @@ def get_logger():
     """Set logging format to something like:
             2019-04-25 12:52:51,924 INFO model.py: <message>
     """
-    conf = Config(os.path.join(BASEDIR, "config.hjson"))
     logger = logging.getLogger(__file__)
-    logging_level = getattr(logging, conf.log_level)
+    logging_level = getattr(logging, CONFIG.log_level)
     logger.setLevel(logging_level)
     formatter = logging.Formatter(
         fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s'
