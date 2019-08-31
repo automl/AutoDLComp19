@@ -5,7 +5,7 @@
 # Update time:  5 May 2019
 # Usage: 		    python run_local_test.py -dataset_dir=<dataset_dir> -code_dir=<code_dir>
 
-VERISION = "v20190505"
+VERSION = "v20190505"
 DESCRIPTION =\
 """This script allows participants to run local test of their method within the
 downloaded starting kit folder (and avoid using submission quota on CodaLab). To
