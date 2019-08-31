@@ -1,31 +1,17 @@
 {
-    tsm: {
-
-    },
-    eco: {
-
-    },
-    ecofull: {
-
-    },
-    ecofull_py: {
-
-    },
-    ecofull_efficient_py: {
-
+    bninception: {
+        num_parameters: 35669730,
+        input_dim: [224, 224],
     },
     averagenet: {
+        num_parameters: 9213609,
+        input_dim: [224, 224],
         kinetics : {
             checkpoint_file: 'Averagenet_RGB_Kinetics_128.pth.tar',
-            input_dim: [128, 128],
-            score: 0,
-            output_dim: 1000,
             optimizer: 'Adam' # <-make sure it is a valid attribute on torch.optim
             optimizer_args: {
                 lr: 1e-3
             }
         }
-    },
-    averagenet_feature: {
     },
 }

@@ -20,19 +20,21 @@ class TFAdapterSet(Dataset):
         transformations=None,
         num_parallel_calls=5,
         pin_memory=False,
+        drop_last=False,
         shuffle=False,  # currently not working
-        drop_last=False,  # currently not working
     ):
         self._session = session
         self._org_dataset = dataset
         self._num_samples = num_samples
         self._batch_size = batch_size
-        self._transformations = transformations
         self._num_parallel_calls = num_parallel_calls
         self._dataset = None
         self._pin_memory = pin_memory
         self._shuffle = shuffle
         self._drop_last = drop_last
+        self._transformations = {'samples': lambda x: x, 'labels': lambda y: y}
+        if transformations is not None:
+            self._transformations.update(transformations)
 
         self._update_dataset()
 
@@ -59,12 +61,14 @@ class TFAdapterSet(Dataset):
             return ret
 
         self._dataset = self._org_dataset.prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE
+            buffer_size=tf.data.experimental.AUTOTUNE,
         )
         self._dataset = self._dataset.map(
             tfwrap, num_parallel_calls=self._num_parallel_calls
         )
-        self._dataset = self._dataset.batch(self._batch_size)
+        self._dataset = self._dataset.batch(
+            batch_size=self._batch_size, drop_remainder=self._drop_last
+        )
 
     @property
     def dataset(self):
@@ -80,21 +84,30 @@ class TFAdapterSet(Dataset):
         self._update_dataset()
 
     @property
+    def drop_last(self):
+        return self._drop_last
+
+    @drop_last.setter
+    def drop_last(self, val):
+        self._drop_last = val
+        self._update_dataset()
+
+    @property
     def transform_sample(self):
-        return self._transform_sample
+        return self._transformations['samples']
 
     @transform_sample.setter
     def transform_sample(self, val):
-        self._transform_sample = lambda x: x if val is None else val
+        self.self._transformations['samples'] = lambda x: x if val is None else val
         self._update_dataset()
 
     @property
     def transform_label(self):
-        return self._transform_label
+        return self._transformations['labels']
 
     @transform_label.setter
     def transform_label(self, val):
-        self._transform_label = lambda y: y if val is None else val
+        self.self._transformations['labels'] = lambda y: y if val is None else val
         self._update_dataset()
 
     @property

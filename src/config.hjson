@@ -31,6 +31,7 @@
 
   # General
   log_level: 'DEBUG',
+  profile_mem: false,
   earlystop: 300, # How many seconds shall we ingest
   check_for_shuffling: false,
   benchmark_loading_and_transformations: false,
@@ -49,14 +50,16 @@
 
   # Trainer args
   trainer_args: {
-    validation_buffer: 0, # The intent is to seamlessly collect batches
-                          # during training in a buffer for later use
-                          # and skip them if seen again
+    # The intent is to seamlessly collect batches
+    # during training in a buffer for later use
+    # and skip them if seen again
+    # validation_buffer: 0,
   },
   tester_args: {
-    use_cache: true, # Caches the dataset during the first
-                      # testing round to increase speed of
-                      # subsequent testing (hogs a lot of ram)
+    # Caches the dataset during the first
+    # testing round to increase speed of
+    # subsequent testing (hogs a lot of ram)
+    use_cache: true,
   },
 
 ###############################################################################
@@ -77,7 +80,7 @@
     },
     video: {
       segment_coeff: 10, # num_segemts = frame_count / segment_coeff
-      freeze_portion: 0.64, # freezes a video network's first percent of layers
+      freeze_portion: 0.7, # freezes a video network's first percent of layers
       modality: 'RGB',
       dropout: 0.1, # on average net this only controls alphadrop sitting on the outputlayer
       optimizer: 'Adam',
@@ -91,7 +94,7 @@
 
       # If the chosen function needs additional agruments, specify them here
       transformation_args: {
-        crop_size: 0.6, # Random crop with size in percent
+        crop_size: 0.7, # Random crop with size in percent
       },
       policy_args: { # This will be passed on expanded
         t_diff: 0.02,
@@ -101,7 +104,7 @@
         pin_memory: true,
       }
       test_loader_args: {
-        batch_size: 64, # Will be automatically adjusted if too big
+        batch_size: 32, # Will be automatically adjusted if too big
         pin_memory: true,
       }
     },

@@ -2,14 +2,21 @@ import logging
 import os
 import re
 import sys
-from functools import wraps
+from functools import partial, wraps
 
 import hjson
+import numpy as np
 import torch
 import torch.nn as nn
+from sklearn import metrics
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
+
+PREDICT_AND_VALIDATE = (True, True)
+PREDICT = (True, False)
+VALIDATE = (False, True)
+TRAIN = (False, False)
 
 
 class Config:
@@ -18,23 +25,25 @@ class Config:
             self.__dict__ = hjson.load(config_file)
 
     def write(self, save_path):
-        with open(save_path, "w") as save_file:
+        with open(save_path, 'w') as save_file:
             save_file.write(hjson.dumps(self.__dict__))
 
 
-CONFIG = Config(os.path.join(BASEDIR, "config.hjson"))
+CONFIG = Config(os.path.join(BASEDIR, 'config.hjson'))
 
 try:
     if CONFIG.profile_mem:
         from memory_profiler import profile
+        fp = open(os.path.join(BASEDIR, 'memory_profiler.log'), 'w+')
+        profile = partial(profile, stream=fp)
     else:
         raise Exception
 except Exception:
     # Fake version of the memory_profiler's profile decorator
     def profile(func=None, stream=None, precision=1, backend='psutil'):
-        """
+        '''
         Stripped version of memory_profile's profile decorator
-        """
+        '''
         if func is not None:
 
             @wraps(func)
@@ -52,7 +61,7 @@ except Exception:
 
 def parse_cumem_error(err_str):
     mem_search = re.search(
-        r"Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free", err_str
+        r'Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free', err_str
     )
     tried, free = mem_search.groups()
     tried = float(tried[:-2]) * 1024 if tried[-1] == 'G' else float(tried[:-2])
@@ -91,6 +100,67 @@ def BSGuard(f, loader, reset_on_fail):
                 LOGGER.warn('BATCH-SIZE NOW IS {}'.format(loader.batch_size))
 
     return decorated
+
+
+def transform_time_abs(t_abs, T=1200):
+    '''
+    conversion from absolute time 0s-1200s to relative time 0-1
+    '''
+    return np.log(1 + t_abs / 60.0) / np.log((T / 60.0) + 1)
+
+
+def transform_time_rel(t_rel):
+    '''
+    convertsion from relative time 0-1 to absolute time 0s-1200s
+    '''
+    return 60 * (21**t_rel - 1)
+
+
+def accuracy(labels, out, multilabel):
+    '''
+    Returns the TPR
+    '''
+    if not multilabel:
+        ooh = np.zeros_like(out)
+        ooh[np.arange(len(out)), np.argmax(out, axis=1)] = 1
+        out = ooh
+        loh = np.zeros_like(out)
+        loh[np.arange(len(labels)), labels] = 1
+        labels = loh
+    out = (out > 0).astype(int)
+    nout = out / (np.sum(out, axis=1, keepdims=True) + 1e-15)
+    true_pos = (labels * nout).sum() / float(labels.shape[0])
+    return true_pos
+
+
+def auc(labels, out, multilabel):
+    '''
+    Returns the average auc-roc score
+    '''
+    roc_auc = -1
+    if not multilabel:
+        loh = np.zeros_like(out)
+        loh[np.arange(len(out)), labels] = 1
+        ooh = out
+
+        # Remove classes without positive examples
+        col_to_keep = (loh.sum(axis=0) > 0)
+        loh = loh[:, col_to_keep]
+        ooh = out[:, col_to_keep]
+
+        fpr, tpr, _ = metrics.roc_curve(loh.ravel(), ooh.ravel())
+        roc_auc = metrics.auc(fpr, tpr)
+    else:
+        loh = labels
+        ooh = out
+
+        # Remove classes without positive examples
+        col_to_keep = (loh.sum(axis=0) > 0)
+        loh = loh[:, col_to_keep]
+        ooh = out[:, col_to_keep]
+
+        roc_auc = metrics.roc_auc_score(loh, ooh, average='macro')
+    return 2 * roc_auc - 1
 
 
 class AugmentNet(nn.Module):
@@ -171,7 +241,7 @@ class MonkeyNet(nn.Sequential):
 
 
 class LessThanFilter(logging.Filter):
-    def __init__(self, exclusive_maximum, name=""):
+    def __init__(self, exclusive_maximum, name=''):
         super(LessThanFilter, self).__init__(name)
         self.max_level = exclusive_maximum
 
@@ -181,9 +251,10 @@ class LessThanFilter(logging.Filter):
 
 
 def get_logger():
-    """Set logging format to something like:
+    '''
+    Set logging format to something like:
             2019-04-25 12:52:51,924 INFO model.py: <message>
-    """
+    '''
     logger = logging.getLogger(__file__)
     logging_level = getattr(logging, CONFIG.log_level)
     logger.setLevel(logging_level)

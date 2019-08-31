@@ -16,10 +16,10 @@ import torch
 import torch.nn as nn  # noqa: F401
 import transformations
 from torch.optim.lr_scheduler import StepLR  # noqa: F401
-from training import (  # noqa: F401
-    PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, transform_time_abs
+from utils import (  # noqa: F401
+    LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, accuracy, auc,
+    transform_time_abs
 )
-from utils import LOGGER
 
 TORCH_HOME = os.path.join(os.path.dirname(__file__), 'torchhome')
 os.environ['TORCH_HOME'] = TORCH_HOME
@@ -83,7 +83,9 @@ class Selector(object):
         if 'optim_args' in conf:  # Needed because video models api needs it flat
             conf.update(conf.pop('optim_args'))
         HUBNAME = 'automl/videomodels'
-        model_name, checkpoint_file = ('bninception', 'BnT_Video_input_128.pth.tar')
+        model_name, checkpoint_file = (
+            'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
+        )
         model, optimizer, loss_fn = torch.hub.load(
             HUBNAME, model_name, pretrained=True, url=checkpoint_file, **conf
         )
@@ -164,28 +166,49 @@ class adaptive_policy():
     def __init__(self, t_diff, num_classes):
         self.t_diff = t_diff
 
-        self.train_err = pd.DataFrame()
-        self.train_acc = pd.DataFrame()
-        self.valid_acc = pd.DataFrame()
+        self.t_acc = pd.DataFrame()
+        self.t_auc = pd.DataFrame()
+        self.v_acc = pd.DataFrame()
+        self.v_auc = pd.DataFrame()
 
         self.labels_seen = np.zeros((num_classes, ))
 
     def __call__(
-        self, model, test_num_samples, predictions_made, r_budget, t_start, birthday,
-        out: np.array, labels: np.array, loss: np.array, acc: np.array, val_acc: np.array
+        self,
+        model,
+        predictions_made,
+        birthday,
+        t_start,
+        r_budget,
+        tlabels: np.array,
+        tout: np.array,
+        tloss: np.array,
+        vlabels: np.array,
+        vout: np.array,
+        vloss: np.array,
     ):
-        self.train_err = append_to_dataframe(self.train_err, loss)
-        self.train_acc = append_to_dataframe(self.train_acc, acc)
-        if val_acc is not None:
-            self.valid_acc = append_to_dataframe(self.valid_acc, val_acc)
-        self.labels_seen += labels.sum(axis=0)
+        is_multilabel = len(tlabels.shape) > 1 and np.any(tlabels.sum(axis=1) > 1)
+        self.labels_seen += tlabels.sum(axis=0)
+        tacc, tauc = (
+            accuracy(tlabels, tout, is_multilabel), auc(tlabels, tout, is_multilabel)
+        )
+        self.t_acc = append_to_dataframe(self.t_acc, tacc)
+        self.t_auc = append_to_dataframe(self.t_auc, tauc)
+        if vlabels is not None:
+            vacc, vauc = (
+                accuracy(vlabels, vout, is_multilabel), auc(vlabels, vout, is_multilabel)
+            )
+            self.v_acc = append_to_dataframe(self.v_acc, vacc)
+            self.v_auc = append_to_dataframe(self.v_auc, vauc)
 
-        # The first 5 batches just train
-        if self.train_acc.size < 5:
-            return TRAIN
-        # Don't predict unless train acc is bigger than 10%
-        if self.train_acc.iloc[-5:].mean()[0] < 0.1:
-            return TRAIN
+        # Don't predict unless the last 5 train auc is bigger than 10%
+        # In case the dataset is multiclass use acc instead
+        if is_multilabel:
+            if self.t_auc.size < 5 or self.t_auc.iloc[-5:].mean()[0] < 0.1:
+                return TRAIN
+        else:
+            if self.t_acc.size < 5 or self.t_acc.iloc[-5:].mean()[0] < 0.1:
+                return TRAIN
         # Seen all classes at least 5 times
         # NOTE(Philipp): What about multilabel cases?
         if np.all(self.labels_seen < 5):
@@ -200,7 +223,7 @@ class adaptive_policy():
         )
         if ct_diff < self.t_diff:
             return TRAIN
-        if self.valid_acc.size > 3 and self.valid_acc.iloc[-3:].mean()[0] > 0.4:
+        if self.v_acc.size > 3 and self.v_acc.iloc[-3:].mean()[0] > 0.4:
             model.eval()  # This will be preserved until the next train/eval step
             return PREDICT
         return PREDICT

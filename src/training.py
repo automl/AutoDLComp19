@@ -4,25 +4,25 @@ import time
 
 import numpy as np
 import torch
-from sklearn import metrics
-from utils import DEVICE, LOGGER
-
-PREDICT_AND_VALIDATE = (True, True)
-PREDICT = (True, False)
-VALIDATE = (False, True)
-TRAIN = (False, False)
+from utils import (  # noqa: F401
+    DEVICE, LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, accuracy, auc,
+    profile, transform_time_abs
+)
 
 
 class PolicyTrainer():
-    def __init__(self, validation_buffer, policy_fn=None):
+    def __init__(self, policy_fn=None):
         self.batch_counter = 0
         self.ele_counter = 0  # keep track of how many batches we trained on
         self.dloader = None
         self.validation_idxs = []
+        self.validation_buffer = []
+        self.validation_class_dis = None
 
         # Default policy
         self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
 
+    @profile(precision=2)
     def __call__(self, autodl_model, remaining_time):
         '''
         The policy trainer executes training/validation/prediction making
@@ -44,13 +44,10 @@ class PolicyTrainer():
         make_prediction = False
         make_final_prediction = False
         while not make_prediction:
-            # Uncomment the next line to always start from the beginning
-            # although we need to decide if we want to reshuffle or
-            # just continue where we left of.
-            # The controlling factor is the tfdataset inside the TFDataset object
             load_start = time.time()
             for i, (data, labels) in enumerate(self.dloader):
                 batch_loading_time += time.time() - load_start
+                # On second train round gather some validation data
 
                 # Run prechecks whether we abort training or not (earlystop or final pred.)
                 make_prediction, make_final_prediction = precheck(
@@ -58,69 +55,69 @@ class PolicyTrainer():
                 )
                 if make_prediction:
                     break
+                if self.dloader.current_idx in self.validation_idxs:
+                    continue
 
                 # Copy data to DEVICE for training
-                data = data.to(DEVICE, non_blocking=True)
-                labels = labels.to(DEVICE, non_blocking=True)
-
-                # If the current batch is a validation batch we validate and continue
-                train_acc = None
-                val_acc = None
-                train_auc = None
-                val_auc = None
+                self.batch_counter += 1
+                self.ele_counter += np.prod(data.shape[0:2])
 
                 # Train on a batch if we re good to go
+                data = data.to(DEVICE, non_blocking=True)
+                labels = labels.to(DEVICE, non_blocking=True)
                 out, loss = train_step(
-                    autodl_model.model, autodl_model.optimizer, autodl_model.loss_fn,
-                    autodl_model.lr_scheduler, data, labels
+                    autodl_model.model, autodl_model.loss_fn, data, labels,
+                    autodl_model.optimizer, autodl_model.lr_scheduler
                 )
                 labels, out, loss = (
                     labels.cpu().numpy(), out.detach().cpu().numpy(),
                     loss.detach().cpu().numpy()
                 )
-
-                if validate:
-                    raise NotImplementedError
-                    # Under construction
-                    vdata, vlabels = None, None
-                    vout, vloss = eval_step(
-                        autodl_model.model, autodl_model.loss_fn, data, labels
-                    )
-                    vout, vloss = (
-                        vout.detach().cpu().numpy(), vloss.detach().cpu().numpy()
-                    )
-                    val_acc = accuracy(vlabels, vout, self.dloader.dataset.is_multilabel)
-                    val_auc = auc(vlabels, vout, self.dloader.dataset.is_multilabel)
-                    LOGGER.debug(
-                        'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.
-                        format(
-                            i, self.dloader.current_idx, vloss, val_acc * 100, val_auc
-                        )
-                    )
-                    validate = False
-
-                self.batch_counter += 1
-                self.ele_counter += np.prod(data.shape[0:2])
-                # ################# No Torch Tensors from here onwards #################
-                train_acc = accuracy(labels, out, self.dloader.dataset.is_multilabel)
-                train_auc = auc(labels, out, self.dloader.dataset.is_multilabel)
+                train_acc, train_auc = (
+                    accuracy(labels, out, self.dloader.dataset.is_multilabel),
+                    auc(labels, out, self.dloader.dataset.is_multilabel)
+                )
                 LOGGER.debug(
                     'STEP #{0} TRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
-                        i, self.dloader.current_idx, loss, train_acc * 100, train_auc
+                        i, self.dloader.current_idx, loss, train_acc, train_auc
                     )
                 )
 
-                onehot_labels = labels
-                if labels.shape != out.shape:
-                    onehot_labels = np.zeros_like(out, dtype=int)
-                    onehot_labels[np.arange(len(out)), labels] = 1
+                vlabels, vout, vloss = None, None, None
+                if validate:
+                    # Under construction
+                    llabels, lout, lloss = [], [], []
+                    for tdata, tlabels in self.validation_buffer:
+                        tdata = tdata.to(DEVICE, non_blocking=True)
+                        tlabels = tlabels.to(DEVICE, non_blocking=True)
+                        tout, tloss = eval_step(
+                            autodl_model.model, autodl_model.loss_fn, tdata, tlabels
+                        )
+                        tlabels, tout, tloss = (
+                            tlabels.cpu().numpy(), tout.detach().cpu().numpy(),
+                            tloss.detach().cpu().numpy()
+                        )
+                        llabels.append(tlabels)
+                        lout.append(tout)
+                        lloss(tloss)
+                    vlabels, vout, vloss = (
+                        np.vstack(llabels), np.vstack(lout), np.vstack(lloss)
+                    )
+                    val_acc, val_auc = (
+                        accuracy(vlabels, vout, self.dloader.dataset.is_multilabel),
+                        auc(vlabels, vout, self.dloader.dataset.is_multilabel)
+                    )
+                    LOGGER.debug(
+                        'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.
+                        format(i, self.dloader.current_idx, vloss, val_acc, val_auc)
+                    )
+                    validate = False
 
                 # Check if we want to make a prediction/validate after next train or not
                 make_prediction, validate = self.check_policy(
-                    autodl_model.model, autodl_model.test_num_samples,
-                    autodl_model.testing_round, remaining_time - (time.time() - t_train),
-                    t_train, autodl_model.birthday, out, onehot_labels, loss, train_acc,
-                    val_acc
+                    autodl_model.model, autodl_model.testing_round, autodl_model.birthday,
+                    t_train, remaining_time - (time.time() - t_train), labels, out, loss,
+                    vlabels, vout, vloss
                 )
 
                 if make_prediction:
@@ -157,14 +154,22 @@ class grid_check_policy():
         self.batch_counter = 0
 
     def __call__(
-        self, model, test_num_samples, predictions_made, r_budget, t_start, birthday, out,
-        labels, loss, acc, val_acc
+        self,
+        model,
+        predictions_made,
+        birthday,
+        t_start,
+        r_budget,
+        tlabels: np.array,
+        tout: np.array,
+        tloss: np.array,
+        vlabels: np.array,
+        vout: np.array,
+        vloss: np.array,
     ):
         self.batch_counter += 1
         # The first 22 batches just train and make a prediction
-        if self.batch_counter <= 21 or (
-            test_num_samples > 1000 and self.batch_counter <= 51
-        ):
+        if self.batch_counter <= 21:
             return TRAIN
         else:
             if predictions_made == 0:
@@ -183,29 +188,15 @@ class grid_check_policy():
 # ########################################################
 # Helpers
 # ########################################################
-def transform_time_abs(t_abs):
-    '''
-    conversion from absolute time 0s-1200s to relative time 0-1
-    '''
-    return np.log(1 + t_abs / 60.0) / np.log(21)
-
-
-def transform_time_rel(t_rel):
-    '''
-    convertsion from relative time 0-1 to absolute time 0s-1200s
-    '''
-    return 60 * (21**t_rel - 1)
-
-
-def get_time_wo_final_prediction(remaining_time, train_start, model):
+def get_time_wo_final_prediction(autodl_model, remaining_time, train_start):
     '''
     Calculate current remaining time - the time to make a prediction,
     approximated by the last 3 testing durations' average
     '''
     return remaining_time - (
-        time.time() - train_start + np.mean(model.test_time[-3:]) +
-        np.std(model.test_time[-3:]) - 10
-    ) if len(model.test_time) > 3 else None
+        time.time() - train_start + np.mean(autodl_model.test_time[-3:]) +
+        np.std(autodl_model.test_time[-3:]) - 10
+    ) if len(autodl_model.test_time) > 3 else None
 
 
 def precheck(autodl_model, t_train, remaining_time):
@@ -221,7 +212,7 @@ def precheck(autodl_model, t_train, remaining_time):
     ):
         make_prediction = True
     # Abort training and make final prediction if not enough time is left
-    t_left = get_time_wo_final_prediction(remaining_time, t_train, autodl_model)
+    t_left = get_time_wo_final_prediction(autodl_model, remaining_time, t_train)
     if t_left is not None and t_left < 5:
         LOGGER.info('Making final prediction!')
         make_final_prediction = True
@@ -229,55 +220,7 @@ def precheck(autodl_model, t_train, remaining_time):
     return make_prediction, make_final_prediction
 
 
-def accuracy(labels, out, multilabel):
-    '''
-    Returns the TPR
-    '''
-    if multilabel:
-        out = (out > 0).astype(int)
-    else:
-        ooh = np.zeros_like(out)
-        ooh[np.arange(len(out)), np.argmax(out, axis=1)] = 1
-        out = ooh
-        loh = np.zeros_like(out)
-        loh[np.arange(len(labels)), labels] = 1
-        labels = loh
-    nout = out / (np.sum(np.abs(out), axis=1, keepdims=True) + 1e-15)
-    true_pos = (labels * nout).sum() / float(labels.shape[0])
-    return true_pos
-
-
-def auc(labels, out, multilabel):
-    '''
-    Returns the average auc-roc score
-    '''
-    roc_auc = -1
-    if not multilabel:
-        loh = np.zeros_like(out)
-        loh[np.arange(len(out)), labels] = 1
-        ooh = out
-
-        # Remove classes without positive examples
-        col_to_keep = (loh.sum(axis=0) > 0)
-        loh = loh[:, col_to_keep]
-        ooh = out[:, col_to_keep]
-
-        fpr, tpr, _ = metrics.roc_curve(loh.ravel(), ooh.ravel())
-        roc_auc = metrics.auc(fpr, tpr)
-    else:
-        loh = labels
-        ooh = out
-
-        # Remove classes without positive examples
-        col_to_keep = (loh.sum(axis=0) > 0)
-        loh = loh[:, col_to_keep]
-        ooh = out[:, col_to_keep]
-
-        roc_auc = metrics.roc_auc_score(loh, ooh, average='macro')
-    return 2 * roc_auc - 1
-
-
-def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
+def train_step(model, criterion, data, labels, optimizer, lr_scheduler):
     '''
     Executes a single train step
     It expects the tensors given to be already cast to the target device
@@ -291,21 +234,6 @@ def train_step(model, optimizer, criterion, lr_scheduler, data, labels):
     if lr_scheduler is not None:
         lr_scheduler.step()
     return output, loss
-
-
-def evaluate_on(model, dl_val):
-    '''
-    Evaluates the given model on a dataset given as a dataloader
-    '''
-    err = np.Inf
-    dl_val.reset()
-    for i, (vdata, vlabels) in enumerate(dl_val):
-        _, loss = eval_step(
-            model.model, model.loss_fn, vdata.to(DEVICE, non_blocking=True),
-            vlabels.to(DEVICE, non_blocking=True)
-        )
-        err = loss if np.isinf(err) else err + loss
-    return err
 
 
 def eval_step(model, criterion, data, labels):

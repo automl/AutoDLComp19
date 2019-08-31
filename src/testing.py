@@ -3,7 +3,7 @@ import time
 import numpy as np
 import psutil
 import torch
-from utils import DEVICE, LOGGER
+from utils import DEVICE, LOGGER, profile
 
 
 class DefaultPredictor():
@@ -17,6 +17,7 @@ class DefaultPredictor():
         self.cache = None
         self.use_cache = None if use_cache else False
 
+    @profile(precision=2)
     def __call__(self, autodl_model, remaining_time):
         '''
         This is called from the model.py and just separates the
@@ -65,6 +66,12 @@ class DefaultPredictor():
                             (num_samples, *data.size()[1:]),
                             dtype=data.dtype,
                             pin_memory=True
+                        )
+                        LOGGER.debug(
+                            'ALLOCATED {0:.2f} MB TO CACHE TEST DATA'.format(
+                                temp_cache.element_size() * temp_cache.nelement() /
+                                1024**2
+                            )
                         )
                     si = (i - 1) * batch_size
                     temp_cache[si:si + data.size()[0]] = data
