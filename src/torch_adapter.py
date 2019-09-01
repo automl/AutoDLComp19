@@ -41,7 +41,7 @@ class TFAdapterSet(Dataset):
         self._update_dataset()
 
         self._next_element = None
-        self.current_idx = 0
+        self.next_idx = 0
         self.reset()
 
     def _update_dataset(self):
@@ -124,10 +124,11 @@ class TFAdapterSet(Dataset):
 
     def __getitem__(self, _):
         try:
-            if self.current_idx >= self._num_samples:
-                raise tf.errors.OutOfRangeError
+            if self.next_idx >= self._num_samples:
+                self.reset()
+                raise StopIteration
             sample, label = self._session.run(self._next_element)
-            self.current_idx += 1 * self._batch_size - 1
+            self.next_idx += self._batch_size
         except tf.errors.OutOfRangeError:
             self.reset()
             raise StopIteration
@@ -142,7 +143,7 @@ class TFAdapterSet(Dataset):
     def reset(self):
         iterator = self._dataset.make_one_shot_iterator()
         self._next_element = iterator.get_next()
-        self.current_idx = 0
+        self.next_idx = 0
         return self
 
 
@@ -171,7 +172,7 @@ class TFDataset(Dataset):
         self.std_shape = None
         self.is_multilabel = None
 
-        self.current_idx = 0
+        self.next_idx = 0
 
         self.next_element = None
         self.reset()
@@ -182,7 +183,7 @@ class TFDataset(Dataset):
     def __getitem__(self, _):
         try:
             example, label = self._tf_exec(self.next_element)
-            self.current_idx += 1
+            self.next_idx += 1
             # example = torch.as_tensor(example)
             # label = torch.as_tensor(example)
         except tf.errors.OutOfRangeError:
@@ -205,7 +206,7 @@ class TFDataset(Dataset):
         dataset = self.dataset
         iterator = dataset.make_one_shot_iterator()
         self.next_element = iterator.get_next()
-        self.current_idx = 0
+        self.next_idx = 0
         return self
 
     def scan(self, max_samples=None):
@@ -313,8 +314,8 @@ class TFDataLoader(object):
         return len(self.batch_sampler)
 
     @property
-    def current_idx(self):
-        return self.dataset.current_idx
+    def next_idx(self):
+        return self.dataset.next_idx
 
     @property
     def batch_size(self):

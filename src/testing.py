@@ -3,7 +3,7 @@ import time
 import numpy as np
 import psutil
 import torch
-from utils import DEVICE, LOGGER, memprofile
+from utils import DEVICE, GB, LOGGER, MB, memprofile
 
 
 class DefaultPredictor():
@@ -14,7 +14,7 @@ class DefaultPredictor():
     '''
     def __init__(self, use_cache=True):
         self.test_time = 0
-        self.cache = None
+        self.test_cache = None
         self.use_cache = None if use_cache else False
 
     @memprofile(precision=2)
@@ -36,9 +36,9 @@ class DefaultPredictor():
 
             # Just making sure we start at the beginning
             autodl_model.test_dl.reset()
-            e = enumerate(autodl_model.test_dl) if self.cache is None else enumerate(
+            e = enumerate(autodl_model.test_dl) if self.test_cache is None else enumerate(
                 zip(
-                    chunk(self.cache, batch_size),
+                    chunk(self.test_cache, batch_size),
                     range(int(np.ceil(num_samples / batch_size)))
                 )
             )
@@ -55,11 +55,11 @@ class DefaultPredictor():
                 i += 1
                 if self.use_cache is None:
                     ele_mem_size = (data.element_size() * data.nelement()) / batch_size
-                    available_mem = psutil.virtual_memory().available
+                    # Inflate estimated ram-usage by 1 GB to not hog all memory available
+                    available_mem = psutil.virtual_memory().available - 1 * GB
                     max_count = available_mem / ele_mem_size
-                    # Inflate estimated ram-usage by 10% to not hog all memory available
                     self.use_cache = max_count > num_samples * 1.1
-                if self.use_cache and self.cache is None:
+                if self.use_cache and self.test_cache is None:
                     if temp_cache is None:
                         # Preallocate space for the data
                         temp_cache = torch.empty(
@@ -69,8 +69,7 @@ class DefaultPredictor():
                         )
                         LOGGER.debug(
                             'ALLOCATED {0:.2f} MB TO CACHE TEST DATA'.format(
-                                temp_cache.element_size() * temp_cache.nelement() /
-                                1024**2
+                                temp_cache.element_size() * temp_cache.nelement() / MB
                             )
                         )
                     si = (i - 1) * batch_size
@@ -81,9 +80,9 @@ class DefaultPredictor():
                 LOGGER.debug(
                     'SEC PER BATCH LOADING:\t{0:.4f}'.format(batch_loading_time / i)
                 )
-        if self.use_cache and self.cache is None:
+        if self.use_cache and self.test_cache is None:
             # assert(not torch.any(torch.isnan(temp_cache)))
-            self.cache = temp_cache
+            self.test_cache = temp_cache
         autodl_model.test_time.append(time.time() - test_start)
         return np.array(predictions)
 

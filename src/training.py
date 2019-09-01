@@ -3,24 +3,89 @@ import subprocess
 import time
 
 import numpy as np
+import psutil
 import torch
 from utils import (  # noqa: F401
-    DEVICE, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN, VALIDATE,
+    DEVICE, GB, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN, VALIDATE,
     memprofile, metrics, transform_time_abs
 )
 
 
 class PolicyTrainer():
-    def __init__(self, policy_fn=None):
+    # TODO(Philipp): Add reset logic for when batchsize is too big ie cuda oom
+    def __init__(self, autodl_model, policy_fn=None):
         self.batch_counter = 0
         self.ele_counter = 0  # keep track of how many batches we trained on
         self.dloader = None
+
         self.validation_idxs = []
-        self.validation_buffer = []
-        self.validation_class_dis = None
+        self.validation_cache = []
+        self.validation_class_dis = np.zeros(autodl_model.output_dim)
+        self.validation_add_to_cache_every = 5
+        self.validation_min_sample_per_class = 10
+        self.validation_cache_valid = False
+        self.validate = False
+
+        autodl_config = autodl_model.config
+        self.using_test_cache = (
+            autodl_config.tester_args['use_cache']
+            if hasattr(autodl_model, 'tester_args') and
+            'use_cache' in autodl_config.tester_args else False
+        )
+        self.test_num_samples = autodl_model.test_num_samples
 
         # Default policy
         self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
+
+    def _check_and_cache_val_batch(self, predictions_made, data, labels):
+        batch_idx = int(self.dloader.next_idx / self.dloader.batch_size)
+        if batch_idx in self.validation_idxs:
+            return True
+        if batch_idx % self.validation_add_to_cache_every != 0:
+            return False
+
+        # Don't add to the cache if it already contains enough samples
+        if self.validation_cache_valid:
+            return False
+
+        if self.batch_counter > batch_idx:
+            # Well, that's all folks no new data for you
+            LOGGER.debug('TRAIN DATASET HAS NO UNSEEN BATCHES')
+            LOGGER.debug(
+                'CURRENT CACHE CLASS HIST:\n{}'.format(self.validation_class_dis)
+            )
+            self.validation_cache_valid = True
+            return False
+
+        data_mem_size = (data.element_size() * data.nelement())
+        labels_mem_size = (labels.element_size() * labels.nelement())
+        # Inflate estimated ram-usage by 3 GB to not hog all memory available
+        available_mem = psutil.virtual_memory().available - 3 * GB
+        if self.using_test_cache and predictions_made < 1:
+            # If no prediction has been made and the test cache is enabled
+            # reserve sufficient space for it
+            available_mem -= self.test_num_samples * data_mem_size / len(data)
+        # Add 1 to max_count for the current one
+        max_count = available_mem / (data_mem_size + labels_mem_size) + 1
+        if max_count < 2:
+            # Ram is full so declare cache as fit for use even if it isn't
+            # Fit for use means every class is sufficiently represented in the cache
+            LOGGER.debug('NOT ENOUGH RAM LEFT TO ADD ANOTHER SAMPLE TO THE CACHE')
+            LOGGER.debug(
+                'CURRENT CACHE CLASS HIST:\n{}'.format(self.validation_class_dis)
+            )
+            self.validation_cache_valid = True
+            return False
+
+        LOGGER.debug('GRABBED BATCH FOR VALIDATION')
+        loh = np.zeros((len(labels), self.validation_class_dis.shape[0]))
+        loh[np.arange(len(labels)), labels] = 1
+        self.validation_class_dis += loh.sum(axis=0)
+        self.validation_cache.append((data, labels))
+        self.validation_idxs.append(batch_idx)
+        if np.all(self.validation_class_dis >= self.validation_min_sample_per_class):
+            self.validation_cache_valid = True
+        return True
 
     @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
@@ -40,14 +105,13 @@ class PolicyTrainer():
         ) if autodl_model.training_round > 0 else autodl_model.birthday
         batch_counter_start = self.batch_counter
         batch_loading_time = 0
-        validate = False
         make_prediction = False
         make_final_prediction = False
         while not make_prediction:
             load_start = time.time()
             for i, (data, labels) in enumerate(self.dloader):
                 batch_loading_time += time.time() - load_start
-                # On second train round gather some validation data
+                self.batch_counter += 1
 
                 # Run prechecks whether we abort training or not (earlystop or final pred.)
                 make_prediction, make_final_prediction = precheck(
@@ -55,14 +119,16 @@ class PolicyTrainer():
                 )
                 if make_prediction:
                     break
-                if self.dloader.current_idx in self.validation_idxs:
+
+                # Check if the current batch is in the validation cache and skip if yes
+                # If not and we want to add it skip as well
+                if self._check_and_cache_val_batch(
+                    autodl_model.training_round, data, labels
+                ):
                     continue
 
-                # Copy data to DEVICE for training
-                self.batch_counter += 1
-                self.ele_counter += np.prod(data.shape[0:2])
-
                 # Train on a batch if we re good to go
+                # Copy data to DEVICE for training
                 data = data.to(DEVICE, non_blocking=True)
                 labels = labels.to(DEVICE, non_blocking=True)
                 out, loss = train_step(
@@ -78,8 +144,8 @@ class PolicyTrainer():
                     metrics.auc(labels, out, self.dloader.dataset.is_multilabel)
                 )
                 LOGGER.debug(
-                    'STEP #{0}\tTRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
-                        i, self.dloader.current_idx, loss, train_acc, train_auc
+                    'STEP #{0}\tNEXT TRAIN IDX #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
+                        i, self.dloader.next_idx, loss, train_acc, train_auc
                     )
                 )
                 SW.add_scalar('Train_Loss', loss, self.batch_counter)
@@ -90,12 +156,14 @@ class PolicyTrainer():
                     labels if len(labels.shape) == 1 else np.argwhere(labels > 0)[:, 1],
                     self.batch_counter
                 )
+                self.ele_counter += np.prod(data.shape[0:2])
 
                 vlabels, vout, vloss = None, None, None
-                if validate:
+                if self.validate and self.validation_cache_valid:
                     # Under construction
+                    v_start = time.time()
                     llabels, lout, lloss = [], [], []
-                    for tdata, tlabels in self.validation_buffer:
+                    for tdata, tlabels in self.validation_cache:
                         tdata = tdata.to(DEVICE, non_blocking=True)
                         tlabels = tlabels.to(DEVICE, non_blocking=True)
                         tout, tloss = eval_step(
@@ -107,9 +175,10 @@ class PolicyTrainer():
                         )
                         llabels.append(tlabels)
                         lout.append(tout)
-                        lloss(tloss)
+                        lloss.append(tloss)
                     vlabels, vout, vloss = (
-                        np.vstack(llabels), np.vstack(lout), np.vstack(lloss)
+                        np.vstack(llabels) if self.dloader.dataset.is_multilabel else
+                        np.hstack(llabels), np.vstack(lout), np.vstack(lloss).mean()
                     )
                     val_acc, val_auc = (
                         metrics.accuracy(
@@ -117,16 +186,17 @@ class PolicyTrainer():
                         ), metrics.auc(vlabels, vout, self.dloader.dataset.is_multilabel)
                     )
                     LOGGER.debug(
-                        'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.
-                        format(i, self.dloader.current_idx, vloss, val_acc, val_auc)
+                        'VALIDATION TOOK {0:.4f} s:\t\t{1:.6f}\t{2:.2f}\t{3:.2f}'.format(
+                            time.time() - v_start, vloss, val_acc, val_auc
+                        )
                     )
                     SW.add_scalar('Valid_Loss', vloss, self.batch_counter)
                     SW.add_scalar('Valid_Acc', val_acc, self.batch_counter)
                     SW.add_scalar('Valid_Auc', val_auc, self.batch_counter)
-                    validate = False
+                    self.validate = False
 
                 # Check if we want to make a prediction/validate after next train or not
-                make_prediction, validate = self.check_policy(
+                make_prediction, self.validate = self.check_policy(
                     autodl_model, t_train, remaining_time - (time.time() - t_train),
                     labels, out, loss, vlabels, vout, vloss
                 )

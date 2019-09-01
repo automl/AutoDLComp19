@@ -215,7 +215,7 @@ class adaptive_policy():
         # If prev. conditions are fullfilled and it's the first train
         # make a prediction
         if autodl_model.testing_round == 0:
-            return PREDICT
+            return PREDICT_AND_VALIDATE
         ct_diff = (
             transform_time_abs(time.time() - autodl_model.birthday) -
             transform_time_abs(t_start - autodl_model.birthday)
@@ -226,7 +226,7 @@ class adaptive_policy():
             autodl_model.model.eval(
             )  # This will be preserved until the next train/eval step
             return PREDICT
-        return PREDICT
+        return PREDICT_AND_VALIDATE
 
 
 # def get_ema(err_df, ema_win):

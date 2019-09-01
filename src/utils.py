@@ -29,45 +29,9 @@ PREDICT_AND_VALIDATE = (True, True)
 PREDICT = (True, False)
 VALIDATE = (False, True)
 TRAIN = (False, False)
-
-
-def kill_if_alive(p):
-    if p.is_alive():
-        psutil.Process(p.pid).terminate()
-
-
-try:
-    from tensorboardX import SummaryWriter
-    SW = SummaryWriter(LOGDIR)
-
-    def spawn_tb(dir):
-        webbrowser.open_new_tab('http://localhost:6006/')
-        os.system(
-            'export TF_CPP_MIN_LOG_LEVEL=3; tensorboard --logdir ' + dir + ' >> /dev/null'
-        )
-
-    tbp = multiprocessing.Process(target=spawn_tb, kwargs={'dir': LOGDIR}, daemon=True)
-    tbp.start()
-    atexit.register(kill_if_alive, tbp)
-    print('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
-except Exception as e:
-
-    class BlackHole():
-        '''
-        Has everything, swallows all and returns nothing...
-        and very handy to replace non-existing loggers but keeping
-        the lines of code for it the same
-        '''
-        def __getattr__(self, attr):
-            def f(*args, **kwargs):
-                return
-
-            return f
-
-        def __setattr__(self, attr, val):
-            return
-
-    SW = BlackHole()
+KB = 1024
+MB = 1024**2
+GB = 1025**3
 
 
 class Config:
@@ -122,13 +86,53 @@ def get_logger():
 
 LOGGER = get_logger()
 
+
+def kill_if_alive(p):
+    if p.is_alive():
+        psutil.Process(p.pid).terminate()
+
+
 try:
-    if CONFIG.profile_mem:
-        from memory_profiler import profile as memprofile
-        fp = open(os.path.join(LOGDIR, 'memory_profiler.log'), 'w+')
-        memprofile = partial(memprofile, stream=fp)
-    else:
+    if not CONFIG.tensorboard:
         raise Exception
+    from tensorboardX import SummaryWriter
+    SW = SummaryWriter(LOGDIR)
+
+    def spawn_tb(dir):
+        webbrowser.open_new_tab('http://localhost:6006/')
+        os.system(
+            'export TF_CPP_MIN_LOG_LEVEL=3; tensorboard --logdir ' + dir + ' >> /dev/null'
+        )
+
+    tbp = multiprocessing.Process(target=spawn_tb, kwargs={'dir': LOGDIR}, daemon=True)
+    tbp.start()
+    atexit.register(kill_if_alive, tbp)
+    print('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
+except Exception as e:
+
+    class BlackHole():
+        '''
+        Has everything, swallows all and returns nothing...
+        and very handy to replace non-existing loggers but keeping
+        the lines of code for it the same
+        '''
+        def __getattr__(self, attr):
+            def f(*args, **kwargs):
+                return
+
+            return f
+
+        def __setattr__(self, attr, val):
+            return
+
+    SW = BlackHole()
+
+try:
+    if not CONFIG.profile_mem:
+        raise Exception
+    from memory_profiler import profile as memprofile
+    fp = open(os.path.join(LOGDIR, 'memory_profiler.log'), 'w+')
+    memprofile = partial(memprofile, stream=fp)
 except Exception:
     # Fake version of the memory_profiler's profile decorator
     def memprofile(func=None, stream=None, precision=1, backend='psutil'):

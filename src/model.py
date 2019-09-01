@@ -37,7 +37,7 @@ import training
 import utils
 from tests import _benchmark_loading_and_transformations, _check_for_shuffling
 from torch_adapter import TFAdapterSet, TFDataset
-from utils import BASEDIR, DEVICE, LOGGER, BSGuard, memprofile
+from utils import BASEDIR, DEVICE, LOGGER, MB, BSGuard, memprofile
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -246,7 +246,7 @@ class Model(algorithm.Algorithm):
 
         ########## SETUP TRAINER
         self.trainer = training.PolicyTrainer(
-            policy_fn=self.policy_fn, **self.trainer_args
+            self, policy_fn=self.policy_fn, **self.trainer_args
         )
         self.trainer = BSGuard(self.trainer, self.train_dl, False)
 
@@ -338,7 +338,7 @@ class Model(algorithm.Algorithm):
         LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
         LOGGER.info(
             'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
-                np.mean(cutorch.memory_cached()) / 1024**2
+                np.mean(cutorch.memory_cached()) / MB
             )
         )
         LOGGER.info(30 * '#' + ' LET' 'S GO FOR ANOTHER ROUND ' + 30 * '#')

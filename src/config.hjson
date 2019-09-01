@@ -32,7 +32,10 @@
   # General
   log_level: 'DEBUG',
   profile_mem: false,
+  tensorboard: false,
   earlystop: 300, # How many seconds shall we ingest
+
+  # Testing/Benchmarking
   check_for_shuffling: false,
   benchmark_loading_and_transformations: false,
   benchmark_time_till_first_prediction: false,
