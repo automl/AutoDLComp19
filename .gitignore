@@ -242,6 +242,7 @@ competition/AutoDL_scoring_output/**
 src/torchhome/checkpoints/**
 submissions/**
 bohb_logs/**
+logs/**
 **sideload_config.json
 
 src/torchhome/hub/*

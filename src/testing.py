@@ -3,7 +3,7 @@ import time
 import numpy as np
 import psutil
 import torch
-from utils import DEVICE, LOGGER, profile
+from utils import DEVICE, LOGGER, memprofile
 
 
 class DefaultPredictor():
@@ -17,7 +17,7 @@ class DefaultPredictor():
         self.cache = None
         self.use_cache = None if use_cache else False
 
-    @profile(precision=2)
+    @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
         '''
         This is called from the model.py and just separates the

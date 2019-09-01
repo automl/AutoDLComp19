@@ -1,22 +1,73 @@
+import atexit
 import logging
+import multiprocessing
 import os
 import re
 import sys
+import time
+import webbrowser
 from functools import partial, wraps
 
 import hjson
 import numpy as np
+import psutil
 import torch
 import torch.nn as nn
-from sklearn import metrics
+from sklearn import metrics as skmetrics
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
+LOGDIR = os.path.abspath(
+    os.path.join(
+        BASEDIR, os.pardir, 'logs', time.strftime("%Y%m%d_%H%M%S", time.localtime())
+    )
+)
+if not os.path.isdir(LOGDIR):
+    os.mkdir(LOGDIR)
 
 PREDICT_AND_VALIDATE = (True, True)
 PREDICT = (True, False)
 VALIDATE = (False, True)
 TRAIN = (False, False)
+
+
+def kill_if_alive(p):
+    if p.is_alive():
+        psutil.Process(p.pid).terminate()
+
+
+try:
+    from tensorboardX import SummaryWriter
+    SW = SummaryWriter(LOGDIR)
+
+    def spawn_tb(dir):
+        webbrowser.open_new_tab('http://localhost:6006/')
+        os.system(
+            'export TF_CPP_MIN_LOG_LEVEL=3; tensorboard --logdir ' + dir + ' >> /dev/null'
+        )
+
+    tbp = multiprocessing.Process(target=spawn_tb, kwargs={'dir': LOGDIR}, daemon=True)
+    tbp.start()
+    atexit.register(kill_if_alive, tbp)
+    print('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
+except Exception as e:
+
+    class BlackHole():
+        '''
+        Has everything, swallows all and returns nothing...
+        and very handy to replace non-existing loggers but keeping
+        the lines of code for it the same
+        '''
+        def __getattr__(self, attr):
+            def f(*args, **kwargs):
+                return
+
+            return f
+
+        def __setattr__(self, attr, val):
+            return
+
+    SW = BlackHole()
 
 
 class Config:
@@ -31,16 +82,56 @@ class Config:
 
 CONFIG = Config(os.path.join(BASEDIR, 'config.hjson'))
 
+
+def get_logger():
+    '''
+    Set logging format to something like:
+            2019-04-25 12:52:51,924 INFO model.py: <message>
+    '''
+    class LessThanFilter(logging.Filter):
+        def __init__(self, exclusive_maximum, name=''):
+            super(LessThanFilter, self).__init__(name)
+            self.max_level = exclusive_maximum
+
+        def filter(self, record):
+            # non-zero return means we log this message
+            return 1 if record.levelno < self.max_level else 0
+
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, CONFIG.log_level)
+    logger.setLevel(logging_level)
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s'
+    )
+    fileout_handler = logging.FileHandler(os.path.join(LOGDIR, 'run.log'), mode='w')
+    fileout_handler.setLevel(logging.DEBUG)
+    fileout_handler.setFormatter(formatter)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging_level)
+    stdout_handler.addFilter(LessThanFilter(logging.WARNING))
+    stdout_handler.setFormatter(formatter)
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+    stderr_handler.setFormatter(formatter)
+    logger.addHandler(fileout_handler)
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
+    logger.propagate = False
+    return logger
+
+
+LOGGER = get_logger()
+
 try:
     if CONFIG.profile_mem:
-        from memory_profiler import profile
-        fp = open(os.path.join(BASEDIR, 'memory_profiler.log'), 'w+')
-        profile = partial(profile, stream=fp)
+        from memory_profiler import profile as memprofile
+        fp = open(os.path.join(LOGDIR, 'memory_profiler.log'), 'w+')
+        memprofile = partial(memprofile, stream=fp)
     else:
         raise Exception
 except Exception:
     # Fake version of the memory_profiler's profile decorator
-    def profile(func=None, stream=None, precision=1, backend='psutil'):
+    def memprofile(func=None, stream=None, precision=1, backend='psutil'):
         '''
         Stripped version of memory_profile's profile decorator
         '''
@@ -54,7 +145,7 @@ except Exception:
         else:
 
             def inner_wrapper(f):
-                return profile(f, stream=stream, precision=precision, backend=backend)
+                return memprofile(f, stream=stream, precision=precision, backend=backend)
 
             return inner_wrapper
 
@@ -116,51 +207,53 @@ def transform_time_rel(t_rel):
     return 60 * (21**t_rel - 1)
 
 
-def accuracy(labels, out, multilabel):
-    '''
-    Returns the TPR
-    '''
-    if not multilabel:
-        ooh = np.zeros_like(out)
-        ooh[np.arange(len(out)), np.argmax(out, axis=1)] = 1
-        out = ooh
-        loh = np.zeros_like(out)
-        loh[np.arange(len(labels)), labels] = 1
-        labels = loh
-    out = (out > 0).astype(int)
-    nout = out / (np.sum(out, axis=1, keepdims=True) + 1e-15)
-    true_pos = (labels * nout).sum() / float(labels.shape[0])
-    return true_pos
+class metrics():
+    @staticmethod
+    def accuracy(labels, out, multilabel):
+        '''
+        Returns the TPR
+        '''
+        if not multilabel:
+            ooh = np.zeros_like(out)
+            ooh[np.arange(len(out)), np.argmax(out, axis=1)] = 1
+            out = ooh
+            loh = np.zeros_like(out)
+            loh[np.arange(len(labels)), labels] = 1
+            labels = loh
+        out = (out > 0).astype(int)
+        nout = out / (np.sum(out, axis=1, keepdims=True) + 1e-15)
+        true_pos = (labels * nout).sum() / float(labels.shape[0])
+        return true_pos
 
+    @staticmethod
+    def auc(labels, out, multilabel):
+        '''
+        Returns the average auc-roc score
+        '''
+        roc_auc = -1
+        if not multilabel:
+            loh = np.zeros_like(out)
+            loh[np.arange(len(out)), labels] = 1
+            ooh = out
 
-def auc(labels, out, multilabel):
-    '''
-    Returns the average auc-roc score
-    '''
-    roc_auc = -1
-    if not multilabel:
-        loh = np.zeros_like(out)
-        loh[np.arange(len(out)), labels] = 1
-        ooh = out
+            # Remove classes without positive examples
+            col_to_keep = (loh.sum(axis=0) > 0)
+            loh = loh[:, col_to_keep]
+            ooh = out[:, col_to_keep]
 
-        # Remove classes without positive examples
-        col_to_keep = (loh.sum(axis=0) > 0)
-        loh = loh[:, col_to_keep]
-        ooh = out[:, col_to_keep]
+            fpr, tpr, _ = skmetrics.roc_curve(loh.ravel(), ooh.ravel())
+            roc_auc = skmetrics.auc(fpr, tpr)
+        else:
+            loh = labels
+            ooh = out
 
-        fpr, tpr, _ = metrics.roc_curve(loh.ravel(), ooh.ravel())
-        roc_auc = metrics.auc(fpr, tpr)
-    else:
-        loh = labels
-        ooh = out
+            # Remove classes without positive examples
+            col_to_keep = (loh.sum(axis=0) > 0)
+            loh = loh[:, col_to_keep]
+            ooh = out[:, col_to_keep]
 
-        # Remove classes without positive examples
-        col_to_keep = (loh.sum(axis=0) > 0)
-        loh = loh[:, col_to_keep]
-        ooh = out[:, col_to_keep]
-
-        roc_auc = metrics.roc_auc_score(loh, ooh, average='macro')
-    return 2 * roc_auc - 1
+            roc_auc = skmetrics.roc_auc_score(loh, ooh, average='macro')
+        return 2 * roc_auc - 1
 
 
 class AugmentNet(nn.Module):
@@ -238,44 +331,3 @@ class MonkeyNet(nn.Sequential):
             '{0}'
             ''.format(attr)
         )
-
-
-class LessThanFilter(logging.Filter):
-    def __init__(self, exclusive_maximum, name=''):
-        super(LessThanFilter, self).__init__(name)
-        self.max_level = exclusive_maximum
-
-    def filter(self, record):
-        # non-zero return means we log this message
-        return 1 if record.levelno < self.max_level else 0
-
-
-def get_logger():
-    '''
-    Set logging format to something like:
-            2019-04-25 12:52:51,924 INFO model.py: <message>
-    '''
-    logger = logging.getLogger(__file__)
-    logging_level = getattr(logging, CONFIG.log_level)
-    logger.setLevel(logging_level)
-    formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s'
-    )
-    fileout_handler = logging.FileHandler(os.path.join(BASEDIR, 'run.log'), mode='w')
-    fileout_handler.setLevel(logging.DEBUG)
-    fileout_handler.setFormatter(formatter)
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging_level)
-    stdout_handler.addFilter(LessThanFilter(logging.WARNING))
-    stdout_handler.setFormatter(formatter)
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.WARNING)
-    stderr_handler.setFormatter(formatter)
-    logger.addHandler(fileout_handler)
-    logger.addHandler(stdout_handler)
-    logger.addHandler(stderr_handler)
-    logger.propagate = False
-    return logger
-
-
-LOGGER = get_logger()

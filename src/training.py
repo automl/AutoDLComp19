@@ -5,8 +5,8 @@ import time
 import numpy as np
 import torch
 from utils import (  # noqa: F401
-    DEVICE, LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, accuracy, auc,
-    profile, transform_time_abs
+    DEVICE, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN, VALIDATE,
+    memprofile, metrics, transform_time_abs
 )
 
 
@@ -22,7 +22,7 @@ class PolicyTrainer():
         # Default policy
         self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
 
-    @profile(precision=2)
+    @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
         '''
         The policy trainer executes training/validation/prediction making
@@ -74,13 +74,21 @@ class PolicyTrainer():
                     loss.detach().cpu().numpy()
                 )
                 train_acc, train_auc = (
-                    accuracy(labels, out, self.dloader.dataset.is_multilabel),
-                    auc(labels, out, self.dloader.dataset.is_multilabel)
+                    metrics.accuracy(labels, out, self.dloader.dataset.is_multilabel),
+                    metrics.auc(labels, out, self.dloader.dataset.is_multilabel)
                 )
                 LOGGER.debug(
-                    'STEP #{0} TRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
+                    'STEP #{0}\tTRAINED BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
                         i, self.dloader.current_idx, loss, train_acc, train_auc
                     )
+                )
+                SW.add_scalar('Train_Loss', loss, self.batch_counter)
+                SW.add_scalar('Train_Acc', train_acc, self.batch_counter)
+                SW.add_scalar('Train_Auc', train_auc, self.batch_counter)
+                SW.add_histogram(
+                    'Classes',
+                    labels if len(labels.shape) == 1 else np.argwhere(labels > 0)[:, 1],
+                    self.batch_counter
                 )
 
                 vlabels, vout, vloss = None, None, None
@@ -104,20 +112,23 @@ class PolicyTrainer():
                         np.vstack(llabels), np.vstack(lout), np.vstack(lloss)
                     )
                     val_acc, val_auc = (
-                        accuracy(vlabels, vout, self.dloader.dataset.is_multilabel),
-                        auc(vlabels, vout, self.dloader.dataset.is_multilabel)
+                        metrics.accuracy(
+                            vlabels, vout, self.dloader.dataset.is_multilabel
+                        ), metrics.auc(vlabels, vout, self.dloader.dataset.is_multilabel)
                     )
                     LOGGER.debug(
                         'STEP #{0} VALIDATED ON BATCH #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.
                         format(i, self.dloader.current_idx, vloss, val_acc, val_auc)
                     )
+                    SW.add_scalar('Valid_Loss', vloss, self.batch_counter)
+                    SW.add_scalar('Valid_Acc', val_acc, self.batch_counter)
+                    SW.add_scalar('Valid_Auc', val_auc, self.batch_counter)
                     validate = False
 
                 # Check if we want to make a prediction/validate after next train or not
                 make_prediction, validate = self.check_policy(
-                    autodl_model.model, autodl_model.testing_round, autodl_model.birthday,
-                    t_train, remaining_time - (time.time() - t_train), labels, out, loss,
-                    vlabels, vout, vloss
+                    autodl_model, t_train, remaining_time - (time.time() - t_train),
+                    labels, out, loss, vlabels, vout, vloss
                 )
 
                 if make_prediction:
@@ -155,9 +166,7 @@ class grid_check_policy():
 
     def __call__(
         self,
-        model,
-        predictions_made,
-        birthday,
+        autodl_model,
         t_start,
         r_budget,
         tlabels: np.array,
@@ -172,11 +181,11 @@ class grid_check_policy():
         if self.batch_counter <= 21:
             return TRAIN
         else:
-            if predictions_made == 0:
+            if autodl_model.testing_round == 0:
                 return PREDICT
             ct_diff = (
-                transform_time_abs(time.time() - birthday) -
-                transform_time_abs(t_start - birthday)
+                transform_time_abs(time.time() - autodl_model.birthday) -
+                transform_time_abs(t_start - autodl_model.birthday)
             )
             if ct_diff < self.t_diff:
                 return TRAIN

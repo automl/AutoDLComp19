@@ -35,8 +35,9 @@ import torch
 import torch.cuda as cutorch
 import training
 import utils
-from torch_adapter import TFAdapterSet, TFDataLoader, TFDataset
-from utils import BASEDIR, DEVICE, LOGGER, BSGuard, profile
+from tests import _benchmark_loading_and_transformations, _check_for_shuffling
+from torch_adapter import TFAdapterSet, TFDataset
+from utils import BASEDIR, DEVICE, LOGGER, BSGuard, memprofile
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -189,156 +190,6 @@ class Model(algorithm.Algorithm):
 
         walk_dict(self.config.__dict__, side_conf)
 
-    def _benchmark_loading_and_transformations(self, ds_temp):
-        import transformations.video
-
-        def test_pipelinespeed(ds_temp, max_i=999, model=self.model):
-            dl_loadtime = 0
-            numel = 1e-12
-            t_s = time.time()
-            for i, (d, l) in enumerate(ds_temp):
-                if type(d) is not torch.Tensor:
-                    d = torch.Tensor(d).pin_memory()
-                dl_loadtime += time.time() - t_s
-                numel += len(d)
-
-                d = d.to(DEVICE, non_blocking=True)
-                model(d)
-                if i > max_i:
-                    break
-                t_s = time.time()
-            LOGGER.debug('{0:.6f} s/d'.format(dl_loadtime / numel))
-
-        # Test chosen transformation against...
-        LOGGER.debug(50 * '#')
-        get_and_apply_transformations = getattr(
-            transformations.video, 'normal_segment_dist'
-        )
-        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE, non_blocking=True)
-
-        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        ds_temp = TFDataset(
-            self.session, dataset, self.train_num_samples, transf['train']['samples'],
-            transf['train']['labels']
-        )
-        dl_temp = TFDataLoader(ds_temp, 16)
-
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-
-        # Another transformation stack
-        LOGGER.debug(50 * '#')
-        get_and_apply_transformations = getattr(
-            transformations.video, 'resize_normal_seg_selection'
-        )
-        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE, non_blocking=True)
-
-        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        ds_temp = TFDataset(
-            self.session, dataset, self.train_num_samples, transf['train']['samples'],
-            transf['train']['labels']
-        )
-        dl_temp = TFDataLoader(ds_temp, 16)
-
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-        dl_temp.dataset.reset()
-        test_pipelinespeed(dl_temp, 60, model)
-
-        # Using the transformation stack's cpu part with the tf pipeline
-        LOGGER.debug(50 * '#')
-        get_and_apply_transformations = getattr(
-            transformations.video, 'normal_segment_dist'
-        )
-        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE, non_blocking=True)
-
-        def trans(x, y):
-            ret = (
-                transf['train']['samples'](x),
-                transf['train']['labels'](y),
-            )
-            return ret
-
-        def tfwrap(x, y):
-            ret = tf.py_func(trans, [x, y], [tf.float32, tf.int64])
-            return ret
-
-        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.map(tfwrap, num_parallel_calls=10)
-        dataset = dataset.batch(16)
-        ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
-
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-
-        # Using the transformation stack's cpu part with the tf pipeline
-        LOGGER.debug(50 * '#')
-        get_and_apply_transformations = getattr(
-            transformations.video, 'resize_normal_seg_selection'
-        )
-        model, transf = get_and_apply_transformations(self.model.main_net, ds_temp)
-        model.to(DEVICE, non_blocking=True)
-
-        def trans2(x, y):
-            ret = (
-                transf['train']['samples'](x),
-                transf['train']['labels'](y),
-            )
-            return ret
-
-        def tfwrap2(x, y):
-            ret = tf.py_func(trans2, [x, y], [tf.float32, tf.int64])
-            return ret
-
-        dataset = self._tf_train_set.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.map(tfwrap2, num_parallel_calls=10)
-        dataset = dataset.batch(16)
-        ds_temp = TFDataset(self.session, dataset, self.train_num_samples)
-
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-        ds_temp.reset()
-        test_pipelinespeed(ds_temp, 60, model)
-
-    def _check_for_shuffling(self, ds_temp):
-        LOGGER.debug('SANITY CHECKING SHUFFLING')
-        ds_train = TFDataset(
-            session=self.session,
-            dataset=ds_temp.dataset,
-            num_samples=min(ds_temp.num_samples, 100)
-        )
-        ds_train.reset()
-        ds_temp.reset()
-        dset1 = [e for e in ds_train]  # Check if next time around
-        dset2 = [e for e in ds_train]  # the order is shuffled
-        dset3 = [e for e in ds_temp][:self.train_num_samples]
-        i = 0
-        e1vse2 = []
-        e2vse3 = []
-        for e1, e2, e3 in zip(dset1, dset2, dset3):
-            if i % 100 == 0:
-                LOGGER.debug('Checking i: {}'.format(i))
-            e1vse2.append((np.all((e1[0] == e2[0]))))
-            e2vse3.append((np.all((e2[0] == e3[0]))))
-            i += 1
-        LOGGER.debug('E1 == E2: {}\t should be False'.format(np.all(e1vse2)))
-        LOGGER.debug('E2 == E3: {}\t should be False'.format(np.all(e2vse3)))
-
     def _setup_dataset(self, dataset, target):
         loader_args = getattr(self, target + '_loader_args')
         ds = TFAdapterSet(
@@ -371,9 +222,6 @@ class Model(algorithm.Algorithm):
         if self.model is None:
             return None
         LOGGER.info('SETTING UP THE MODEL TOOK: {0:.4f} s'.format(time.time() - t_s))
-        if self.config.benchmark_loading_and_transformations:
-            self._benchmark_loading_and_transformations(ds_temp)
-            exit(0)
 
         ########## SETUP TRAINLOADER
         t_s = time.time()
@@ -416,7 +264,10 @@ class Model(algorithm.Algorithm):
                 amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
             )
         if self.config.check_for_shuffling:
-            self._check_for_shuffling(ds_temp)
+            _check_for_shuffling(self, ds_temp)
+            exit(0)
+        if self.config.benchmark_loading_and_transformations:
+            _benchmark_loading_and_transformations(self, ds_temp)
             exit(0)
 
     def _init_test(self, dataset, remaining_time_budget):
@@ -431,7 +282,7 @@ class Model(algorithm.Algorithm):
         self.tester = testing.DefaultPredictor(**self.tester_args)
         self.tester = BSGuard(self.tester, self.test_dl, True)
 
-    @profile(precision=2)
+    @memprofile(precision=2)
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
         self.current_remaining_time = remaining_time_budget
@@ -453,7 +304,7 @@ class Model(algorithm.Algorithm):
         self.training_round += 1
         self.train_time.append(time.time() - train_start)
 
-    @profile(precision=2)
+    @memprofile(precision=2)
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget

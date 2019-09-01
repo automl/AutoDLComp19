@@ -17,8 +17,7 @@ import torch.nn as nn  # noqa: F401
 import transformations
 from torch.optim.lr_scheduler import StepLR  # noqa: F401
 from utils import (  # noqa: F401
-    LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, accuracy, auc,
-    transform_time_abs
+    LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, metrics, transform_time_abs
 )
 
 TORCH_HOME = os.path.join(os.path.dirname(__file__), 'torchhome')
@@ -175,9 +174,7 @@ class adaptive_policy():
 
     def __call__(
         self,
-        model,
-        predictions_made,
-        birthday,
+        autodl_model,
         t_start,
         r_budget,
         tlabels: np.array,
@@ -190,13 +187,15 @@ class adaptive_policy():
         is_multilabel = len(tlabels.shape) > 1 and np.any(tlabels.sum(axis=1) > 1)
         self.labels_seen += tlabels.sum(axis=0)
         tacc, tauc = (
-            accuracy(tlabels, tout, is_multilabel), auc(tlabels, tout, is_multilabel)
+            metrics.accuracy(tlabels, tout,
+                             is_multilabel), metrics.auc(tlabels, tout, is_multilabel)
         )
         self.t_acc = append_to_dataframe(self.t_acc, tacc)
         self.t_auc = append_to_dataframe(self.t_auc, tauc)
         if vlabels is not None:
             vacc, vauc = (
-                accuracy(vlabels, vout, is_multilabel), auc(vlabels, vout, is_multilabel)
+                metrics.accuracy(vlabels, vout, is_multilabel),
+                metrics.auc(vlabels, vout, is_multilabel)
             )
             self.v_acc = append_to_dataframe(self.v_acc, vacc)
             self.v_auc = append_to_dataframe(self.v_auc, vauc)
@@ -215,16 +214,17 @@ class adaptive_policy():
             return TRAIN
         # If prev. conditions are fullfilled and it's the first train
         # make a prediction
-        if predictions_made == 0:
+        if autodl_model.testing_round == 0:
             return PREDICT
         ct_diff = (
-            transform_time_abs(time.time() - birthday) -
-            transform_time_abs(t_start - birthday)
+            transform_time_abs(time.time() - autodl_model.birthday) -
+            transform_time_abs(t_start - autodl_model.birthday)
         )
         if ct_diff < self.t_diff:
             return TRAIN
         if self.v_acc.size > 3 and self.v_acc.iloc[-3:].mean()[0] > 0.4:
-            model.eval()  # This will be preserved until the next train/eval step
+            autodl_model.model.eval(
+            )  # This will be preserved until the next train/eval step
             return PREDICT
         return PREDICT
 

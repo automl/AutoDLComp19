@@ -18,7 +18,8 @@ class TFAdapterSet(Dataset):
         num_samples,
         batch_size,
         transformations=None,
-        num_parallel_calls=5,
+        num_parallel_calls=None,
+        buffer_size=None,
         pin_memory=False,
         drop_last=False,
         shuffle=False,  # currently not working
@@ -27,11 +28,12 @@ class TFAdapterSet(Dataset):
         self._org_dataset = dataset
         self._num_samples = num_samples
         self._batch_size = batch_size
-        self._num_parallel_calls = num_parallel_calls
         self._dataset = None
         self._pin_memory = pin_memory
         self._shuffle = shuffle
         self._drop_last = drop_last
+        self._num_parallel_calls = tf.data.experimental.AUTOTUNE if num_parallel_calls is None else num_parallel_calls
+        self._buffer_size = tf.data.experimental.AUTOTUNE if buffer_size is None else buffer_size
         self._transformations = {'samples': lambda x: x, 'labels': lambda y: y}
         if transformations is not None:
             self._transformations.update(transformations)
@@ -60,9 +62,7 @@ class TFAdapterSet(Dataset):
             ret = tf.py_func(transform, [x, y], [tf.float32, tf.int64])
             return ret
 
-        self._dataset = self._org_dataset.prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE,
-        )
+        self._dataset = self._org_dataset.prefetch(buffer_size=self._buffer_size, )
         self._dataset = self._dataset.map(
             tfwrap, num_parallel_calls=self._num_parallel_calls
         )
@@ -124,8 +124,10 @@ class TFAdapterSet(Dataset):
 
     def __getitem__(self, _):
         try:
+            if self.current_idx >= self._num_samples:
+                raise tf.errors.OutOfRangeError
             sample, label = self._session.run(self._next_element)
-            self.current_idx += 1
+            self.current_idx += 1 * self._batch_size - 1
         except tf.errors.OutOfRangeError:
             self.reset()
             raise StopIteration

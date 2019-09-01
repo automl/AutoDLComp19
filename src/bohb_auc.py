@@ -51,7 +51,7 @@ def get_configuration():
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',
-            time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+            time.strftime("%Y%m%d_%H%M%S", time.localtime())
         )
     )
     return cfg

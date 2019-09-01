@@ -40,14 +40,16 @@ python run_local_test.py
 verbosity_level = 'INFO'
 
 import argparse
+import atexit
 import logging
 import multiprocessing
 import os
 import shutil  # for deleting a whole directory
+import signal
+import sys
 import time
 import webbrowser
 from multiprocessing import Process
-from signal import *
 
 import psutil
 import tensorflow as tf
@@ -60,8 +62,6 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(filename)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
-
-SCOREING_PID = -1
 
 
 def _HERE(*args):
@@ -96,12 +96,9 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def kill_scoring(a, b):
-    if SCOREING_PID > 0:
-        logging.info("Killing scoring program!")
-        process = psutil.Process(SCOREING_PID)
-        process.terminate()
-    exit(0)
+def kill_if_alive(p):
+    if p.is_alive():
+        psutil.Process(p.pid).terminate()
 
 
 def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
@@ -135,7 +132,7 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
         name='scoring', target=os.system, args=(command_scoring, ), daemon=True
     )
     scoring_process.start()
-    SCOREING_PID = scoring_process.pid
+    atexit.register(kill_if_alive, scoring_process)
     ingest(ingest_args)
     scoring_process.join()
     # detailed_results_page = os.path.join(starting_kit_dir,
@@ -152,10 +149,12 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
     #     time.sleep(1)
 
 
-if __name__ == '__main__':
-    for s in [SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM]:
-        signal(s, kill_scoring)
+def sigHandler(sig_no, sig_frame):
+    sys.exit(0)
 
+
+if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, sigHandler)
     default_starting_kit_dir = _HERE()
     # The default dataset is 'miniciao' under the folder AutoDL_sample_data/
     default_dataset_dir = os.path.join(
