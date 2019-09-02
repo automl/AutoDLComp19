@@ -29,7 +29,7 @@ def get_configuration():
 
 
 def write_config_to_file():
-    sideload_config = {"earlystop": BENCHTIME}
+    sideload_config = {'earlystop': BENCHTIME, 'tensorboard': False, 'profile_mem': False}
     path = join(BASEDIR, 'sideload_config.json')
     with open(path, 'w') as file:
         json.dump(sideload_config, file)
@@ -74,8 +74,9 @@ def runBENCH(cfg):
                 os.path.join(BASEDIR, 'config.hjson'),
                 os.path.join(score_path, BRANCHNAME + '-' + COMMITHASH + '.hjson')
             )
-        except Exception:
+        except Exception as e:
             status = traceback.format_exc()
+            print(e)
             print(status)
 
         score += score_temp

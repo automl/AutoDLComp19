@@ -111,7 +111,13 @@ class BOHBWorker(Worker):
             budget = int(budget)
             try:
                 print('BOHB ON DATASET: ' + str(dataset))
-                config.update({'earlystop': budget})
+                config.update(
+                    {
+                        'earlystop': budget,
+                        'tensorboard': False,
+                        'profile_mem': False
+                    }
+                )
                 # stored bohb config will be readagain in model.py
                 write_config_to_file(config)
                 # execute main function
