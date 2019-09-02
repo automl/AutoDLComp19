@@ -56,7 +56,7 @@
     # The intent is to seamlessly collect batches
     # during training in a buffer for later use
     # and skip them if seen again
-    # validation_buffer: 0,
+    use_validation_cache: false,
   },
   tester_args: {
     # Caches the dataset during the first

@@ -247,7 +247,9 @@ class Model(algorithm.Algorithm):
             getattr(self.config, 'tester_args', {'use_cache': True})['use_cache'] else 0
         )
         self.trainer = training.PolicyTrainer(
-            test_cache_size, policy_fn=self.policy_fn, **self.trainer_args
+            **self.trainer_args,
+            preserve_ram_for_nele=test_cache_size,
+            policy_fn=self.policy_fn
         )
         self.trainer = BSGuard(self.trainer, self.train_dl, True)
 

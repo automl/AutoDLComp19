@@ -10,7 +10,7 @@ from utils import (  # noqa: F401
 
 
 class PolicyTrainer():
-    def __init__(self, preserve_ram_for_nele=0, policy_fn=None):
+    def __init__(self, use_validation_cache, preserve_ram_for_nele=0, policy_fn=None):
         self.batch_counter = 0
         self.ele_counter = 0  # keep track of how many frames we trained on
         self.training_round = 0
@@ -21,6 +21,7 @@ class PolicyTrainer():
         self.preserve_ram_for_nele = preserve_ram_for_nele
 
         # Validation cache
+        self.use_validation_cache = use_validation_cache
         self.validation_min_dist = 3
         self.validation_min_sample_per_class = 10
         self.validation_idxs = []
@@ -37,10 +38,10 @@ class PolicyTrainer():
         if batch_idx in self.validation_idxs:
             return True
         if (
-            (
+            not self.use_validation_cache or self.validation_cache_valid or (
                 len(self.validation_idxs) > 0 and
                 batch_idx - self.validation_idxs[-1] <= self.validation_min_dist
-            ) or self.validation_cache_valid
+            )
         ):
             return False
 
@@ -131,7 +132,9 @@ class PolicyTrainer():
         SW.add_scalar('Train_Acc', train_acc, self.batch_counter)
         SW.add_scalar('Train_Auc', train_auc, self.batch_counter)
         SW.add_histogram(
-            'Train_Classes', self._get_batch_class_dist(labels), self.batch_counter
+            'Train_Classes',
+            np.argwhere(labels > 0)[:, 1]
+            if self.dloader.dataset.is_multilabel else labels, self.batch_counter
         )
         return labels, out, loss
 
@@ -171,7 +174,9 @@ class PolicyTrainer():
         SW.add_scalar('Valid_Acc', val_acc, self.batch_counter)
         SW.add_scalar('Valid_Auc', val_auc, self.batch_counter)
         SW.add_histogram(
-            'Valid_Classes', self._get_batch_class_dist(vlabels), self.batch_counter
+            'Valid_Classes',
+            np.argwhere(vlabels > 0)[:, 1]
+            if self.dloader.dataset.is_multilabel else vlabels, self.batch_counter
         )
         self.validate = False
         return vlabels, vout, vloss
