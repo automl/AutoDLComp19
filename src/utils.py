@@ -235,28 +235,29 @@ class metrics():
         Returns the average auc-roc score
         '''
         roc_auc = -1
-        if not multilabel:
+        if multilabel:
+            loh = labels
+            ooh = out
+
+            # Remove classes without positive examples
+            col_to_keep = (((ooh > 0).astype(int) + loh).sum(axis=0) > 0)
+            loh = loh[:, col_to_keep]
+            ooh = out[:, col_to_keep]
+
+            roc_auc = skmetrics.roc_auc_score(loh, ooh, average='macro')
+        else:
             loh = np.zeros_like(out)
             loh[np.arange(len(out)), labels] = 1
             ooh = out
 
             # Remove classes without positive examples
-            col_to_keep = (loh.sum(axis=0) > 0)
+            col_to_keep = (((ooh > 0).astype(int) + loh).sum(axis=0) > 0)
             loh = loh[:, col_to_keep]
             ooh = out[:, col_to_keep]
 
             fpr, tpr, _ = skmetrics.roc_curve(loh.ravel(), ooh.ravel())
             roc_auc = skmetrics.auc(fpr, tpr)
-        else:
-            loh = labels
-            ooh = out
 
-            # Remove classes without positive examples
-            col_to_keep = (loh.sum(axis=0) > 0)
-            loh = loh[:, col_to_keep]
-            ooh = out[:, col_to_keep]
-
-            roc_auc = skmetrics.roc_auc_score(loh, ooh, average='macro')
         return 2 * roc_auc - 1
 
 

@@ -74,6 +74,7 @@ THREADS = [
 class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
+        self.done_training = False
         self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
         sideload_conf_path = os.path.join(BASEDIR, 'sideload_config.json')
         if os.path.isfile(sideload_conf_path):
@@ -98,23 +99,25 @@ class Model(algorithm.Algorithm):
         # Metadata Stuff
         ################
         # In-/Out Dimensions from the train dataset's metadata
-        self.metadata = metadata
+        # self.metadata = metadata
 
-        row_count, col_count = metadata.get_matrix_size(0)
-        channel = metadata.get_num_channels(0)
-        sequence_size = metadata.get_sequence_size()
-        self.input_dim = [sequence_size, row_count, col_count, channel]
-        self.output_dim = metadata.get_output_size()
+        # row_count, col_count = metadata.get_matrix_size(0)
+        # channel = metadata.get_num_channels(0)
+        # sequence_size = metadata.get_sequence_size()
+        # self.input_dim = [sequence_size, row_count, col_count, channel]
+        # self.output_dim = metadata.get_output_size()
 
         # Train/Test length
         self.train_num_samples = metadata.size()
-        test_metadata_filename = self.metadata.get_dataset_name(
-        ).replace('train', 'test') + '/metadata.textproto'
         self.test_num_samples = [
-            int(line.split(':')[1])
-            for line in open(test_metadata_filename, 'r').readlines()
-            if 'sample_count' in line
+            int(line.split(':')[1]) for line in open(
+                metadata.get_dataset_name().replace('train', 'test') +
+                '/metadata.textproto', 'r'
+            ).readlines() if 'sample_count' in line
         ][0]
+
+        # Init the selector with the config
+        self.selector = selection.Selector(self.config.selection)
 
         # Store the current dataset's path, loader and the currently used
         # model, optimizer and lossfunction
@@ -126,23 +129,20 @@ class Model(algorithm.Algorithm):
         self.test_dl = None
         self.test_loader_args = {}
 
+        self.transforms = None
+
         self.model = None
         self.optimizer = None
         self.loss_fn = None
         self.lr_scheduler = None
-        self.transforms = None
+
         self.policy_fn = None
 
-        self.selector = selection.Selector(self.config.selection)
-
         self.trainer = None
-        self.trainer_args = self.config.trainer_args if hasattr(
-            self.config, 'trainer_args'
-        ) else {}
+        self.trainer_args = getattr(self.config, 'trainer_args', {})
 
         self.tester = None
-        self.tester_args = self.config.tester_args if hasattr(self.config,
-                                                              'tester_args') else {}
+        self.tester_args = getattr(self.config, 'tester_args', {})
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -150,11 +150,8 @@ class Model(algorithm.Algorithm):
         self.current_remaining_time = None
         self.make_final_prediction = False
         self.final_prediction_made = False
-        self.done_training = False
 
-        self.training_round = 0  # keep track how often we entered train
         self.train_time = []
-        self.testing_round = 0  # keep track how often we entered test
         self.test_time = []
 
         self._session = None
@@ -245,10 +242,14 @@ class Model(algorithm.Algorithm):
         )
 
         ########## SETUP TRAINER
-        self.trainer = training.PolicyTrainer(
-            self, policy_fn=self.policy_fn, **self.trainer_args
+        test_cache_size = (
+            self.test_num_samples if
+            getattr(self.config, 'tester_args', {'use_cache': True})['use_cache'] else 0
         )
-        self.trainer = BSGuard(self.trainer, self.train_dl, False)
+        self.trainer = training.PolicyTrainer(
+            test_cache_size, policy_fn=self.policy_fn, **self.trainer_args
+        )
+        self.trainer = BSGuard(self.trainer, self.train_dl, True)
 
         # Finally move the model/loss_fn to gpu and setup amp if wanted
         self.model.to(DEVICE, non_blocking=True)
@@ -301,14 +302,18 @@ class Model(algorithm.Algorithm):
         self.trainer(self, remaining_time_budget)
 
         LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
-        self.training_round += 1
+        LOGGER.info(
+            'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
+                np.mean(cutorch.memory_cached()) / MB
+            )
+        )
         self.train_time.append(time.time() - train_start)
 
     @memprofile(precision=2)
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget
-        LOGGER.info("REMAINING TIME: {}".format(remaining_time_budget))
+        LOGGER.info("REMAINING TIME: {0:.2f}".format(remaining_time_budget))
         if self.config.benchmark_time_till_first_prediction:
             LOGGER.error(
                 'TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday)
@@ -342,6 +347,5 @@ class Model(algorithm.Algorithm):
             )
         )
         LOGGER.info(30 * '#' + ' LET' 'S GO FOR ANOTHER ROUND ' + 30 * '#')
-        self.testing_round += 1
         self.test_time.append(time.time() - test_start)
         return predictions

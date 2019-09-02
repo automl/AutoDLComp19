@@ -185,7 +185,12 @@ class adaptive_policy():
         vloss: np.array,
     ):
         is_multilabel = len(tlabels.shape) > 1 and np.any(tlabels.sum(axis=1) > 1)
-        self.labels_seen += tlabels.sum(axis=0)
+        if is_multilabel:
+            self.labels_seen += tlabels.sum(axis=0)
+        else:
+            loh = np.zeros_like(tout)
+            loh[np.arange(len(tout)), tlabels] = 1
+            self.labels_seen += loh.sum(axis=0)
         tacc, tauc = (
             metrics.accuracy(tlabels, tout,
                              is_multilabel), metrics.auc(tlabels, tout, is_multilabel)
@@ -202,19 +207,17 @@ class adaptive_policy():
 
         # Don't predict unless the last 5 train auc is bigger than 10%
         # In case the dataset is multiclass use acc instead
-        if is_multilabel:
-            if self.t_auc.size < 5 or self.t_auc.iloc[-5:].mean()[0] < 0.1:
-                return TRAIN
-        else:
-            if self.t_acc.size < 5 or self.t_acc.iloc[-5:].mean()[0] < 0.1:
-                return TRAIN
-        # Seen all classes at least 5 times
+        if self.t_acc.size < 5 or self.t_acc.iloc[-5:].mean()[0] < 0.1:
+            return TRAIN
+        if self.t_auc.size < 5 or self.t_auc.iloc[-5:].mean()[0] < 0.1:
+            return TRAIN
+        # Seen all classes at least once
         # NOTE(Philipp): What about multilabel cases?
-        if np.all(self.labels_seen < 5):
+        if np.any(self.labels_seen < 1):
             return TRAIN
         # If prev. conditions are fullfilled and it's the first train
         # make a prediction
-        if autodl_model.testing_round == 0:
+        if len(autodl_model.test_time) == 0:
             return PREDICT_AND_VALIDATE
         ct_diff = (
             transform_time_abs(time.time() - autodl_model.birthday) -
