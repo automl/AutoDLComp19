@@ -13,27 +13,32 @@
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
 from __future__ import print_function
-from sys import getsizeof, stderr
-from itertools import chain
+
+import csv
+import os
+import platform
+import shutil
 from collections import deque
+from contextlib import closing
+from glob import glob as ls
+from itertools import chain
+from os import getcwd as pwd
+from os.path import isfile
+from shutil import copy2
+from sys import getsizeof, stderr, version
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import data_converter
+import numpy as np
+import pandas as pd
+import psutil
+import yaml
+from scipy.sparse import *  # used in data_binary_sparse
+
 try:
     from reprlib import repr
 except ImportError:
     pass
-
-import numpy as np
-import pandas as pd
-import os
-import shutil
-from scipy.sparse import * # used in data_binary_sparse
-from zipfile import ZipFile, ZIP_DEFLATED
-from contextlib import closing
-import data_converter
-from sys import stderr
-from sys import version
-from glob import glob as ls
-from os import getcwd as pwd
-from os.path import isfile
 
 # get_installed_distributions has gone from pip v10
 try:
@@ -41,60 +46,63 @@ try:
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
 
-import yaml
-from shutil import copy2
-import csv
-import psutil
-import platform
-
 # ================ Small auxiliary functions =================
+
 
 def read_as_df(basename, type="train"):
     ''' Function to read the AutoML format and return a Panda Data Frame '''
     csvfile = basename + '_' + type + '.csv'
     if isfile(csvfile):
-        print('Reading '+ basename + '_' + type + ' from CSV')
+        print('Reading ' + basename + '_' + type + ' from CSV')
         XY = pd.read_csv(csvfile)
         return XY
 
-    print('Reading '+ basename + '_' + type+ ' from AutoML format')
+    print('Reading ' + basename + '_' + type + ' from AutoML format')
     feat_name = pd.read_csv(basename + '_feat.name', header=None)
     label_name = pd.read_csv(basename + '_label.name', header=None)
-    X = pd.read_csv(basename + '_' + type + '.data', sep=' ', names = np.ravel(feat_name))
+    X = pd.read_csv(basename + '_' + type + '.data', sep=' ', names=np.ravel(feat_name))
     [patnum, featnum] = X.shape
     print('Number of examples = %d' % patnum)
     print('Number of features = %d' % featnum)
 
-    XY=X
-    Y=[]
+    XY = X
+    Y = []
     solution_file = basename + '_' + type + '.solution'
     if isfile(solution_file):
-        Y = pd.read_csv(solution_file, sep=' ', names = np.ravel(label_name))
+        Y = pd.read_csv(solution_file, sep=' ', names=np.ravel(label_name))
         [patnum2, classnum] = Y.shape
-        assert(patnum==patnum2)
+        assert (patnum == patnum2)
         print('Number of classes = %d' % classnum)
         # Here we add the target values as a last column, this is convenient to use seaborn
         # Look at http://seaborn.pydata.org/tutorial/axis_grids.html for other ideas
-        label_range = np.arange(classnum).transpose()         # This is just a column vector [[0], [1], [2]]
-        numerical_target = Y.dot(label_range)                 # This is a column vector of dim patnum with numerical categories
-        nominal_target = pd.Series(np.array(label_name)[numerical_target].ravel()) # Same with nominal categories
-        XY = X.assign(target=nominal_target.values)          # Add the last column
+        label_range = np.arange(classnum).transpose(
+        )  # This is just a column vector [[0], [1], [2]]
+        numerical_target = Y.dot(
+            label_range
+        )  # This is a column vector of dim patnum with numerical categories
+        nominal_target = pd.Series(
+            np.array(label_name)[numerical_target].ravel()
+        )  # Same with nominal categories
+        XY = X.assign(target=nominal_target.values)  # Add the last column
 
     return XY
+
 
 # ================ Small auxiliary functions =================
 
 swrite = stderr.write
 
 if (os.name == "nt"):
-       filesep = '\\'
+    filesep = '\\'
 else:
-       filesep = '/'
+    filesep = '/'
+
 
 def write_list(lst):
     ''' Write a list of items to stderr (for debug purposes)'''
     for item in lst:
         swrite(item + "\n")
+
 
 def print_dict(verbose, dct):
     ''' Write a dict to stderr (for debug purposes)'''
@@ -102,27 +110,33 @@ def print_dict(verbose, dct):
         for item in dct:
             print(item + " = " + str(dct[item]))
 
+
 def mkdir(d):
     ''' Create a new directory'''
     if not os.path.exists(d):
         os.makedirs(d)
+
 
 def mvdir(source, dest):
     ''' Move a directory'''
     if os.path.exists(source):
         os.rename(source, dest)
 
+
 def rmdir(d):
     ''' Remove an existingdirectory'''
     if os.path.exists(d):
         shutil.rmtree(d)
 
+
 def vprint(mode, t):
     ''' Print to stdout, only if in verbose mode'''
-    if(mode):
-            print(t)
+    if (mode):
+        print(t)
+
 
 # ================ Output prediction results and prepare code submission =================
+
 
 def write(filename, predictions):
     ''' Write prediction scores in prescribed format'''
@@ -136,6 +150,7 @@ def write(filename, predictions):
             output_file.write('\n')
     os.rename(filename_temp, filename)
 
+
 def zipdir(archivename, basedir):
     '''Zip directory, from J.F. Sebastian http://stackoverflow.com/'''
     assert os.path.isdir(basedir)
@@ -145,22 +160,24 @@ def zipdir(archivename, basedir):
             for fn in files:
                 if not fn.endswith('.zip'):
                     absfn = os.path.join(root, fn)
-                    zfn = absfn[len(basedir):] #XXX: relative path
+                    zfn = absfn[len(basedir):]  #XXX: relative path
                     assert absfn[:len(basedir)] == basedir
                     if zfn[0] == os.sep:
                         zfn = zfn[1:]
                     z.write(absfn, zfn)
 
+
 # ================ Inventory input data and create data structure =================
+
 
 def inventory_data(input_dir):
     ''' Inventory the datasets in the input directory and return them in alphabetical order'''
     # Assume first that there is a hierarchy dataname/dataname_train.data
     training_names = ls(os.path.join(input_dir, '*.data'))
-    training_names = [ name.split('/')[-1] for name in training_names ]
+    training_names = [name.split('/')[-1] for name in training_names]
 
-    ntr=len(training_names)
-    if ntr==0:
+    ntr = len(training_names)
+    if ntr == 0:
         print('WARNING: Inventory data - No data file found')
         training_names = []
     training_names.sort()
@@ -186,29 +203,34 @@ def check_dataset(dirname, name):
     return True
 
 
-def data(filename, nbr_features=None, verbose = False):
+def data(filename, nbr_features=None, verbose=False):
     ''' The 2nd parameter makes possible a using of the 3 functions of data reading (data, data_sparse, data_binary_sparse) without changing parameters'''
-    if verbose: print (np.array(data_converter.file_to_array(filename)))
+    if verbose:
+        print(np.array(data_converter.file_to_array(filename)))
     return np.array(data_converter.file_to_array(filename), dtype=float)
 
-def data_sparse (filename, nbr_features):
+
+def data_sparse(filename, nbr_features):
     ''' This function takes as argument a file representing a sparse matrix
     sparse_matrix[i][j] = "a:b" means matrix[i][a] = basename and load it with the loadsvm load_svmlight_file
     '''
-    return data_converter.file_to_libsvm (filename = filename, data_binary = False  , n_features = nbr_features)
+    return data_converter.file_to_libsvm(
+        filename=filename, data_binary=False, n_features=nbr_features
+    )
 
 
-
-def data_binary_sparse (filename , nbr_features):
+def data_binary_sparse(filename, nbr_features):
     ''' This fuction takes as argument a file representing a sparse binary matrix
     sparse_binary_matrix[i][j] = "a"and transforms it temporarily into file svmlibs format( <index2>:<value2>)
     to load it with the loadsvm load_svmlight_file
     '''
-    return data_converter.file_to_libsvm (filename = filename, data_binary = True  , n_features = nbr_features)
-
+    return data_converter.file_to_libsvm(
+        filename=filename, data_binary=True, n_features=nbr_features
+    )
 
 
 # ================ Copy results from input to output ==========================
+
 
 def copy_results(datanames, result_dir, output_dir, verbose):
     ''' This function copies all the [dataname.predict] results from result_dir to output_dir'''
@@ -217,17 +239,19 @@ def copy_results(datanames, result_dir, output_dir, verbose):
         try:
             missing = False
             test_files = ls(result_dir + "/" + basename + "*_test*.predict")
-            if len(test_files)==0:
+            if len(test_files) == 0:
                 vprint(verbose, "[-] Missing 'test' result files for " + basename)
                 missing = True
             valid_files = ls(result_dir + "/" + basename + "*_valid*.predict")
-            if len(valid_files)==0:
+            if len(valid_files) == 0:
                 vprint(verbose, "[-] Missing 'valid' result files for " + basename)
                 missing = True
             if missing == False:
-                for f in test_files: copy2(f, output_dir)
-                for f in valid_files: copy2(f, output_dir)
-                vprint( verbose,  "[+] " + basename.capitalize() + " copied")
+                for f in test_files:
+                    copy2(f, output_dir)
+                for f in valid_files:
+                    copy2(f, output_dir)
+                vprint(verbose, "[+] " + basename.capitalize() + " copied")
             else:
                 missing_files.append(basename)
         except:
@@ -235,7 +259,9 @@ def copy_results(datanames, result_dir, output_dir, verbose):
             return datanames
     return missing_files
 
+
 # ================ Display directory structure and code version (for debug purposes) =================
+
 
 def show_dir(run_dir):
     print('\n=== Listing run dir ===')
@@ -244,6 +270,7 @@ def show_dir(run_dir):
     write_list(ls(run_dir + '/*/*'))
     write_list(ls(run_dir + '/*/*/*'))
     write_list(ls(run_dir + '/*/*/*/*'))
+
 
 def show_io(input_dir, output_dir):
     swrite('\n=== DIRECTORIES ===\n\n')
@@ -271,20 +298,21 @@ def show_io(input_dir, output_dir):
     swrite("-- Current directory " + pwd() + ":\n")
     try:
         metadata = yaml.load(open('metadata', 'r'))
-        for key,value in metadata.items():
+        for key, value in metadata.items():
             swrite(key + ': ')
             swrite(str(value) + '\n')
     except:
-        swrite("none\n");
+        swrite("none\n")
     swrite("-- Input directory " + input_dir + ":\n")
     try:
         metadata = yaml.load(open(os.path.join(input_dir, 'metadata'), 'r'))
-        for key,value in metadata.items():
+        for key, value in metadata.items():
             swrite(key + ': ')
             swrite(str(value) + '\n')
         swrite("\n")
     except:
-        swrite("none\n");
+        swrite("none\n")
+
 
 def show_version():
     # Python version and library versions
@@ -295,7 +323,9 @@ def show_version():
     swrite("Versions of libraries installed:\n")
     map(swrite, sorted(["%s==%s\n" % (i.key, i.version) for i in lib()]))
 
- # Compute the total memory size of an object in bytes
+
+# Compute the total memory size of an object in bytes
+
 
 def total_size(o, handlers={}, verbose=False):
     """ Returns the approximate memory footprint an object and all of its contents.
@@ -309,19 +339,20 @@ def total_size(o, handlers={}, verbose=False):
 
     """
     dict_handler = lambda d: chain.from_iterable(d.items())
-    all_handlers = {tuple: iter,
-                    list: iter,
-                    deque: iter,
-                    dict: dict_handler,
-                    set: iter,
-                    frozenset: iter,
-                   }
-    all_handlers.update(handlers)     # user handlers take precedence
-    seen = set()                      # track which object id's have already been seen
-    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
+    all_handlers = {
+        tuple: iter,
+        list: iter,
+        deque: iter,
+        dict: dict_handler,
+        set: iter,
+        frozenset: iter,
+    }
+    all_handlers.update(handlers)  # user handlers take precedence
+    seen = set()  # track which object id's have already been seen
+    default_size = getsizeof(0)  # estimate sizeof object without __sizeof__
 
     def sizeof(o):
-        if id(o) in seen:       # do not double count the same object
+        if id(o) in seen:  # do not double count the same object
             return 0
         seen.add(id(o))
         s = getsizeof(o, default_size)
@@ -337,13 +368,22 @@ def total_size(o, handlers={}, verbose=False):
 
     return sizeof(o)
 
+
     # write the results in a csv file
-def platform_score ( basename , mem_used ,n_estimators , time_spent , time_budget ):
-# write the results and platform information in a csv file (performance.csv)
+def platform_score(basename, mem_used, n_estimators, time_spent, time_budget):
+    # write the results and platform information in a csv file (performance.csv)
     with open('performance.csv', 'a') as fp:
         a = csv.writer(fp, delimiter=',')
         #['Data name','Nb estimators','System', 'Machine' , 'Platform' ,'memory used (Mb)' , 'number of CPU' ,' time spent (sec)' , 'time budget (sec)'],
         data = [
-        [basename,n_estimators,platform.system(), platform.machine(),platform.platform() , float("{0:.2f}".format(mem_used/1048576.0)) , str(psutil.cpu_count()) , float("{0:.2f}".format(time_spent)) ,    time_budget ]
+            [
+                basename, n_estimators,
+                platform.system(),
+                platform.machine(),
+                platform.platform(),
+                float("{0:.2f}".format(mem_used / 1048576.0)),
+                str(psutil.cpu_count()),
+                float("{0:.2f}".format(time_spent)), time_budget
+            ]
         ]
         a.writerows(data)

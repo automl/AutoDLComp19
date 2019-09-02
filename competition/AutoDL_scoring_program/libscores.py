@@ -20,18 +20,23 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS,
 # PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
+import logging
 import os
-from sys import stderr
-from sys import version
+import platform
+import sys
+from functools import reduce
+from glob import glob
+from os import getcwd as pwd
+from sys import stderr, version
 
 import numpy as np
 import pandas as pd
+import psutil
 import scipy as sp
 from sklearn import metrics
 from sklearn.preprocessing import *
 
 swrite = stderr.write
-from os import getcwd as pwd
 
 # get_installed_distributions has gone from pip v10
 try:
@@ -39,18 +44,42 @@ try:
 except ImportError:  # pip < 10
     from pip import get_installed_distributions as lib
 
-from glob import glob
-import platform
-import psutil
-from functools import reduce
-
 if (os.name == "nt"):
     filesep = '\\'
 else:
     filesep = '/'
 
-
 # ========= Useful functions ==============
+
+
+def _HERE(*args):
+    """Helper function for getting the current directory of the script."""
+    h = os.path.dirname(os.path.realpath(__file__))
+    return os.path.abspath(os.path.join(h, *args))
+
+
+def get_logger(verbosity_level, use_error_log=False):
+    """Set logging format to something like:
+       2019-04-25 12:52:51,924 INFO score.py: <message>
+  """
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, verbosity_level)
+    logger.setLevel(logging_level)
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s'
+    )
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging_level)
+    stdout_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+    if use_error_log:
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setLevel(logging.WARNING)
+        stderr_handler.setFormatter(formatter)
+        logger.addHandler(stderr_handler)
+    logger.propagate = False
+    return logger
+
 
 def read_array(filename):
     ''' Read array and convert to 2d np arrays '''
@@ -58,6 +87,7 @@ def read_array(filename):
     if len(array.shape) == 1:
         array = array.reshape(-1, 1)
     return array
+
 
 def list_files(startpath):
     """List a tree structure of directories and files from startpath"""
@@ -69,11 +99,16 @@ def list_files(startpath):
         for f in files:
             logger.debug('{}{}'.format(subindent, f))
 
+
 def sanitize_array(array):
     ''' Replace NaN and Inf (there should not be any!)'''
     a = np.ravel(array)
-    maxi = np.nanmax((list(map(lambda x: x != float('inf'), a))))  # Max except NaN and Inf
-    mini = np.nanmin((list(map(lambda x: x != float('-inf'), a))))  # Mini except NaN and Inf
+    maxi = np.nanmax(
+        (list(map(lambda x: x != float('inf'), a)))
+    )  # Max except NaN and Inf
+    mini = np.nanmin(
+        (list(map(lambda x: x != float('-inf'), a)))
+    )  # Mini except NaN and Inf
     array[array == float('inf')] = maxi
     array[array == float('-inf')] = mini
     mid = (maxi + mini) / 2
@@ -89,8 +124,12 @@ def normalize_array(solution, prediction):
     classification inputs and outputs.'''
     # Binarize solution
     sol = np.ravel(solution)  # convert to 1-d array
-    maxi = np.nanmax((list(map(lambda x: x != float('inf'), sol))))  # Max except NaN and Inf
-    mini = np.nanmin((list(map(lambda x: x != float('-inf'), sol))))  # Mini except NaN and Inf
+    maxi = np.nanmax(
+        (list(map(lambda x: x != float('inf'), sol)))
+    )  # Max except NaN and Inf
+    mini = np.nanmin(
+        (list(map(lambda x: x != float('-inf'), sol)))
+    )  # Mini except NaN and Inf
     if maxi == mini:
         print('Warning, cannot normalize')
         return [solution, prediction]
@@ -164,7 +203,7 @@ def tiedrank(a):
                 # moving average
                 R[k0:k + 1] = R[k - 1] * (k - k0) / (k - k0 + 1) + R[k] / (k - k0 + 1)
             else:
-                k0 = k;
+                k0 = k
                 oldval = newval
     # Invert the index
     S = np.empty(m)
@@ -176,11 +215,15 @@ def mvmean(R, axis=0):
     ''' Moving average to avoid rounding errors. A bit slow, but...
     Computes the mean along the given axis, except if this is a vector, in which case the mean is returned.
     Does NOT flatten.'''
-    if len(R.shape) == 0: return R
-    average = lambda x: reduce(lambda i, j: (0, (j[0] / (j[0] + 1.)) * i[1] + (1. / (j[0] + 1)) * j[1]), enumerate(x))[
-        1]
+    if len(R.shape) == 0:
+        return R
+    average = lambda x: reduce(
+        lambda i, j: (0, (j[0] / (j[0] + 1.)) * i[1] + (1. /
+                                                        (j[0] + 1)) * j[1]), enumerate(x)
+    )[1]
     R = np.array(R)
-    if len(R.shape) == 1: return average(R)
+    if len(R.shape) == 1:
+        return average(R)
     if axis == 1:
         return np.array(map(average, R))
     else:
@@ -189,38 +232,50 @@ def mvmean(R, axis=0):
 
 # ======= Default metrics ========
 
+
 def bac_binary(solution, prediction):
     return bac_metric(solution, prediction, task='binary.classification')
+
 
 def bac_multiclass(solution, prediction):
     return bac_metric(solution, prediction, task='multiclass.classification')
 
+
 def bac_multilabel(solution, prediction):
     return bac_metric(solution, prediction, task='multilabel.classification')
+
 
 def auc_binary(solution, prediction):
     return auc_metric(solution, prediction, task='binary.classification')
 
+
 def auc_multilabel(solution, prediction):
     return auc_metric(solution, prediction, task='multilabel.classification')
+
 
 def pac_binary(solution, prediction):
     return pac_metric(solution, prediction, task='binary.classification')
 
+
 def pac_multiclass(solution, prediction):
     return pac_metric(solution, prediction, task='multiclass.classification')
+
 
 def pac_multilabel(solution, prediction):
     return pac_metric(solution, prediction, task='multilabel.classification')
 
+
 def f1_binary(solution, prediction):
     return f1_metric(solution, prediction, task='binary.classification')
+
 
 def f1_multilabel(solution, prediction):
     return f1_metric(solution, prediction, task='multilabel.classification')
 
+
 def abs_regression(solution, prediction):
     return a_metric(solution, prediction, task='regression')
+
 
 def r2_regression(solution, prediction):
     return r2_metric(solution, prediction, task='regression')
@@ -231,10 +286,11 @@ def r2_regression(solution, prediction):
 ### REGRESSION METRICS (work on raw solution and prediction)
 # These can be computed on all solutions and predictions (classification included)
 
+
 def r2_metric(solution, prediction, task='regression'):
     ''' 1 - Mean squared error divided by variance '''
-    mse = mvmean((solution - prediction) ** 2)
-    var = mvmean((solution - mvmean(solution)) ** 2)
+    mse = mvmean((solution - prediction)**2)
+    var = mvmean((solution - mvmean(solution))**2)
     score = 1 - mse / var
     return mvmean(score)
 
@@ -251,6 +307,7 @@ def a_metric(solution, prediction, task='regression'):
 
 ### CLASSIFICATION METRICS (work on solutions in {0, 1} and predictions in [0, 1])
 # These can be computed for regression scores only after running normalize_array
+
 
 def bac_metric(solution, prediction, task='binary.classification'):
     ''' Compute the normalized balanced accuracy. The binarization and
@@ -285,7 +342,8 @@ def pac_metric(solution, prediction, task='binary.classification'):
     Otherwise, run normalize_array.'''
     debug_flag = False
     [sample_num, label_num] = solution.shape
-    if label_num == 1: task = 'binary.classification'
+    if label_num == 1:
+        task = 'binary.classification'
     eps = 1e-15
     the_log_loss = log_loss(solution, prediction, task)
     # Compute the base log loss (using the prior probabilities)
@@ -297,10 +355,12 @@ def pac_metric(solution, prediction, task='binary.classification'):
     # For which the analytic solution makes more sense
     if debug_flag:
         base_prediction = np.empty(prediction.shape)
-        for k in range(sample_num): base_prediction[k, :] = frac_pos
+        for k in range(sample_num):
+            base_prediction[k, :] = frac_pos
         base_log_loss = log_loss(solution, base_prediction, task)
         diff = np.array(abs(the_base_log_loss - base_log_loss))
-        if len(diff.shape) > 0: diff = max(diff)
+        if len(diff.shape) > 0:
+            diff = max(diff)
         if (diff) > 1e-10:
             print('Arrggh {} != {}'.format(the_base_log_loss, base_log_loss))
     # Exponentiate to turn into an accuracy-like score.
@@ -373,7 +433,8 @@ def auc_metric(solution, prediction, task='binary.classification'):
     for k in range(label_num):
         r_ = tiedrank(prediction[:, k])
         s_ = solution[:, k]
-        if sum(s_) == 0: print('WARNING: no positive class example in class {}'.format(k + 1))
+        if sum(s_) == 0:
+            print('WARNING: no positive class example in class {}'.format(k + 1))
         npos = sum(s_ == 1)
         nneg = sum(s_ < 1)
         auc[k] = (sum(r_[s_ == 1]) - npos * (npos + 1) / 2) / (nneg * npos)
@@ -385,6 +446,7 @@ def auc_metric(solution, prediction, task='binary.classification'):
 
 # ======= Specialized scores ========
 # We run all of them for all tasks even though they don't make sense for some tasks
+
 
 def nbac_binary_score(solution, prediction):
     ''' Normalized balanced accuracy for binary and multilabel classification '''
@@ -435,11 +497,11 @@ def log_loss(solution, prediction, task='binary.classification'):
     # Bounding of predictions to avoid log(0),1/0,...
     pred = sp.minimum(1 - eps, sp.maximum(eps, pred))
     # Compute the log loss
-    pos_class_log_loss = - mvmean(sol * np.log(pred), axis=0)
+    pos_class_log_loss = -mvmean(sol * np.log(pred), axis=0)
     if (task != 'multiclass.classification') or (label_num == 1):
         # The multi-label case is a bunch of binary problems.
         # The second class is the negative class for each column.
-        neg_class_log_loss = - mvmean((1 - sol) * np.log(1 - pred), axis=0)
+        neg_class_log_loss = -mvmean((1 - sol) * np.log(1 - pred), axis=0)
         log_loss = pos_class_log_loss + neg_class_log_loss
         # Each column is an independent problem, so we average.
         # The probabilities in one line do not add up to one.
@@ -463,17 +525,19 @@ def prior_log_loss(frac_pos, task='binary.classification'):
     if (task != 'multiclass.classification'):  # binary case
         frac_neg = 1 - frac_pos
         frac_neg_ = sp.maximum(eps, frac_neg)
-        pos_class_log_loss_ = - frac_pos * np.log(frac_pos_)
-        neg_class_log_loss_ = - frac_neg * np.log(frac_neg_)
+        pos_class_log_loss_ = -frac_pos * np.log(frac_pos_)
+        neg_class_log_loss_ = -frac_neg * np.log(frac_neg_)
         base_log_loss = pos_class_log_loss_ + neg_class_log_loss_
         # base_log_loss = mvmean(base_log_loss)
         # print('binary {}'.format(base_log_loss))
         # In the multilabel case, the right thing i to AVERAGE not sum
         # We return all the scores so we can normalize correctly later on
     else:  # multiclass case
-        fp = frac_pos_ / sum(frac_pos_)  # Need to renormalize the lines in multiclass case
+        fp = frac_pos_ / sum(
+            frac_pos_
+        )  # Need to renormalize the lines in multiclass case
         # Only ONE label is 1 in the multiclass case active for each line
-        pos_class_log_loss_ = - frac_pos * np.log(fp)
+        pos_class_log_loss_ = -frac_pos * np.log(fp)
         base_log_loss = np.sum(pos_class_log_loss_)
     return base_log_loss
 
@@ -498,6 +562,7 @@ def auc_score_(solution, prediction):
 
 
 ### SOME I/O functions
+
 
 def ls(filename):
     return sorted(glob(filename))
@@ -557,7 +622,7 @@ def show_io(input_dir, output_dir):
             swrite(key + ': ')
             swrite(str(value) + '\n')
     except:
-        swrite("none\n");
+        swrite("none\n")
     swrite("-- Input directory " + input_dir + ":\n")
     try:
         metadata = yaml.load(open(os.path.join(input_dir, 'metadata'), 'r'))
@@ -566,7 +631,7 @@ def show_io(input_dir, output_dir):
             swrite(str(value) + '\n')
         swrite("\n")
     except:
-        swrite("none\n");
+        swrite("none\n")
 
 
 def show_version(scoring_version):
@@ -588,7 +653,8 @@ def show_platform():
         linux_distribution = platform.linux_distribution()
     except:
         linux_distribution = "N/A"
-    swrite("""
+    swrite(
+        """
     dist: %s
     linux_distribution: %s
     system: %s
@@ -600,34 +666,30 @@ def show_platform():
     memory: %s
     number of CPU: %s
     """ % (
-        str(platform.dist()),
-        linux_distribution,
-        platform.system(),
-        platform.machine(),
-        platform.platform(),
-        platform.uname(),
-        platform.version(),
-        platform.mac_ver(),
-        psutil.virtual_memory(),
-        str(psutil.cpu_count())
-    ))
+            str(platform.dist()), linux_distribution, platform.system(),
+            platform.machine(), platform.platform(), platform.uname(), platform.version(),
+            platform.mac_ver(), psutil.virtual_memory(), str(psutil.cpu_count())
+        )
+    )
 
 
 def compute_all_scores(solution, prediction):
     ''' Compute all the scores and return them as a dist'''
     missing_score = -0.999999
-    scoring = {'BAC (multilabel)': nbac_binary_score,
-               'BAC (multiclass)': nbac_multiclass_score,
-               'F1  (multilabel)': f1_binary_score,
-               'F1  (multiclass)': f1_multiclass_score,
-               'Regression ABS  ': a_metric,
-               'Regression R2   ': r2_metric,
-               'AUC (multilabel)': auc_metric,
-               'PAC (multilabel)': npac_binary_score,
-               'PAC (multiclass)': npac_multiclass_score}
+    scoring = {
+        'BAC (multilabel)': nbac_binary_score,
+        'BAC (multiclass)': nbac_multiclass_score,
+        'F1  (multilabel)': f1_binary_score,
+        'F1  (multiclass)': f1_multiclass_score,
+        'Regression ABS  ': a_metric,
+        'Regression R2   ': r2_metric,
+        'AUC (multilabel)': auc_metric,
+        'PAC (multilabel)': npac_binary_score,
+        'PAC (multiclass)': npac_multiclass_score
+    }
     # Normalize/sanitize inputs
     [csolution, cprediction] = normalize_array(solution, prediction)
-    solution = sanitize_array(solution);
+    solution = sanitize_array(solution)
     prediction = sanitize_array(prediction)
     # Compute all scores
     score_names = sorted(scoring.keys())
@@ -686,12 +748,21 @@ if __name__ == "__main__":
 
     comment.append('UNEVEN PROBA, BUT BINARIZED VERSION BALANCED (bac and auc=0.5)')
     Pred.append(
-        np.array([[0.7, 0.3], [0.4, 0.6], [0.49, 0.51], [0.2, 0.8]]))  # here is we have only 2, pac not 0 in uni-col
+        np.array([[0.7, 0.3], [0.4, 0.6], [0.49, 0.51], [0.2, 0.8]])
+    )  # here is we have only 2, pac not 0 in uni-col
     Sol.append(sol0)
 
-    comment.append('PROBA=0.5, TIES BROKEN WITH SMALL VALUE TO EVEN THE BINARIZED VERSION')
+    comment.append(
+        'PROBA=0.5, TIES BROKEN WITH SMALL VALUE TO EVEN THE BINARIZED VERSION'
+    )
     Pred.append(
-        np.array([[0.5 + eps, 0.5 - eps], [0.5 - eps, 0.5 + eps], [0.5 + eps, 0.5 - eps], [0.5 - eps, 0.5 + eps]]))
+        np.array(
+            [
+                [0.5 + eps, 0.5 - eps], [0.5 - eps, 0.5 + eps], [0.5 + eps, 0.5 - eps],
+                [0.5 - eps, 0.5 + eps]
+            ]
+        )
+    )
     Sol.append(sol0)
 
     comment.append('PROBA=0.5, TIES NOT BROKEN (bad for f1 score)')
@@ -705,7 +776,8 @@ if __name__ == "__main__":
     Sol.append(sol1)
 
     comment.append(
-        'Correct PAC prior; score generally 0. But 100% error on positive class because of binarization so f1 (1 col) is at its worst.')
+        'Correct PAC prior; score generally 0. But 100% error on positive class because of binarization so f1 (1 col) is at its worst.'
+    )
     p = len(sol1)
     Pred.append(np.array([sum(sol1) * 1. / p] * p))
     Sol.append(sol1)
@@ -742,15 +814,28 @@ if __name__ == "__main__":
     Sol.append(sol2)
 
     comment.append('Three classes equi proba')
-    Pred.append(np.array([[1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3]]))
+    Pred.append(
+        np.array(
+            [
+                [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3],
+                [1 / 3, 1 / 3, 1 / 3]
+            ]
+        )
+    )
     Sol.append(sol2)
 
     comment.append('Three classes some proba that do not add up')
-    Pred.append(np.array([[0.2, 0, 0.5], [0.8, 0.4, 0.1], [0.9, 0.1, 0.2], [0.7, 0.3, 0.3]]))
+    Pred.append(
+        np.array([[0.2, 0, 0.5], [0.8, 0.4, 0.1], [0.9, 0.1, 0.2], [0.7, 0.3, 0.3]])
+    )
     Sol.append(sol2)
 
     comment.append('Three classes predict prior')
-    Pred.append(np.array([[0.75, 0.25, 0.], [0.75, 0.25, 0.], [0.75, 0.25, 0.], [0.75, 0.25, 0.]]))
+    Pred.append(
+        np.array(
+            [[0.75, 0.25, 0.], [0.75, 0.25, 0.], [0.75, 0.25, 0.], [0.75, 0.25, 0.]]
+        )
+    )
     Sol.append(sol2)
 
     for k in range(len(Sol)):
@@ -761,7 +846,9 @@ if __name__ == "__main__":
 
     print('\n\nMulti-label score verification: 1) all identical labels')
     print('\n\n=======================================================')
-    print('\nIt is normal that for more then 2 labels the results are different for the multiclass scores.')
+    print(
+        '\nIt is normal that for more then 2 labels the results are different for the multiclass scores.'
+    )
     print('\nBut they should be indetical for the multilabel scores.')
     num = 2
 
@@ -787,7 +874,9 @@ if __name__ == "__main__":
     Sol.append(sol3)
 
     comment.append('All equi proba, prior: 0.25')
-    sol = np.array([[0.25, 0.25, 0.25], [0.25, 0.25, 0.25], [0.25, 0.25, 0.25], [0.25, 0.25, 0.25]])
+    sol = np.array(
+        [[0.25, 0.25, 0.25], [0.25, 0.25, 0.25], [0.25, 0.25, 0.25], [0.25, 0.25, 0.25]]
+    )
     if num == 1:
         Pred.append(np.array([sol[:, 0]]).transpose())
     else:
@@ -829,15 +918,28 @@ if __name__ == "__main__":
     Sol.append(sol4)
 
     comment.append('Three classes equi proba')
-    Pred.append(np.array([[1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3]]))
+    Pred.append(
+        np.array(
+            [
+                [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3], [1 / 3, 1 / 3, 1 / 3],
+                [1 / 3, 1 / 3, 1 / 3]
+            ]
+        )
+    )
     Sol.append(sol4)
 
     comment.append('Three classes some proba that do not add up')
-    Pred.append(np.array([[0.2, 0, 0.5], [0.8, 0.4, 0.1], [0.9, 0.1, 0.2], [0.7, 0.3, 0.3]]))
+    Pred.append(
+        np.array([[0.2, 0, 0.5], [0.8, 0.4, 0.1], [0.9, 0.1, 0.2], [0.7, 0.3, 0.3]])
+    )
     Sol.append(sol4)
 
     comment.append('Three classes predict prior')
-    Pred.append(np.array([[0.25, 0.25, 0.5], [0.25, 0.25, 0.5], [0.25, 0.25, 0.5], [0.25, 0.25, 0.5]]))
+    Pred.append(
+        np.array(
+            [[0.25, 0.25, 0.5], [0.25, 0.25, 0.5], [0.25, 0.25, 0.5], [0.25, 0.25, 0.5]]
+        )
+    )
     Sol.append(sol4)
 
     for k in range(len(Sol)):

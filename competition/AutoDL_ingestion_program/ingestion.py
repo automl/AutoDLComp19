@@ -6,7 +6,7 @@
 
 # AS A PARTICIPANT, DO NOT MODIFY THIS CODE.
 
-VERSION = 'v20190516'
+VERSION = 'v20190709'
 DESCRIPTION =\
 """This is the "ingestion program" written by the organizers. It takes the
 code written by participants (with `model.py`) and one dataset as input,
@@ -14,6 +14,7 @@ run the code on the dataset and produce predictions on test set. For more
 information on the code/directory structure, please see comments in this
 code (ingestion.py) and the README file of the starting kit.
 Previous updates:
+20190708: [ZY] Integrate Julien's parallel data loader
 20190516: [ZY] Change time budget to 20 minutes.
 20190508: [ZY] Add time_budget to 'start.txt'
 20190507: [ZY] Write timestamps to 'start.txt'
@@ -98,7 +99,6 @@ import logging
 import os
 import sys
 import time
-# Some common useful packages
 from os import getcwd as pwd
 from os.path import join
 from sys import argv, path
@@ -154,10 +154,12 @@ def write_start_file(output_dir, start_time=None, time_budget=None, task_name=No
       <more timestamps of predictions>
   """
     ingestion_pid = os.getpid()
+    p = psutil.process(ingestion_pid)
     start_filename = 'start.txt'
     start_filepath = os.path.join(output_dir, start_filename)
     with open(start_filepath, 'w') as f:
         f.write('ingestion_pid: {}\n'.format(ingestion_pid))
+        f.write('ingestion_create_time: {}\n'.format(p.create_time()))
         f.write('task_name: {}\n'.format(task_name))
         f.write('time_budget: {}\n'.format(time_budget))
         f.write('start_time: {}\n'.format(start_time))
@@ -217,8 +219,6 @@ def main(args):
     path.append(ingestion_program_dir)
     path.append(code_dir)
     #IG: to allow submitting the starting kit as sample submission
-    # Changes here won't carry over
-    # Use "src/video3/autodl_starting_kit_stable" as current working dir
     #path.append(code_dir + '/AutoDL_sample_code_submission')
     import data_io
     from dataset import AutoDLDataset  # THE class of AutoDL datasets
