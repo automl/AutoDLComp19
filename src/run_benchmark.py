@@ -29,7 +29,11 @@ def get_configuration():
 
 
 def write_config_to_file():
-    sideload_config = {'earlystop': BENCHTIME, 'tensorboard': False, 'profile_mem': False}
+    sideload_config = {
+        'earlystop': BENCHTIME,
+        'tensorboard_logging': False,
+        'profile_mem': False
+    }
     path = join(BASEDIR, 'sideload_config.json')
     with open(path, 'w') as file:
         json.dump(sideload_config, file)

@@ -114,7 +114,7 @@ class BOHBWorker(Worker):
                 config.update(
                     {
                         'earlystop': budget,
-                        'tensorboard': False,
+                        'tensorboard_logging': False,
                         'profile_mem': False
                     }
                 )

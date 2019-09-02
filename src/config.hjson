@@ -32,7 +32,8 @@
   # General
   log_level: 'DEBUG',
   profile_mem: false,
-  tensorboard: false,
+  tensorboard_logging: true,
+  tensorboard_launch: false,
   earlystop: 300, # How many seconds shall we ingest
 
   # Testing/Benchmarking
@@ -56,7 +57,7 @@
     # The intent is to seamlessly collect batches
     # during training in a buffer for later use
     # and skip them if seen again
-    use_validation_cache: false,
+    use_validation_cache: true,
   },
   tester_args: {
     # Caches the dataset during the first

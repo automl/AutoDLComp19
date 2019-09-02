@@ -92,19 +92,27 @@ def kill_if_alive(p, msg):
 
 
 try:
-    if not CONFIG.tensorboard:
+    if not CONFIG.tensorboard_logging:
         raise Exception
     from tensorboardX import SummaryWriter
     SW = SummaryWriter(LOGDIR)
 
-    tbp = psutil.Popen(['tensorboard', '--logdir', LOGDIR], shell=False)
-    webbrowser.open_new_tab('http://localhost:6006/')
-    atexit.register(
-        kill_if_alive, tbp,
-        'Terminating tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid)
-    )
+    tboard_cmd = 'tensorboard --logdir ' + LOGDIR
+    with open(os.path.join(LOGDIR, 'start_tboard.sh'), 'w') as f:
+        f.write('#!/bin/bash\n')
+        f.write('xdg-open http://localhost:6006/\n')
+        f.write(tboard_cmd + '\n')
+    os.chmod(os.path.join(LOGDIR, 'start_tboard.sh'), 0o744)
 
-    LOGGER.info('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
+    if CONFIG.tensorboard_launch:
+        tbp = psutil.Popen([*tboard_cmd.split(' ')], shell=False)
+        webbrowser.open_new_tab('http://localhost:6006/')
+        atexit.register(
+            kill_if_alive, tbp,
+            'Terminating tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid)
+        )
+        LOGGER.info('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
+
 except Exception as e:
 
     class BlackHole():
