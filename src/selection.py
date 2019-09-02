@@ -226,9 +226,8 @@ class adaptive_policy():
         if ct_diff < self.t_diff:
             return TRAIN
         if self.v_acc.size > 3 and self.v_acc.iloc[-3:].mean()[0] > 0.4:
-            autodl_model.model.eval(
-            )  # This will be preserved until the next train/eval step
-            return PREDICT
+            # This will be preserved until the next train/eval step
+            autodl_model.model.eval()
         return PREDICT_AND_VALIDATE
 
 
