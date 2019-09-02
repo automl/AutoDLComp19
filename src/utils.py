@@ -1,6 +1,5 @@
 import atexit
 import logging
-import multiprocessing
 import os
 import re
 import sys
@@ -87,9 +86,9 @@ def get_logger():
 LOGGER = get_logger()
 
 
-def kill_if_alive(p):
-    if p.is_alive():
-        psutil.Process(p.pid).terminate()
+def kill_if_alive(p, msg):
+    LOGGER.info(msg)
+    p.terminate()
 
 
 try:
@@ -98,16 +97,14 @@ try:
     from tensorboardX import SummaryWriter
     SW = SummaryWriter(LOGDIR)
 
-    def spawn_tb(dir):
-        webbrowser.open_new_tab('http://localhost:6006/')
-        os.system(
-            'export TF_CPP_MIN_LOG_LEVEL=3; tensorboard --logdir ' + dir + ' >> /dev/null'
-        )
+    tbp = psutil.Popen(['tensorboard', '--logdir', LOGDIR], shell=False)
+    webbrowser.open_new_tab('http://localhost:6006/')
+    atexit.register(
+        kill_if_alive, tbp,
+        'Terminating tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid)
+    )
 
-    tbp = multiprocessing.Process(target=spawn_tb, kwargs={'dir': LOGDIR}, daemon=True)
-    tbp.start()
-    atexit.register(kill_if_alive, tbp)
-    print('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
+    LOGGER.info('Started tensorboard with PID \033[92m{}\033[0m'.format(tbp.pid))
 except Exception as e:
 
     class BlackHole():

@@ -42,20 +42,16 @@ verbosity_level = 'INFO'
 import argparse
 import atexit
 import logging
-import multiprocessing
 import os
 import shutil  # for deleting a whole directory
 import signal
 import sys
 import time
 import webbrowser
-from multiprocessing import Process
 
 import psutil
 import tensorflow as tf
 from AutoDL_ingestion_program.ingestion import main as ingest
-
-multiprocessing.set_start_method('spawn', True)
 
 logging.basicConfig(
     level=getattr(logging, verbosity_level),
@@ -96,9 +92,9 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def kill_if_alive(p):
-    if p.is_alive():
-        psutil.Process(p.pid).terminate()
+def kill_if_alive(p, msg):
+    logging.info(msg)
+    p.terminate()
 
 
 def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
@@ -122,19 +118,18 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
     ingest_args = parser.parse_known_args()
     ingest_args = ingest_args[0]
     command_scoring =\
-      'python {} --solution_dir={} --score_dir={} --prediction_dir={} --time_budget={}'\
-      .format(path_scoring, dataset_dir, score_dir, ingestion_output_dir, time_budget)
+      'python {} --solution_dir={} --score_dir={} --prediction_dir={}'\
+      .format(path_scoring, dataset_dir, score_dir, ingestion_output_dir)
 
     remove_dir(ingestion_output_dir)
     remove_dir(score_dir)
 
-    scoring_process = Process(
-        name='scoring', target=os.system, args=(command_scoring, ), daemon=True
+    sp = psutil.Popen([*command_scoring.split(' ')], shell=False)
+    logging.info('Started score.py with PID \033[92m{}\033[0m'.format(sp.pid))
+    atexit.register(
+        kill_if_alive, sp, 'Terminating scoring process \033[92m{}\033[0m'.format(sp.pid)
     )
-    scoring_process.start()
-    atexit.register(kill_if_alive, scoring_process)
     ingest(ingest_args)
-    scoring_process.join()
     # detailed_results_page = os.path.join(starting_kit_dir,
     #                                      'AutoDL_scoring_output',
     #                                      'detailed_results.html')
@@ -150,6 +145,7 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
 
 
 def sigHandler(sig_no, sig_frame):
+    logging.info('Received Signal {}'.format(sig_no))
     sys.exit(0)
 
 
