@@ -104,6 +104,7 @@ from os.path import join
 from sys import argv, path
 
 import numpy as np
+import psutil
 
 
 def get_logger(verbosity_level, use_error_log=False):
@@ -154,7 +155,7 @@ def write_start_file(output_dir, start_time=None, time_budget=None, task_name=No
       <more timestamps of predictions>
   """
     ingestion_pid = os.getpid()
-    p = psutil.process(ingestion_pid)
+    p = psutil.Process(ingestion_pid)
     start_filename = 'start.txt'
     start_filepath = os.path.join(output_dir, start_filename)
     with open(start_filepath, 'w') as f:
