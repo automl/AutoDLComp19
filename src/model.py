@@ -99,7 +99,7 @@ class Model(algorithm.Algorithm):
         # Metadata Stuff
         ################
         # In-/Out Dimensions from the train dataset's metadata
-        # self.metadata = metadata
+        self.metadata = metadata
 
         # row_count, col_count = metadata.get_matrix_size(0)
         # channel = metadata.get_num_channels(0)
