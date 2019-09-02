@@ -105,7 +105,7 @@ logger = get_logger(verbosity_level)
 
 # Metric used to compute the score of a point on the learning curve
 def autodl_auc(solution, prediction, valid_columns_only=True):
-    """Compute normarlized Area under ROC curve (AUC).
+    """Compute normalized Area under ROC curve (AUC).
     Return Gini index = 2*AUC-1 for    binary classification problems.
     Should work for a vector of binary 0/1 (or -1/1)"solution" and any discriminant values
     for the predictions. If solution and prediction are not vectors, the AUC
@@ -597,7 +597,7 @@ class LearningCurve(object):
         Y.insert(0, 0)
         X.append(1)
         Y.append(Y[-1])
-        alc = auc(X, Y)
+        alc = auc_step(X, Y)
         return alc
 
     def get_time_used(self):
