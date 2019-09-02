@@ -97,6 +97,7 @@ import datetime
 import glob
 import logging
 import os
+import shutil
 import sys
 import time
 from os import getcwd as pwd
@@ -366,6 +367,8 @@ def main(args):
     # Copy all files in output_dir to score_dir
     os.system("cp -R {} {}".format(os.path.join(output_dir, '*'), score_dir))
     logger.debug("Copied all ingestion output to scoring output directory.")
+    shutil.rmtree(output_dir)
+    logger.debug("Purged ingestion output dir.")
 
     logger.info("[Ingestion terminated]")
 
