@@ -33,6 +33,7 @@ class PolicyTrainer():
         # Default policy
         self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
 
+    @memprofile(precision=2)
     def _check_and_cache_val_batch(self, data, labels):
         batch_idx = int(self.dloader.next_idx / self.dloader.batch_size)
         if batch_idx in self.validation_idxs:
@@ -107,6 +108,7 @@ class PolicyTrainer():
         self.validation_class_dis = None
         self.validation_cache_valid = False
 
+    @memprofile(precision=2)
     def _train(self, i, autodl_model, data, labels):
         # Train on a batch if we re good to go
         # Copy data to DEVICE for training
@@ -138,6 +140,7 @@ class PolicyTrainer():
         )
         return labels, out, loss
 
+    @memprofile(precision=2)
     def _validate(self, autodl_model):
         if not self.validate or not self.validation_cache_valid:
             return None, None, None
