@@ -98,10 +98,12 @@ if __name__ == "__main__":
     default_datasets = ['Hammer', 'Kraut', 'Kreatur', 'Pedro', 'Ucf101']
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--code_dir", default=BASEDIR)
     parser.add_argument("--time_budget", default=BENCHTIME, type=int)
     parser.add_argument("--datasets", default=default_datasets, type=str, nargs='+')
     pargs = parser.parse_args()
 
+    cfg["code_dir"] = pargs.code_dir
     BENCHTIME = pargs.time_budget
     cfg["datasets"] = pargs.datasets
 
