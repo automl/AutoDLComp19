@@ -35,6 +35,12 @@ def get_configspace():
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(name='selection.video.transformation_args.flip_factor', lower=0, upper=1, log=False)
     )
+    cs.add_hyperparameter(
+        CSH.UniformIntegerHyperparameter(name='tester_args.entropy_splits', lower=1, upper=5, log=False)
+    )
+    cs.add_hyperparameter(
+        CSH.UniformFloatHyperparameter(name='trainer_args.t_diff', lower=0.01, upper=0.05, log=False)
+    )
     return cs
 
 
@@ -48,7 +54,7 @@ def get_configuration():
     )
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
-    cfg["bohb_iterations"] = 5
+    cfg["bohb_iterations"] = 10
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',

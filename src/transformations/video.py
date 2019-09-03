@@ -116,13 +116,6 @@ def gpu_resize(model, dataset, transf_args):
     resize_factor = float(transf_args['resize_factor'])
     flip_factor = float(transf_args['flip_factor'])
 
-    print('???????????????????')
-    print(transf_args['use_gpu_resize'])
-    print(use_gpu_resize)
-    print(resize_factor)
-    print(flip_factor)
-    print('???????????????????')
-
     cpu_resize = (
         np.any(dataset.min_shape[1:] != dataset.max_shape[1:]) or not use_gpu_resize
     )

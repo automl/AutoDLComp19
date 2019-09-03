@@ -8,10 +8,11 @@ from utils import DEVICE, LOGGER
 
 
 class PolicyTrainer():
-    def __init__(self, validation_buffer, policy_fn=None):
+    def __init__(self, validation_buffer, policy_fn=None, **trainer_args):
         self.batch_counter = 0
         self.ele_counter = 0  # keep track of how many batches we trained on
         self.dloader = None
+        self.trainer_args = trainer_args
         self.validation_idxs = []
 
     def __call__(self, autodl_model, remaining_time, birthday):
@@ -45,7 +46,7 @@ class PolicyTrainer():
             t_diff = (transform_time_abs(time.time() - birthday)
                       - transform_time_abs(t_start - birthday))
 
-            if t_diff > 0.025:
+            if t_diff > self.trainer_args['t_diff']:
                 self.make_prediction = True
                 break
 

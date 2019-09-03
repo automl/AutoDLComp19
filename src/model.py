@@ -132,9 +132,8 @@ class Model(algorithm.Algorithm):
         self.selector = selection.Selector(self.config.selection)
 
         self.trainer = None
-        self.trainer_args = self.config.trainer_args if hasattr(
-            self.config, 'trainer_args'
-        ) else {}
+        self.trainer_args = getattr(self.config, 'trainer_args', {})
+        print(self.trainer_args)
 
         self.tester = None
         self.tester_args = self.config.tester_args if hasattr(self.config,
@@ -178,7 +177,9 @@ class Model(algorithm.Algorithm):
             for k, v in d.items():
                 if isinstance(v, OrderedDict):
                     walk_dict(v, side_conf, p + k + '.')
-                elif p + k in side_conf and isinstance(d[k], type(side_conf[p + k])):
+                elif p + k in side_conf:
+                    print('Overriding ' + k)
+                    print(side_conf[p + k])
                     d[k] = side_conf[p + k]
 
         with open(sideload_conf_path, 'r') as file:
@@ -186,7 +187,7 @@ class Model(algorithm.Algorithm):
 
         walk_dict(self.config.__dict__, side_conf)
 
-    def benchmark_transofrmations(self):
+    def benchmark_transformations(self):
         raise NotImplementedError
         LOGGER.debug('STARTING TRANSFORMATION BENCHMARK')
         if self.transform_sample is None:
@@ -322,7 +323,7 @@ class Model(algorithm.Algorithm):
             )
 
         if self.config.benchmark_transformations:
-            self.benchmark_transofrmations()
+            self.benchmark_transformations()
         if self.config.check_for_shuffling:
             self.check_for_shuffling(ds_temp)
 

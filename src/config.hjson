@@ -52,7 +52,12 @@
     validation_buffer: 0, # The intent is to seamlessly collect batches
                           # during training in a buffer for later use
                           # and skip them if seen again
+    t_diff: 0,
   },
+
+  tester_args: {
+    entropy_splits: 0,
+  }
 
 ###############################################################################
 # Beyond this point come specialized configurations
@@ -80,8 +85,8 @@
         lr: 0.001,
       }
       transformations: 'gpu_resize', # Name of the function in transformations.video
-                                              # augmenting the model and returning transformations
-                                              # for the datasets to use
+                                     # augmenting the model and returning transformations
+                                     # for the datasets to use
       # If the chosen function needs additional agruments, specify them here
       transformation_args: {
         use_gpu_resize: 'True',
@@ -89,7 +94,7 @@
         flip_factor: 0.4
       },
       policy_args: { # This will be passed on expanded
-        t_diff: 0.02,
+        t_diff: 0.01,
       },
       train_loader_args: {
         batch_size: 32, # Will be automatically adjusted if too big
@@ -99,6 +104,6 @@
         batch_size: 128, # Will be automatically adjusted if too big
         pin_memory: true,
       }
-    },
+    }
   }
 }

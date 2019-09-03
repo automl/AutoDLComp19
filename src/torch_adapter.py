@@ -32,8 +32,8 @@ class TFDataset(Dataset):
         self.max_shape = None
         self.median_shape = None
         self.is_multilabel = None
-
-        self.current_idx = 0
+        self.entropy_idx = None
+        self.entropy_idx_idx = 0
 
         self.next_element = None
         self.reset()
@@ -43,11 +43,17 @@ class TFDataset(Dataset):
 
     def __getitem__(self, _):
         try:
+            if self.entropy_idx is not None:
+                idx = self.entropy_idx[self.entropy_idx_idx]
+                self.entropy_idx_idx += 1
+                while self.current_idx != idx:
+                    example, label = self._tf_exec(self.next_element)
+                    self.current_idx += 1
             example, label = self._tf_exec(self.next_element)
             self.current_idx += 1
             # example = torch.as_tensor(example)
             # label = torch.as_tensor(example)
-        except tf.errors.OutOfRangeError:
+        except (tf.errors.OutOfRangeError, IndexError):
             self.reset()
             raise StopIteration
 
@@ -63,11 +69,16 @@ class TFDataset(Dataset):
         # Nice try but ingestion doesn't play nice with eager execution
         return args if tf.executing_eagerly() else self.session.run(args)
 
+    def _set_entropy_idx(self, entropy_idx):
+        self.entropy_idx = np.sort(entropy_idx)
+
     def reset(self):
         dataset = self.dataset
         iterator = dataset.make_one_shot_iterator()
         self.next_element = iterator.get_next()
         self.current_idx = 0
+        self.entropy_idx_idx = 0
+        self.entropy_idx = None
         return self
 
     def scan_all(self, max_samples=None):
@@ -198,6 +209,9 @@ class TFDataLoader(object):
         self.batch_sampler = torch.utils.data.sampler.BatchSampler(
             self.sampler, self.batch_sampler.batch_size, val
         )
+
+    def set_entropy_idx(self, entropy_idx):
+        self.dataset._set_entropy_idx(entropy_idx)
 
     def __iter__(self):
         return _TFDataLoaderIter(self)
