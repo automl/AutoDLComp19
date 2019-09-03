@@ -335,14 +335,7 @@ def plot_learning_curve(
         plt.clf()
     if fig is None or len(fig.axes) == 0:
         fig = plt.figure(figsize=(7, 7.07))
-        # Add a point on the final line using last prediction
-        # Compute AUC using step function rule or trapezoidal rule
-        # Plot the major part of the figure: the curve
         ax = fig.add_subplot(111)
-        # ax.set_label(model_name + " ALC={:.4f}".format(alc))
-        # Fill area under the curve
-        # Show the latest/final score
-        # Draw a dotted line from last prediction
         plt.title("Learning curve for task: {}".format(task_name), y=1.06)
         ax.set_xlabel(xlabel)
         ax.set_xlim(left=0, right=1)
@@ -374,7 +367,7 @@ def plot_learning_curve(
     # Add a point on the final line using last prediction
     X.append(1)
     Y.append(Y[-1])
-
+    # Compute AUC using step function rule or trapezoidal rule
     alc = auc_func(X, Y)
     if model_name:
         label = "{}: ALC={:.4f}".format(model_name, alc)
