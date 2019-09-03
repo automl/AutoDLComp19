@@ -93,6 +93,7 @@ Previous updates:
 verbosity_level = 'INFO'
 
 import argparse
+import atexit
 import datetime
 import glob
 import logging
@@ -185,9 +186,18 @@ class BadPredictionShapeError(Exception):
     pass
 
 
+def shutdown(output_dir, score_dir):
+    logger.info('Shutting down ingestion.')
+    # Copy all files in output_dir to score_dir
+    os.system("cp -R {} {}".format(os.path.join(output_dir, '*'), score_dir))
+    logger.debug("Copied all ingestion output to scoring output directory.")
+    logger.info("[Ingestion terminated]")
+
+
 # =========================== BEGIN PROGRAM ================================
 def main(args):
     #### Check whether everything went well
+    atexit.register(shutdown, args.output_dir, args.score_dir)
     ingestion_success = True
     start = time.time()
     dataset_dir = args.dataset_dir
@@ -364,16 +374,9 @@ def main(args):
             logger.info("[-] Done, but encountered some errors during ingestion.")
             logger.info("[-] Overall time spent %5.2f sec " % overall_time_spent)
 
-    # Copy all files in output_dir to score_dir
-    os.system("cp -R {} {}".format(os.path.join(output_dir, '*'), score_dir))
-    logger.debug("Copied all ingestion output to scoring output directory.")
-    shutil.rmtree(output_dir)
-    logger.debug("Purged ingestion output dir.")
-
-    logger.info("[Ingestion terminated]")
-
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, sigHandler)
     # Mark starting time of ingestion
     logger.info(
         "=" * 5 + " Start ingestion program. " + "Version: {} ".format(VERSION) + "=" * 5

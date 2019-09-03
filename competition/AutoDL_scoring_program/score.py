@@ -75,10 +75,12 @@ Previous updates:
 verbosity_level = 'INFO'
 
 import argparse
+import atexit
 import base64
 import datetime
 import os
 import shutil
+import signal
 import sys
 import time
 from os.path import join
@@ -964,10 +966,22 @@ class Evaluator(object):
         img.save(os.path.join(self.score_dir, 'final_score.png'))
 
 
+def shutdown(evaluator):
+    logger.info('Shutting down scoring.')
+    evaluator.write_final_score_to_file()
+    evaluator.delete_prediction_dir()
+    evaluator.kill_ingestion()
+
+
+def sigHandler(sig_no, sig_frame):
+    logger.info('Received Signal {}'.format(sig_no))
+    sys.exit(0)
+
+
 # =============================== MAIN ========================================
 
 if __name__ == "__main__":
-
+    signal.signal(signal.SIGTERM, sigHandler)
     # Default I/O directories:
     root_dir = _HERE(os.pardir)
     default_solution_dir = join(root_dir, "AutoDL_sample_data")
@@ -1017,7 +1031,7 @@ if __name__ == "__main__":
 
     ingestion_start = evaluator.ingestion_start
     time_budget = evaluator.time_budget
-
+    atexit.register(shutdown, evaluator)
     try:
         while (time.time() < ingestion_start + time_budget):
             if evaluator.end_file_generated():
@@ -1044,7 +1058,6 @@ if __name__ == "__main__":
         logger.error("[-] Error occurred in scoring:\n" + str(e), exc_info=True)
 
     evaluator.score_new_predictions()
-    evaluator.write_final_score_to_file()
 
     logger.info("Final area under learning curve for {}: {:.4f}"\
                         .format(evaluator.task_name, evaluator.learning_curve.get_alc()))
@@ -1077,11 +1090,10 @@ if __name__ == "__main__":
             )
         else:  # Less probable to fall in this case
             if evaluator.ingestion_is_alive():
-                evaluator.kill_ingestion()
-            logger.error(
-                "[-] No 'end.txt' file is produced by ingestion. " +
-                "Ingestion or scoring may have not terminated normally."
-            )
+                logger.error(
+                    "[-] No 'end.txt' file is produced by ingestion. " +
+                    "Ingestion or scoring may have not terminated normally."
+                )
     else:
         with open(end_filepath, 'r') as f:
             end_info_dict = yaml.safe_load(f)
@@ -1101,8 +1113,6 @@ if __name__ == "__main__":
                                 "The score of your algorithm on the task '{}' is: {:.6f}."\
                                 .format(evaluator.task_name,
                                                 evaluator.learning_curve.get_alc()))
-    evaluator.delete_prediction_dir()
-    evaluator.kill_ingestion()
     logger.info(
         "Detected time budget is used up. Killed ingestion and " +
         "terminating scoring..."
