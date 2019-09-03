@@ -16,6 +16,7 @@ dependencies:
   - numpy
   - cython
   - pip
+  - zip
   - pip:
     - pre-commit
     - tensorflow-gpu==1.13.1

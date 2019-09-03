@@ -1,54 +1,115 @@
 {
-  # General
-  modality: image
-  model_dir: models
-
   # Codalab submission
-  is_codalab_submission: false
-  extra_packages: [
-    .miniconda/envs/autodl/lib/python3.5/site-packages/hjson
-  ]
-  active_model_files: [  # With respect to model_dir
-    resnet18-5c106cde
-  ]
+  include: {
+    packages: { # Packages and files listed here are always assumed to lie in the
+                # currently used site-packages folder. If an entry is a folder
+                # the whole folder gets added to the zip
+      apex: [
+        apex
+        apex-0.1-py3.5.egg-info
+        amp_C.cpython-35m-x86_64-linux-gnu.so
+        apex_C.cpython-35m-x86_64-linux-gnu.so
+        fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
+        fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
+        syncbn.cpython-35m-x86_64-linux-gnu.so
+      ]
+    },
+    pretrained_weights: [ # List the pretrained weight you want packsubmission.py to include
+      # BnT_Video_input_128.pth.tar
+      Averagenet_RGB_Kinetics_128.pth.tar
+      resnet18-5c106cde.pth
+    ]
+  },
 
-  # Execution
-  num_epochs_we_want_to_train: 200
-  dataset_split_ratio: [0.9, 0.1]
+  # Automatic mixed precision ops from the apex module
+  use_amp: false,
+  amp_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
+    opt_level: "O2" # O0 is normal learning and apex does nothing
+    keep_batchnorm_fp32: true,
+    loss_scale: "dynamic"
+  },
 
-  # Preprocessing
-  default_num_frames: 10
-  default_shuffle_buffer: 100
+  # General
+  log_level: 'DEBUG',
+  profile_mem: false,
+  tensorboard: false,
+  earlystop: 300, # How many seconds shall we ingest
 
-  # Model construction
-  model: resnet18
-  pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
+  # Testing/Benchmarking
+  check_for_shuffling: false,
+  benchmark_loading_and_transformations: false,
+  benchmark_time_till_first_prediction: false,
 
-  # Finetuning
-  finetune_all: true
-  finetune_first_j: 0
-  finetune_last_k: 1  # This includes the final output layer
 
-  # Predictions
-  use_prediction_thresholding: true
-  prediction_threshold: 0.6
+  # CUDNN
+  cudnn_benchmark: true,
+  cudnn_deterministic: false # negatively affects performance, only use for testing
 
-  # Mixed Precision
-  include_mixed_precision: true # Tells the competition.py to include the mixed precision package or not
-  mixed_precision_package: [
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex-0.1-py3.5.egg-info
-    .miniconda/envs/autodl/lib/python3.5/site-packages/amp_C.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/apex_C.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
-    .miniconda/envs/autodl/lib/python3.5/site-packages/syncbn.cpython-35m-x86_64-linux-gnu.so
-  ]
-  mixed_precision_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
-    opt_level: "O1" # O0 is normal learning and apex does nothing
+  # SEEDS
+  tf_seed: 42,
+  np_random_seed: 42,
+  torch_manual_seed: 42,
+  torch_cuda_manual_seed_all: 42,
+
+  # Trainer args
+  trainer_args: {
+    # The intent is to seamlessly collect batches
+    # during training in a buffer for later use
+    # and skip them if seen again
+    # validation_buffer: 0,
+  },
+  tester_args: {
+    # Caches the dataset during the first
+    # testing round to increase speed of
+    # subsequent testing (hogs a lot of ram)
+    use_cache: true,
+  },
+
+###############################################################################
+# Beyond this point come specialized configurations
+###############################################################################
+  selection: { # This will be passed on not expanded
+    image: {
+      max_size: 128, # maximum resolution to resize the input images/frames
+      base: 16, # in case the H != W scale them as multiple of 16
+      freeze_portion: 0.0, # freezes a image network's first percent of layers
+      dropout: 0.3,
+      optimizer: 'SGD',
+      optim_args: {
+        lr: 0.025,
+        weight_decay: 0.001,
+        momentum: 0.9,
+      }
+    },
+    video: {
+      segment_coeff: 10, # num_segemts = frame_count / segment_coeff
+      freeze_portion: 0.7, # freezes a video network's first percent of layers
+      modality: 'RGB',
+      dropout: 0.1, # on average net this only controls alphadrop sitting on the outputlayer
+      optimizer: 'Adam',
+      optim_args: {
+        lr: 0.001,
+      },
+      # Name of the function in transformations.video
+      # augmenting the model and returning transformations
+      # for the datasets to use
+      transformation: 'resize_normal_seg_selection',
+
+      # If the chosen function needs additional agruments, specify them here
+      transformation_args: {
+        crop_size: 0.7, # Random crop with size in percent
+      },
+      policy_args: { # This will be passed on expanded
+        t_diff: 0.02,
+      },
+      train_loader_args: {
+        batch_size: 16, # Will be automatically adjusted if too big
+        pin_memory: true,
+      }
+      test_loader_args: {
+        batch_size: 32, # Will be automatically adjusted if too big
+        pin_memory: true,
+      }
+    },
   }
-
-  # Training Hyperparameters
-  batch_size: 128
-  lr: 1e-3
 }
