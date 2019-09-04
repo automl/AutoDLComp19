@@ -43,6 +43,7 @@ import argparse
 import atexit
 import logging
 import os
+import platform
 import shutil  # for deleting a whole directory
 import signal
 import sys
@@ -124,7 +125,23 @@ def run_baseline(dataset_dir, code_dir, score_subdir, time_budget=1200):
     remove_dir(ingestion_output_dir)
     remove_dir(score_dir)
 
-    sp = psutil.Popen([*command_scoring.split(' ')], shell=False)
+    # Spawn score.py independently so it doesn't get affected by OOM-Kill
+    # if ingestions runs out of memory
+    kwargs = {}
+    if platform.system() == 'Windows':
+        # from msdn https://docs.microsoft.com/en-gb/windows/win32/procthread/process-creation-flags
+        CREATE_NEW_PROCESS_GROUP = 0x00000200  # note: could get it from subprocess
+        DETACHED_PROCESS = 0x00000008  # 0x8 | 0x200 == 0x208
+        kwargs.update(creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+    elif sys.version_info < (3, 2):  # assume posix
+        kwargs.update(preexec_fn=os.setsid)
+    else:  # Python 3.2+ and Unix
+        kwargs.update(start_new_session=True)
+    PIPE = psutil.subprocess.PIPE
+    sp = psutil.Popen(
+        [*command_scoring.split(' ')], stdin=PIPE, stdout=PIPE, stderr=PIPE, **kwargs
+    )
+
     logging.info('Started score.py with PID \033[92m{}\033[0m'.format(sp.pid))
     atexit.register(
         kill_if_alive, sp, 'Terminating scoring process \033[92m{}\033[0m'.format(sp.pid)
