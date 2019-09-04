@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+import atexit
 import json
 import os
 import random
+import signal
+import sys
 import time
 import traceback
 from os.path import abspath, join
@@ -16,21 +20,49 @@ from hpbandster.optimizers import BOHB as BOHB
 from utils import BASEDIR
 
 
+def sigHandler(sig_no, sig_frame):
+    sys.exit(0)
+
+
+def shutdown():
+    path = join(BASEDIR, 'sideload_config.json')
+    os.remove(path)
+
+
 def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(
-            name='freeze_portion', lower=0.1, upper=0.9, log=False
+            name='selection.video.segment_coeff', lower=10, upper=50, log=False
         )
     )
     cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='dropout', lower=0.1, upper=0.9, log=False)
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.freeze_portion', lower=0.1, upper=0.9, log=False
+        )
     )
     cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='lr', lower=1e-9, upper=1e-2, log=True)
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.dropout', lower=0.1, upper=0.9, log=False
+        )
     )
     cs.add_hyperparameter(
-        CSH.CategoricalHyperparameter(name='optimizer', choices=['SGD', 'Adam'])
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.optim_args.lr', lower=1e-9, upper=1e-2, log=True
+        )
+    )
+    cs.add_hyperparameter(
+        CSH.CategoricalHyperparameter(
+            name='selection.video.optimizer', choices=['SGD', 'Adam']
+        )
+    )
+    cs.add_hyperparameter(
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.transformation_args.crop_size',
+            lower=0.4,
+            upper=0.9,
+            log=False
+        )
     )
     return cs
 
@@ -40,14 +72,14 @@ def get_configuration():
     cfg["dataset_base_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_public_data')
     )
-    cfg["datasets"] = ['Ucf101']  # , 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
+    cfg["datasets"] = ['Ucf101', 'Kraut', 'Kreatur']  # , 'Decal', 'Hammer']
     cfg["code_dir"] = BASEDIR
     cfg["score_dir"] = abspath(
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
     )
-    cfg["bohb_min_budget"] = 240
-    cfg["bohb_max_budget"] = 240
-    cfg["bohb_iterations"] = 20
+    cfg["bohb_min_budget"] = 180
+    cfg["bohb_max_budget"] = 600
+    cfg["bohb_iterations"] = 100
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',
@@ -74,11 +106,16 @@ def create_function_call(cfg, budget, subdir):
     return fc
 
 
-def read_final_score_from_file(path):
+def read_final_score_from_file(path, timeout=10):
     path = join(path, 'final_score.txt')
-
-    with open(path, "r") as file:
-        score = float(file.read())
+    t_s = time.time()
+    while time.time() - t_s < timeout:
+        try:
+            with open(path, "r") as file:
+                score = float(file.read())
+            break
+        except FileNotFoundError:
+            pass
 
     return score
 
@@ -173,5 +210,7 @@ def runBOHB(cfg):
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, sigHandler)
+    atexit.register(shutdown)
     cfg = get_configuration()
     res = runBOHB(cfg)
