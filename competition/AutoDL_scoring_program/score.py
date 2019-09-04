@@ -665,6 +665,8 @@ class Evaluator(object):
         """Initialize learning curve page with a message for waiting."""
         # Create the output directory, if it does not already exist
         if not os.path.isdir(self.score_dir):
+            if os.path.isfile(self.score_dir):
+                os.remove(self.score_dir)
             os.mkdir(self.score_dir)
         # Initialize detailed_results.html (learning curve page)
         detailed_results_filepath = os.path.join(self.score_dir, 'detailed_results.html')
@@ -961,6 +963,8 @@ class Evaluator(object):
 
 def shutdown(evaluator):
     logger.info('Shutting down scoring.')
+    evaluator.write_scores_html(auto_refresh=False)
+    evaluator.score_new_predictions()
     evaluator.write_final_score_to_file()
     evaluator.delete_prediction_dir()
     evaluator.kill_ingestion()
