@@ -16,7 +16,9 @@ class DefaultPredictor():
         self.test_time = 0
         self.test_cache = None
         self.use_cache = None if use_cache else False
-        self.cache_size = 0  # in number of elements stored
+        self.use_float16_cache = False
+        self._cache_size = 0  # in number of elements stored
+        self._target_type = None
 
     @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
@@ -44,7 +46,7 @@ class DefaultPredictor():
                 )
             )
             batch_loading_time = 0
-            i = -1
+            si = 0
             load_start = time.time()
             for i, (data, _) in e:
                 batch_loading_time += time.time() - load_start
@@ -63,14 +65,15 @@ class DefaultPredictor():
                     ele_mem_size = (data.element_size() * data.nelement()) / batch_size
                     available_mem = psutil.virtual_memory().available - KEEP_AVAILABLE
                     max_count = available_mem / ele_mem_size
-                    self.cache_size = max_count
-                    self.use_cache = True
+                    self._target_type = autodl_model.model.dtype
+                    self._cache_size = max_count
+                    self.use_cache = max_count > num_samples
                 if self.use_cache and self.test_cache is None:
                     if temp_cache is None:
                         # Preallocate space for the data
                         temp_cache = torch.empty(
                             (num_samples, *data.size()[1:]),
-                            dtype=data.dtype,
+                            dtype=self._target_type,
                             pin_memory=True
                         )
                         LOGGER.debug(
@@ -78,13 +81,14 @@ class DefaultPredictor():
                                 temp_cache.element_size() * temp_cache.nelement() / MB
                             )
                         )
-                    si = (i - 1) * batch_size
-                    temp_cache[si:si + data.size()[0]] = data
+                    temp_cache[si * batch_size:si * batch_size + data.size()[0]] = data
+                    si += 1
                 load_start = time.time()
             if i >= 0:
-                i += 1
                 LOGGER.debug(
-                    'SEC PER BATCH LOADING:\t{0:.4f}'.format(batch_loading_time / i)
+                    'SEC PER BATCH LOADING:\t{0:.4f}'.format(
+                        batch_loading_time / (i + 1)
+                    )
                 )
         if self.use_cache and self.test_cache is None:
             # assert(not torch.any(torch.isnan(temp_cache)))

@@ -1,0 +1,3 @@
+ingestion_duration: 305.2955331802368
+ingestion_success: 1
+end_time: 1567603036.0490458
