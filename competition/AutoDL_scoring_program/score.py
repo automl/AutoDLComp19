@@ -1027,6 +1027,8 @@ if __name__ == "__main__":
     atexit.register(shutdown, evaluator)
     try:
         while (time.time() < ingestion_start + time_budget):
+            if not evaluator.ingestion_is_alive():
+                break
             if evaluator.end_file_generated():
                 logger.info(
                     "Detected ingestion program had stopped running " +
