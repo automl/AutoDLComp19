@@ -35,7 +35,6 @@ import torch
 import torch.cuda as cutorch
 import training
 import utils
-from tests import _benchmark_loading_and_transformations, _check_for_shuffling
 from torch_adapter import TFAdapterSet, TFDataset
 from utils import BASEDIR, DEVICE, LOGGER, MB, BSGuard, memprofile
 
@@ -271,12 +270,6 @@ class Model(algorithm.Algorithm):
             self.loss_fn = partial(
                 amp_loss, loss_fn=self.loss_fn, optimizer=self.optimizer
             )
-        if self.config.check_for_shuffling:
-            _check_for_shuffling(self, ds_temp)
-            exit(0)
-        if self.config.benchmark_loading_and_transformations:
-            _benchmark_loading_and_transformations(self, ds_temp)
-            exit(0)
 
     def _init_test(self, dataset, remaining_time_budget):
         self._tf_test_set = dataset
