@@ -3,7 +3,7 @@ import time
 import numpy as np
 import psutil
 import torch
-from utils import DEVICE, GB, LOGGER, MB, memprofile
+from utils import DEVICE, KEEP_AVAILABLE, LOGGER, MB, memprofile
 
 
 class DefaultPredictor():
@@ -16,6 +16,7 @@ class DefaultPredictor():
         self.test_time = 0
         self.test_cache = None
         self.use_cache = None if use_cache else False
+        self.cache_size = 0  # in number of elements stored
 
     @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
@@ -54,11 +55,16 @@ class DefaultPredictor():
                 predictions += output.cpu().tolist()
                 i += 1
                 if self.use_cache is None:
+                    # TODO(Philipp): If not enough RAM is available determine max cache size n
+                    # and fill it with the last n elements. Adapt prediction for it and
+                    # pay attention to the batch_size which might change
+                    # TODO(Philipp): Test saving the batches as float16 if not enough mem is
+                    # available
                     ele_mem_size = (data.element_size() * data.nelement()) / batch_size
-                    # Inflate estimated ram-usage by 1 GB to not hog all memory available
-                    available_mem = psutil.virtual_memory().available - 1 * GB
+                    available_mem = psutil.virtual_memory().available - KEEP_AVAILABLE
                     max_count = available_mem / ele_mem_size
-                    self.use_cache = max_count > num_samples * 1.1
+                    self.cache_size = max_count
+                    self.use_cache = True
                 if self.use_cache and self.test_cache is None:
                     if temp_cache is None:
                         # Preallocate space for the data

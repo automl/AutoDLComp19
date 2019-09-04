@@ -4,8 +4,8 @@ import numpy as np
 import psutil
 import torch
 from utils import (  # noqa: F401
-    DEVICE, GB, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN, VALIDATE,
-    memprofile, metrics, transform_time_abs
+    DEVICE, KEEP_AVAILABLE, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN,
+    VALIDATE, memprofile, metrics, transform_time_abs
 )
 
 
@@ -58,7 +58,7 @@ class PolicyTrainer():
         data_mem_size = (data.element_size() * data.nelement())
         labels_mem_size = (labels.element_size() * labels.nelement())
         # Inflate estimated ram-usage by 3 GB to not hog all memory available
-        available_mem = psutil.virtual_memory().available - 3 * GB
+        available_mem = psutil.virtual_memory().available - KEEP_AVAILABLE
         if self.preserve_ram_for_nele > 0 and self.training_round <= 0:
             # If no prediction has been made and the test cache is enabled
             # reserve sufficient space for it

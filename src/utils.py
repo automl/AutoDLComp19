@@ -31,6 +31,7 @@ TRAIN = (False, False)
 KB = 1024
 MB = 1024**2
 GB = 1025**3
+KEEP_AVAILABLE = 3 * GB
 
 
 class Config:
