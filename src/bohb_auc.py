@@ -33,21 +33,6 @@ def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(
-            name='selection.video.segment_coeff', lower=10, upper=50, log=False
-        )
-    )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(
-            name='selection.video.freeze_portion', lower=0.1, upper=0.9, log=False
-        )
-    )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(
-            name='selection.video.dropout', lower=0.1, upper=0.9, log=False
-        )
-    )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(
             name='selection.video.optim_args.lr', lower=1e-9, upper=1e-2, log=True
         )
     )
@@ -57,10 +42,15 @@ def get_configspace():
         )
     )
     cs.add_hyperparameter(
+        CSH.CategoricalHyperparameter(
+            name='selection.video.optim_args.nesterov', choices=[True, False]
+        )
+    )
+    cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(
-            name='selection.video.transformation_args.crop_size',
-            lower=0.4,
-            upper=0.9,
+            name='selection.video.optim_args.weight_decay',
+            lower=1e-2,
+            upper=0.99,
             log=False
         )
     )
@@ -109,6 +99,7 @@ def create_function_call(cfg, budget, subdir):
 def read_final_score_from_file(path, timeout=10):
     path = join(path, 'final_score.txt')
     t_s = time.time()
+    score = 0.
     while time.time() - t_s < timeout:
         try:
             with open(path, "r") as file:
@@ -139,6 +130,9 @@ class BOHBWorker(Worker):
 
         score = 0
         info = {}
+        # if config['selection.video.optimizer'] == 'Adam':
+        #     config['selection.video.optim_args.nesterov'] = False
+        #     config['selection.video.optim_args.weight_decay'] = 0.
 
         for dataset in cfg["datasets"]:
             cfg["dataset_dir"] = join(cfg["dataset_base_dir"], dataset)
