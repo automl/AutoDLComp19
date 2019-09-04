@@ -112,7 +112,7 @@ class PolicyTrainer():
     def _train(self, i, autodl_model, data, labels):
         # Train on a batch if we re good to go
         # Copy data to DEVICE for training
-        data = data.to(DEVICE, non_blocking=True)
+        data = data.to(DEVICE, dtype=torch.float32, non_blocking=True)
         labels = labels.to(DEVICE, non_blocking=True)
         out, loss = train_step(
             autodl_model.model, autodl_model.loss_fn, data, labels,
@@ -148,7 +148,7 @@ class PolicyTrainer():
         v_start = time.time()
         llabels, lout, lloss = [], [], []
         for tdata, tlabels in self.validation_cache:
-            tdata = tdata.to(DEVICE, non_blocking=True)
+            tdata = tdata.to(DEVICE, dtype=torch.float32, non_blocking=True)
             tlabels = tlabels.to(DEVICE, non_blocking=True)
             tout, tloss = eval_step(
                 autodl_model.model, autodl_model.loss_fn, tdata, tlabels

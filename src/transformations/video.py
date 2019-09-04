@@ -446,7 +446,7 @@ class CPU():
             '''
             Returns SxCxHxW unnormalize (ie. [0-255])
             '''
-            x = np.array([np.array(e, dtype=np.float32) for e in x])
+            x = np.array([np.array(e) for e in x])
             if len(x.shape) < 4:
                 # Only have a single frame, ie. it's an image
                 x = np.expand_dims(x, -1)
