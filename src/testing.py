@@ -3,7 +3,7 @@ import time
 import numpy as np
 import psutil
 import torch
-from utils import DEVICE, KEEP_AVAILABLE, LOGGER, MB, memprofile
+from utils import DEVICE, KEEP_AVAILABLE, LOGGER, MB, memprofile, print_vram_usage
 
 
 class DefaultPredictor():
@@ -16,7 +16,6 @@ class DefaultPredictor():
         self.test_time = 0
         self.test_cache = None
         self.use_cache = None if use_cache else False
-        self._cache_size = 0  # in number of elements stored
 
     @memprofile(precision=2)
     def __call__(self, autodl_model, remaining_time):
@@ -61,7 +60,6 @@ class DefaultPredictor():
                     ele_mem_size = (data.element_size() * data.nelement()) / batch_size
                     available_mem = psutil.virtual_memory().available - KEEP_AVAILABLE
                     max_count = available_mem / ele_mem_size
-                    self._cache_size = max_count
                     self.use_cache = max_count > num_samples
                 if self.use_cache and self.test_cache is None:
                     if temp_cache is None:
@@ -71,20 +69,25 @@ class DefaultPredictor():
                             dtype=data.dtype,
                             pin_memory=True
                         )
+
                         LOGGER.debug(
                             'ALLOCATED {0:.2f} MB TO CACHE TEST DATA'.format(
                                 temp_cache.element_size() * temp_cache.nelement() / MB
                             )
                         )
+
                     temp_cache[si * batch_size:si * batch_size + data.size()[0]] = data
                     si += 1
                 load_start = time.time()
+
+            print_vram_usage()
             if i >= 0:
                 LOGGER.debug(
                     'SEC PER BATCH LOADING:\t{0:.4f}'.format(
                         batch_loading_time / (i + 1)
                     )
                 )
+
         if self.use_cache and self.test_cache is None:
             # assert(not torch.any(torch.isnan(temp_cache)))
             self.test_cache = temp_cache

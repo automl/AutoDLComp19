@@ -38,11 +38,6 @@
   # General
   earlystop: 300.1, # How many seconds shall we ingest
 
-  # Testing/Benchmarking
-  check_for_shuffling: false,
-  benchmark_loading_and_transformations: false,
-  benchmark_time_till_first_prediction: false,
-
   # CUDNN
   cudnn_benchmark: true,
   cudnn_deterministic: false # negatively affects performance, only use for testing
@@ -88,8 +83,11 @@
       dropout: 0.8799, # on average net this only controls alphadrop sitting on the outputlayer
       optimizer: 'Adam',
       optim_args: {
-        # Adam
+        # Adam + SGD
         lr: 0.00148,
+        # SGD only
+        # weight_decay: 0.001,
+        # nesterov: true,
       },
       # Name of the function in transformations.video
       # augmenting the model and returning transformations

@@ -33,20 +33,17 @@ class Selector(object):
 
     def _determin_modality(self, dataset):
         if isinstance(dataset, list):
-            LOGGER.info("DETERMINED MODALITY: NLP")
+            LOGGER.info('DETERMINED MODALITY: NLP')
             return 'nlp'
         if dataset.mean_shape[0] == 1:
-            LOGGER.info("DETERMINED MODALITY: IMAGE")
+            LOGGER.info('DETERMINED MODALITY: IMAGE')
             return 'image'
         if dataset.mean_shape[0] > 1:
-            LOGGER.info("DETERMINED MODALITY: VIDEO")
+            LOGGER.info('DETERMINED MODALITY: VIDEO')
             return 'video'
         raise NotImplementedError
 
     def select(self, autodl_model, dataset):
-        LOGGER.info("TRAIN SET LENGTH: {0}".format(dataset.num_samples))
-        LOGGER.info("INPUT SHAPE MEDIAN: {0}".format(dataset.median_shape))
-        LOGGER.info("IS MULTILABEL: {0}".format(dataset.is_multilabel))
         modality = self._determin_modality(dataset)
         conf = self.conf.pop(modality)
         conf.update(
@@ -59,6 +56,16 @@ class Selector(object):
                 }
             )
         )
+
+        LOGGER.info(
+            (
+                '###################################\n'
+                'TRAIN SET LENGTH: {}\n'
+                'INPUT SHAPE MEDIAN: {}\n'
+                'IS MULTILABEL: {}'
+            ).format(dataset.num_samples, dataset.median_shape, dataset.is_multilabel)
+        )
+
         return getattr(self, modality)(autodl_model, dataset, conf)
 
     def image(self, autodl_model, dataset, conf):
@@ -67,9 +74,14 @@ class Selector(object):
         kakaomodel = torch.hub.load(
             'kakaobrain/autoclint', 'KakaoModel', autodl_model.metadata, add_args=conf
         )
-        LOGGER.info('LETTING SOMEONE ELSE FLY OUR BANANA PLANE!')
-        LOGGER.info('BRACE FOR IMPACT!')
-        LOGGER.info('AND REMEMBER THAT I AM NOT RESPONSABLE!')
+        LOGGER.info(
+            (
+                '###################################\n'
+                'LETTING SOMEONE ELSE FLY OUR BANANA PLANE!\n'
+                'BRACE FOR IMPACT!\n'
+                'AND REMEMBER THAT I AM NOT RESPONSABLE!'
+            )
+        )
 
         autodl_model.train = EarlyStop(kakaomodel.train, autodl_model)
         autodl_model.test = EarlyStop(kakaomodel.test, autodl_model)
@@ -111,16 +123,6 @@ class Selector(object):
         # which might help on big test datasets
         policy = adaptive_policy
 
-        LOGGER.info(
-            'FROZEN LAYERS:\t{}/{}'.format(
-                len([x for x in model.parameters() if not x.requires_grad]),
-                len([x for x in model.parameters()])
-            )
-        )
-        LOGGER.info('NUM_SEGMENTS:\t{0}'.format(model.num_segments))
-        LOGGER.info('DROPOUT:\t\t{0:.4g}'.format(model.dropout))
-        LOGGER.info('LR:\t\t\t{0:.5e}'.format(optimizer.param_groups[0]['lr']))
-
         # Create an update dictionary for the autodl_model
         # this will update the autodl_model attributes which
         # are used to create the dataloaders
@@ -145,6 +147,23 @@ class Selector(object):
             'test_loader_args':
                 conf['test_loader_args'] if 'test_loader_args' in conf else {}
         }
+
+        LOGGER.info(
+            (
+                '###################################\n'
+                'FROZEN LAYERS:\t{}/{}\n'
+                'NUM_SEGMENTS:\t{}\n'
+                'DROPOUT:\t{:.4g}\n'
+                'LR:\t\t{:.5e}'
+            ).format(
+                len([x for x in model.parameters() if not x.requires_grad]),
+                len([x for x in model.parameters()]),
+                model.num_segments,
+                model.dropout,
+                optimizer.param_groups[0]['lr'],
+            )
+        )
+
         return updated_attr
 
     def nlp(self, autodl_model, dataset, conf):

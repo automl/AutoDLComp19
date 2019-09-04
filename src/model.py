@@ -1,4 +1,4 @@
-"""
+'''
 This class implements the 3 compulsory methods
 a submission is required to have namely __init__, train, test
 
@@ -17,7 +17,7 @@ multiple trainers/testers/
 
 NOTE:
 A hjson is a normal json but allows comments, so no black magic here.
-"""
+'''
 import json
 import os
 import threading
@@ -32,13 +32,12 @@ import selection
 import tensorflow as tf
 import testing
 import torch
-import torch.cuda as cutorch
 import training
 import utils
 from torch_adapter import TFAdapterSet, TFDataset
-from utils import BASEDIR, DEVICE, LOGGER, MB, BSGuard, memprofile
+from utils import BASEDIR, DEVICE, LOGGER, BSGuard, memprofile
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 # If apex's amp is available, import it and set a flag to use it
@@ -74,12 +73,12 @@ class Model(algorithm.Algorithm):
     def __init__(self, metadata):
         self.birthday = time.time()
         self.done_training = False
-        self.config = utils.Config(os.path.join(BASEDIR, "config.hjson"))
+        self.config = utils.Config(os.path.join(BASEDIR, 'config.hjson'))
         sideload_conf_path = os.path.join(BASEDIR, 'sideload_config.json')
         if os.path.isfile(sideload_conf_path):
             self.side_load_config(sideload_conf_path)
 
-        LOGGER.info("INIT START: " + str(time.time()))
+        LOGGER.info('INIT START: ' + str(time.time()))
         super(Model, self).__init__(metadata)
         # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
         # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
@@ -154,7 +153,7 @@ class Model(algorithm.Algorithm):
         self.test_time = []
 
         self._session = None
-        LOGGER.info("INIT END: {}".format(time.time()))
+        LOGGER.info('INIT END: {}'.format(time.time()))
 
     @property
     def session(self):
@@ -242,7 +241,7 @@ class Model(algorithm.Algorithm):
         }
         self.train_dl.dataset.__dict__.update(datashape)
         LOGGER.info(
-            'SETTING UP THE TRAINLOADER TOOK: {0:.4f} s'.format(time.time() - t_s)
+            'SETTING UP THE TRAINLOADER TOOK:\t{0:.4f} s'.format(time.time() - t_s)
         )
 
         ########## SETUP TRAINER
@@ -277,7 +276,9 @@ class Model(algorithm.Algorithm):
         ########## SETUP TESTLOADER
         t_s = time.time()
         self._setup_dataset(self._tf_test_set, 'test')
-        LOGGER.info('SETTING UP THE TESTLOADER TOOK: {0:.4f} s'.format(time.time() - t_s))
+        LOGGER.info(
+            'SETTING UP THE TESTLOADER TOOK:\t{0:.4f} s'.format(time.time() - t_s)
+        )
 
         ########## SETUP TESTER
         self.tester = testing.DefaultPredictor(**self.tester_args)
@@ -287,7 +288,7 @@ class Model(algorithm.Algorithm):
     def train(self, dataset, remaining_time_budget=None):
         train_start = time.time()
         self.current_remaining_time = remaining_time_budget
-        LOGGER.info("REMAINING TIME: {0:.2f}".format(remaining_time_budget))
+        LOGGER.info('REMAINING TIME:\t{0:.2f} s'.format(remaining_time_budget))
         if self.final_prediction_made:
             return
         dataset_changed = self._tf_train_set != dataset
@@ -296,30 +297,19 @@ class Model(algorithm.Algorithm):
             if self.model is None:
                 return
 
-        LOGGER.info('BATCH SIZE:\t\t{}'.format(self.train_dl.batch_size))
+        LOGGER.info('BATCH SIZE:\t{}'.format(self.train_dl.batch_size))
         train_start = time.time()
 
         self.trainer(self, remaining_time_budget)
 
-        LOGGER.info("TRAINING TOOK: {0:.6g}".format(time.time() - train_start))
-        LOGGER.info(
-            'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
-                np.mean(cutorch.memory_cached()) / MB
-            )
-        )
+        LOGGER.info('TRAINING TOOK:\t{0:.6g} s'.format(time.time() - train_start))
         self.train_time.append(time.time() - train_start)
 
     @memprofile(precision=2)
     def test(self, dataset, remaining_time_budget=None):
         test_start = time.time()
         self.current_remaining_time = remaining_time_budget
-        LOGGER.info("REMAINING TIME: {0:.2f}".format(remaining_time_budget))
-        if self.config.benchmark_time_till_first_prediction:
-            LOGGER.error(
-                'TIME TILL FIRST PREDICTION: {0}'.format(time.time() - self.birthday)
-            )
-            LOGGER.error('BATCHES PROCESSED: {0}'.format(self.trainer.batch_counter))
-            return None
+        LOGGER.info('REMAINING TIME:\t{0:.2f} s'.format(remaining_time_budget))
         if self.final_prediction_made:
             return None
         if self.make_final_prediction:
@@ -336,16 +326,11 @@ class Model(algorithm.Algorithm):
         if dataset_changed:
             self._init_test(dataset, remaining_time_budget)
 
-        LOGGER.info('BATCH SIZE: {}'.format(self.test_dl.batch_size))
+        LOGGER.info('BATCH SIZE:\t{}'.format(self.test_dl.batch_size))
 
         predictions = self.tester(self, remaining_time_budget)
 
-        LOGGER.info("TESTING TOOK: {0:.6g}".format(time.time() - test_start))
-        LOGGER.info(
-            'AVERAGE VRAM USAGE: {0:.2f} MB'.format(
-                np.mean(cutorch.memory_cached()) / MB
-            )
-        )
+        LOGGER.info('TESTING TOOK:\t{0:.6g}'.format(time.time() - test_start))
         LOGGER.info(30 * '#' + ' LET' 'S GO FOR ANOTHER ROUND ' + 30 * '#')
         self.test_time.append(time.time() - test_start)
         return predictions

@@ -160,6 +160,13 @@ except Exception:
             return inner_wrapper
 
 
+def print_vram_usage():
+    LOGGER.info(
+        'MAX VRAM ALLOCATED:\t{} MB'.format(torch.cuda.max_memory_allocated() / MB)
+    )
+    LOGGER.info('MAX VRAM CACHED:\t{} MB'.format(torch.cuda.max_memory_cached() / MB))
+
+
 def parse_cumem_error(err_str):
     mem_search = re.search(
         r'Tried to allocate ([0-9].*? [G|M])iB.*\; ([0-9]*.*? [G|M])iB free', err_str

@@ -5,20 +5,19 @@ import psutil
 import torch
 from utils import (  # noqa: F401
     DEVICE, KEEP_AVAILABLE, LOGDIR, LOGGER, PREDICT, PREDICT_AND_VALIDATE, SW, TRAIN,
-    VALIDATE, memprofile, metrics, transform_time_abs
+    VALIDATE, memprofile, metrics, print_vram_usage, transform_time_abs
 )
 
 
 class PolicyTrainer():
     def __init__(self, use_validation_cache, preserve_ram_for_nele=0, policy_fn=None):
         self.batch_counter = 0
-        self.ele_counter = 0  # keep track of how many frames we trained on
         self.training_round = 0
         self.last_batch_size = 0
         self.dloader = None
-        # How many elements to consider when allocating ram
-        # During the first training round
-        self.preserve_ram_for_nele = preserve_ram_for_nele
+
+        # Default policy
+        self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
 
         # Validation cache
         self.use_validation_cache = use_validation_cache
@@ -29,9 +28,23 @@ class PolicyTrainer():
         self.validation_class_dis = None
         self.validation_cache_valid = False
         self.validate = False
+        # How many elements to consider when allocating ram
+        # During the first training round
+        self.preserve_ram_for_nele = preserve_ram_for_nele
 
-        # Default policy
-        self.check_policy = grid_check_policy(0.02) if policy_fn is None else policy_fn
+    def _get_batch_class_dist(self, labels):
+        if self.dloader.dataset.is_multilabel:
+            loh = labels
+        else:
+            loh = np.zeros((len(labels), self.dloader.dataset.num_classes))
+            loh[np.arange(len(labels)), labels] = 1
+        return loh.sum(axis=0)
+
+    def _reset_val_cache(self):
+        self.validation_idxs = []
+        self.validation_cache = []
+        self.validation_class_dis = None
+        self.validation_cache_valid = False
 
     @memprofile(precision=2)
     def _check_and_cache_val_batch(self, data, labels):
@@ -48,11 +61,13 @@ class PolicyTrainer():
 
         if self.batch_counter > batch_idx:
             # Well, that's all folks no new data for you
-            LOGGER.debug('TRAIN DATASET HAS NO UNSEEN BATCHES')
+            self.validation_cache_valid = True
+
             LOGGER.debug(
+                'TRAIN DATASET HAS NO UNSEEN BATCHES\n' +
                 'CURRENT CACHE CLASS HIST:\n{}'.format(self.validation_class_dis)
             )
-            self.validation_cache_valid = True
+
             return False
 
         data_mem_size = (data.element_size() * data.nelement())
@@ -68,13 +83,16 @@ class PolicyTrainer():
         if max_count < 2:
             # Ram is full so declare cache as fit for use even if it isn't
             # Fit for use. This means every class is sufficiently represented in the cache
-            LOGGER.debug(
-                'NOT ENOUGH RAM LEFT TO ADD ANOTHER SAMPLE TO THE VALIDATION CACHE'
-            )
-            LOGGER.debug(
-                'CURRENT CACHE CLASS HIST:\n{}'.format(self.validation_class_dis)
-            )
             self.validation_cache_valid = True
+
+            LOGGER.debug(
+                (
+                    '###################################\n'
+                    'NOT ENOUGH RAM LEFT TO ADD ANOTHER SAMPLE TO THE VALIDATION CACHE\n'
+                    'CURRENT CACHE CLASS HIST:\n{}'
+                ).format(self.validation_class_dis)
+            )
+
             return False
 
         if self.validation_class_dis is None:
@@ -86,27 +104,15 @@ class PolicyTrainer():
             (self.validation_class_dis[self.validation_class_dis > 0]**-2).sum()
         ):
             return False
-        LOGGER.debug('GRABBING BATCH FOR VALIDATION')
         self.validation_class_dis += batch_class_dist
         self.validation_cache.append((data, labels))
         self.validation_idxs.append(batch_idx)
         if self.validation_class_dis.min() >= self.validation_min_sample_per_class:
             self.validation_cache_valid = True
+
+        LOGGER.debug('GRABBING BATCH FOR VALIDATION')
+
         return True
-
-    def _get_batch_class_dist(self, labels):
-        if self.dloader.dataset.is_multilabel:
-            loh = labels
-        else:
-            loh = np.zeros((len(labels), self.dloader.dataset.num_classes))
-            loh[np.arange(len(labels)), labels] = 1
-        return loh.sum(axis=0)
-
-    def _reset_val_cache(self):
-        self.validation_idxs = []
-        self.validation_cache = []
-        self.validation_class_dis = None
-        self.validation_cache_valid = False
 
     @memprofile(precision=2)
     def _train(self, i, autodl_model, data, labels):
@@ -125,11 +131,6 @@ class PolicyTrainer():
             metrics.accuracy(labels, out, self.dloader.dataset.is_multilabel),
             metrics.auc(labels, out, self.dloader.dataset.is_multilabel)
         )
-        LOGGER.debug(
-            'STEP #{0}\tNEXT TRAIN IDX #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
-                i, self.dloader.next_idx, loss, train_acc, train_auc
-            )
-        )
         SW.add_scalar('Train_Loss', loss, self.batch_counter)
         SW.add_scalar('Train_Acc', train_acc, self.batch_counter)
         SW.add_scalar('Train_Auc', train_auc, self.batch_counter)
@@ -138,6 +139,13 @@ class PolicyTrainer():
             np.argwhere(labels > 0)[:, 1]
             if self.dloader.dataset.is_multilabel else labels, self.batch_counter
         )
+
+        LOGGER.debug(
+            'STEP #{0}\tNEXT TRAIN IDX #{1}:\t{2:.6f}\t{3:.2f}\t{4:.2f}'.format(
+                i, self.dloader.next_idx, loss, train_acc, train_auc
+            )
+        )
+
         return labels, out, loss
 
     @memprofile(precision=2)
@@ -168,11 +176,6 @@ class PolicyTrainer():
             metrics.accuracy(vlabels, vout, self.dloader.dataset.is_multilabel),
             metrics.auc(vlabels, vout, self.dloader.dataset.is_multilabel)
         )
-        LOGGER.debug(
-            'VALIDATION TOOK {0:.4f} s:\t\t{1:.6f}\t{2:.2f}\t{3:.2f}'.format(
-                time.time() - v_start, vloss, val_acc, val_auc
-            )
-        )
         SW.add_scalar('Valid_Loss', vloss, self.batch_counter)
         SW.add_scalar('Valid_Acc', val_acc, self.batch_counter)
         SW.add_scalar('Valid_Auc', val_auc, self.batch_counter)
@@ -182,6 +185,13 @@ class PolicyTrainer():
             if self.dloader.dataset.is_multilabel else vlabels, self.batch_counter
         )
         self.validate = False
+
+        LOGGER.debug(
+            'VALIDATION TOOK {0:.4f} s:\t\t{1:.6f}\t{2:.2f}\t{3:.2f}'.format(
+                time.time() - v_start, vloss, val_acc, val_auc
+            )
+        )
+
         return vlabels, vout, vloss
 
     @memprofile(precision=2)
@@ -222,7 +232,6 @@ class PolicyTrainer():
                 # If not and we want to add it skip as well
                 if self._check_and_cache_val_batch(data, labels):
                     continue
-                self.ele_counter += np.prod(data.shape[0:2])
 
                 labels, out, loss = self._train(i, autodl_model, data, labels)
                 vlabels, vout, vloss = self._validate(autodl_model)
@@ -237,20 +246,20 @@ class PolicyTrainer():
                     break
                 load_start = time.time()
         self.training_round += 1
-        LOGGER.debug(
-            "MEAN FRAMES PER SEC TRAINED:\t{0:.2f}".format(
-                self.ele_counter / (time.time() - autodl_model.birthday)
-            )
-        )
-        if (self.batch_counter - batch_counter_start) > 0:
+
+        if self.batch_counter - batch_counter_start > 0:
+            spbl = batch_loading_time / (self.batch_counter - batch_counter_start)
             LOGGER.debug(
-                'SEC PER BATCH LOADING:\t{0:.4f}'.format(
-                    batch_loading_time / (self.batch_counter - batch_counter_start)
-                )
+                (
+                    '###################################\n'
+                    'SEC PER BATCH LOADING:\t{0:.4f}\n'
+                    'SEC TOTAL DATA LOADING:\t{0:.4f}'
+                ).format(spbl, batch_loading_time)
             )
-            LOGGER.debug('SEC TOTAL DATA LOADING:\t{0:.4f}'.format(batch_loading_time))
         else:
             LOGGER.debug('NO BATCH PROCESSED')
+        print_vram_usage()
+
         return make_final_prediction
 
 
