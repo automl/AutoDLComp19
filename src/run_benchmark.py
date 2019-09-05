@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import argparse  # noqa: E402
+import atexit
 import json
 import os
 import shutil
+import signal
 import subprocess
+import sys
 import traceback
 from os.path import abspath, join
 
@@ -14,6 +17,15 @@ BRANCHNAME = subprocess.check_output(
     ["git", "status"]
 ).strip().decode('utf8').split('\n')[0][10:].replace('/', '_')
 COMMITHASH = subprocess.check_output(["git", "log"]).strip().decode('utf8')[8:16]
+
+
+def sigHandler(sig_no, sig_frame):
+    sys.exit(0)
+
+
+def shutdown():
+    path = join(BASEDIR, 'sideload_config.json')
+    os.remove(path)
 
 
 def get_configuration():
@@ -91,9 +103,8 @@ def runBENCH(cfg):
 
 
 if __name__ == "__main__":
-    # Making sure nothing gets overwritten
-    if os.path.isfile(os.path.join(BASEDIR, 'sideload_config.json')):
-        os.remove(os.path.join(BASEDIR, 'sideload_config.json'))
+    signal.signal(signal.SIGTERM, sigHandler)
+    atexit.register(shutdown)
     cfg = get_configuration()
     default_datasets = ['Hammer', 'Kraut', 'Kreatur', 'Pedro', 'Ucf101']
 

@@ -16,7 +16,7 @@ COMMITHASH = subprocess.check_output(["git", "log"]).strip().decode('utf8')[8:16
 PYTHON_LIB_PATH = site.getsitepackages()[0]
 PRETRAINED_WEIGHTS_PATH = os.path.join(BASEDIR, 'torchhome', 'checkpoints')
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # noqa: C901
     # Construct base CLI, later add args dynamically from config file too
     parser = argparse.ArgumentParser()
     parser.add_argument(
