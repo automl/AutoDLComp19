@@ -84,7 +84,7 @@
       optimizer: 'Adam',
       optim_args: {
         lr: 0.00148,
-        weight_decay: 0.5,
+        # weight_decay: 0.5,
         # nesterov: true,
       },
       # Name of the function in transformations.video
