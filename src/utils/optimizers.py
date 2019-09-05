@@ -19,10 +19,13 @@ class AdamW(Optimizer):
         eps (float, optional): term added to the denominator to improve
             numerical stability (default: 1e-8)
         weight_decay (float, optional): weight decay coefficient (default: 1e-2)
+        nesterov (bool, optional): enables Nesterov momentum (default: False)
         amsgrad (boolean, optional): whether to use the AMSGrad variant of this
             algorithm from the paper `On the Convergence of Adam and Beyond`_
             (default: False)
 
+    .. _Medium blog post integration Nesterov accelerated gradients into Adam
+        https://medium.com/konvergen/modifying-adam-to-use-nesterov-accelerated-gradients-nesterov-accelerated-adaptive-moment-67154177e1fd
     .. _Adam\: A Method for Stochastic Optimization:
         https://arxiv.org/abs/1412.6980
     .. _Decoupled Weight Decay Regularization:
