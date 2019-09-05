@@ -36,7 +36,7 @@
   tensorboard_launch: false,
 
   # General
-  earlystop: 300.1, # How many seconds shall we ingest
+  earlystop: 300, # How many seconds shall we ingest
 
   # CUDNN
   cudnn_benchmark: true,
@@ -83,10 +83,8 @@
       dropout: 0.8799, # on average net this only controls alphadrop sitting on the outputlayer
       optimizer: 'Adam',
       optim_args: {
-        # Adam + SGD
         lr: 0.00148,
-        # SGD only
-        # weight_decay: 0.001,
+        weight_decay: 0.5,
         # nesterov: true,
       },
       # Name of the function in transformations.video

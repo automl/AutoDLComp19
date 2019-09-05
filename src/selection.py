@@ -4,6 +4,7 @@ optimizer, loss function and if wanted learning rate scheduler.
 Currently switching models mid execution is not supported as that were given
 no though as of yet
 '''
+import copy
 import os
 import time
 from collections import OrderedDict
@@ -15,6 +16,8 @@ import pandas as pd
 import torch
 import torch.nn as nn  # noqa: F401
 import transformations
+import utils
+import utils.optimizers
 from torch.optim.lr_scheduler import StepLR  # noqa: F401
 from utils import (  # noqa: F401
     LOGGER, PREDICT, PREDICT_AND_VALIDATE, TRAIN, VALIDATE, metrics, transform_time_abs
@@ -91,19 +94,27 @@ class Selector(object):
         return updated_attr
 
     def video(self, autodl_model, dataset, conf):
-        if 'optim_args' in conf:  # Needed because video models api needs it flat
-            conf.update(conf.pop('optim_args'))
+        hubconf = copy.deepcopy(conf)
+        if 'optim_args' in hubconf:  # Needed because video models api needs it flat
+            hubconf.update(hubconf.pop('optim_args'))
         HUBNAME = 'automl/videomodels'
         model_name, checkpoint_file = (
             'averagenet', 'Averagenet_RGB_Kinetics_128.pth.tar'
         )
         model, optimizer, loss_fn = torch.hub.load(
-            HUBNAME, model_name, pretrained=True, url=checkpoint_file, **conf
+            HUBNAME, model_name, pretrained=True, url=checkpoint_file, **hubconf
         )
         # Not sure if these parameters reached the model so I set them here
         model.dropout = conf['dropout']
         model.num_segments = int(dataset.mean_shape[0] / conf['segment_coeff'])
         model.freeze_portion = conf['freeze_portion']
+
+        # Init the optimizer
+        optimizer = getattr(torch.optim, conf['optimizer'], None)
+        if optimizer is None:
+            optimizer = getattr(utils.optimizers, conf['optimizer'], None)
+        optimizer = optimizer(model.parameters(), **conf['optim_args'])
+        # optimizer = optimizer(model.get_optim_policies(), **conf['optim_args'])
 
         # As the transformations are dependend on the modality and maybe even
         # the model we set/apply it here

@@ -135,15 +135,17 @@ def load_model_and_optimizer(parser_args):
     ############################################################
     # Load optimizer
 
-    def update_params(optimizer_name, **kwargs):
-        return {
+    def update_params(optimizer, **kwargs):
+        ret = {
             k: v
             for k, v in parser_args.__dict__.items()
-            if k in inspect.getargspec(optimizer_name)[0]
+            if k in inspect.getargspec(optimizer)[0]
         }
+        return ret
 
-    optimizer_name = eval("torch.optim." + parser_args.optimizer)
-    optimizer = optimizer_name(policies, **update_params(optimizer_name))
+    optimizer = getattr(torch.optim, parser_args.optimizer, None)
+    if optimizer is not None:
+        optimizer = optimizer(policies, **update_params(optimizer))
 
     # if not parser_args.apex_available:
     #     model = torch.nn.DataParallel(model).cuda()

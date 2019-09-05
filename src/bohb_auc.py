@@ -33,27 +33,111 @@ def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(
-            name='selection.video.optim_args.lr', lower=1e-9, upper=1e-2, log=True
-        )
-    )
-    cs.add_hyperparameter(
-        CSH.CategoricalHyperparameter(
-            name='selection.video.optimizer', choices=['SGD', 'Adam']
-        )
-    )
-    cs.add_hyperparameter(
-        CSH.CategoricalHyperparameter(
-            name='selection.video.optim_args.nesterov', choices=[True, False]
+            name='selection.video.segment_coeff', lower=10, upper=50, log=False
         )
     )
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(
-            name='selection.video.optim_args.weight_decay',
-            lower=1e-2,
-            upper=0.99,
+            name='selection.video.freeze_portion', lower=0.1, upper=0.9, log=False
+        )
+    )
+    cs.add_hyperparameter(
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.dropout', lower=0.1, upper=0.9, log=False
+        )
+    )
+    cs.add_hyperparameter(
+        CSH.UniformFloatHyperparameter(
+            name='selection.video.transformation_args.crop_size',
+            lower=0.4,
+            upper=0.9,
             log=False
         )
     )
+    optim = CSH.CategoricalHyperparameter(
+        name='selection.video.optimizer', choices=['SGD', 'Adam', 'AdamW']
+    )
+    cs.add_hyperparameter(optim)
+
+    # #################### Optimizers ####################
+    # SGD
+    opt_name = 'SGD'
+    lr = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.lr_' + opt_name,
+        lower=1e-9,
+        upper=1e-2,
+        log=True
+    )
+    cs.add_hyperparameter(lr)
+    momentum = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.momentum_' + opt_name,
+        lower=1e-3,
+        upper=1e-1,
+        log=False
+    )
+    cs.add_hyperparameter(momentum)
+    nesterov = CSH.CategoricalHyperparameter(
+        name='selection.video.optim_args.nesterov_' + opt_name, choices=[True, False]
+    )
+    cs.add_hyperparameter(nesterov)
+    weight_decay = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.weight_decay_' + opt_name,
+        lower=1e-2,
+        upper=0.99,
+        log=False
+    )
+    cs.add_hyperparameter(weight_decay)
+
+    cs.add_condition(CS.EqualsCondition(lr, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(momentum, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(nesterov, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(weight_decay, optim, opt_name))
+
+    # Adam
+    opt_name = 'Adam'
+    lr = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.lr_' + opt_name,
+        lower=1e-9,
+        upper=1e-2,
+        log=True
+    )
+    cs.add_hyperparameter(lr)
+    weight_decay = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.weight_decay_' + opt_name,
+        lower=1e-2,
+        upper=0.99,
+        log=False
+    )
+    cs.add_hyperparameter(weight_decay)
+
+    cs.add_condition(CS.EqualsCondition(lr, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(weight_decay, optim, opt_name))
+
+    # AdamW
+    opt_name = 'AdamW'
+    lr = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.lr_' + opt_name,
+        lower=1e-9,
+        upper=1e-2,
+        log=True
+    )
+    cs.add_hyperparameter(lr)
+    nesterov = CSH.CategoricalHyperparameter(
+        name='selection.video.optim_args.nesterov_' + opt_name, choices=[True, False]
+    )
+    cs.add_hyperparameter(nesterov)
+    weight_decay = CSH.UniformFloatHyperparameter(
+        name='selection.video.optim_args.weight_decay_' + opt_name,
+        lower=1e-2,
+        upper=0.99,
+        log=False
+    )
+    cs.add_hyperparameter(weight_decay)
+
+    cs.add_condition(CS.EqualsCondition(lr, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(nesterov, optim, opt_name))
+    cs.add_condition(CS.EqualsCondition(weight_decay, optim, opt_name))
+
     return cs
 
 
@@ -68,8 +152,8 @@ def get_configuration():
         join(BASEDIR, os.pardir, 'competition', 'AutoDL_scoring_output')
     )
     cfg["bohb_min_budget"] = 180
-    cfg["bohb_max_budget"] = 600
-    cfg["bohb_iterations"] = 100
+    cfg["bohb_max_budget"] = 300
+    cfg["bohb_iterations"] = 50
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',
@@ -130,9 +214,18 @@ class BOHBWorker(Worker):
 
         score = 0
         info = {}
-        # if config['selection.video.optimizer'] == 'Adam':
-        #     config['selection.video.optim_args.nesterov'] = False
-        #     config['selection.video.optim_args.weight_decay'] = 0.
+
+        # Convert into a format the model expects
+        for opt_arg in [
+            'selection.video.optim_args.lr', 'selection.video.optim_args.momentum',
+            'selection.video.optim_args.nesterov',
+            'selection.video.optim_args.weight_decay'
+        ]:
+            k = [k for k in config.keys() if opt_arg in k]
+            if len(k) == 1:
+                k = k[0]
+                config[opt_arg] = config[k]
+                del config[k]
 
         for dataset in cfg["datasets"]:
             cfg["dataset_dir"] = join(cfg["dataset_base_dir"], dataset)
