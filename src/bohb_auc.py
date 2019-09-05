@@ -19,28 +19,15 @@ from utils import BASEDIR
 def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(
-            name='selection.video.freeze_portion', lower=0.1, upper=0.9, log=False
-        )
+        CSH.UniformFloatHyperparameter(name='selection.video.optim_args.lr', lower=1e-5, upper=1e-2, log=True)
     )
     cs.add_hyperparameter(
         CSH.UniformFloatHyperparameter(name='selection.video.dropout', lower=0.2, upper=0.8, log=False)
     )
     cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='selection.video.optim_args.lr', lower=1e-4, upper=1e-2, log=True)
+        CSH.CategoricalHyperparameter(name='selection.video.model_name', choices=['fbresnet152', 'bninception', 'resnext101_32x4d', 'resnext101_64x4d', 'inceptionv4', 'inceptionresnetv2', 'alexnet', 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'inceptionv3', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19', 'nasnetamobile', 'nasnetalarge', 'xception', 'senet154', 'se_resnet50', 'se_resnet101', 'se_resnet152', 'se_resnext50_32x4d', 'se_resnext101_32x4d', 'cafferesnet101', 'pnasnet5large', 'polynet'])
     )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='selection.video.transformation_args.resize_factor', lower=1, upper=2, log=False)
-    )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='selection.video.transformation_args.flip_factor', lower=0, upper=1, log=False)
-    )
-    cs.add_hyperparameter(
-        CSH.UniformIntegerHyperparameter(name='tester_args.entropy_splits', lower=1, upper=5, log=False)
-    )
-    cs.add_hyperparameter(
-        CSH.UniformFloatHyperparameter(name='trainer_args.t_diff', lower=0.01, upper=0.05, log=False)
-    )
+
     return cs
 
 
@@ -54,7 +41,7 @@ def get_configuration():
     )
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
-    cfg["bohb_iterations"] = 10
+    cfg["bohb_iterations"] = 20
     cfg["bohb_log_dir"] = abspath(
         join(
             BASEDIR, os.pardir, 'bohb_logs',

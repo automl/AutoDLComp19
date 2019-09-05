@@ -37,6 +37,7 @@ import training
 import utils
 from torch_adapter import TFDataLoader, TFDataset
 from utils import BASEDIR, DEVICE, LOGGER, BSGuard
+import pretrainedmodels
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.logging.set_verbosity(tf.logging.ERROR)

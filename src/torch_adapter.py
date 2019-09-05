@@ -32,8 +32,6 @@ class TFDataset(Dataset):
         self.max_shape = None
         self.median_shape = None
         self.is_multilabel = None
-        self.entropy_idx = None
-        self.entropy_idx_idx = 0
 
         self.next_element = None
         self.reset()
@@ -43,12 +41,6 @@ class TFDataset(Dataset):
 
     def __getitem__(self, _):
         try:
-            if self.entropy_idx is not None:
-                idx = self.entropy_idx[self.entropy_idx_idx]
-                self.entropy_idx_idx += 1
-                while self.current_idx != idx:
-                    example, label = self._tf_exec(self.next_element)
-                    self.current_idx += 1
             example, label = self._tf_exec(self.next_element)
             self.current_idx += 1
             # example = torch.as_tensor(example)

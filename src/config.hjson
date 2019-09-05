@@ -52,12 +52,9 @@
     validation_buffer: 0, # The intent is to seamlessly collect batches
                           # during training in a buffer for later use
                           # and skip them if seen again
-    t_diff: 0,
+    t_diff: 0.025,
   },
 
-  tester_args: {
-    entropy_splits: 0,
-  }
 
 ###############################################################################
 # Beyond this point come specialized configurations
@@ -76,6 +73,7 @@
       }
     },
     video: {
+      model_name: bninception, # Cadene model to be used
       segment_coeff: 10, # num_segemts = frame_count / segment_coeff
       freeze_portion: 0.64, # freezes a video network's first percent of layers
       modality: 'RGB',
@@ -92,9 +90,6 @@
         use_gpu_resize: 'True',
         resize_factor: 1.2,
         flip_factor: 0.4
-      },
-      policy_args: { # This will be passed on expanded
-        t_diff: 0.01,
       },
       train_loader_args: {
         batch_size: 32, # Will be automatically adjusted if too big

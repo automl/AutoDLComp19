@@ -47,6 +47,7 @@ class PolicyTrainer():
                       - transform_time_abs(t_start - birthday))
 
             if t_diff > self.trainer_args['t_diff']:
+                print(t_diff)
                 self.make_prediction = True
                 break
 
