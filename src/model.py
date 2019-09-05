@@ -169,26 +169,31 @@ class Model(algorithm.Algorithm):
         the parent in the leafs' path:
         ie. { selection.video.optim_args.lr: 0.1} would overwrite the
         video optimizer's initial learning rate
+        In addition paths and leafs not found in config are added
 
         ATTENTION: The sideload_config.json can define dictionaries as values as well
         so it is possible to overwrite a whole subhierarchy.
         '''
-        def walk_dict(d, side_conf, p=''):
-            for k, v in d.items():
-                if isinstance(v, OrderedDict):
-                    walk_dict(v, side_conf, p + k + '.')
-                elif p + k in side_conf:
-                    if not isinstance(d[k], type(side_conf[p + k])):
-                        LOGGER.warning(
-                            'Overriding config at "{}" value with another type! {} => {}'.
-                            format(p + k, type(d[k]), type(side_conf[p + k]))
-                        )
-                    d[k] = side_conf[p + k]
+        def merge_dicts(d, side_conf):
+            for p, v in side_conf.items():
+                tmp_dict = d
+                p_split = p.split('.')
+                for stub in p_split[:-1]:
+                    if stub not in tmp_dict:
+                        tmp_dict[stub] = OrderedDict()
+                    tmp_dict = tmp_dict[stub]
+                leaf = p_split[-1]
+                if leaf in tmp_dict and not isinstance(tmp_dict[leaf], type(v)):
+                    LOGGER.warning(
+                        'Overriding config at "{}" value with another type! {} => {}'.
+                        format(p, type(tmp_dict[leaf]), type(v))
+                    )
+                tmp_dict[leaf] = v
 
         with open(sideload_conf_path, 'r') as file:
             side_conf = json.load(file)
 
-        walk_dict(self.config.__dict__, side_conf)
+        merge_dicts(self.config.__dict__, side_conf)
 
     def _setup_dataset(self, dataset, target):
         loader_args = getattr(self, target + '_loader_args')
