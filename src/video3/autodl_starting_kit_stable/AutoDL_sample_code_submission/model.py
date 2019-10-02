@@ -32,16 +32,13 @@ import tensorflow as tf
 import time
 import subprocess
 import torchvision
+import argparse
 import _pickle as pickle
-from opts import parser
-from ops.load_models import load_loss_criterion, load_model_and_optimizer
-from transforms import SelectSamples, RandomCropPad
+from transforms import *
 from dataset_kakaobrain import TFDataset
-from wrapper_net import WrapperNet
-from torch.optim.lr_scheduler import StepLR
 from utils import LOGGER
 
-
+parser = argparse.ArgumentParser()
 
 class ParserMock():
     # mock class for handing over the correct arguments
@@ -54,22 +51,16 @@ class ParserMock():
         # manually set parameters
         rootpath = os.path.dirname(__file__)
         LOGGER.setLevel(logging.DEBUG)
-        setattr(self._parser_args, 'finetune_model', os.path.join(rootpath, 'pretrained_models/'))
-        setattr(self._parser_args, 'arch', 'ECOfull_efficient_py') # Averagenet or bninception
-        setattr(self._parser_args, 'bn_prod_limit', 64)    # limit of batch_size * num_segments
-        setattr(self._parser_args, 'batch_size_train', 16)
-        setattr(self._parser_args, 'num_segments_test', 4)
-        setattr(self._parser_args, 'num_segments_step', 4000)
-        setattr(self._parser_args, 'optimizer', 'SGD')
-        setattr(self._parser_args, 'modality', 'RGB')
-        setattr(self._parser_args, 'dropout_diff', 1e-3)
+        setattr(self._parser_args, 'save_file_dir', os.path.join(rootpath, 'pretrained_models/'))
+        setattr(self._parser_args, 'arch', 'squeezenet_64')
+        setattr(self._parser_args, 'batch_size_test', 256)
+        setattr(self._parser_args, 'optimizer', 'Adam')
+        setattr(self._parser_args, 'dropout', 1e-3)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
         setattr(self._parser_args, 'lr', 0.005)
-        setattr(self._parser_args, 'lr_gamma', 0.01)
-        setattr(self._parser_args, 'lr_step', 10)
-        setattr(self._parser_args, 'print', True)
-        setattr(self._parser_args, 'fast_augment', True)
-        setattr(self._parser_args, 'early_stop', 600)
+        setattr(self._parser_args, 'momentum', 0.9)
+        setattr(self._parser_args, 'weight_decay', 1e-6)
+        setattr(self._parser_args, 'nesterov', True)
 
     def load_bohb_parameters(self):
         # parameters from bohb_auc
@@ -95,19 +86,8 @@ class Model(object):
     """Trivial example of valid model. Returns all-zero predictions."""
 
     def __init__(self, metadata):
-        """
-        Args:
-          metadata: an AutoDLMetadata object. Its definition can be found in
-              AutoDL_ingestion_program/dataset.py
-        """
         LOGGER.info("INIT START: " + str(time.time()))
         super().__init__()
-
-        # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
-        # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
-        # for your network do not vary
-        # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-        #torch.backends.cudnn.benchmark = True
 
         self.time_start = time.time()
         self.train_time = []
@@ -117,22 +97,18 @@ class Model(object):
 
         self.metadata = metadata
         self.num_classes = self.metadata.get_output_size()
-        self.num_examples_train = self.metadata.size()
 
-        row_count, col_count = self.metadata.get_matrix_size(0)
-        channel = self.metadata.get_num_channels(0)
-        sequence_size = self.metadata.get_sequence_size()
-        print('INPUT SHAPE : ', row_count, col_count, channel, sequence_size)
         parser = ParserMock()
         parser.set_attr('num_classes', self.num_classes)
 
         self.parser_args = parser.parse_args()
-        self.select_fast_augment()
 
         self.training_round = 0  # flag indicating if we are in the first round of training
         self.testing_round = 0
         self.num_samples_testing = None
         self.train_counter = 0
+        self.batch_size_train = self.parser_args.batch_size_train
+        self.batch_size_test = self.parser_args.batch_size_test
 
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
@@ -152,54 +128,42 @@ class Model(object):
 
         t2 = time.time()
 
-        num_segments = self.set_num_segments(is_training=True)
-        batch_size = self.set_batch_size(num_segments, is_training=True)
-        dl_train = self.get_dataloader_train(dataset, num_segments, batch_size)
         torch.set_grad_enabled(True)
         self.model.train()
+        if int(self.training_round) == 1:
+            dl = self.get_dataloader(dataset, is_training=True, first_round=True)
+        else:
+            dl = self.get_dataloader(dataset, is_training=True, first_round=False)
 
         t3 = time.time()
 
         t_train = time.time()
         finish_loop = False
+
+        LOGGER.info('TRAIN BATCH START')
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
-            for i, (data, labels) in enumerate(dl_train):
-                if (
-                    hasattr(self.parser_args, 'early_stop')
-                    and time.time() - self.time_start > self.parser_args.early_stop
-                ):
-                    finish_loop = True
-                    break
-
+            for i, (data, labels) in enumerate(dl):
                 self.optimizer.zero_grad()
-
                 output = self.model(data.cuda())
                 labels = format_labels(labels, self.parser_args).cuda()
-
                 loss = self.criterion(output, labels)
                 loss.backward()
                 self.optimizer.step()
-                self.lr_scheduler.step()
-                self.set_dropout()
-                self.train_counter += batch_size
+                self.train_counter += self.batch_size_train
 
                 LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                if int(self.training_round) == 1:
-                    if i > 20:
-                        finish_loop = True
-                        break
-                else:
-                    t_diff = (transform_to_time_rel(time.time() - self.time_start)
+                t_diff = (transform_to_time_rel(time.time() - self.time_start)
                         - transform_to_time_rel(t_train - self.time_start))
 
-                    if t_diff > self.parser_args.t_diff:
-                        finish_loop = True
-                        break
+                if t_diff > self.parser_args.t_diff:
+                    finish_loop = True
+                    break
 
             subprocess.run(['nvidia-smi'])
             self.training_round += 1
+        LOGGER.info('TRAIN BATCH END')
 
         t4 = time.time()
         LOGGER.info(
@@ -211,7 +175,6 @@ class Model(object):
         LOGGER.info('LR: ')
         for param_group in self.optimizer.param_groups:
             LOGGER.info(param_group['lr'])
-        LOGGER.info('DROPOUT: ' + str(self.model.model.dropout))
         LOGGER.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
         LOGGER.info("TRAINING COUNTER: " + str(self.train_counter))
         LOGGER.info("TRAINING END: " + str(time.time()))
@@ -219,7 +182,7 @@ class Model(object):
 
 
     def late_init(self, dataset):
-        LOGGER.info('TRAINING: FIRST ROUND')
+        LOGGER.info('INIT')
         # show directory structure
         # for root, subdirs, files in os.walk(os.getcwd()):
         #     LOGGER.info(root)
@@ -228,13 +191,8 @@ class Model(object):
 
         t1 = time.time()
 
-        ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=self.num_examples_train)
-
-        t2 = time.time()
-
-        self.info = ds_temp.scan2(50)
-
-        t3 = time.time()
+        ds_temp = TFDataset(session=self.session, dataset=dataset)
+        self.info = ds_temp.scan(50)
 
         LOGGER.info('AVG SHAPE: ' + str(self.info['avg_shape']))
 
@@ -243,41 +201,17 @@ class Model(object):
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
 
-        t4 = time.time()
+        self.model = self.get_model()
+        self.input_size = self.get_input_size()
+        self.optimizer = self.get_optimizer(self.model)
+        self.criterion = self.get_loss_criterion()
 
-        self.select_model()
-
-        t5 = time.time()
-
-        self.model_main, self.optimizer = load_model_and_optimizer(self.parser_args)
-        self.model_main.partialBN(False)  # bninception default behaviour is to freeze
-                                          # which gets apply after the first .train() call
-
-        t6 = time.time()
-
-        self.model = WrapperNet(self.model_main, self.parser_args.fast_augment)
-        self.model.cuda()
-        self.lr_scheduler = StepLR(self.optimizer,
-                                   self.parser_args.lr_step,
-                                   1-self.parser_args.lr_gamma)
-        self.set_dropout(first_round=True)
-
-        t7 = time.time()
-
-        # load proper criterion for multiclass/multilabel
-        self.criterion = load_loss_criterion(self.parser_args)
-
-        t8 = time.time()
+        t2 = time.time()
 
         LOGGER.info(
             '\nTIMINGS FIRST ROUND: ' +
-            '\n t2-t1 ' + str(t2 - t1) +
-            '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3) +
-            '\n t5-t4 ' + str(t5 - t4) +
-            '\n t6-t5 ' + str(t6 - t5) +
-            '\n t7-t6 ' + str(t7 - t6) +
-            '\n t8-t7 ' + str(t8 - t7))
+            '\n t2-t1 ' + str(t2 - t1))
+
 
     def test(self, dataset, remaining_time_budget=None):
         if (
@@ -296,26 +230,29 @@ class Model(object):
         if int(self.testing_round) == 1:
             scan_start = time.time()
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
-            info = ds_temp.scan2()
+            info = ds_temp.scan()
             self.num_samples_testing = info['num_samples']
             LOGGER.info('SCAN TIME: ' + str(time.time() - scan_start))
             LOGGER.info('TESTING: FIRST ROUND')
 
         t2 = time.time()
 
-        num_segments = self.set_num_segments(is_training=False)
-        batch_size = self.set_batch_size(num_segments, is_training=False)
-        dl = self.get_dataloader_test(dataset, num_segments, batch_size)
         torch.set_grad_enabled(False)
         self.model.eval()
+        if int(self.testing_round) == 1:
+            dl = self.get_dataloader(dataset, is_training=False, first_round=True)
+        else:
+            dl = self.get_dataloader(dataset, is_training=False, first_round=False)
 
         t3 = time.time()
 
+        LOGGER.info('TEST BATCH START')
         prediction_list = []
         for i, (data, _) in enumerate(dl):
             LOGGER.info('TEST: ' + str(i))
             prediction_list.append(self.model(data.cuda()).cpu())
         predictions = np.vstack(prediction_list)
+        LOGGER.info('TEST BATCH END')
 
         t4 = time.time()
 
@@ -331,148 +268,332 @@ class Model(object):
         return predictions
 
 
-    def select_fast_augment(self):
-        '''
-        if all input videos/images have the same width/height, we can do faster data augmentation on the GPU
-        '''
-        if (
-            hasattr(self.parser_args, 'fast_augment')
-            and not self.parser_args.fast_augment
-        ):
-            return
-        row_count, col_count = self.metadata.get_matrix_size(0)
-        if row_count > 0 and col_count > 0:
-            setattr(self.parser_args, 'fast_augment', True)
-        else:
-            setattr(self.parser_args, 'fast_augment', False)
-        LOGGER.info('FAST AUGMENT: ' + str(self.parser_args.fast_augment))
-
-
-    def select_model(self):
+    def get_model(self):
         '''
         select proper model based on information from the dataset (image/video, etc.)
         '''
-        avg_shape = self.info['avg_shape']
-        if self.metadata.get_sequence_size() == 1:  # image network
-            num_pixel = avg_shape[1]*avg_shape[2]
-            if num_pixel < 10000:                   # select network based on average number of pixels in the dataset
-                self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_64_non_final.pth.tar'
-            else:
-                self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_128_non_final.pth.tar'
-        else:                                       # video network
-            self.parser_args.finetune_model = self.parser_args.finetune_model + 'Efficientnet_Image_Input_128_non_final.pth.tar'
-        LOGGER.info('USE MODEL: ' + str(self.parser_args.finetune_model))
+        print('+++++++++++++ ARCH ++++++++++++++')
+        print(self.parser_args.arch)
 
+        # model = self.load_model(model, os.path.join(self.parser_args.save_file_path, save_name))
+        # optimizer = self.load_opimizer(model, self.parser_args)
 
-    def set_dropout(self, first_round=False):
-        '''
-        linearly increase dropout over number of processed batches. Also ensures that dropout is never larger than 0.9
-        '''
-        if first_round:
-            self.model.model.dropout = 0
+        if 'squeezenet' in self.parser_args.arch:
+            from torchvision.models import squeezenet1_1
+            model = squeezenet1_1(pretrained=False,
+                                  num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_squeezenet_epochs_87_input_64_bs_256_SGD_ACC_33_7.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_squeezenet_epochs_128_input_128_bs_256_SGD_ACC_51.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_squeezenet_epochs_0_input_224_bs_256_SGD_ACC_58_3.pth'
+
+        elif 'shufflenet05' in self.parser_args.arch:
+            from torchvision.models import shufflenet_v2_x0_5
+            model = shufflenet_v2_x0_5(pretrained=False,
+                                            num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet05_epochs_48_input_64_bs_512_SGD_ACC_25_8.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet05_epochs_111_input_128_bs_512_SGD_ACC_47_3.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet05_epochs_0_input_224_bs_512_SGD_ACC_48_9.pth'
+
+        elif 'shufflenet10' in self.parser_args.arch:
+            from torchvision.models import shufflenet_v2_x1_0
+            model = shufflenet_v2_x1_0(pretrained=False,
+                                            num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet10_epochs_5_input_64_bs_512_SGD_ACC_30_5.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet10_epochs_10_input_128_bs_512_SGD_ACC_54_8.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet10_epochs_0_input_224_bs_512_SGD_ACC_63_4.pth'
+
+        elif 'shufflenet20' in self.parser_args.arch:
+            from torchvision.models import shufflenet_v2_x2_0
+            model = shufflenet_v2_x2_0(pretrained=False,
+                                            num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet20_epochs_114_input_64_bs_512_SGD_ACC_46_8.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet20_epochs_115_input_128_bs_512_SGD_ACC_61_5.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_shufflenet20_epochs_110_input_224_bs_512_SGD_ACC_68.pth'
+
+        elif 'resnet18' in self.parser_args.arch:
+            from torchvision.models import resnet18
+            model = resnet18(pretrained=False,
+                             num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_resnet18_epochs_88_input_64_bs_256_SGD_ACC_41_4.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_resnet18_epochs_67_input_128_bs_256_SGD_ACC_63.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_resnet18_epochs_0_input_224_bs_256_SGD_ACC_68_8.pth'
+
+        elif 'mobilenetv2_64' in self.parser_args.arch:
+            from torchvision.models import mobilenet_v2
+            model = mobilenet_v2(pretrained=False,
+                                width_mult=0.25).cuda()
+            model.classifier[1] = torch.nn.Linear(1280, self.num_classes)
+            save_file = 'imagenet_mobilenetv2_epochs_83_input_64_bs_256_SGD_ACC_24_8.pth'
+
+        elif 'efficientnet' in self.parser_args.arch:
+            if 'b07' in self.parser_args.arch:
+                scale = 0.7
+                if '64' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b07_epochs_104_input_64_bs_256_SGD_ACC_33_8.pth'
+                elif '128' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b07_epochs_129_input_128_bs_256_SGD_ACC_53_3.pth'
+                elif '224' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b07_epochs_128_input_224_bs_256_SGD_ACC_62_6.pth'
+            elif 'b05' in self.parser_args.arch:
+                scale = 0.5
+                if '64' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b05_epochs_129_input_64_bs_256_SGD_ACC_24.pth'
+                elif '128' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b05_epochs_125_input_128_bs_256_SGD_ACC43_8_.pth'
+                elif '224' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b05_epochs_126_input_224_bs_256_SGD_ACC_54_2.pth'
+            elif 'b03' in self.parser_args.arch:
+                scale = 0.3
+                if '64' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b03_epochs_128_input_64_bs_256_SGD_ACC_15.pth'
+                elif '128' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b03_epochs_127_input_128_bs_256_SGD_ACC_28_5.pth'
+                elif '224' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b03_epochs_129_input_224_bs_256_SGD_ACC_38_2.pth'
+            elif 'b0' in self.parser_args.arch:
+                scale = 1
+                if '64' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b0_epochs_27_input_64_bs_256_SGD_ACC_41_5.pth'
+                elif '128' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b0_epochs_115_input_128_bs_256_SGD_ACC_52.pth'
+                elif '224' in self.parser_args.arch:
+                    save_file = 'imagenet_efficientnet_b0_epochs_185_input_224_bs_256_SGD_ACC_67_5.pth'
+
+            from models_efficientnet import EfficientNet
+            model = EfficientNet(num_classes=self.num_classes, width_coef=scale,
+                                 depth_coef=scale, scale=scale, dropout_ratio=self.parser_args.dropout,
+                                 pl=0.2, arch='fullEfficientnet').cuda()
+
+        elif 'densenet05' in self.parser_args.arch:
+            from torchvision.models import DenseNet
+            model = DenseNet(growth_rate=16, block_config=(3, 6, 12, 8),
+                             num_init_features=64, bn_size=2, drop_rate=self.parser_args.dropout,
+                             num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_densenet05_epochs_117_input_64_bs_256_SGD_ACC_24.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_densenet05_epochs_124_input_128_bs_256_SGD_ACC_44_7.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_densenet05_epochs_122_input_224_bs_256_SGD_ACC_50.pth'
+
+        elif 'densenet025' in self.parser_args.arch:
+            from torchvision.models import DenseNet
+            model = DenseNet(growth_rate=8, block_config=(2, 4, 8, 4),
+                             num_init_features=32, bn_size=2, drop_rate=self.parser_args.dropout,
+                             num_classes=self.num_classes).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_densenet025_epochs_113_input_64_bs_256_SGD_ACC_17_3.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_densenet025_epochs_133_input_128_bs_256_SGD_ACC_23_9.pth'
+
+        elif 'densenet' in self.parser_args.arch:
+            from torchvision.models import densenet121
+            model = densenet121(pretrained=False,
+                                num_classes=self.num_classes,
+                                drop_rate=self.parser_args.dropout).cuda()
+            if '64' in self.parser_args.arch:
+                save_file = 'imagenet_densenet_epochs_139_input_64_bs_256_SGD_ACC_52_8.pth'
+            elif '128' in self.parser_args.arch:
+                save_file = 'imagenet_densenet_epochs_90_input_128_bs_256_SGD_ACC_63_8.pth'
+            elif '224' in self.parser_args.arch:
+                save_file = 'imagenet_densenet_epochs_0_input_224_bs_256_SGD_ACC_72_7.pth'
+
         else:
-            self.model.model.dropout = self.model.model.dropout + self.parser_args.dropout_diff
-            self.model.model.dropout = min(self.model.model.dropout, 0.9)
-        self.model.model.alphadrop = torch.nn.AlphaDropout(p=self.model.model.dropout)
+            raise TypeError('Unknown model type')
+
+        model = self.load_model(model, os.path.join(self.parser_args.save_file_dir, save_file)).cuda()
+
+        return model
 
 
-    def set_num_segments(self, is_training):
-        '''
-        increase number of segments after a given time by a factor of 2
-        '''
+    def get_input_size(self):
+        if '64' in self.parser_args.arch:
+            return 64
+        elif '128' in self.parser_args.arch:
+            return 128
+        elif '224' in self.parser_args.arch:
+            return 224
 
-        if self.metadata.get_sequence_size() == 1:
-            # image dataset
-            num_segments = 1
+
+    def get_loss_criterion(self):
+        if self.parser_args.classification_type == 'multiclass':
+            return torch.nn.CrossEntropyLoss().cuda()
+        elif self.parser_args.classification_type == 'multilabel':
+            return torch.nn.BCEWithLogitsLoss().cuda()
         else:
-            # video dataset
-            if is_training:
-                num_segments = 2**int(self.train_counter/self.parser_args.num_segments_step+1)
-                avg_frames = self.info['avg_shape'][0]
-                if avg_frames > 64:
-                    upper_limit = 16
+            raise ValueError("Unknown loss type")
+
+
+    def get_optimizer(self, model):
+        if self.parser_args.optimizer == 'SGD':
+            return torch.optim.SGD(model.parameters(),
+                                    self.parser_args.lr,
+                                    momentum = self.parser_args.momentum,
+                                    weight_decay = self.parser_args.weight_decay,
+                                    nesterov = self.parser_args.nesterov)
+        elif self.parser_args.optimizer == 'Adam':
+            return torch.optim.Adam(model.parameters(),
+                                         self.parser_args.lr)
+        else:
+            raise ValueError("Unknown optimizer type")
+
+
+    def load_model(self, model, save_file):
+        #################################################################################################
+        pretrained_dict = torch.load(save_file)
+        model_dict = model.state_dict()
+        # 1. filter out unnecessary keys and if different classes
+        new_state_dict = {}
+        for k1, v in pretrained_dict.items():
+            for k2 in model_dict.keys():
+                k = k1.replace('module.', '')
+                if k2 in k and (v.size() == model_dict[k2].size()):
+                    new_state_dict[k2] = v
+        # If explicitely delete last fully connected layed(like finetuning with new
+        # dataset that has equal amount of classes
+        # if remove_last_fc:
+        #     temp_keys = []
+        #     for k in new_state_dict.keys():
+        #         if 'last' in k:
+        #             temp_keys.append(k)
+        #     for k in temp_keys:
+        #         del new_state_dict[k]
+
+        un_init_dict_keys = [k for k in model_dict.keys() if k
+                             not in new_state_dict]
+
+        print("un_init_dict_keys: ", un_init_dict_keys)
+        print("\n------------------------------------")
+
+        for k in un_init_dict_keys:
+            new_state_dict[k] = torch.DoubleTensor(
+                model_dict[k].size()).zero_()
+            if 'weight' in k:
+                if 'bn' in k:
+                    print("{} init as: 1".format(k))
+                    torch.nn.init.constant_(new_state_dict[k], 1)
                 else:
-                    upper_limit = 8
-                num_segments = min(max(num_segments, 2), upper_limit)
-            else:
-                num_segments = self.parser_args.num_segments_test
 
-        LOGGER.info('TRAIN COUNTER: ' + str(self.train_counter))
-        LOGGER.info('SET NUM SEGMENTS: ' + str(num_segments))
-        self.model.model.num_segments = num_segments
-        return num_segments
+                    print("{} init as: xavier".format(k))
+                    try:
+                        torch.nn.init.xavier_uniform_(new_state_dict[k])
+                    except Exception:
+                        torch.nn.init.constant_(new_state_dict[k], 1)
+            elif 'bias' in k:
 
+                print("{} init as: 0".format(k))
+                torch.nn.init.constant_(new_state_dict[k], 0)
+            print("------------------------------------")
+        model.load_state_dict(new_state_dict)
+        print('loaded model')
 
-    def set_batch_size(self, num_segments, is_training):
-        '''
-        calculate resulting batch size based on desired batch size and specified upper limit due to GPU memory
-        '''
+        return model
+
+    def get_transform(self, is_training):
         if is_training:
-            bn_prod_des = self.parser_args.batch_size_train*num_segments
-            if bn_prod_des <= self.parser_args.bn_prod_limit:
-                batch_size = self.parser_args.batch_size_train
+            return torchvision.transforms.Compose([
+                SelectSample(),
+                AlignAxes(),
+                FormatChannels(channels_des = 3),
+                ToPilFormat(),
+                #SaveImage(save_dir = self.parser_args.save_file_dir, suffix='_2'),
+                torchvision.transforms.RandomResizedCrop(size = self.input_size),
+                #SaveImage(save_dir=self.parser_args.save_file_dir, suffix='_3'),
+                torchvision.transforms.RandomHorizontalFlip(),
+                #SaveImage(save_dir=self.parser_args.save_file_dir, suffix='_4'),
+                torchvision.transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.01),
+                #SaveImage(save_dir=self.parser_args.save_file_dir, suffix='_5'),
+                ToTorchFormat(),
+                torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+                #SaveImage(save_dir=self.parser_args.save_file_dir, suffix='_6')])
+        else:
+            return torchvision.transforms.Compose([
+                SelectSample(),
+                AlignAxes(),
+                FormatChannels(3),
+                Normalize(),
+                ToPilFormat(),
+                torchvision.transforms.RandomResizedCrop(size=self.input_size),
+                torchvision.transforms.Resize(int(self.input_size*1.1)),
+                torchvision.transforms.CenterCrop(self.input_size),
+                ToTorchFormat(),
+                torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+
+    def get_dataloader(self, dataset, is_training, first_round):
+        if is_training:
+            batch_size = self.batch_size_train
+        else:
+            batch_size = self.batch_size_test
+
+        transform = self.get_transform(is_training)
+
+        num_samples = int(10000000) if is_training else self.num_samples_testing
+        shuffle = True if is_training else False
+        drop_last = False
+
+        ds = TFDataset(
+            session=self.session,
+            dataset=dataset,
+            num_samples=num_samples,
+            transform=transform
+        )
+
+        if first_round:
+            batch_size_ok = False
+
+            while not batch_size_ok and batch_size > 1:
+                ds.reset()
+                try:
+                    dl = torch.utils.data.DataLoader(
+                        ds,
+                        batch_size=batch_size,
+                        shuffle=shuffle,
+                        drop_last=drop_last
+                    )
+
+                    data, labels = next(iter(dl))
+                    self.model(data.cuda())
+
+                    batch_size_ok = True
+
+                except RuntimeError:
+                    batch_size = int(batch_size/2)
+                    if is_training:
+                        LOGGER.info('REDUCING BATCH SIZE FOR TRAINING TO: ' + str(batch_size))
+                    else:
+                        LOGGER.info('REDUCING BATCH SIZE FOR TESTING TO: ' + str(batch_size))
+
+            if is_training:
+                self.batch_size_train = batch_size
             else:
-                batch_size = int(self.parser_args.bn_prod_limit / num_segments)
-        else:
-            batch_size = int(self.parser_args.bn_prod_limit / num_segments)*4
+                self.batch_size_test = batch_size
 
-        LOGGER.info('SET BATCH SIZE: ' + str(batch_size))
-
-        return batch_size
-
-
-    def get_transform(self, num_segments):
-        if self.parser_args.fast_augment:
-            return torchvision.transforms.Compose([
-                SelectSamples(num_segments)])
-        else:
-            return torchvision.transforms.Compose([
-                SelectSamples(num_segments),
-                RandomCropPad(self.model_main.input_size)])
-
-
-    def get_dataloader_train(self, dataset, num_segments, batch_size):
-        transform = self.get_transform(num_segments)
-
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=int(10000000),
-            transform=transform
-        )
-
+        LOGGER.info('USING BATCH SIZE: ' + str(batch_size))
+        ds.reset()
         dl = torch.utils.data.DataLoader(
             ds,
             batch_size=batch_size,
-            shuffle=True,
-            drop_last=False
+            shuffle=shuffle,
+            drop_last=drop_last
         )
 
         return dl
-
-
-    def get_dataloader_test(self, dataset, num_segments, batch_size):
-        transform = self.get_transform(num_segments)
-
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=self.num_samples_testing,
-            transform=transform
-        )
-
-        dl = torch.utils.data.DataLoader(
-            ds,
-            batch_size=batch_size,
-            shuffle=False
-        )
-
-        return dl
-
-
-    ##############################################################################
-    #### Above 3 methods (__init__, train, test) should always be implemented ####
-    ##############################################################################
 
 
 def format_labels(labels, parser_args):

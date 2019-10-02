@@ -214,6 +214,10 @@ if __name__=="__main__":
                         default=default_score_dir,
                         help="Directory storing the scoring output " +
                              "e.g. `scores.txt` and `detailed_results.html`.")
+    parser.add_argument('--dataset_type', type=str,
+                        default=None,
+                        help="used dataset type " +
+                             "e.g. `scores.txt` and `detailed_results.html`.")
     parser.add_argument('--time_budget', type=float,
                         default=default_time_budget,
                         help="Time budget for running ingestion program.")
@@ -280,6 +284,7 @@ if __name__=="__main__":
 
     ##### Begin creating training set and test set #####
     logger.info("Reading training set and test set...")
+
     D_train = AutoDLDataset(os.path.join(dataset_dir, basename, "train"))
     D_test = AutoDLDataset(os.path.join(dataset_dir, basename, "test"))
     ##### End creating training set and test set #####

@@ -13,163 +13,97 @@ LOGGER = logging.getLogger(__name__)
 
 
 class TFDataset(Dataset):
-    def __init__(self, session, dataset, num_samples, transform=None):
+    def __init__(
+        self,
+        session,
+        dataset,
+        num_samples=None,
+        transform=None
+    ):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
         self.transform = transform
+
+        # Metadata
         self.num_samples = num_samples
+        self.num_classes = None
+        self.min_shape = None
+        self.max_shape = None
+        self.median_shape = None
+        self.mean_shape = None
+        self.std_shape = None
+        self.is_multilabel = None
+
+        self.next_idx = 0
+
         self.next_element = None
-
         self.reset()
-
-    def reset(self):
-        dataset = self.dataset
-        iterator = dataset.make_one_shot_iterator()
-        self.next_element = iterator.get_next()
-        return self
 
     def __len__(self):
         return self.num_samples
 
-    def __getitem__(self, index):
-        session = self.session if self.session is not None else tf.Session()
+    def __getitem__(self, _):
         try:
-            example, label = session.run(self.next_element)
+            example, label = self._tf_exec(self.next_element)
+            self.next_idx += 1
             # example = torch.as_tensor(example)
             # label = torch.as_tensor(example)
         except tf.errors.OutOfRangeError:
             self.reset()
             raise StopIteration
 
-        if self.transform is None:
-            return example, label
-        else:
-            example_transform = self.transform(example)
-            return example_transform, label
+        example = self.transform(example) \
+            if self.transform is not None \
+            else example
+        return example, label
 
-    def scan2(self, samples=10000000):
+    def _tf_exec(self, args):
+        # Nice try but ingestion doesn't play nice with eager execution
+        return args if tf.executing_eagerly() else self.session.run(args)
+
+    def reset(self):
+        dataset = self.dataset
+        iterator = dataset.make_one_shot_iterator()
+        self.next_element = iterator.get_next()
+        self.next_idx = 0
+        return self
+
+    def scan(self, max_samples=None):
         # Same as scan but extracts the min/max shape and checks
         # if the dataset is multilabeled
-        # TODO(Philipp J.): Can we do better than going over the whole
-        # to check this?
         min_shape = (np.Inf, np.Inf, np.Inf, np.Inf)
         max_shape = (-np.Inf, -np.Inf, -np.Inf, -np.Inf)
-        avg_shape = np.array([0, 0, 0, 0])
+        shape_list = []
         is_multilabel = False
         count = 0
-        for i in range(min(self.num_samples, samples)):
+        self.reset()
+        while count != max_samples:
             try:
-                example, label = self.__getitem__(i)
+                example, label = self._tf_exec(self.next_element)
             except tf.errors.OutOfRangeError:
+                self.reset()
                 break
-            except StopIteration:
-                break
+            shape_list.append(example.shape)
             min_shape = np.minimum(min_shape, example.shape)
             max_shape = np.maximum(max_shape, example.shape)
-            avg_shape += example.shape
             count += 1
             if np.sum(label) > 1:
                 is_multilabel = True
 
-        avg_shape = avg_shape / count
+        self.num_samples = self.num_samples if max_samples is not None else count
+        self.num_classes = label.shape[0]
+        self.min_shape = min_shape
+        self.max_shape = max_shape
+        self.mean_shape = np.mean(shape_list, axis=0)
+        self.is_multilabel = is_multilabel
+        self.reset()
 
         return {
-            'num_samples': count,
-            'min_shape': min_shape,
-            'max_shape': max_shape,
-            'avg_shape': avg_shape,
-            'is_multilabel': is_multilabel,
+            'num_samples': self.num_samples,
+            'min_shape': self.min_shape,
+            'max_shape': self.max_shape,
+            'avg_shape': self.mean_shape,
+            'is_multilabel': self.is_multilabel,
         }
 
-    def scan(self, samples=10000000, with_tensors=False, is_batch=False, device=None, half=False):
-        shapes, counts, tensors = [], [], []
-        for i in range(min(self.num_samples, samples)):
-            try:
-                example, label = self.__getitem__(i)
-            except tf.errors.OutOfRangeError:
-                break
-            except StopIteration:
-                break
-
-            shape = example.shape
-            count = np.sum(label, axis=None if not is_batch else -1)
-            shapes.append(shape)
-            counts.append(count)
-            if with_tensors:
-                example = torch.Tensor(example)
-                label = torch.Tensor(label)
-
-                example.data = example.data.to(device=device)
-                if half and example.is_floating_point():
-                    example.data = example.data.half()
-
-                label.data = label.data.to(device=device)
-                if half and label.is_floating_point():
-                    label.data = label.data.half()
-
-                tensors.append([example, label])
-
-        shapes = np.array(shapes)
-        counts = np.array(counts) if not is_batch else np.concatenate(counts)
-
-        info = {
-            'count': len(counts),
-            'is_multilabel': counts.max() > 1.01,
-            'example': {
-                'shape': [int(v) for v in np.median(shapes, axis=0)],  # 1, width, height, channels
-            },
-            'label': {
-                'min': counts.min(),
-                'max': counts.max(),
-                'average': counts.mean(),
-                'median': np.median(counts),
-            }
-        }
-
-        if with_tensors:
-            return info, tensors
-        return info
-
-
-class TransformDataset(Dataset):
-    def __init__(self, dataset, transform=None, index=None):
-        self.dataset = dataset
-        self.transform = transform
-        self.index = index
-
-    def __getitem__(self, index):
-        tensors = self.dataset[index]
-        tensors = list(tensors)
-
-        if self.transform is not None:
-            if self.index is None:
-                tensors = self.transform(*tensors)
-            else:
-                tensors[self.index] = self.transform(tensors[self.index])
-
-        return tuple(tensors)
-
-    def __len__(self):
-        return len(self.dataset)
-
-
-def prefetch_dataset(dataset, num_workers=4, batch_size=32, device=None, half=False):
-    if isinstance(dataset, list) and isinstance(dataset[0], torch.Tensor):
-        tensors = dataset
-    else:
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=False, drop_last=False,
-            num_workers=num_workers, pin_memory=False
-        )
-        tensors = [t for t in dataloader]
-        tensors = [torch.cat(t, dim=0) for t in zip(*tensors)]
-
-    if device is not None:
-        tensors = [t.to(device=device) for t in tensors]
-    if half:
-        tensors = [t.half() if  t.is_floating_point() else t for t in tensors]
-
-    return torch.utils.data.TensorDataset(*tensors)

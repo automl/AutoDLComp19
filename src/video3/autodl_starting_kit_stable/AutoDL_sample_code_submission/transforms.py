@@ -1,7 +1,7 @@
 import math
 import numbers
 import random
-
+import os
 import numpy as np
 import torch
 import torchvision
@@ -388,7 +388,7 @@ class Stack(object):
                 return np.concatenate(img_group, axis=2)
 
 
-class ToTorchFormatTensor(object):
+class ToTorchFormat(object):
     """ Converts a PIL.Image (RGB) or numpy.ndarray (H x W x C) in the range [0, 255]
     to a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0] """
 
@@ -409,91 +409,116 @@ class ToTorchFormatTensor(object):
         return img.float().div(255) if self.div else img.float()
 
 
-class SelectSamples(object):
+class SaveImage(object):
+    def __init__(self, save_dir, suffix):
+        self.save_dir = save_dir
+        self.suffix = suffix
+        self.it = 0
+
+    def __call__(self, pic):
+        if isinstance(pic, torch.Tensor):
+            pic_temp = F.to_pil_image(pic, mode='RGB')
+        elif isinstance(pic, np.ndarray):
+            pic_temp = Image.fromarray(np.uint8(pic), mode='RGB')
+        else:
+            pic_temp = pic
+
+        self.it += 1
+        pic_temp.save(os.path.join(self.save_dir, str(self.it) + str(self.suffix) + '.jpg'))
+        return pic
+
+
+class Stats(object):
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, x):
+        print('min val ' + str(np.array(x).min()))
+        print('max val ' + str(np.array(x).max()))
+        return x
+
+
+class SelectSample(object):
     """
     given a video 4D array, randomly select sample images within segments
     """
 
-    def __init__(self, num_samples):
-        self.num_samples = num_samples
+    def __init__(self):
+        super().__init__()
 
-    def __call__(self, pics):
-        samples = pics.shape[0]
-        if samples <= self.num_samples:
-            samples_select = np.linspace(0, samples-1, self.num_samples, dtype=int)
-        else:
-            samples_select = np.zeros(self.num_samples, dtype=int)
-            bounds = np.linspace(0, samples-1, self.num_samples+1, dtype=int)
-            for i in range(self.num_samples):
-                samples_select[i] = np.random.randint(bounds[i], bounds[i+1])
-        # room for improvement: the last frame is never chosen
-        return pics[samples_select]
+    def __call__(self, x):
+        return x[np.random.randint(0, x.shape[0])]
 
 
-class RandomCropPad(object):
-    """
-    instead of resizing, crop/pad video to desired shape directly
-    """
-    def __init__(self, size_des):
-        self.size_des = size_des
-        print(self.size_des)
+class AlignAxes(object):
+    '''
+    Swap axes if necessary
+    '''
 
-    def __call__(self, pics):
-        row = pics.shape[1]
-        row_des = self.size_des
-        col = pics.shape[2]
-        col_des = self.size_des
+    def __init__(self):
+        super().__init__()
+        pass
 
-        if row <= row_des: # pad rows
-            row_pad_start = int(np.floor((row_des-row)/2))
-            row_pad_end = row + int(np.floor((row_des-row)/2))
-            row_start = 0
-            row_end = row
-        else: # crop rows
-            row_rand = int(np.random.random() * int(np.floor((row-row_des))))
-            row_pad_start = 0
-            row_pad_end = row_des
-            row_start = row_rand
-            row_end = row_des + row_rand
-        if col <= col_des: # pad columns
-            col_pad_start = int(np.floor((col_des-col)/2))
-            col_pad_end = col + int(np.floor((col_des-col)/2))
-            col_start = 0
-            col_end = col
-        else: # crop columns
-            col_rand = int(np.random.random() * int(np.floor((col-col_des))))
-            col_pad_start = 0
-            col_pad_end = col_des
-            col_start = col_rand
-            col_end = col_des + col_rand
-
-        pics_pad = np.zeros((pics.shape[0], row_des, col_des, pics.shape[3]), dtype=pics.dtype)
-        pics_pad[:,row_pad_start:row_pad_end,col_pad_start:col_pad_end,:] = pics[:,row_start:row_end,col_start:col_end,:]
-        return pics_pad
+    def __call__(self, x):
+        if x.shape[0] < min(x.shape[1], x.shape[2]):
+            x = np.transpose(x, (1,2,0))
+        return x
 
 
+class FormatChannels(object):
+    '''
+    Adapt number of channels. If there are more than desired, use only the first n channels.
+    If there are less, copy existing channels
+    '''
+
+    def __init__(self, channels_des):
+        super().__init__()
+        self.channels_des = channels_des
+
+    def __call__(self, x):
+        channels = x.shape[2]
+        if channels < self.channels_des:
+            x = np.tile(x, (1, 1, int(np.ceil(self.channels_des / channels))))
+        x = x[:, :, 0:self.channels_des]
+        return x
 
 
 class ToPilFormat(object):
     """
-    convert from numpy/torch array (B x S_old x H x W x C) to list of PIL images (B x S_new x H x W x C)
+    convert from numpy/torch array (H x W x C) to PIL images (H x W x C)
     """
 
-    def __call__(self, pics):
-        if isinstance(pics, np.ndarray):
-            # handle numpy array
-            lst = []
-            for i in range(len(pics)):
-                formatted = (pics[i, ...] * 255).astype('uint8')
-                # if we have only one channel, expand it to three channels
-                if formatted.shape[-1] is 1:
-                    formatted = np.repeat(formatted, 3, axis=-1)
-                lst.append(Image.fromarray(formatted))
-            return lst
+    def __call__(self, pic):
+        if isinstance(pic, np.ndarray):
+            return Image.fromarray(np.uint8(pic*255), mode='RGB')
+        elif isinstance(pic, torch.Tensor):
+            return F.to_pil_image(pic)
         else:
-            # handle torch tensor
-            print('torch tensor')
-            return [F.to_pil_image(pic) for pic in pics]
+            raise TypeError('unknown input type')
+
+
+class Normalize(object):
+    '''
+    Normalize from the 0-255 range to the 0-1 range.
+    '''
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, x):
+        min_val = np.min(x)
+
+        if min_val < -0.001:
+            x = x + min_val
+
+        max_val = np.max(x)
+
+        if max_val <= 1:
+            x = x * 255
+        elif max_val > 255:
+            x = x / max_val *255
+            print('Weird max_val: ' + str(max_val))
+        return x
 
 
 class IdentityTransform(object):
