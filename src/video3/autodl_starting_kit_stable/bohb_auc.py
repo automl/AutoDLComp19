@@ -16,11 +16,11 @@ from hpbandster.optimizers import BOHB as BOHB
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64,128]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout', lower=0.1, upper=0.9, log=False))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=1e-2, log=True))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='optimizer', choices=['Adam', 'SGD']))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='arch',
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='model',
         choices=['squeezenet_64', 'squeezenet_128', 'squeezenet_224',
                  'shufflenet05_64', 'shufflenet05_128', 'shufflenet05_224',
                  'shufflenet10_64', 'shufflenet10_128', 'shufflenet10_224',
@@ -40,11 +40,11 @@ def get_configspace():
 
 def get_configuration(dataset):
     cfg = {}
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
+    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/auc'
     cfg["dataset"] = dataset
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
-    cfg["bohb_iterations"] = 50
+    cfg["bohb_iterations"] = 20
     cfg["bohb_log_dir"] = "./logs/" + dataset + '_data_' + str(int(time.time()))
 
     challenge_image_dir = '/home/dingsda/data/datasets/challenge/image/'
@@ -100,9 +100,8 @@ class BOHBWorker(Worker):
         info = {}
 
         score = 0
-        status = 'ok'
         try:
-            print('BOHB ON DATASET: ' + str(dataset))
+            print('BOHB ON DATASET: ' + cfg["dataset"])
             # stored bohb config will be read again in model.py
             write_config_to_file(config)
             # execute main function
@@ -114,7 +113,7 @@ class BOHBWorker(Worker):
             status = traceback.format_exc()
             print(status)
 
-        info[dataset] = score
+        info[cfg["dataset"]] = score
         info['config'] = str(config)
 
         print('FINAL SCORE: ' + str(score))
