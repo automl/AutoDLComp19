@@ -55,8 +55,8 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
 
-        self.training_round = 0  # flag indicating if we are in the first round of training
-        self.testing_round = 0
+        self.train_round = 0  # flag indicating if we are in the first round of training
+        self.test_round = 0
         self.num_samples_testing = None
         self.train_counter = 0
         self.batch_size_train = self.parser_args.batch_size_train
@@ -70,12 +70,12 @@ class Model(object):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("REMAINING TIME: " + str(remaining_time_budget))
 
-        self.training_round += 1
+        self.train_round += 1
 
         t1 = time.time()
 
         # initial config during first round
-        if int(self.training_round) == 1:
+        if int(self.train_round) == 1:
             self.late_init(dataset)
 
         t2 = time.time()
@@ -83,7 +83,7 @@ class Model(object):
         torch.set_grad_enabled(True)
         self.model.train()
         dl, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                   is_training=True, first_round=(int(self.training_round) == 1),
+                                                   is_training=True, first_round=(int(self.train_round) == 1),
                                                    batch_size=self.batch_size_train, input_size=self.input_size,
                                                    num_samples=int(10000000))
 
@@ -114,7 +114,7 @@ class Model(object):
                     break
 
             subprocess.run(['nvidia-smi'])
-            self.training_round += 1
+            self.train_round += 1
         LOGGER.info('TRAIN BATCH END')
 
         t4 = time.time()
@@ -168,9 +168,9 @@ class Model(object):
 
         t1 = time.time()
 
-        self.testing_round += 1
+        self.test_round += 1
 
-        if int(self.testing_round) == 1:
+        if int(self.test_round) == 1:
             scan_start = time.time()
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
             info = ds_temp.scan()
@@ -183,7 +183,7 @@ class Model(object):
         torch.set_grad_enabled(False)
         self.model.eval()
         dl, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                   is_training=False, first_round=(int(self.training_round) == 1),
+                                                   is_training=False, first_round=(int(self.test_round) == 1),
                                                    batch_size=self.batch_size_test, input_size=self.input_size,
                                                    num_samples=self.num_samples_test)
         t3 = time.time()

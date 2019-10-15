@@ -32,6 +32,7 @@ import tensorflow as tf
 import time
 import subprocess
 from common.utils import *
+from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
 
 
 class Model(object):
@@ -42,8 +43,6 @@ class Model(object):
         super().__init__()
 
         self.time_start = time.time()
-        self.train_time = []
-        self.test_time = []
 
         self.metadata = metadata
         self.num_classes = self.metadata.get_output_size()
@@ -57,10 +56,12 @@ class Model(object):
 
         self.parser_args = parser.parse_args()
 
-        self.training_round = 0  # flag indicating if we are in the first round of training
-        self.testing_round = 0
+        self.train_round = 0  # flag indicating if we are in the first round of training
+        self.test_round = 0
         self.num_samples_testing = None
         self.train_counter = 0
+        self.train_batches = 0
+        self.dl_train = None
         self.batch_size_train = self.parser_args.batch_size_train
         self.batch_size_test = self.parser_args.batch_size_test
 
@@ -68,75 +69,63 @@ class Model(object):
         LOGGER.info("INIT END: " + str(time.time()))
 
 
-    def train(self, dataset, desired_samples=None):
+    def train(self, dataset, desired_batches=None):
         LOGGER.info("TRAINING START: " + str(time.time()))
-        LOGGER.info("NUM SAMPLES: " + str(desired_samples))
+        LOGGER.info("NUM SAMPLES: " + str(desired_batches))
 
-        self.training_round += 1
-
-        t1 = time.time()
+        self.train_round += 1
 
         # initial config during first round
-        if int(self.training_round) == 1:
+        if int(self.train_round) == 1:
             self.late_init(dataset)
-
-        t2 = time.time()
 
         torch.set_grad_enabled(True)
         self.model.train()
-        dl, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                   is_training=True, first_round=(int(self.training_round) == 1),
-                                                   batch_size=self.batch_size_train, input_size=self.input_size,
-                                                   num_samples=int(10000000))
+        self.model.eval()
+        self.model.train()
 
-        t3 = time.time()
-
-        t_train = time.time()
         finish_loop = False
+
+        if self.train_batches >= desired_batches:
+            return self.train_batches
 
         LOGGER.info('TRAIN BATCH START')
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
-            for i, (data, labels) in enumerate(dl):
+            for i, (data, labels) in enumerate(self.dl_train):
                 self.optimizer.zero_grad()
                 output = self.model(data.cuda())
                 labels = format_labels(labels, self.parser_args).cuda()
                 loss = self.criterion(output, labels)
+                print(loss)
                 loss.backward()
                 self.optimizer.step()
                 self.train_counter += self.batch_size_train
-
+                self.train_batches += 1
                 #LOGGER.info('TRAIN BATCH #{0}:\t{1}'.format(i, loss))
 
-                if self.train_counter > desired_samples:
+                if self.train_batches > desired_batches:
                     finish_loop = True
                     break
 
             #subprocess.run(['nvidia-smi'])
             LOGGER.info("TRAIN COUNTER: " + str(self.train_counter))
-            self.training_round += 1
+            self.train_round += 1
+
         LOGGER.info('TRAIN BATCH END')
-
-        t4 = time.time()
-        LOGGER.info(
-            '\nTIMINGS TRAINING: ' +
-            '\n t2-t1 ' + str(t2 - t1) +
-            '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3))
-
         LOGGER.info('LR: ')
         for param_group in self.optimizer.param_groups:
             LOGGER.info(param_group['lr'])
         LOGGER.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
         LOGGER.info("TRAINING COUNTER: " + str(self.train_counter))
+        LOGGER.info("TRAINING BATCHES: " + str(self.train_batches))
         LOGGER.info("TRAINING END: " + str(time.time()))
-        self.train_time.append(t4 - t1)
+
+        return self.train_batches
 
 
     def late_init(self, dataset):
         LOGGER.info('INIT')
-
-        t1 = time.time()
 
         ds_temp = TFDataset(session=self.session, dataset=dataset)
         self.info = ds_temp.scan(50)
@@ -155,21 +144,18 @@ class Model(object):
                                        parser_args=self.parser_args)
         self.criterion = get_loss_criterion(parser_args=self.parser_args)
 
-        t2 = time.time()
-
-        LOGGER.info(
-            '\nTIMINGS FIRST ROUND: ' +
-            '\n t2-t1 ' + str(t2 - t1))
+        self.dl_train, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
+                                                   is_training=True, first_round=(int(self.train_round) == 1),
+                                                   batch_size=self.batch_size_train, input_size=self.input_size,
+                                                   num_samples=int(10000000))
 
 
     def test(self, dataset):
         LOGGER.info("TESTING START: " + str(time.time()))
 
-        t1 = time.time()
+        self.test_round += 1
 
-        self.testing_round += 1
-
-        if int(self.testing_round) == 1:
+        if int(self.test_round) == 1:
             scan_start = time.time()
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
             info = ds_temp.scan()
@@ -177,15 +163,12 @@ class Model(object):
             LOGGER.info('SCAN TIME: ' + str(time.time() - scan_start))
             LOGGER.info('TESTING: FIRST ROUND')
 
-        t2 = time.time()
-
         torch.set_grad_enabled(False)
         self.model.eval()
-        dl, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                   is_training=False, first_round=(int(self.training_round) == 1),
-                                                   batch_size=self.batch_size_test, input_size=self.input_size,
-                                                   num_samples=self.num_samples_test)
-        t3 = time.time()
+        dl, self.batch_size_test = get_dataloader(model=self.model, dataset=dataset, session=self.session,
+                                                  is_training=False, first_round=(int(self.test_round) == 1),
+                                                  batch_size=self.batch_size_test, input_size=self.input_size,
+                                                  num_samples=self.num_samples_test)
 
         LOGGER.info('TEST BATCH START')
         prediction_list = []
@@ -195,16 +178,6 @@ class Model(object):
         predictions = np.vstack(prediction_list)
         LOGGER.info('TEST BATCH END')
 
-        t4 = time.time()
-
-        LOGGER.info(
-            '\nTIMINGS TESTING: ' +
-            '\n t2-t1 ' + str(t2 - t1) +
-            '\n t3-t2 ' + str(t3 - t2) +
-            '\n t4-t3 ' + str(t4 - t3)
-        )
-
         LOGGER.info("TESTING END: " + str(time.time()))
-        self.test_time.append(t3 - t1)
         return predictions
 

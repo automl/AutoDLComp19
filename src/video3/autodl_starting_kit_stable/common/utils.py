@@ -46,6 +46,7 @@ class ParserMock():
             os.remove(path)
 
     def load_dict_parameters(self, dct):
+        # parameters from given dict
         for key, value in dct.items():
             LOGGER.info('OVERRIDING PARAMETER ' + str(key) + ' WITH ' + str(value))
             setattr(self._parser_args, key, value)
@@ -295,29 +296,29 @@ def get_transform(is_training, input_size):
         return torchvision.transforms.Compose([
             SelectSample(),
             AlignAxes(),
-            FormatChannels(channels_des = 3),
+            FormatChannels(channels_des=3),
             ToPilFormat(),
-            #SaveImage(save_dir = self.parser_args.file_dir, suffix='_2'),
-            torchvision.transforms.RandomResizedCrop(size = input_size),
-            #SaveImage(save_dir=self.parser_args.file_dir, suffix='_3'),
+            #SaveImage(save_dir = '.', suffix='_2'),
+            torchvision.transforms.RandomResizedCrop(size = input_size, scale=(0.7, 1.0)),
+            #SaveImage(save_dir = '.', suffix='_3'),
             torchvision.transforms.RandomHorizontalFlip(),
-            #SaveImage(save_dir=self.parser_args.file_dir, suffix='_4'),
-            torchvision.transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.01),
-            #SaveImage(save_dir=self.parser_args.file_dir, suffix='_5'),
-            ToTorchFormat(),
-            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-            #SaveImage(save_dir=self.parser_args.file_dir, suffix='_6')])
+            #SaveImage(save_dir = '.', suffix='_4'),
+            #torchvision.transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.01),
+            #SaveImage(save_dir = '.', suffix='_5'),
+            ToTorchFormat()])
+            #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            #SaveImage(save_dir = '.', suffix='_6')])
     else:
         return torchvision.transforms.Compose([
             SelectSample(),
             AlignAxes(),
-            FormatChannels(3),
+            FormatChannels(channels_des=3),
             ToPilFormat(),
-            torchvision.transforms.RandomResizedCrop(size=input_size),
-            torchvision.transforms.Resize(int(input_size*1.1)),
-            torchvision.transforms.CenterCrop(input_size),
-            ToTorchFormat(),
-            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            torchvision.transforms.Resize(size=input_size),
+            #torchvision.transforms.Resize(int(input_size*1.1)),
+            #torchvision.transforms.CenterCrop(input_size),
+            ToTorchFormat()])
+            #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
 
 def get_dataloader(model, dataset, session, is_training, first_round, batch_size, input_size, num_samples):
@@ -330,6 +331,7 @@ def get_dataloader(model, dataset, session, is_training, first_round, batch_size
         transform=transform
     )
 
+    # reduce batch size until it fits into memory
     if first_round:
         batch_size_ok = False
 
@@ -392,21 +394,17 @@ class ToTorchFormat(object):
     """ Converts a PIL.Image (RGB) or numpy.ndarray (H x W x C) in the range [0, 255]
     to a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0] """
 
-    def __init__(self, div=True):
-        self.div = div
+    def __init__(self):
+        self.trans = torchvision.transforms.ToTensor()
 
     def __call__(self, pic):
         if isinstance(pic, np.ndarray):
             # handle numpy array
-            img = torch.from_numpy(pic).permute(2, 0, 1).contiguous()
+            img = torch.from_numpy(pic).permute(2, 0, 1).float().div(255)
         else:
             # handle PIL Image
-            img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
-            img = img.view(pic.size[1], pic.size[0], len(pic.mode))
-            # put it from HWC to CHW format
-            # yikes, this transpose takes 80% of the loading time/CPU
-            img = img.transpose(0, 1).transpose(0, 2).contiguous()
-        return img.float().div(255) if self.div else img.float()
+            img = self.trans(pic).float()
+        return img
 
 
 class SaveImage(object):
@@ -433,6 +431,7 @@ class Stats(object):
         super().__init__()
 
     def __call__(self, x):
+        print('shape   ' + str(x.shape))
         print('min val ' + str(np.array(x).min()))
         print('max val ' + str(np.array(x).max()))
         return x
