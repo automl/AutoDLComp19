@@ -23,7 +23,7 @@ class ParserMock():
         LOGGER.setLevel(logging.DEBUG)
         setattr(self._parser_args, 'file_dir', os.path.join(rootpath, 'files/'))
         setattr(self._parser_args, 'model', 'densenet_128')
-        setattr(self._parser_args, 'batch_size_test', 256)
+        setattr(self._parser_args, 'batch_size_test', 1024)
         setattr(self._parser_args, 'optimizer', 'Adam')
         setattr(self._parser_args, 'dropout', 1e-3)
         setattr(self._parser_args, 't_diff', 1.0 / 50)
@@ -314,7 +314,7 @@ def get_transform(is_training, input_size):
             AlignAxes(),
             FormatChannels(channels_des=3),
             ToPilFormat(),
-            torchvision.transforms.Resize(size=input_size),
+            torchvision.transforms.Resize(size=(input_size, input_size)),
             #torchvision.transforms.Resize(int(input_size*1.1)),
             #torchvision.transforms.CenterCrop(input_size),
             ToTorchFormat()])
@@ -350,7 +350,8 @@ def get_dataloader(model, dataset, session, is_training, first_round, batch_size
 
                 batch_size_ok = True
 
-            except RuntimeError:
+            except RuntimeError as e:
+                LOGGER.info(str(e))
                 batch_size = int(batch_size/2)
                 if is_training:
                     LOGGER.info('REDUCING BATCH SIZE FOR TRAINING TO: ' + str(batch_size))

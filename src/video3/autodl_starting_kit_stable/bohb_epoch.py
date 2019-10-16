@@ -12,15 +12,12 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
-import hpbandster.visualization as hpvis
-import matplotlib.pyplot as plt
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB as BOHB
 from AutoDL_ingestion_program.dataset import AutoDLDataset
 from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
 from epoch.model import Model
 import logging
-from torchsummary import summary
 
 print(sys.path)
 
@@ -48,7 +45,7 @@ def get_configuration(dataset, model):
     cfg["bohb_min_budget"] = 100
     cfg["bohb_max_budget"] = 1000
     cfg["bohb_iterations"] = 10
-    cfg["bohb_log_dir"] = "./logs/" + dataset + '___' + model + '___' + str(int(time.time()))
+    cfg["bohb_log_dir"] = "./logs_new/" + dataset + '___' + model + '___' + str(int(time.time()))
     cfg["auc_splits"] = 10
 
     #challenge_image_dir = '/data/aad/image_datasets/challenge'
@@ -68,23 +65,15 @@ def get_configuration(dataset, model):
     return cfg
 
 
-def calc_auc(t_list, score_list):
-    if len(t_list) != len(score_list):
-        raise ValueError("The length of X and Y should be equal but got " +
-                         "{} and {} !".format(len(t_list), len(score_list)))
-    area = 0
-    for i in range(len(t_list) - 1):
-        delta_t = t_list[i + 1] - t_list[i]
-        area += delta_t * score_list[i]
+def calc_avg(score_list):
+    score = sum(score_list) / len(score_list)
 
-    print('--------- t list ---------')
-    print(t_list)
     print('--------- score list ---------')
     print(score_list)
     print('--------- score ---------')
-    print(area)
+    print(score)
 
-    return area
+    return score
 
 
 def execute_run(cfg, config, budget):
@@ -140,13 +129,9 @@ def execute_run(cfg, config, budget):
         print(t_list)
         print(score_list)
 
-    # transform to relative scale
-    for i in range(len(t_list)):
-        t_list[i] = t_list[i] / t_list[-1]
-
-    # calc final auc
-    auc = calc_auc(t_list, score_list)
-    return auc
+    # calc avg score
+    avg = calc_avg(score_list)
+    return avg
 
 
 class BOHBWorker(Worker):
@@ -239,8 +224,7 @@ if __name__ == "__main__":
               'densenet05_64', 'densenet05_128', 'densenet05_224',
               'densenet025_64', 'densenet025_128',
               'densenet_64', 'densenet_128', 'densenet_224']
-    datasets = ['Hammer']
-    models = ['shufflenet20_64']
+
     if len(sys.argv) == 3:      # parallel processing
         for arg in sys.argv[1:]:
             print(arg)
