@@ -79,10 +79,10 @@ def get_configuration(log_subfolder=None):
 
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 1000
-    cfg["bohb_iterations"] = 20
-    cfg["bohb_workers"] = 2
+    cfg["bohb_iterations"] = 4
+    cfg["bohb_workers"] = 4
     cfg["bohb_run_id"] = '123'
-    cfg["bohb_interface"] = 'enp34s0'
+    cfg["bohb_interface"] = 'lo'
     cfg['model_input_size'] = 128
     cfg['optimizer'] = 'Adam'
     cfg['lr'] = 1e-4

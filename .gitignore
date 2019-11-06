@@ -149,6 +149,7 @@ colab_submission/
 # Pytorch
 *.pth
 *.pth.tar
+*.pt
 *.tar
 
 src/video3/autodl_starting_kit_stable/AutoDL_public_data/*
