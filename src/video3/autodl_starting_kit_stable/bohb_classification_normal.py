@@ -4,11 +4,9 @@ import sys
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
-from PIL import Image
-import matplotlib
+import pickle
 import tensorflow as tf
 import random
-import traceback
 import numpy as np
 import time
 import torchvision
@@ -23,7 +21,6 @@ from hpbandster.optimizers.config_generators.bohb import BOHB as BOHB
 from hpbandster.optimizers.iterations import SuccessiveHalving
 from common.dataset_kakaobrain import TFDataset
 from AutoDL_ingestion_program.dataset import AutoDLDataset
-from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
 from common.utils import ToTorchFormat, SaveImage, Stats, SelectSample, AlignAxes, FormatChannels, ToPilFormat
 
 print(sys.path)
@@ -65,7 +62,7 @@ def get_configspace():
     return cs
 
 
-def get_configuration():
+def get_configuration(log_subfolder=None):
     cfg = {}
     #cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
@@ -74,11 +71,18 @@ def get_configuration():
     cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
     cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
 
+    log_folder = "logs_class_normal"
+    if log_subfolder == None:
+        cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
+    else:
+        cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg["bohb_log_dir"] = "./logs_class_normal/" + str(int(time.time()))
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 1000
     cfg["bohb_iterations"] = 20
+    cfg["bohb_workers"] = 2
+    cfg["bohb_run_id"] = '123'
+    cfg["bohb_interface"] = 'enp34s0'
     cfg['model_input_size'] = 128
     cfg['optimizer'] = 'Adam'
     cfg['lr'] = 1e-4
@@ -592,16 +596,18 @@ class BOHBWorker(Worker):
         }
 
 
-def runBOHB(cfg):
-    run_id = "0"
-
+def runBohbSerial(cfg):
     # assign random port in the 30000-40000 range to avoid using a blocked port because of a previous improper bohb shutdown
+    run_id = '0'
     port = int(30000 + random.random() * 10000)
 
     ns = hpns.NameServer(run_id=run_id, host="127.0.0.1", port=port)
     ns.start()
 
-    w = BOHBWorker(cfg=cfg, nameserver="127.0.0.1", run_id=run_id, nameserver_port=port)
+    w = BOHBWorker(cfg=cfg,
+                   nameserver="127.0.0.1",
+                   run_id=run_id,
+                   nameserver_port=port)
     w.run(background=True)
 
     result_logger = hpres.json_result_logger(
@@ -625,10 +631,62 @@ def runBOHB(cfg):
     return res
 
 
+def runBohbParallel(cfg, id):
+    # every process has to lookup the hostname
+    host = hpns.nic_name_to_host(cfg["bohb_interface"])
+    # assign random port in the 30000-40000 range to avoid using a blocked port because of a previous improper bohb shutdown
+    # port = int(30000 + random.random() * 10000)
+
+    os.makedirs(cfg["bohb_log_dir"], exist_ok=True)
+
+    if int(id) > 0:
+        time.sleep(5)
+        w = BOHBWorker(cfg=cfg,
+                       timeout=1,
+                       host=host,
+                       run_id=cfg["bohb_run_id"])
+        w.load_nameserver_credentials(working_directory=cfg["bohb_log_dir"])
+        w.run(background=False)
+        exit(0)
+
+    ns = hpns.NameServer(run_id=cfg["bohb_run_id"],
+                         host=host,
+                         port=0,
+                         working_directory=cfg["bohb_log_dir"])
+    ns_host, ns_port = ns.start()
+
+    # w = BOHBWorker(sleep_interval=0.5,
+    #                run_id=run_id,
+    #                host=host,
+    #                nameserver=ns_host,
+    #                nameserver_port=ns_port)
+    # w.run(background=True)
+
+    result_logger = hpres.json_result_logger(directory=cfg["bohb_log_dir"],
+                                             overwrite=True)
+
+    bohb = BohbWrapper(configspace=get_configspace(),
+                       run_id=cfg["bohb_run_id"],
+                       host=host,
+                       nameserver=ns_host,
+                       nameserver_port=ns_port,
+                       min_budget=cfg["bohb_min_budget"],
+                       max_budget=cfg["bohb_max_budget"],
+                       result_logger=result_logger)
+
+    res = bohb.run(n_iterations=cfg["bohb_iterations"],
+                   min_n_workers=cfg["bohb_workers"])
+
+    bohb.shutdown(shutdown_workers=True)
+    ns.shutdown()
+
+    return res
+
+
 def run_continuous_training(cfg):
     print(cfg)
 
-    os.mkdir(cfg['bohb_log_dir'])
+    os.makedirs(cfg['bohb_log_dir'], exist_ok=True)
 
     dataset_list = load_datasets(cfg, cfg["train_datasets"])
     num_classes = len(dataset_list)
@@ -695,6 +753,13 @@ if __name__ == "__main__":
     #            'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
     #            'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
 
-    cfg = get_configuration()
-    res = runBOHB(cfg)
+
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        cfg = get_configuration(sys.argv[1])
+        res = runBohbParallel(cfg, sys.argv[2])
+    else:
+        cfg = get_configuration()
+        res = runBohbSerial(cfg)
     #res = run_continuous_training(cfg)
