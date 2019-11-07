@@ -69,10 +69,12 @@ def get_configuration(log_subfolder=None):
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
         cfg["image_dir"] = '/data/aad/image_datasets/challenge'
         cfg["video_dir"] = '/data/aad/video_datasets/challenge'
+        cfg["bohb_interface"] = 'eth0'
     else:
         cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
         cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
         cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
+        cfg["bohb_interface"] = 'lo'
 
     log_folder = "logs_class_normal"
     if log_subfolder == None:
@@ -82,10 +84,9 @@ def get_configuration(log_subfolder=None):
 
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 1000
-    cfg["bohb_iterations"] = 8
-    cfg["bohb_workers"] = 4
+    cfg["bohb_iterations"] = 10
+    cfg["bohb_workers"] = 10
     cfg["bohb_run_id"] = '123'
-    cfg["bohb_interface"] = 'lo'
     cfg['model_input_size'] = 128
     cfg['optimizer'] = 'Adam'
     cfg['lr'] = 1e-4
