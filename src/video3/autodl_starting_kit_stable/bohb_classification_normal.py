@@ -44,8 +44,8 @@ def get_configspace():
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='test_batch_size', choices = [128,256,512]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='train_batch_size', choices = [32,64,128]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='train_batches', choices=[1,2,4]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_hidden_layer', choices=[True, False]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='freeze_last_resnet_layer', choices=[True, False]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='num_hidden_layers', choices=[0,1,2]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='freeze_last_resnet_layer', choices=[True, False]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-2, log=True))
     # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_softmax', choices=[True, False]))
     # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_samples', choices=[True, False]))
@@ -64,12 +64,15 @@ def get_configspace():
 
 def get_configuration(log_subfolder=None):
     cfg = {}
-    #cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
-    #cfg["image_dir"] = '/data/aad/image_datasets/challenge'
-    #cfg["video_dir"] = '/data/aad/video_datasets/challenge'
-    cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
-    cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
+    cluster_mode = False
+    if cluster_mode:
+        cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
+        cfg["image_dir"] = '/data/aad/image_datasets/challenge'
+        cfg["video_dir"] = '/data/aad/video_datasets/challenge'
+    else:
+        cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
+        cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
+        cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
 
     log_folder = "logs_class_normal"
     if log_subfolder == None:
@@ -316,14 +319,22 @@ class WrapperModel(torch.nn.Module):
         self.prelu = torch.nn.PReLU()
         #self.dropout = torch.nn.Dropout(p=cfg['dropout'])
 
-        if cfg['use_hidden_layer']:
+        if cfg['num_hidden_layers'] == 0:
+            self.fc = torch.nn.Sequential(torch.nn.PReLU(),
+                                          torch.nn.Linear(1000 * 2, num_classes))
+        elif cfg['num_hidden_layers'] == 1:
             self.fc = torch.nn.Sequential(torch.nn.PReLU(),
                                           torch.nn.Linear(1000 * 2, 300),
                                           torch.nn.PReLU(),
                                           torch.nn.Linear(300, num_classes))
-        else:
+        elif cfg['num_hidden_layers'] == 2:
             self.fc = torch.nn.Sequential(torch.nn.PReLU(),
-                                          torch.nn.Linear(1000 * 2, num_classes))
+                                          torch.nn.Linear(1000 * 2, 600),
+                                          torch.nn.PReLU(),
+                                          torch.nn.Linear(600, 150),
+                                          torch.nn.PReLU(),
+                                          torch.nn.Linear(150, num_classes))
+
 
         if os.path.isfile(self.filename):
             self.model.load_state_dict(torch.load(self.filename))
