@@ -379,9 +379,9 @@ def execute_run_xgb(config_id, cfg, config, budget):
         dataset_name  = dataset_list[selected_class][2]
         class_index   = dataset_list[selected_class][3]
 
-        m.collect_samples(dataset, dataset_name, class_index, desired_batches)
+        m.collect_samples(dataset_test, dataset_name, class_index, budget)
 
-    loss_list = []
+    m.train()
 
 
 class WrapperModel_dl(torch.nn.Module):
