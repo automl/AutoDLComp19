@@ -250,12 +250,68 @@ def load_transform(is_training, input_size):
             #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
 
-def execute_run(config_id, cfg, config, budget):
+def load_dataloader(cfg, train_dataloader_dict, session, dataset, dataset_name, num_samples, is_training):
+    print(dataset_name)
+
+    transform = load_transform(is_training=is_training, input_size=cfg["model_input_size"])
+
+    ds = TFDataset(
+        session=session,
+        dataset=dataset,
+        num_samples=num_samples,
+        transform=transform
+    )
+
+    if is_training:
+        batch_size = cfg['train_batch_size']
+    else:
+        batch_size = cfg["train_batch_size"] * 2
+
+    if dataset_name not in train_dataloader_dict or is_training is False:
+        # # reduce batch size until it fits into memory
+        # batch_size_ok = False
+        #
+        # while not batch_size_ok and batch_size > 1:
+        #     ds.reset()
+        #     try:
+        #         dl = torch.utils.data.DataLoader(
+        #             ds,
+        #             batch_size=batch_size,
+        #             shuffle=False,
+        #             drop_last=False
+        #         )
+        #
+        #         data, labels = next(iter(dl))
+        #         self.model(data.cuda())
+        #
+        #         batch_size_ok = True
+        #
+        #     except Exception as e:
+        #         print(str(e))
+        #         batch_size = int(batch_size / 2)
+        #         print('REDUCING BATCH SIZE TO: ' + str(batch_size))
+        # ds.reset()
+
+        dl = torch.utils.data.DataLoader(
+            ds,
+            batch_size=batch_size,
+            shuffle=False,
+            drop_last=False
+        )
+        train_dataloader_dict[dataset_name] = dl
+
+    else:
+        dl = train_dataloader_dict[dataset_name]
+
+    return dl
+
+
+def execute_run_dl(config_id, cfg, config, budget):
     dataset_list = load_datasets(cfg, cfg["train_datasets"])
     cfg = copy_config_to_cfg(cfg, config)
     num_classes = len(dataset_list)
 
-    m = Model(config_id = config_id, num_classes = num_classes, cfg = cfg)
+    m = Model_dl(config_id = config_id, num_classes = num_classes, cfg = cfg)
 
     loss_list = []
 
@@ -310,7 +366,25 @@ def execute_run(config_id, cfg, config, budget):
     return avg_acc, avg_loss
 
 
-class WrapperModel(torch.nn.Module):
+def execute_run_xgb(config_id, cfg, config, budget):
+    dataset_list = load_datasets(cfg, cfg["train_datasets"])
+    cfg = copy_config_to_cfg(cfg, config)
+    num_classes = len(dataset_list)
+
+    m = Model_xgb(config_id = config_id, num_classes = num_classes, cfg = cfg)
+
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_test  = dataset_list[selected_class][1]
+        dataset_name  = dataset_list[selected_class][2]
+        class_index   = dataset_list[selected_class][3]
+
+        m.collect_samples(dataset, dataset_name, class_index, desired_batches)
+
+    loss_list = []
+
+
+class WrapperModel_dl(torch.nn.Module):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
 
@@ -364,6 +438,25 @@ class WrapperModel(torch.nn.Module):
         torch.save(self.model.state_dict(), self.filename + suffix)
 
 
+class WrapperModel_xgb(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = torchvision.models.resnet18(pretrained=True)
+
+    def eval(self):
+        self.model.eval()
+
+    def test(self):
+        self.model.test()
+
+    def forward(self, x):
+        x = self.model(x)
+        x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
+        x = x.unsqueeze(0)
+        return x
+
+
+
 class WrapperOptimizer(object):
     def __init__(self, config_id, model, cfg):
         super().__init__()
@@ -395,31 +488,111 @@ class WrapperOptimizer(object):
         torch.save(self.optimizer.state_dict(), self.filename + suffix)
 
 
-class Model(object):
+class Model_xgb(object):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
-        self.time_start = time.time()
         self.cfg = cfg
         self.num_samples_testing = None
         self.train_dataloader_dict = {}
         self.session = tf.Session()
-        self.model = WrapperModel(config_id = config_id, num_classes = num_classes, cfg = cfg)
-        #self.model.save()
-        #self.model = WrapperModel(config_id = config_id, num_classes = num_classes, cfg = cfg)
+        self.model = WrapperModel_xgb()
+        self.model.cuda()
+        self.x = None
+        self.y = None
+
+    def collect_samples(self, dataset, dataset_name, class_index, desired_batches):
+        print('COLLECT SAMPLES START')
+
+        dataloader = load_dataloader(cfg = cfg,
+                                     train_dataloader_dict = self.train_dataloader_dict,
+                                     session = self.session,
+                                     dataset=dataset,
+                                     dataset_name=dataset_name,
+                                     num_samples=int(1e9),
+                                     is_training=True)
+
+        torch.set_grad_enabled(False)
+        self.model.train()
+
+        finish_loop = False
+        train_batches = 0
+
+        while not finish_loop:
+            # Set train mode before we go into the train loop over an epoch
+            for data, _ in dataloader:
+                output = self.model(data.cuda()).cpu()
+
+                self.X = output if self.X == None else torch.cat((self.X, output, 0))
+                self.y = torch.tensor([class_index]) if self.y == None else torch.cat((self.X, class_index, 0))
+
+                if train_batches > desired_batches:
+                    finish_loop = True
+                    break
+
+                train_batches += 1
+
+        print('COLLECT SAMPLES END')
+
+
+    def train(self):
+        self.X = None
+        self.y = None
+
+
+    def test(self, dataset, dataset_name, class_index):
+        print('TEST START')
+        dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
+        info = dataset_temp.scan()
+        dataloader = load_dataloader(cfg = cfg,
+                                     train_dataloader_dict = self.train_dataloader_dict,
+                                     session = self.session,
+                                     dataset=dataset,
+                                     dataset_name=dataset_name,
+                                     num_samples=info['num_samples'],
+                                     is_training=False)
+
+        torch.set_grad_enabled(False)
+        self.model.eval()
+
+        t1 = time.time()
+
+        prediction_list = []
+
+        for data, _ in dataloader:
+            prediction_list.append(self.model(data.cuda()).cpu())
+        prediction = torch.cat(prediction_list, dim=0)
+
+        acc = self.calc_accuracy(prediction, class_index)
+        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
+
+        print('TEST END')
+
+        return acc
+
+
+class Model_dl(object):
+    def __init__(self, config_id, num_classes, cfg):
+        super().__init__()
+        self.cfg = cfg
+        self.num_samples_testing = None
+        self.train_dataloader_dict = {}
+        self.session = tf.Session()
+        self.model = WrapperModel_dl(config_id = config_id, num_classes = num_classes, cfg = cfg)
         self.model.cuda()
         self.criterion = torch.nn.CrossEntropyLoss().cuda()
         self.optimizer = WrapperOptimizer(config_id = config_id, model=self.model, cfg=self.cfg)
-        #self.optimizer.save()
-        #self.optimizer = WrapperOptimizer(config_id = config_id, model=self.model, cfg=self.cfg)
 
 
     def train(self, dataset, dataset_name, class_index, desired_batches, iteration, save_iteration=1):
         print('TRAIN START')
 
-        dataloader = self.load_dataloader(dataset=dataset,
-                                          dataset_name=dataset_name,
-                                          num_samples=int(1e9),
-                                          is_training=True)
+        dataloader = load_dataloader(cfg = cfg,
+                                     train_dataloader_dict = self.train_dataloader_dict,
+                                     session = self.session,
+                                     dataset=dataset,
+                                     dataset_name=dataset_name,
+                                     num_samples=int(1e9),
+                                     is_training=True)
 
         torch.set_grad_enabled(True)
         self.model.train()
@@ -435,7 +608,8 @@ class Model(object):
                 #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
                 self.optimizer.zero_grad()
                 output = self.model(data.cuda())
-                labels = self.format_labels(class_index, output).cuda()
+                print(output.cpu().shape)
+                labels = torch.LongTensor([class_index]).cuda()
                 #print(output)
                 #print(labels)
                 loss = self.criterion(output, labels)
@@ -469,10 +643,13 @@ class Model(object):
         print('TEST START')
         dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
         info = dataset_temp.scan()
-        dataloader = self.load_dataloader(dataset=dataset,
-                                          dataset_name=dataset_name,
-                                          num_samples=info['num_samples'],
-                                          is_training=False)
+        dataloader = load_dataloader(cfg = cfg,
+                                     train_dataloader_dict = self.train_dataloader_dict,
+                                     session = self.session,
+                                     dataset=dataset,
+                                     dataset_name=dataset_name,
+                                     num_samples=info['num_samples'],
+                                     is_training=False)
 
         torch.set_grad_enabled(False)
         self.model.eval()
@@ -493,81 +670,13 @@ class Model(object):
         return acc
 
 
-    def format_labels(self, class_index, data):
-        return torch.LongTensor([class_index])
-        #return torch.LongTensor([class_index]).repeat(len(data))
-
-
     def calc_accuracy(self, prediction, class_index):
         max_val, max_idx = torch.max(prediction, 1)
         acc = float(torch.sum(max_idx == int(class_index))) / float(len(prediction))
-        # torch.set_printoptions(profile="full")
-        # print('------------')
-        # print(class_index)
-        # #print(prediction)
-        # #print(max_idx)
-        # print(torch.sum(max_idx == int(class_index)))
-        # print(len(prediction))
-        # print(acc)
-        # print('------------')
-        # torch.set_printoptions(profile="default")
         return acc
 
 
-    def load_dataloader(self, dataset, dataset_name, num_samples, is_training):
-        print(dataset_name)
 
-        transform = load_transform(is_training=is_training, input_size=self.cfg["model_input_size"])
-
-        ds = TFDataset(
-            session=self.session,
-            dataset=dataset,
-            num_samples=num_samples,
-            transform=transform
-        )
-
-        if is_training:
-            batch_size = cfg['train_batch_size']
-        else:
-            batch_size = cfg["train_batch_size"] * 2
-
-        if dataset_name not in self.train_dataloader_dict or is_training is False:
-            # # reduce batch size until it fits into memory
-            # batch_size_ok = False
-            #
-            # while not batch_size_ok and batch_size > 1:
-            #     ds.reset()
-            #     try:
-            #         dl = torch.utils.data.DataLoader(
-            #             ds,
-            #             batch_size=batch_size,
-            #             shuffle=False,
-            #             drop_last=False
-            #         )
-            #
-            #         data, labels = next(iter(dl))
-            #         self.model(data.cuda())
-            #
-            #         batch_size_ok = True
-            #
-            #     except Exception as e:
-            #         print(str(e))
-            #         batch_size = int(batch_size / 2)
-            #         print('REDUCING BATCH SIZE TO: ' + str(batch_size))
-            # ds.reset()
-
-            dl = torch.utils.data.DataLoader(
-                ds,
-                batch_size=batch_size,
-                shuffle=False,
-                drop_last=False
-            )
-            self.train_dataloader_dict[dataset_name] = dl
-
-        else:
-            dl = self.train_dataloader_dict[dataset_name]
-
-        return dl
 
 
 
@@ -587,7 +696,7 @@ class BOHBWorker(Worker):
         score = 0
         avg_loss = 0
         try:
-            score, avg_loss = execute_run(config_id = config_id, cfg=cfg, config=config, budget=budget)
+            score, avg_loss = execute_run_dl(config_id = config_id, cfg=cfg, config=config, budget=budget)
         except Exception as e:
             status = str(e)
             print(status)
