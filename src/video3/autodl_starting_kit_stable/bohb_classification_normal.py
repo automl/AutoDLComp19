@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
-import pickle
+import xgboost as xgb
 import tensorflow as tf
 import random
 import numpy as np
@@ -82,8 +82,8 @@ def get_configuration(log_subfolder=None):
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg["bohb_min_budget"] = 30
-    cfg["bohb_max_budget"] = 1000
+    cfg["bohb_min_budget"] = 1
+    cfg["bohb_max_budget"] = 2
     cfg["bohb_iterations"] = 10
     cfg["bohb_workers"] = 10
     cfg["bohb_run_id"] = '123'
@@ -100,12 +100,13 @@ def get_configuration(log_subfolder=None):
     cfg['optimizer_weight_decay'] = 1e-6
     cfg['optimizer_nesterov'] = True
 
-    datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
-               'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-               'colorectal_histology', 'deep_weeds', 'eurosat', 'fashion_mnist',
-               'horses_or_humans', 'kmnist', 'mnist', 'oxford_flowers102',
-               'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors', 'smallnorb',
-               'svhn_cropped', 'tf_flowers', 'uc_merced']
+    # datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
+    #            'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
+    #            'colorectal_histology', 'deep_weeds', 'eurosat', 'fashion_mnist',
+    #            'horses_or_humans', 'kmnist', 'mnist', 'oxford_flowers102',
+    #            'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors', 'smallnorb',
+    #            'svhn_cropped', 'tf_flowers', 'uc_merced']
+    datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011']
                #'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'Pedro']
     # without 'SMv2', 'Ucf101', 'emnist', 'Monkeys', 'Munster',
 
@@ -375,13 +376,18 @@ def execute_run_xgb(config_id, cfg, config, budget):
 
     for i in range(num_classes):
         selected_class = i % num_classes
-        dataset_test  = dataset_list[selected_class][1]
+        dataset_train = dataset_list[selected_class][0]
         dataset_name  = dataset_list[selected_class][2]
         class_index   = dataset_list[selected_class][3]
 
-        m.collect_samples(dataset_test, dataset_name, class_index, budget)
+        m.collect_samples(dataset = dataset_train.get_dataset(),
+                          dataset_name = dataset_name,
+                          class_index = class_index,
+                          desired_batches = budget)
 
     m.train()
+
+    return 1,1
 
 
 class WrapperModel_dl(torch.nn.Module):
@@ -456,7 +462,6 @@ class WrapperModel_xgb(torch.nn.Module):
         return x
 
 
-
 class WrapperOptimizer(object):
     def __init__(self, config_id, model, cfg):
         super().__init__()
@@ -497,7 +502,7 @@ class Model_xgb(object):
         self.session = tf.Session()
         self.model = WrapperModel_xgb()
         self.model.cuda()
-        self.x = None
+        self.X = None
         self.y = None
 
     def collect_samples(self, dataset, dataset_name, class_index, desired_batches):
@@ -522,8 +527,16 @@ class Model_xgb(object):
             for data, _ in dataloader:
                 output = self.model(data.cuda()).cpu()
 
-                self.X = output if self.X == None else torch.cat((self.X, output, 0))
-                self.y = torch.tensor([class_index]) if self.y == None else torch.cat((self.X, class_index, 0))
+                if self.X is None:
+                    self.X = output
+                else:
+                    self.X = torch.cat((self.X, output), dim=0)
+
+
+                if self.y is None:
+                    self.y = torch.tensor([class_index])
+                else:
+                    self.y = torch.cat((self.y, torch.tensor([class_index])), dim=0)
 
                 if train_batches > desired_batches:
                     finish_loop = True
@@ -535,39 +548,55 @@ class Model_xgb(object):
 
 
     def train(self):
+        print('TRAIN START')
+
+
+        param = {
+            'eta': 0.3,
+            'max_depth': 3,
+            'objective': 'multi:softprob',
+            'num_class': 3}
+        steps = 20
+
+        D_train = xgb.DMatrix(self.X.numpy(), label=self.y.numpy())
+        self.xgb = xgb.train(param, D_train, steps)
         self.X = None
         self.y = None
 
+        print('TRAIN END')
+
+
 
     def test(self, dataset, dataset_name, class_index):
-        print('TEST START')
-        dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
-        info = dataset_temp.scan()
-        dataloader = load_dataloader(cfg = cfg,
-                                     train_dataloader_dict = self.train_dataloader_dict,
-                                     session = self.session,
-                                     dataset=dataset,
-                                     dataset_name=dataset_name,
-                                     num_samples=info['num_samples'],
-                                     is_training=False)
-
-        torch.set_grad_enabled(False)
-        self.model.eval()
-
-        t1 = time.time()
-
-        prediction_list = []
-
-        for data, _ in dataloader:
-            prediction_list.append(self.model(data.cuda()).cpu())
-        prediction = torch.cat(prediction_list, dim=0)
-
-        acc = self.calc_accuracy(prediction, class_index)
-        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
-
-        print('TEST END')
-
-        return acc
+        pass
+        # print('TEST START')
+        # dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
+        # info = dataset_temp.scan()
+        # dataloader = load_dataloader(cfg = cfg,
+        #                              train_dataloader_dict = self.train_dataloader_dict,
+        #                              session = self.session,
+        #                              dataset=dataset,
+        #                              dataset_name=dataset_name,
+        #                              num_samples=info['num_samples'],
+        #                              is_training=False)
+        #
+        # torch.set_grad_enabled(False)
+        # self.model.eval()
+        #
+        # t1 = time.time()
+        #
+        # prediction_list = []
+        #
+        # for data, _ in dataloader:
+        #     prediction_list.append(self.model(data.cuda()).cpu())
+        # prediction = torch.cat(prediction_list, dim=0)
+        #
+        # acc = self.calc_accuracy(prediction, class_index)
+        # print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
+        #
+        # print('TEST END')
+        #
+        # return acc
 
 
 class Model_dl(object):
@@ -608,7 +637,6 @@ class Model_dl(object):
                 #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
                 self.optimizer.zero_grad()
                 output = self.model(data.cuda())
-                print(output.cpu().shape)
                 labels = torch.LongTensor([class_index]).cuda()
                 #print(output)
                 #print(labels)
@@ -623,7 +651,6 @@ class Model_dl(object):
                     finish_loop = True
                     break
 
-                #subprocess.run(['nvidia-smi'])
                 train_batches += 1
 
         if iteration % save_iteration == 0:
@@ -696,7 +723,7 @@ class BOHBWorker(Worker):
         score = 0
         avg_loss = 0
         try:
-            score, avg_loss = execute_run_dl(config_id = config_id, cfg=cfg, config=config, budget=budget)
+            score, avg_loss = execute_run_xgb(config_id = config_id, cfg=cfg, config=config, budget=budget)
         except Exception as e:
             status = str(e)
             print(status)
