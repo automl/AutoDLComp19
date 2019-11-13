@@ -66,7 +66,7 @@ def get_configspace():
 
 def get_configuration(log_subfolder=None):
     cfg = {}
-    cluster_mode = False
+    cluster_mode = True
     if cluster_mode:
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
         cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets'
@@ -967,6 +967,7 @@ def generate_samples(cfg, idx=1, idx_total=1):
     batch_size = 512
 
     dataset_list = load_datasets_raw(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+    print(dataset_list)
     des_num_samples = cfg['des_num_samples']
 
     os.makedirs(cfg["proc_dataset_dir"], exist_ok=True)
