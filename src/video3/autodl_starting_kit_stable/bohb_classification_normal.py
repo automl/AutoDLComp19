@@ -1017,8 +1017,8 @@ def generate_samples(cfg, idx=1, idx_total=1):
         output_train = np.concatenate(output_list_train, axis=0)
         output_test = np.concatenate(output_list_test, axis=0)
 
-        file_train = os.path.join(cfg["ds_log_dir"], dataset_name + '_train')
-        file_test = os.path.join(cfg["ds_log_dir"], dataset_name + '_test')
+        file_train = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_train')
+        file_test = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_test')
         with open(file_train, "wb") as fh_train:
             pickle.dump(output_train, fh_train)
         with open(file_test, "wb") as fh_test:
