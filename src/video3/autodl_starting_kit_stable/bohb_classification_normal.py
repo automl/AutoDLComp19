@@ -47,14 +47,17 @@ def get_configspace():
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_freeze_last_resnet_layer', choices=[True, False]))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-4, upper=1e-2, log=True))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [32,64,128]))
 
     # xgb classifier
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
-    cs.add_hyperparameter(CSH.IntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
-    cs.add_hyperparameter(CSH.IntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [32,64,128]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [32,64,128]))
+
 
     # common parameters
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='train_batch_size', choices = [32,64,128]))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_ratio', lower=0.3, upper=1, log=False))
 
@@ -66,25 +69,29 @@ def get_configuration(log_subfolder=None):
     cluster_mode = False
     if cluster_mode:
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
+        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets'
+        cfg['des_num_samples'] = int(1e5)
         cfg["image_dir"] = '/data/aad/image_datasets/challenge'
         cfg["video_dir"] = '/data/aad/video_datasets/challenge'
         cfg["bohb_interface"] = 'eth0'
     else:
         cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
+        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets'
+        cfg['des_num_samples'] = int(1e5)
         cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
         cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
         cfg["bohb_interface"] = 'lo'
 
-    log_folder = "logs_class_normal"
+    log_folder = "logs_class_xgb"
     if log_subfolder == None:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg['proc_ds_dir'] = os.path.join(os.getcwd(), 'processed_datasets')
 
-    cfg["bohb_min_budget"] = 1
-    cfg["bohb_max_budget"] = 2
+    cfg["use_model"] = 'xgb'    # xgb or dl
+    cfg["bohb_min_budget"] = 1000
+    cfg["bohb_max_budget"] = 10000
     cfg["bohb_iterations"] = 10
     cfg["bohb_workers"] = 10
     cfg["bohb_run_id"] = '123'
@@ -99,8 +106,7 @@ def get_configuration(log_subfolder=None):
     cfg['xgb_eta'] = 0.3
     cfg['xgb_max_depth'] = 6
     cfg['xgb_train_steps'] = 10
-    cfg['des_num_samples'] = int(10000)
-    cfg["model_base"] = 'resnet18'
+    cfg['xgb_train_batch_size'] = 10
 
     datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
                'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
@@ -108,9 +114,8 @@ def get_configuration(log_subfolder=None):
                'horses_or_humans', 'kmnist', 'mnist', 'oxford_flowers102',
                'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors', 'smallnorb',
                'svhn_cropped', 'tf_flowers', 'uc_merced',
-               'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'Pedro']
-    datasets = ['Kraut','Kreatur', 'Pedro']
-    # without 'SMv2', 'Ucf101', 'Munster'
+               'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kreatur', 'Pedro']
+    # without 'SMv2', 'Ucf101', 'Munster', 'Kraut'
 
     #datasets = ['binary_alpha_digits', 'caltech101', 'mnist', 'eurosat']
 
@@ -185,20 +190,26 @@ class BohbWrapper(Master):
                                   config_sampler=self.config_generator.get_config, **iteration_kwargs))
 
 
-class PrecalculatedDataset(torch.utils.data.Dataset):
+class ProcessedDataset(torch.utils.data.Dataset):
     """
     Data loader for the ucf 101 dataset. It assumes that in the top-level folder there is another
     folder (aaa_recognition in our case) with the files for the test/train split
     """
 
-    def __init__(self, data_path):
-        self.dataset = pickle.load(data_path)
+    def __init__(self, data_path, class_index):
+        with open(data_path, 'rb') as fh:
+            self.dataset = torch.tensor(pickle.load(fh))
+            self.class_index = torch.tensor(class_index)
+
+    def get_dataset(self):
+        # for compatibility
+        return self
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return self.dataset()
+        return self.dataset[idx], self.class_index
 
 
 def load_datasets_processed(cfg, datasets):
@@ -206,9 +217,24 @@ def load_datasets_processed(cfg, datasets):
     load preprocessed datasets from a list, return train/test datasets, dataset index and dataset name
     '''
     dataset_list = []
+    dataset_dir = cfg['proc_dataset_dir']
     class_index = 0
 
     for dataset_name in datasets:
+        dataset_train_path = os.path.join(cfg['proc_dataset_dir'], dataset_name + '_train')
+        dataset_test_path = os.path.join(cfg['proc_dataset_dir'], dataset_name + '_test')
+
+        try:
+            dataset_train = ProcessedDataset(dataset_train_path, class_index)
+            dataset_test = ProcessedDataset(dataset_test_path, class_index)
+        except Exception as e:
+            print(e)
+            continue
+
+        dataset_list.append((dataset_train, dataset_test, dataset_name, class_index))
+        class_index += 1
+
+    return dataset_list
 
 
 def load_datasets_raw(cfg, datasets):
@@ -285,9 +311,9 @@ def load_dataloader(cfg, train_dataloader_dict, session, dataset, dataset_name, 
     )
 
     if is_training:
-        batch_size = cfg['train_batch_size']
+        batch_size = cfg['nn_train_batch_size']
     else:
-        batch_size = cfg["train_batch_size"] * 2
+        batch_size = cfg["nn_train_batch_size"] * 2
 
     if dataset_name not in train_dataloader_dict or is_training is False:
         # # reduce batch size until it fits into memory
@@ -326,89 +352,6 @@ def load_dataloader(cfg, train_dataloader_dict, session, dataset, dataset_name, 
         dl = train_dataloader_dict[dataset_name]
 
     return dl
-
-
-def execute_run_dl(config_id, cfg, config, budget):
-    dataset_list = load_datasets(cfg, cfg["train_datasets"])
-    cfg = copy_config_to_cfg(cfg, config)
-    num_classes = len(dataset_list)
-
-    m = Model_dl(config_id = config_id, num_classes = num_classes, cfg = cfg)
-
-    loss_list = []
-
-    for i in range(int(budget)):
-        # load training dataset
-        selected_class = i % num_classes
-        dataset_train  = dataset_list[selected_class][0]
-        dataset_name   = dataset_list[selected_class][2]
-        class_index    = dataset_list[selected_class][3]
-
-        if i%10 == 0:
-            print(str(i), end=' ')
-
-        if class_index != selected_class:
-            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
-
-        #print('TRAINING ' + dataset_name + ' ' + str(class_index))
-
-        loss = m.train(dataset = dataset_train.get_dataset(),
-                       dataset_name = dataset_name,
-                       class_index = class_index,
-                       desired_batches = cfg["nn_train_batches"],
-                       iteration = i,
-                       save_iteration=1)
-
-        loss_list.append(loss)
-
-    avg_loss = sum(loss_list) / len(loss_list)
-
-    print(' ')
-    acc_list = []
-
-    for i in range(num_classes):
-        selected_class = i % num_classes
-        dataset_test  = dataset_list[selected_class][1]
-        dataset_name  = dataset_list[selected_class][2]
-        class_index   = dataset_list[selected_class][3]
-
-        #print('TESTING ' + dataset_name + ' ' + str(class_index))
-
-        if class_index != selected_class:
-            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
-
-        acc = m.test(dataset = dataset_test.get_dataset(),
-                     dataset_name = dataset_name,
-                     class_index = class_index)
-        acc_list.append(acc)
-
-    avg_acc = sum(acc_list) / len(acc_list)
-    print(avg_acc)
-
-    return avg_acc, avg_loss
-
-
-def execute_run_xgb(config_id, cfg, config, budget):
-    dataset_list = load_datasets(cfg, cfg["train_datasets"])
-    cfg = copy_config_to_cfg(cfg, config)
-    num_classes = len(dataset_list)
-
-    m = Model_xgb(config_id = config_id, num_classes = num_classes, cfg = cfg)
-
-    for i in range(num_classes):
-        selected_class = i % num_classes
-        dataset_train = dataset_list[selected_class][0]
-        dataset_name  = dataset_list[selected_class][2]
-        class_index   = dataset_list[selected_class][3]
-
-        m.collect_samples(dataset = dataset_train.get_dataset(),
-                          dataset_name = dataset_name,
-                          class_index = class_index,
-                          desired_batches = budget)
-
-    m.train()
-
-    return 1,1
 
 
 class WrapperModel_dl(torch.nn.Module):
@@ -451,8 +394,8 @@ class WrapperModel_dl(torch.nn.Module):
     def eval(self):
         self.model.eval()
 
-    def test(self):
-        self.model.test()
+    def train(self):
+        self.model.train()
 
     def forward(self, x):
         x = self.model(x)
@@ -466,18 +409,20 @@ class WrapperModel_dl(torch.nn.Module):
 
 
 class WrapperModel_xgb(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, processed=False):
         super().__init__()
         self.model = torchvision.models.resnet18(pretrained=True)
+        self.processed = processed
 
     def eval(self):
         self.model.eval()
 
-    def test(self):
-        self.model.test()
+    def train(self):
+        self.model.train()
 
     def forward(self, x):
-        x = self.model(x)
+        if self.processed:
+            x = self.model(x)
         x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
         x = x.unsqueeze(0)
         return x
@@ -505,31 +450,82 @@ class WrapperOptimizer(object):
         torch.save(self.optimizer.state_dict(), self.filename + suffix)
 
 
+def calc_accuracy(prediction, class_index):
+    max_val, max_idx = torch.max(prediction, 1)
+    acc = float(torch.sum(max_idx == int(class_index))) / float(len(prediction))
+    return acc
+
+
+def execute_run_xgb(config_id, cfg, budget):
+    dataset_list = load_datasets_processed(cfg, cfg["train_datasets"])
+    num_classes = len(dataset_list)
+
+    m = Model_xgb(config_id = config_id, num_classes = num_classes, cfg = cfg)
+
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_train = dataset_list[selected_class][0]
+        dataset_name  = dataset_list[selected_class][2]
+        class_index   = dataset_list[selected_class][3]
+
+        print(dataset_name)
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        m.collect_samples_train(dataset = dataset_train.get_dataset(),
+                                class_index = class_index,
+                                desired_batches = budget)
+
+    m.train()
+
+    acc_list = []
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_test = dataset_list[selected_class][1]
+        dataset_name = dataset_list[selected_class][2]
+        class_index  = dataset_list[selected_class][3]
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        acc = m.test(dataset=dataset_test.get_dataset(),
+                     dataset_name=dataset_name,
+                     class_index=class_index)
+        acc_list.append(acc)
+
+    avg_acc = sum(acc_list) / len(acc_list)
+
+    return avg_acc, 0
+
+
+
 class Model_xgb(object):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
         self.cfg = cfg
         self.train_dataloader_dict = {}
         self.session = tf.Session()
-        self.model = WrapperModel_xgb()
+        self.model = WrapperModel_xgb(processed = False)
         self.model.cuda()
         self.num_classes = num_classes
-        self.X = None
-        self.y = None
+        self.X = []
+        self.y = []
 
-    def collect_samples(self, dataset, dataset_name, class_index, desired_batches):
+    def collect_samples_train(self, dataset, class_index, desired_batches):
         print('COLLECT SAMPLES START')
 
-        dataloader = load_dataloader(cfg = cfg,
-                                     train_dataloader_dict = self.train_dataloader_dict,
-                                     session = self.session,
-                                     dataset=dataset,
-                                     dataset_name=dataset_name,
-                                     num_samples=int(1e9),
-                                     is_training=True)
+        t1 = time.time()
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.cfg['xgb_train_batch_size'],
+            shuffle=True,
+            drop_last=False
+        )
 
         torch.set_grad_enabled(False)
-        self.model.train()
+        self.model.eval()
 
         finish_loop = False
         train_batches = 0
@@ -538,17 +534,18 @@ class Model_xgb(object):
             # Set train mode before we go into the train loop over an epoch
             for data, _ in dataloader:
                 output = self.model(data.cuda()).cpu()
-
-                if self.X is None:
-                    self.X = output
-                else:
-                    self.X = torch.cat((self.X, output), dim=0)
-
-
-                if self.y is None:
-                    self.y = torch.tensor([class_index])
-                else:
-                    self.y = torch.cat((self.y, torch.tensor([class_index])), dim=0)
+                self.X.append(output.numpy())
+                self.y.append(np.array([class_index]))
+                # if self.X is None:
+                #     self.X = output
+                # else:
+                #     self.X = torch.cat((self.X, output), dim=0)
+                #
+                #
+                # if self.y is None:
+                #     self.y = torch.tensor([class_index])
+                # else:
+                #     self.y = torch.cat((self.y, torch.tensor([class_index])), dim=0)
 
                 train_batches += 1
                 if train_batches > desired_batches:
@@ -559,53 +556,116 @@ class Model_xgb(object):
 
 
     def train(self):
-        print('TRAIN START')
+        print('TRAIN XGB START')
+        X = np.squeeze(np.array(self.X))
+        y = np.squeeze(np.array(self.y))
 
         param = {
             'eta': self.cfg['xgb_eta'],
             'max_depth': self.cfg['xgb_max_depth'],
             'objective': 'multi:softprob',
             'num_class': self.num_classes}
-
-        D_train = xgb.DMatrix(self.X.numpy(), label=self.y.numpy())
-        self.xgb = xgb.train(param, D_train, cfg['xgb_train_steps'])
+        print(X.shape)
+        print(y.shape)
+        D_train = xgb.DMatrix(X, y)
+        self.xgb = xgb.train(param, D_train, self.cfg['xgb_train_steps'])
         self.X = None
         self.y = None
 
-        print('TRAIN END')
-
+        print('TRAIN XGB END')
 
 
     def test(self, dataset, dataset_name, class_index):
-        pass
-        # print('TEST START')
-        # dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
-        # info = dataset_temp.scan()
-        # dataloader = load_dataloader(cfg = cfg,
-        #                              train_dataloader_dict = self.train_dataloader_dict,
-        #                              session = self.session,
-        #                              dataset=dataset,
-        #                              dataset_name=dataset_name,
-        #                              num_samples=info['num_samples'],
-        #                              is_training=False)
-        #
-        # torch.set_grad_enabled(False)
-        # self.model.eval()
-        #
-        # t1 = time.time()
-        #
-        # prediction_list = []
-        #
-        # for data, _ in dataloader:
-        #     prediction_list.append(self.model(data.cuda()).cpu())
-        # prediction = torch.cat(prediction_list, dim=0)
-        #
-        # acc = self.calc_accuracy(prediction, class_index)
-        # print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
-        #
-        # print('TEST END')
-        #
-        # return acc
+        print('TEST XGB START')
+
+        t1 = time.time()
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.cfg['xgb_test_batch_size'],
+            shuffle=False,
+            drop_last=False
+        )
+
+        torch.set_grad_enabled(False)
+        self.model.eval()
+
+        output_list = []
+        prediction_list = []
+
+        for data, _ in dataloader:
+            output = self.model(data.cuda()).cpu()
+            output_list.append(output.numpy())
+        output = np.squeeze(np.array(output_list))
+        print(output.shape)
+        output = xgb.DMatrix(output)
+        prediction = torch.from_numpy(self.xgb.predict(output))
+
+        acc = calc_accuracy(prediction, class_index)
+        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))  # + ' ' + str(time.time() - t1))
+
+        print('TEST XGB END')
+
+        return acc
+
+
+
+def execute_run_dl(config_id, cfg, budget):
+    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"])
+    num_classes = len(dataset_list)
+
+    m = Model_dl(config_id = config_id, num_classes = num_classes, cfg = cfg)
+
+    loss_list = []
+
+    for i in range(int(budget)):
+        # load training dataset
+        selected_class = i % num_classes
+        dataset_train  = dataset_list[selected_class][0]
+        dataset_name   = dataset_list[selected_class][2]
+        class_index    = dataset_list[selected_class][3]
+
+        if i%10 == 0:
+            print(str(i), end=' ')
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        #print('TRAINING ' + dataset_name + ' ' + str(class_index))
+
+        loss = m.train(dataset = dataset_train.get_dataset(),
+                       dataset_name = dataset_name,
+                       class_index = class_index,
+                       desired_batches = cfg["nn_train_batches"],
+                       iteration = i,
+                       save_iteration=1)
+
+        loss_list.append(loss)
+
+    avg_loss = sum(loss_list) / len(loss_list)
+
+    print(' ')
+    acc_list = []
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_test = dataset_list[selected_class][1]
+        dataset_name = dataset_list[selected_class][2]
+        class_index  = dataset_list[selected_class][3]
+
+        #print('TESTING ' + dataset_name + ' ' + str(class_index))
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        acc = m.test(dataset = dataset_test.get_dataset(),
+                     dataset_name = dataset_name,
+                     class_index = class_index)
+        acc_list.append(acc)
+
+    avg_acc = sum(acc_list) / len(acc_list)
+    print(avg_acc)
+
+    return avg_acc, avg_loss
 
 
 class Model_dl(object):
@@ -646,8 +706,6 @@ class Model_dl(object):
                 self.optimizer.zero_grad()
                 output = self.model(data.cuda())
                 labels = torch.LongTensor([class_index]).cuda()
-                #print(output)
-                #print(labels)
                 loss = self.criterion(output, labels)
                 #print('LOSS: ' + str(loss))
                 loss.backward()
@@ -674,7 +732,7 @@ class Model_dl(object):
 
 
     def test(self, dataset, dataset_name, class_index):
-        print('TEST START')
+        print('TEST DL START')
         dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
         info = dataset_temp.scan()
         dataloader = load_dataloader(cfg = cfg,
@@ -697,14 +755,8 @@ class Model_dl(object):
         acc = self.calc_accuracy(prediction, class_index)
         print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
 
-        print('TEST END')
+        print('TEST DL END')
 
-        return acc
-
-
-    def calc_accuracy(self, prediction, class_index):
-        max_val, max_idx = torch.max(prediction, 1)
-        acc = float(torch.sum(max_idx == int(class_index))) / float(len(prediction))
         return acc
 
 
@@ -724,11 +776,17 @@ class BOHBWorker(Worker):
 
         score = 0
         avg_loss = 0
-        try:
-            score, avg_loss = execute_run_xgb(config_id = config_id, cfg=cfg, config=config, budget=budget)
-        except Exception as e:
-            status = str(e)
-            print(status)
+
+        cfg = copy_config_to_cfg(self.cfg, config)
+
+        #try:
+        if cfg['use_model'] == 'xgb':
+            score, avg_loss = execute_run_xgb(config_id = config_id, cfg=cfg, budget=budget)
+        elif cfg['use_model'] == 'dl':
+            score, avg_loss = execute_run_dl(config_id = config_id, cfg=cfg, budget=budget)
+        # except Exception as e:
+        #     status = str(e)
+        #     print(status)
 
         #info[cfg["dataset"]] = score
         info['avg_loss'] = avg_loss
@@ -838,7 +896,7 @@ def continuous_training(cfg):
 
     os.makedirs(cfg['bohb_log_dir'], exist_ok=True)
 
-    dataset_list = load_datasets(cfg, cfg["train_datasets"])
+    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"])
     num_classes = len(dataset_list)
 
     m = Model_dl(config_id=(0,0,0), num_classes=num_classes, cfg=cfg)
@@ -908,10 +966,10 @@ def generate_samples(cfg, idx=1, idx_total=1):
     session = tf.Session()
     batch_size = 512
 
-    dataset_list = load_datasets(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"] + cfg["test_datasets"])
     des_num_samples = cfg['des_num_samples']
 
-    os.makedirs(cfg["ds_log_dir"], exist_ok=True)
+    os.makedirs(cfg["proc_dataset_dir"], exist_ok=True)
 
     for i in range(len(dataset_list)):
         dataset_train = dataset_list[i][0].get_dataset()
@@ -987,6 +1045,9 @@ if __name__ == "__main__":
     # else:
     #     cfg = get_configuration()
     #     res = runBohbSerial(cfg)
+
+    # cfg = get_configuration()
+    # res = runBohbSerial(cfg)
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
