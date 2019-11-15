@@ -43,55 +43,61 @@ def split_datasets(datasets, fraction):
 def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_freeze_last_resnet_layer', choices=[True, False]))
-    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-4, upper=1e-2, log=True))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [32,64,128]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32,64,128]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_last_resnet_layer', choices=[True, False]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-4, upper=1e-2, log=True))
 
     # xgb classifier
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
-    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
-    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [32,64,128]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [32,64,128]))
-
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [32,64,128]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [32,64,128]))
 
     # common parameters
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_ratio', lower=0.3, upper=1, log=False))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_data', choices=[True, False]))
+
 
     return cs
 
 
 def get_configuration(log_subfolder=None):
     cfg = {}
-    cluster_mode = True
+    cluster_mode = False
     if cluster_mode:
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets'
+        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets/1e5'
         cfg['des_num_samples'] = int(1e5)
         cfg["image_dir"] = '/data/aad/image_datasets/challenge'
         cfg["video_dir"] = '/data/aad/video_datasets/challenge'
         cfg["bohb_interface"] = 'eth0'
     else:
         cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
-        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets'
+        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets/1e5'
         cfg['des_num_samples'] = int(1e5)
         cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
         cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
         cfg["bohb_interface"] = 'lo'
 
-    log_folder = "logs_class_xgb"
+    log_folder = "dl_logs"
     if log_subfolder == None:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
+    cfg["use_model"] = 'dl'    # xgb or dl
 
-    cfg["use_model"] = 'xgb'    # xgb or dl
-    cfg["bohb_min_budget"] = 1000
-    cfg["bohb_max_budget"] = 10000
+    if cfg["use_model"] == 'dl':
+        cfg["bohb_min_budget"] = 100
+        cfg["bohb_max_budget"] = 1000
+    else:
+        cfg["bohb_min_budget"] = 1000
+        cfg["bohb_max_budget"] = 10000
     cfg["bohb_iterations"] = 10
     cfg["bohb_workers"] = 10
     cfg["bohb_run_id"] = '123'
@@ -101,8 +107,8 @@ def get_configuration(log_subfolder=None):
     cfg['nn_lr'] = 1e-4
     cfg['nn_train_batches'] = 1
     cfg['nn_train_batch_size'] = 128
-    cfg['nn_use_hidden_layer'] = False
-    cfg['nn_freeze_last_resnet_layer'] = False
+    cfg['nn_num_hidden_layers'] = 0
+    cfg['nn_use_last_resnet_layer'] = False
     cfg['xgb_eta'] = 0.3
     cfg['xgb_max_depth'] = 6
     cfg['xgb_train_steps'] = 10
@@ -110,11 +116,14 @@ def get_configuration(log_subfolder=None):
 
     datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
                'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-               'colorectal_histology', 'deep_weeds', 'eurosat', 'emnist', 'fashion_mnist',
-               'horses_or_humans', 'kmnist', 'mnist', 'oxford_flowers102',
-               'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors', 'smallnorb',
-               'svhn_cropped', 'tf_flowers', 'uc_merced',
-               'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kreatur', 'Pedro']
+               'colorectal_histology', 'deep_weeds', 'eurosat', 'emnist',
+               'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
+               'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
+               'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',
+               'Chucky', 'Decal', 'Hammer', 'Katze',
+               'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101',
+               'SMv2']
+    #datasets = ['SMv2', 'Ucf101']
     # without 'SMv2', 'Ucf101', 'Munster', 'Kraut'
 
     #datasets = ['binary_alpha_digits', 'caltech101', 'mnist', 'eurosat']
@@ -354,6 +363,14 @@ def load_dataloader(cfg, train_dataloader_dict, session, dataset, dataset_name, 
     return dl
 
 
+class Identity(torch.nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
+
+
 class WrapperModel_dl(torch.nn.Module):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
@@ -361,24 +378,66 @@ class WrapperModel_dl(torch.nn.Module):
         self.filename = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
         self.model = torchvision.models.resnet18(pretrained=True)
-        self.prelu = torch.nn.PReLU()
+
         #self.dropout = torch.nn.Dropout(p=cfg['dropout'])
 
-        if cfg['nn_num_hidden_layers'] == 0:
-            self.fc = torch.nn.Sequential(torch.nn.PReLU(),
-                                          torch.nn.Linear(1000 * 2, num_classes))
-        elif cfg['nn_num_hidden_layers'] == 1:
-            self.fc = torch.nn.Sequential(torch.nn.PReLU(),
-                                          torch.nn.Linear(1000 * 2, 300),
-                                          torch.nn.PReLU(),
-                                          torch.nn.Linear(300, num_classes))
-        elif cfg['nn_num_hidden_layers'] == 2:
-            self.fc = torch.nn.Sequential(torch.nn.PReLU(),
-                                          torch.nn.Linear(1000 * 2, 600),
-                                          torch.nn.PReLU(),
-                                          torch.nn.Linear(600, 150),
-                                          torch.nn.PReLU(),
-                                          torch.nn.Linear(150, num_classes))
+        # if cfg['nn_num_hidden_layers'] == 0:
+        #     self.fc1 = torch.nn.Sequential(self.model.fc)
+        #
+        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
+        #                                    torch.nn.Linear(1000 * 2, num_classes))
+        # elif cfg['nn_num_hidden_layers'] == 1:
+        #     self.fc1 = torch.nn.Sequential(self.model.fc)
+        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
+        #                                    torch.nn.Linear(1000 * 2, 300),
+        #                                    torch.nn.PReLU(),
+        #                                    torch.nn.Linear(300, num_classes))
+        # elif cfg['nn_num_hidden_layers'] == 2:
+        #     self.fc1 = torch.nn.Sequential(self.model.fc)
+        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
+        #                                    torch.nn.Linear(1000 * 2, 600),
+        #                                    torch.nn.PReLU(),
+        #                                    torch.nn.Linear(600, 150),
+        #                                    torch.nn.PReLU(),
+        #                                    torch.nn.Linear(150, num_classes))
+
+        if cfg['nn_use_last_resnet_layer']:
+            if cfg['nn_num_hidden_layers'] == 0:
+                self.fc1 = torch.nn.Sequential(self.model.fc)
+
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(1000 * 2, num_classes))
+            elif cfg['nn_num_hidden_layers'] == 1:
+                self.fc1 = torch.nn.Sequential(self.model.fc)
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(1000 * 2, 300),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(300, num_classes))
+            elif cfg['nn_num_hidden_layers'] == 2:
+                self.fc1 = torch.nn.Sequential(self.model.fc)
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(1000 * 2, 600),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(600, 150),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(150, num_classes))
+        else:
+            if cfg['nn_num_hidden_layers'] == 0:
+                self.fc1 = torch.nn.Sequential(Identity())
+
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, num_classes))
+            elif cfg['nn_num_hidden_layers'] == 1:
+                self.fc1 = torch.nn.Sequential(Identity())
+
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, 300),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(300, num_classes))
+            elif cfg['nn_num_hidden_layers'] == 2:
+                self.fc1 = torch.nn.Sequential(Identity())
+
+                self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, 600),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(600, 150),
+                                               torch.nn.PReLU(),
+                                               torch.nn.Linear(150, num_classes))
+
 
 
         if os.path.isfile(self.filename):
@@ -388,8 +447,6 @@ class WrapperModel_dl(torch.nn.Module):
         for name, param in self.model.named_parameters():
             param.requires_grad = False
 
-            if (name == 'fc.weight' or name == 'fc.bias') and cfg['nn_freeze_last_resnet_layer'] == False:
-                param.requires_grad = True
 
     def eval(self):
         self.model.eval()
@@ -398,9 +455,9 @@ class WrapperModel_dl(torch.nn.Module):
         self.model.train()
 
     def forward(self, x):
-        x = self.model(x)
+        x = self.fc1(x)
         x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
-        x = self.fc(x)
+        x = self.fc2(x)
         x = x.unsqueeze(0)
         return x
 
@@ -457,6 +514,7 @@ def calc_accuracy(prediction, class_index):
 
 
 def execute_run_xgb(config_id, cfg, budget):
+    return np.random.random(), 0
     dataset_list = load_datasets_processed(cfg, cfg["train_datasets"])
     num_classes = len(dataset_list)
 
@@ -499,7 +557,6 @@ def execute_run_xgb(config_id, cfg, budget):
     return avg_acc, 0
 
 
-
 class Model_xgb(object):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
@@ -513,14 +570,10 @@ class Model_xgb(object):
         self.y = []
 
     def collect_samples_train(self, dataset, class_index, desired_batches):
-        print('COLLECT SAMPLES START')
-
-        t1 = time.time()
-
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=self.cfg['xgb_train_batch_size'],
-            shuffle=True,
+            shuffle=cfg['shuffle_data'],
             drop_last=False
         )
 
@@ -552,11 +605,8 @@ class Model_xgb(object):
                     finish_loop = True
                     break
 
-        print('COLLECT SAMPLES END')
-
 
     def train(self):
-        print('TRAIN XGB START')
         X = np.squeeze(np.array(self.X))
         y = np.squeeze(np.array(self.y))
 
@@ -565,21 +615,14 @@ class Model_xgb(object):
             'max_depth': self.cfg['xgb_max_depth'],
             'objective': 'multi:softprob',
             'num_class': self.num_classes}
-        print(X.shape)
-        print(y.shape)
+
         D_train = xgb.DMatrix(X, y)
         self.xgb = xgb.train(param, D_train, self.cfg['xgb_train_steps'])
         self.X = None
         self.y = None
 
-        print('TRAIN XGB END')
-
 
     def test(self, dataset, dataset_name, class_index):
-        print('TEST XGB START')
-
-        t1 = time.time()
-
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=self.cfg['xgb_test_batch_size'],
@@ -591,27 +634,23 @@ class Model_xgb(object):
         self.model.eval()
 
         output_list = []
-        prediction_list = []
 
         for data, _ in dataloader:
             output = self.model(data.cuda()).cpu()
             output_list.append(output.numpy())
         output = np.squeeze(np.array(output_list))
-        print(output.shape)
         output = xgb.DMatrix(output)
         prediction = torch.from_numpy(self.xgb.predict(output))
 
         acc = calc_accuracy(prediction, class_index)
         print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))  # + ' ' + str(time.time() - t1))
 
-        print('TEST XGB END')
-
         return acc
 
 
 
 def execute_run_dl(config_id, cfg, budget):
-    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"])
+    dataset_list = load_datasets_processed(cfg, cfg["train_datasets"])
     num_classes = len(dataset_list)
 
     m = Model_dl(config_id = config_id, num_classes = num_classes, cfg = cfg)
@@ -681,15 +720,12 @@ class Model_dl(object):
 
 
     def train(self, dataset, dataset_name, class_index, desired_batches, iteration, save_iteration=1):
-        print('TRAIN START')
-
-        dataloader = load_dataloader(cfg = cfg,
-                                     train_dataloader_dict = self.train_dataloader_dict,
-                                     session = self.session,
-                                     dataset=dataset,
-                                     dataset_name=dataset_name,
-                                     num_samples=int(1e9),
-                                     is_training=True)
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.cfg['nn_train_batch_size'],
+            shuffle=self.cfg['shuffle_data'],
+            drop_last=False
+        )
 
         torch.set_grad_enabled(True)
         self.model.train()
@@ -726,22 +762,18 @@ class Model_dl(object):
             self.model.save(suffix)
             self.optimizer.save(suffix)
 
-        print('TRAIN END')
-
         return sum(loss_list) / len(loss_list)
 
 
     def test(self, dataset, dataset_name, class_index):
-        print('TEST DL START')
-        dataset_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
-        info = dataset_temp.scan()
-        dataloader = load_dataloader(cfg = cfg,
-                                     train_dataloader_dict = self.train_dataloader_dict,
-                                     session = self.session,
-                                     dataset=dataset,
-                                     dataset_name=dataset_name,
-                                     num_samples=info['num_samples'],
-                                     is_training=False)
+        #print('TEST DL START')
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.cfg['nn_test_batch_size'],
+            shuffle=True,
+            drop_last=False
+        )
 
         torch.set_grad_enabled(False)
         self.model.eval()
@@ -752,10 +784,10 @@ class Model_dl(object):
             prediction_list.append(self.model(data.cuda()).cpu())
         prediction = torch.cat(prediction_list, dim=0)
 
-        acc = self.calc_accuracy(prediction, class_index)
+        acc = calc_accuracy(prediction, class_index)
         print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
 
-        print('TEST DL END')
+        #print('TEST DL END')
 
         return acc
 
@@ -951,14 +983,6 @@ def continuous_training(cfg):
     return avg_acc
 
 
-class Identity(torch.nn.Module):
-    def __init__(self):
-        super(Identity, self).__init__()
-
-    def forward(self, x):
-        return x
-
-
 def generate_samples(cfg, idx=1, idx_total=1):
     model = torchvision.models.resnet18(pretrained=True)
     model.cuda()
@@ -1007,7 +1031,7 @@ def generate_samples(cfg, idx=1, idx_total=1):
                 if num_samples > des_num_samples:
                     break
 
-                if num_samples/batch_size % 10 == 0:
+                if num_samples/batch_size % 2 == 0:
                     print('Done ' + str(num_samples) + ' out of ' + str(des_num_samples) + ' samples')
 
         output_list_test = []
@@ -1026,6 +1050,54 @@ def generate_samples(cfg, idx=1, idx_total=1):
             pickle.dump(output_test, fh_test)
 
 
+def verify_data(cfg):
+    # load data with different data loaders and verify its output
+
+    model = torchvision.models.resnet18(pretrained=True)
+    model.cuda()
+    model.fc = Identity()
+    session = tf.Session()
+    batch_size = 1
+
+    dataset_list_raw = load_datasets_raw(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+    dataset_list_pro = load_datasets_processed(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+
+    for i in range(len(dataset_list_raw)):
+        dataset_test_raw  = dataset_list_raw[i][1].get_dataset()
+        dataset_name_raw  = dataset_list_raw[i][2]
+
+        dataset_test_pro  = dataset_list_pro[i][1].get_dataset()
+        dataset_name_pro  = dataset_list_pro[i][2]
+
+        print(dataset_name_pro)
+
+        if dataset_name_pro != dataset_name_raw:
+            raise ValueError("dataset mismatch: " + str(dataset_name_pro) + ' ' + str(dataset_name_raw))
+
+        transform_test  = load_transform(cfg, is_training=False)
+
+        ds_temp = TFDataset(session=session, dataset=dataset_test_raw, num_samples=int(1e9))
+        info = ds_temp.scan()
+
+        ds_test = TFDataset(session=session, dataset=dataset_test_raw, num_samples=info['num_samples'], transform=transform_test)
+        dl_test_raw = torch.utils.data.DataLoader(ds_test, batch_size=batch_size, shuffle=False, drop_last=False)
+        dl_test_pro = torch.utils.data.DataLoader(dataset_test_pro, batch_size=batch_size, shuffle=False, drop_last=False)
+        torch.set_grad_enabled(False)
+        model.eval()
+
+        output_list_raw = []
+        for data_raw,_ in dl_test_raw:
+            output_raw = model(data_raw.cuda()).cpu()
+            output_list_raw.append(output_raw)
+
+        output_list_pro = []
+        for data_pro,_ in dl_test_pro:
+            output_list_pro.append(data_pro)
+
+
+        for i in range(len(output_list_raw)):
+            if torch.sum(output_list_pro[i]-output_list_raw[i]) / torch.sum(torch.abs(output_list_pro[i])) > 0.001:
+                print('error too large')
 
 
 if __name__ == "__main__":
@@ -1038,25 +1110,19 @@ if __name__ == "__main__":
     #            'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
     #            'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
 
-    # if len(sys.argv) > 1:
-    #     for arg in sys.argv[1:]:
-    #         print(arg)
-    #     cfg = get_configuration(sys.argv[1])
-    #     res = runBohbParallel(cfg, sys.argv[2])
-    # else:
-    #     cfg = get_configuration()
-    #     res = runBohbSerial(cfg)
-
-    # cfg = get_configuration()
-    # res = runBohbSerial(cfg)
-
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
-        cfg = get_configuration()
-        generate_samples(cfg, int(sys.argv[1]), int(sys.argv[2]))
+        cfg = get_configuration(sys.argv[1])
+        res = runBohbParallel(cfg, sys.argv[2])
     else:
         cfg = get_configuration()
-        generate_samples(cfg)
+        res = runBohbSerial(cfg)
 
-    #res = continuous_training(cfg)
+    # cfg = get_configuration()
+    # res = verify_data(cfg)
+
+    # cfg = get_configuration()
+    # generate_samples(cfg)
+
+    # res = continuous_training(cfg)
