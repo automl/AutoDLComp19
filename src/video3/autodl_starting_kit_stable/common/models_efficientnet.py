@@ -165,8 +165,8 @@ class MBConv(nn.Module):
                 prob = 1.0 - (count_layer + l) / sum_layer * (1 - pl)
                 layer.append(InvertedResidual(planes, planes, kernel_size,
                              1, expand, se_ratio, prob=prob))
-                if l == repeat - 1:
-                    layer.append(nn.Dropout(p=dropout))
+                #if l == repeat - 1:
+                #    layer.append(nn.Dropout(p=dropout))
         self.layer = nn.Sequential(*layer)
 
     def forward(self, x):
@@ -328,32 +328,32 @@ class EfficientNet(nn.Module):
 
 
     def forward(self, input):
-        if not (self.endpoint is None) or self.arch == 'full':
-            x = self.features(input)
-            return x
-        else:
-            x = self.stage1(input) # self.swish1(self.stage1(input))  # 2, 32, 112, 112
-            #print(x.shape)
-            x = self.stage2(x) # self.swish2(self.stage2(x))  # 2, 16, 112, 112
-            #print(x.shape)
-            x = self.stage3(x) # self.swish3(self.stage3(x))  # 2, 24, 56, 56
-            #print(x.shape)
-            x = self.stage4(x) #  self.swish4(self.stage4(x))  # 2, 40, 28, 28
-            #print(x.shape)
-            x = self.stage5(x) # self.swish5(self.stage5(x))  # 2, 80, 14, 14
-            #print(x.shape)
-            x = self.stage6(x) # self.swish6(self.stage6(x))  # 2, 112, 7, 7
-            #print(x.shape)
-            x = self.stage7(x) # self.swish7(self.stage7(x))  # 2, 192, 7, 7
-            #print(x.shape)
-            x = self.stage8(x) # self.swish8(self.stage8(x))  # 2, 320, 7, 7
-            #print(x.shape)
-            x = self.stage9(x)
+        #if not (self.endpoint is None) or self.arch == 'full':
+        #    x = self.features(input)
+        #    return x
+        #else:
+        x = self.stage1(input) # self.swish1(self.stage1(input))  # 2, 32, 112, 112
+        #print(x.shape)
+        x = self.stage2(x) # self.swish2(self.stage2(x))  # 2, 16, 112, 112
+        #print(x.shape)
+        x = self.stage3(x) # self.swish3(self.stage3(x))  # 2, 24, 56, 56
+        #print(x.shape)
+        x = self.stage4(x) #  self.swish4(self.stage4(x))  # 2, 40, 28, 28
+        #print(x.shape)
+        x = self.stage5(x) # self.swish5(self.stage5(x))  # 2, 80, 14, 14
+        #print(x.shape)
+        x = self.stage6(x) # self.swish6(self.stage6(x))  # 2, 112, 7, 7
+        #print(x.shape)
+        x = self.stage7(x) # self.swish7(self.stage7(x))  # 2, 192, 7, 7
+        #print(x.shape)
+        x = self.stage8(x) # self.swish8(self.stage8(x))  # 2, 320, 7, 7
+        #print(x.shape)
+        x = self.stage9(x)
 
-            #print(x.shape)
-            logit = self.head(x) # 2, classes
-            if self.arch == 'fullEfficientnet_uw1': return logit, x
-            return logit
+        #print(x.shape)
+        logit = self.head(x) # 2, classes
+        #if self.arch == 'fullEfficientnet_uw1': return logit, x
+        return logit
 
 
 

@@ -8,6 +8,7 @@ import random
 import traceback
 import numpy as np
 import time
+from sklearn.metrics import auc
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
@@ -18,9 +19,13 @@ from AutoDL_ingestion_program.dataset import AutoDLDataset
 from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
 from epoch.model import Model
 import logging
+import pickle
+
 
 print(sys.path)
-
+timings = None
+with open('timings.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+    timings = pickle.load(f)
 LOGGER = logging.getLogger(__name__)
 
 class BadPredictionShapeError(Exception):
@@ -29,36 +34,65 @@ class BadPredictionShapeError(Exception):
 def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64,128]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout', lower=0.1, upper=0.9, log=False))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=1e-2, log=True))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout', lower=0.01, upper=0.99, log=False))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=0.1, log=True))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='optimizer', choices=['Adam', 'SGD']))
-
     return cs
+
+def transform_time(t, T, t0=None):
+    """Logarithmic time scaling Transform for ALC """
+    if t0 is None:
+        t0 = T
+    return np.log(1 + t / t0) / np.log(1 + T / t0)
+
+def calculate_alc(timestamps, scores, start_time=0, time_budget=7200):
+    """Calculate ALC """
+    ######################################################
+    # Transform X to relative time points
+    timestamps = [t for t in timestamps if t <= time_budget + start_time]
+    t0 = 60
+    transform = lambda t: transform_time(t, time_budget, t0=t0)
+    relative_timestamps = [t - start_time for t in timestamps]
+    Times = [transform(t) for t in relative_timestamps]
+    ######################################################
+    Scores = scores.copy()
+    # Add origin as the first point of the curve and end as last point
+    ######################################################
+    Times.insert(0, 0)
+    Scores.insert(0, 0)
+    Times.append(1)
+    Scores.append(Scores[-1])
+    ######################################################
+    # Compute AUC using step function rule or trapezoidal rule
+    alc = auc(Times, Scores)
+    return alc
 
 
 def get_configuration(dataset, model):
     cfg = {}
-    #cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
+    cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
+    #cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
+    #cfg["code_dir"] = '/home/human/repos/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     cfg["dataset"] = dataset
     cfg["model"] = model
-    cfg["bohb_min_budget"] = 100
-    cfg["bohb_max_budget"] = 1000
-    cfg["bohb_iterations"] = 10
+    cfg["bohb_min_budget"] = 1#100
+    cfg["bohb_max_budget"] = 1#1000
+    cfg["bohb_iterations"] = 1#10
     cfg["bohb_log_dir"] = "./logs_new/" + dataset + '___' + model + '___' + str(int(time.time()))
     cfg["auc_splits"] = 10
 
-    #challenge_image_dir = '/data/aad/image_datasets/challenge'
-    #challenge_video_dir = '/data/aad/video_datasets/challenge'
-    challenge_image_dir = '/home/dingsda/data/datasets/challenge/image'
-    challenge_video_dir = '/home/dingsda/data/datasets/challenge/video'
+    challenge_image_dir = '/data/aad/image_datasets/challenge'
+    challenge_video_dir = '/data/aad/video_datasets/challenge'
+    #challenge_image_dir = '/home/dingsda/data/datasets/challenge/image'
+    #challenge_video_dir = '/home/dingsda/data/datasets/challenge/video'
+    #challenge_image_dir = '/home/human/repos/AutoDLComp19/datasets/'
     challenge_image_dataset = os.path.join(challenge_image_dir, dataset)
-    challenge_video_dataset = os.path.join(challenge_video_dir, dataset)
+    #challenge_video_dataset = os.path.join(challenge_video_dir, dataset)
 
     if os.path.isdir(challenge_image_dataset):
         cfg['dataset_dir'] = challenge_image_dataset
-    elif os.path.isdir(challenge_video_dataset):
-        cfg['dataset_dir'] = challenge_video_dataset
+    #elif os.path.isdir(challenge_video_dataset):
+    #    cfg['dataset_dir'] = challenge_video_dataset
     else:
         raise ValueError('unknown dataset type: ' + str(dataset))
 
@@ -96,15 +130,31 @@ def execute_run(cfg, config, budget):
 
     M = Model(D_train.get_metadata(), cfg, config)  # The metadata of D_train and D_test only differ in sample_count
 
-    t_list = []
+    t_list = [] ### 3
     score_list = []
 
     nb_splits = cfg['auc_splits']
-    ts = np.linspace(start=budget/nb_splits, stop=budget, num=nb_splits)
+    # Each model, input, bs, dataset has [[sec,batches,test_frames_per_sec],[...]]
+    # corresponding to approx [3,...,...][10,][30][100][300]
+    model_name = cfg['model']
+    if model_name == 'densenet_025_64':
+        model_name = 'densenet025_64'
+    # Calculate the dimension used for timing
+    if output_dim['avg_shape'] < 45:
+        precalc_size = 32
+    elif output_dim['avg_shape'] < 85:
+        precalc_size = 64
+    elif output_dim['avg_shape'] < 160:
+        precalc_size = 128
+    else:
+        precalc_size = 256
+    ts = timings[model_name][str(config['batch_size_train'])][precalc_size]
+    # Calculate time for full test
 
+    time_for_test = num_examples_test / ts[0][2]
     for t in ts:
-        t_cur = M.train(D_train.get_dataset(), desired_batches=int(t))
-        t_list.append(t_cur)
+        t_cur = M.train(D_train.get_dataset(), desired_batches=int(t[1]))
+        t_list.append(t[1] + time_for_test) ###
         prediction = M.test(D_test.get_dataset())
 
         if prediction is None:  # Stop train/predict process if Y_pred is None
@@ -119,19 +169,13 @@ def execute_run(cfg, config, budget):
                 )
 
         solution = get_solution(dataset_dir)
-
-        if is_multiclass(solution):
-            score = accuracy(solution, prediction)
-        else:
-            score = autodl_auc(solution, prediction)
+        score = autodl_auc(solution, prediction)
         score_list.append(score)
+        t_list.append(t_list[-1] + time_for_test)
 
-        print(t_list)
-        print(score_list)
-
-    # calc avg score
-    avg = calc_avg(score_list)
-    return avg
+    # calc alc score
+    alc = calculate_alc(ts, score_list, start_time=0, time_budget=7200)
+    return alc
 
 
 class BOHBWorker(Worker):

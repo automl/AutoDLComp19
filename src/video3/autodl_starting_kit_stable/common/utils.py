@@ -69,7 +69,9 @@ def get_model(parser_args, num_classes):
         from torchvision.models import squeezenet1_1
         model = squeezenet1_1(pretrained=False,
                               num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_squeezenet_input_32_bs_32_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_squeezenet_epochs_87_input_64_bs_256_SGD_ACC_33_7.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_squeezenet_epochs_128_input_128_bs_256_SGD_ACC_51.pth'
@@ -80,7 +82,9 @@ def get_model(parser_args, num_classes):
         from torchvision.models import shufflenet_v2_x0_5
         model = shufflenet_v2_x0_5(pretrained=False,
                                         num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_shufflenet05_input_32_bs_128_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_shufflenet05_epochs_48_input_64_bs_512_SGD_ACC_25_8.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_shufflenet05_epochs_111_input_128_bs_512_SGD_ACC_47_3.pth'
@@ -91,7 +95,9 @@ def get_model(parser_args, num_classes):
         from torchvision.models import shufflenet_v2_x1_0
         model = shufflenet_v2_x1_0(pretrained=False,
                                         num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_shufflenet10_input_32_bs_64_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_shufflenet10_epochs_5_input_64_bs_512_SGD_ACC_30_5.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_shufflenet10_epochs_10_input_128_bs_512_SGD_ACC_54_8.pth'
@@ -102,7 +108,9 @@ def get_model(parser_args, num_classes):
         from torchvision.models import shufflenet_v2_x2_0
         model = shufflenet_v2_x2_0(pretrained=False,
                                         num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_shufflenet20_input_32_bs_32_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_shufflenet20_epochs_114_input_64_bs_512_SGD_ACC_46_8.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_shufflenet20_epochs_115_input_128_bs_512_SGD_ACC_61_5.pth'
@@ -113,7 +121,9 @@ def get_model(parser_args, num_classes):
         from torchvision.models import resnet18
         model = resnet18(pretrained=False,
                          num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_resnet18_input_32_bs_128_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_resnet18_epochs_88_input_64_bs_256_SGD_ACC_41_4.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_resnet18_epochs_67_input_128_bs_256_SGD_ACC_63.pth'
@@ -128,50 +138,71 @@ def get_model(parser_args, num_classes):
         save_file = 'imagenet_mobilenetv2_epochs_83_input_64_bs_256_SGD_ACC_24_8.pth'
 
     elif 'efficientnet' in parser_args.model:
-        if 'b07' in parser_args.model:
-            scale = 0.7
-            if '64' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b07_epochs_104_input_64_bs_256_SGD_ACC_33_8.pth'
+        if '_pytorch' in parser_args.model:
+            if '32' in parser_args.model:
+                save_file = 'cifar100_efficientnet_pytorch_input_32_bs_128_SGD.pth'
+            elif '64' in parser_args.model:
+                save_file = 'imagenet_efficientnet_pytorch_input_64_bs_256_SGD.pth'
             elif '128' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b07_epochs_129_input_128_bs_256_SGD_ACC_53_3.pth'
+                save_file = 'imagenet_efficientnet_pytorch_input_128_bs_256_SGD.pth'
             elif '224' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b07_epochs_128_input_224_bs_256_SGD_ACC_62_6.pth'
-        elif 'b05' in parser_args.model:
-            scale = 0.5
-            if '64' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b05_epochs_129_input_64_bs_256_SGD_ACC_24.pth'
-            elif '128' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b05_epochs_125_input_128_bs_256_SGD_ACC43_8_.pth'
-            elif '224' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b05_epochs_126_input_224_bs_256_SGD_ACC_54_2.pth'
-        elif 'b03' in parser_args.model:
-            scale = 0.3
-            if '64' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b03_epochs_128_input_64_bs_256_SGD_ACC_15.pth'
-            elif '128' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b03_epochs_127_input_128_bs_256_SGD_ACC_28_5.pth'
-            elif '224' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b03_epochs_129_input_224_bs_256_SGD_ACC_38_2.pth'
-        elif 'b0' in parser_args.model:
-            scale = 1
-            if '64' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b0_epochs_27_input_64_bs_256_SGD_ACC_41_5.pth'
-            elif '128' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b0_epochs_115_input_128_bs_256_SGD_ACC_52.pth'
-            elif '224' in parser_args.model:
-                save_file = 'imagenet_efficientnet_b0_epochs_185_input_224_bs_256_SGD_ACC_67_5.pth'
-
-        from common.models_efficientnet import EfficientNet
-        model = EfficientNet(num_classes=num_classes, width_coef=scale,
-                             depth_coef=scale, scale=scale, dropout_ratio=parser_args.dropout,
-                             pl=0.2, arch='fullEfficientnet').cuda()
+                save_file = 'imagenet_efficientnet_pytorch_input_224_bs_256_SGD.pth'
+            from common.efficientnet_pytorch import EfficientNet
+            model = EfficientNet.from_name('efficientnet-b0', override_params={'num_classes': num_classes}).cuda()
+        else:
+            if 'b07' in parser_args.model:
+                scale = 0.7
+                if '32' in parser_args.model:
+                    save_file = 'cifar100_efficientnet_b07_input_32_bs_64_SGD.pth'
+                elif '64' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b07_epochs_104_input_64_bs_256_SGD_ACC_33_8.pth'
+                elif '128' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b07_epochs_129_input_128_bs_256_SGD_ACC_53_3.pth'
+                elif '224' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b07_epochs_128_input_224_bs_256_SGD_ACC_62_6.pth'
+            elif 'b05' in parser_args.model:
+                scale = 0.5
+                if '32' in parser_args.model:
+                    save_file = 'cifar100_efficientnet_b05_input_32_bs_128_SGD.pth'
+                elif '64' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b05_epochs_129_input_64_bs_256_SGD_ACC_24.pth'
+                elif '128' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b05_epochs_125_input_128_bs_256_SGD_ACC43_8_.pth'
+                elif '224' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b05_epochs_126_input_224_bs_256_SGD_ACC_54_2.pth'
+            elif 'b03' in parser_args.model:
+                scale = 0.3
+                if '32' in parser_args.model:
+                    save_file = 'cifar100_efficientnet_b03_input_32_bs_256_SGD.pth'
+                elif '64' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b03_epochs_128_input_64_bs_256_SGD_ACC_15.pth'
+                elif '128' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b03_epochs_127_input_128_bs_256_SGD_ACC_28_5.pth'
+                elif '224' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b03_epochs_129_input_224_bs_256_SGD_ACC_38_2.pth'
+            elif 'b0' in parser_args.model:
+                scale = 1
+                if '32' in parser_args.model:
+                    save_file = 'cifar100_efficientnet_b0_input_32_bs_128_SGD.pth'
+                elif '64' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b0_epochs_27_input_64_bs_256_SGD_ACC_41_5.pth'
+                elif '128' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b0_epochs_115_input_128_bs_256_SGD_ACC_52.pth'
+                elif '224' in parser_args.model:
+                    save_file = 'imagenet_efficientnet_b0_epochs_185_input_224_bs_256_SGD_ACC_67_5.pth'
+            from common.models_efficientnet import EfficientNet
+            model = EfficientNet(num_classes=num_classes, width_coef=scale,
+                                 depth_coef=scale, scale=scale, dropout_ratio=parser_args.dropout,
+                                 pl=0.2, arch='fullEfficientnet').cuda()
 
     elif 'densenet05' in parser_args.model:
         from torchvision.models import DenseNet
         model = DenseNet(growth_rate=16, block_config=(3, 6, 12, 8),
                          num_init_features=64, bn_size=2, drop_rate=parser_args.dropout,
                          num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_densenet05_input_32_bs_32_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_densenet05_epochs_117_input_64_bs_256_SGD_ACC_24.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_densenet05_epochs_124_input_128_bs_256_SGD_ACC_44_7.pth'
@@ -183,17 +214,23 @@ def get_model(parser_args, num_classes):
         model = DenseNet(growth_rate=8, block_config=(2, 4, 8, 4),
                          num_init_features=32, bn_size=2, drop_rate=parser_args.dropout,
                          num_classes=num_classes).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_densenet025_input_32_bs_32_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_densenet025_epochs_113_input_64_bs_256_SGD_ACC_17_3.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_densenet025_epochs_133_input_128_bs_256_SGD_ACC_23_9.pth'
+        elif '224' in parser_args.model:
+            save_file = 'imagenet_densenet025_input_224_bs_256_SGD.pth'
 
     elif 'densenet' in parser_args.model:
         from torchvision.models import densenet121
         model = densenet121(pretrained=False,
                             num_classes=num_classes,
                             drop_rate=parser_args.dropout).cuda()
-        if '64' in parser_args.model:
+        if '32' in parser_args.model:
+            save_file = 'cifar100_densenet_input_32_bs_256_SGD.pth'
+        elif '64' in parser_args.model:
             save_file = 'imagenet_densenet_epochs_139_input_64_bs_256_SGD_ACC_52_8.pth'
         elif '128' in parser_args.model:
             save_file = 'imagenet_densenet_epochs_90_input_128_bs_256_SGD_ACC_63_8.pth'
@@ -209,7 +246,9 @@ def get_model(parser_args, num_classes):
 
 
 def get_input_size(parser_args):
-    if '64' in parser_args.model:
+    if '32' in parser_args.model:
+        return 32
+    elif '64' in parser_args.model:
         return 64
     elif '128' in parser_args.model:
         return 128
@@ -231,7 +270,7 @@ def get_optimizer(model, parser_args):
         return torch.optim.SGD(model.parameters(),
                                parser_args.lr,
                                momentum = parser_args.momentum,
-                               weight_decay = parser_args.weight_decay,
+                               # weight_decay = parser_args.weight_decay,
                                nesterov = parser_args.nesterov)
     elif parser_args.optimizer == 'Adam':
         return torch.optim.Adam(model.parameters(),
@@ -299,14 +338,14 @@ def get_transform(is_training, input_size):
             FormatChannels(channels_des=3),
             ToPilFormat(),
             #SaveImage(save_dir = '.', suffix='_2'),
-            torchvision.transforms.RandomResizedCrop(size = input_size, scale=(0.7, 1.0)),
+            torchvision.transforms.RandomResizedCrop(size=input_size, scale=(0.7, 1.3)),
             #SaveImage(save_dir = '.', suffix='_3'),
             torchvision.transforms.RandomHorizontalFlip(),
             #SaveImage(save_dir = '.', suffix='_4'),
             #torchvision.transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.01),
             #SaveImage(save_dir = '.', suffix='_5'),
-            ToTorchFormat()])
-            #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            ToTorchFormat(),#])
+            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
             #SaveImage(save_dir = '.', suffix='_6')])
     else:
         return torchvision.transforms.Compose([
@@ -314,9 +353,9 @@ def get_transform(is_training, input_size):
             AlignAxes(),
             FormatChannels(channels_des=3),
             ToPilFormat(),
-            torchvision.transforms.Resize(size=(input_size, input_size)),
-            #torchvision.transforms.Resize(int(input_size*1.1)),
-            #torchvision.transforms.CenterCrop(input_size),
+            #torchvision.transforms.Resize(size=(input_size, input_size)),
+            torchvision.transforms.Resize(int(input_size*1.15)),
+            torchvision.transforms.CenterCrop(input_size),
             ToTorchFormat()])
             #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
