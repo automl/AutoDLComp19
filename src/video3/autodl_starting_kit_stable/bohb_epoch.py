@@ -140,11 +140,11 @@ def execute_run(cfg, config, budget):
     if model_name == 'densenet_025_64':
         model_name = 'densenet025_64'
     # Calculate the dimension used for timing
-    if output_dim['avg_shape'] < 45:
+    if output_dim['avg_shape'][1] < 45 or output_dim['avg_shape'][2] < 45:
         precalc_size = 32
-    elif output_dim['avg_shape'] < 85:
+    elif output_dim['avg_shape'][1] < 85 or output_dim['avg_shape'][2] < 85:
         precalc_size = 64
-    elif output_dim['avg_shape'] < 160:
+    elif output_dim['avg_shape'][1] < 145 or output_dim['avg_shape'][2] < 145:
         precalc_size = 128
     else:
         precalc_size = 256
