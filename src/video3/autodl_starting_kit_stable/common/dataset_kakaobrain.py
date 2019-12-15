@@ -101,6 +101,7 @@ class TFDataset(Dataset):
 
         return {
             'num_samples': self.num_samples,
+            'num_classes': self.num_classes,
             'min_shape': self.min_shape,
             'max_shape': self.max_shape,
             'avg_shape': self.mean_shape,
