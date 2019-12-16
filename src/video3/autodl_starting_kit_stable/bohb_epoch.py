@@ -18,6 +18,8 @@ from hpbandster.optimizers import BOHB as BOHB
 from AutoDL_ingestion_program.dataset import AutoDLDataset
 from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
 from epoch.model import Model
+from common.utils import TFDataset
+import tensorflow as tf
 import logging
 import pickle
 
@@ -35,7 +37,7 @@ def get_configspace():
     cs = CS.ConfigurationSpace()
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='batch_size_train', choices = [16,32,64,128]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dropout', lower=0.01, upper=0.99, log=False))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=0.1, log=True))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-5, upper=0.5, log=True))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='optimizer', choices=['Adam', 'SGD']))
     return cs
 
@@ -75,11 +77,11 @@ def get_configuration(dataset, model):
     #cfg["code_dir"] = '/home/human/repos/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     cfg["dataset"] = dataset
     cfg["model"] = model
-    cfg["bohb_min_budget"] = 1#100
-    cfg["bohb_max_budget"] = 1#1000
-    cfg["bohb_iterations"] = 1#10
+    cfg["bohb_min_budget"] = 1
+    cfg["bohb_max_budget"] = 5
+    cfg["bohb_iterations"] = 15
     cfg["bohb_log_dir"] = "./logs_new/" + dataset + '___' + model + '___' + str(int(time.time()))
-    cfg["auc_splits"] = 10
+    cfg["auc_splits"] = 10  # Unused
 
     challenge_image_dir = '/data/aad/image_datasets/challenge'
     challenge_video_dir = '/data/aad/video_datasets/challenge'
@@ -87,12 +89,12 @@ def get_configuration(dataset, model):
     #challenge_video_dir = '/home/dingsda/data/datasets/challenge/video'
     #challenge_image_dir = '/home/human/repos/AutoDLComp19/datasets/'
     challenge_image_dataset = os.path.join(challenge_image_dir, dataset)
-    #challenge_video_dataset = os.path.join(challenge_video_dir, dataset)
+    challenge_video_dataset = os.path.join(challenge_video_dir, dataset)
 
     if os.path.isdir(challenge_image_dataset):
         cfg['dataset_dir'] = challenge_image_dataset
-    #elif os.path.isdir(challenge_video_dataset):
-    #    cfg['dataset_dir'] = challenge_video_dataset
+    elif os.path.isdir(challenge_video_dataset):
+        cfg['dataset_dir'] = challenge_video_dataset
     else:
         raise ValueError('unknown dataset type: ' + str(dataset))
 
@@ -129,32 +131,35 @@ def execute_run(cfg, config, budget):
     correct_prediction_shape = (num_examples_test, output_dim)
 
     M = Model(D_train.get_metadata(), cfg, config)  # The metadata of D_train and D_test only differ in sample_count
+    ds_temp = TFDataset(session=tf.Session(), dataset=D_train.get_dataset())
+    info = ds_temp.scan(250)
 
-    t_list = [] ### 3
+    t_list = []
     score_list = []
-
     nb_splits = cfg['auc_splits']
-    # Each model, input, bs, dataset has [[sec,batches,test_frames_per_sec],[...]]
+    # Each model, input, bs, dataset has
+    # [[sec,batches,test_frames_per_sec],[...]]
     # corresponding to approx [3,...,...][10,][30][100][300]
     model_name = cfg['model']
-    if model_name == 'densenet_025_64':
-        model_name = 'densenet025_64'
     # Calculate the dimension used for timing
-    if output_dim['avg_shape'][1] < 45 or output_dim['avg_shape'][2] < 45:
+    if info['avg_shape'][1] < 45 or info['avg_shape'][2] < 45:
         precalc_size = 32
-    elif output_dim['avg_shape'][1] < 85 or output_dim['avg_shape'][2] < 85:
+    elif info['avg_shape'][1] < 85 or info['avg_shape'][2] < 85:
         precalc_size = 64
-    elif output_dim['avg_shape'][1] < 145 or output_dim['avg_shape'][2] < 145:
+    elif info['avg_shape'][1] < 145 or info['avg_shape'][2] < 145:
         precalc_size = 128
     else:
         precalc_size = 256
-    ts = timings[model_name][str(config['batch_size_train'])][precalc_size]
+    # for budget 1 use up to 30 seconds and for budget 5 use up to 300 sec
+    if budget < 2:
+        ts = timings[model_name][str(config['batch_size_train'])][precalc_size][:-2]
+    else:
+        ts = timings[model_name][str(config['batch_size_train'])][precalc_size]
     # Calculate time for full test
-
     time_for_test = num_examples_test / ts[0][2]
     for t in ts:
         t_cur = M.train(D_train.get_dataset(), desired_batches=int(t[1]))
-        t_list.append(t[1] + time_for_test) ###
+        t_list.append(t[1] + time_for_test)
         prediction = M.test(D_test.get_dataset())
 
         if prediction is None:  # Stop train/predict process if Y_pred is None
@@ -171,10 +176,9 @@ def execute_run(cfg, config, budget):
         solution = get_solution(dataset_dir)
         score = autodl_auc(solution, prediction)
         score_list.append(score)
-        t_list.append(t_list[-1] + time_for_test)
 
     # calc alc score
-    alc = calculate_alc(ts, score_list, start_time=0, time_budget=7200)
+    alc = calculate_alc(t_list, score_list, start_time=0, time_budget=7200)
     return alc
 
 
@@ -256,18 +260,19 @@ if __name__ == "__main__":
                'smallnorb', 'stanford_dogs', 'svhn_cropped', 'tf_flowers', 'uc_merced',        # 5
                'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
                'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
-    models = ['squeezenet_64', 'squeezenet_128', 'squeezenet_224',
-              'shufflenet05_64', 'shufflenet05_128', 'shufflenet05_224',
-              'shufflenet10_64', 'shufflenet10_128', 'shufflenet10_224',
-              'shufflenet20_64', 'shufflenet20_128', 'shufflenet20_224',
-              'resnet18_64', 'resnet18_128', 'resnet18_224', 'mobilenetv2_64',
-              'efficientnet_b07_64', 'efficientnet_b07_128', 'efficientnet_b07_224',
-              'efficientnet_b05_64', 'efficientnet_b05_128', 'efficientnet_b05_224',
-              'efficientnet_b03_64', 'efficientnet_b03_128', 'efficientnet_b03_224',
-              'efficientnet_b0_64', 'efficientnet_b0_128', 'efficientnet_b0_224',
-              'densenet05_64', 'densenet05_128', 'densenet05_224',
-              'densenet025_64', 'densenet025_128',
-              'densenet_64', 'densenet_128', 'densenet_224']
+    models = ['squeezenet_32', 'squeezenet_64', 'squeezenet_128', 'squeezenet_224',
+              'shufflenet05_32','shufflenet05_64', 'shufflenet05_128', 'shufflenet05_224',
+              'shufflenet10_32', 'shufflenet10_64', 'shufflenet10_128', 'shufflenet10_224',
+              'shufflenet20_32', 'shufflenet20_64', 'shufflenet20_128', 'shufflenet20_224',
+              'resnet18_32', 'resnet18_64', 'resnet18_128', 'resnet18_224', #  'mobilenetv2_64',
+              'efficientnet_b07_32', 'efficientnet_b07_64', 'efficientnet_b07_128', 'efficientnet_b07_224',
+              'efficientnet_b05_32', 'efficientnet_b05_64', 'efficientnet_b05_128', 'efficientnet_b05_224',
+              'efficientnet_b03_32', 'efficientnet_b03_64', 'efficientnet_b03_128', 'efficientnet_b03_224',
+              'efficientnet_b0_32', 'efficientnet_b0_64', 'efficientnet_b0_128', 'efficientnet_b0_224',
+              'efficientnet_pytorch_32', 'efficientnet_pytorch_64', 'efficientnet_pytorch_128', 'efficientnet_pytorch_224',
+              'densenet05_32', 'densenet05_64', 'densenet05_128', 'densenet05_224',
+              'densenet025_32', 'densenet025_64', 'densenet025_128','densenet025_224',
+              'densenet_32', 'densenet_64', 'densenet_128', 'densenet_224']
 
     if len(sys.argv) == 3:      # parallel processing
         for arg in sys.argv[1:]:

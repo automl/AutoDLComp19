@@ -97,7 +97,7 @@ class Model(object):
                 output = self.model(data.cuda())
                 labels = format_labels(labels, self.parser_args).cuda()
                 loss = self.criterion(output, labels)
-                print(loss)
+                # print(loss)
                 loss.backward()
                 self.optimizer.step()
                 self.train_counter += self.batch_size_train
@@ -180,4 +180,3 @@ class Model(object):
 
         LOGGER.info("TESTING END: " + str(time.time()))
         return predictions
-
