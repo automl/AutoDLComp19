@@ -44,8 +44,8 @@ def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [32,64,128,256]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32,64,128,256]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [1,2,4,8,16,32,64,128,256,512]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [8]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_width', choices = [1024, 200, 50]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
@@ -107,7 +107,7 @@ def get_configuration(log_subfolder=None):
     else:
         cfg["bohb_min_budget"] = 1000
         cfg["bohb_max_budget"] = 10000
-    cfg["bohb_iterations"] = 100
+    cfg["bohb_iterations"] = 10
     cfg["bohb_run_id"] = '123'
     cfg['model_input_size'] = 128
     cfg['transform_scale'] = 0.7
@@ -134,7 +134,9 @@ def get_configuration(log_subfolder=None):
     # without 'Munster', 'Kraut'
 
 
-    train_datasets, test_datasets = split_datasets(datasets, 4)
+    #train_datasets, test_datasets = split_datasets(datasets, 4)
+    train_datasets = datasets
+    test_datasets = []
     cfg["train_datasets"] = train_datasets
     cfg["test_datasets"] = test_datasets
 
@@ -155,7 +157,7 @@ class BohbWrapper(Master):
                  min_bandwidth=1e-3,
                  **kwargs):
 
-        # TODO: Propper check for ConfigSpace object!
+        # TODO: Proper check for ConfigSpace object!
         if configspace is None:
             raise ValueError("You have to provide a valid CofigSpace object")
 
@@ -383,6 +385,10 @@ class WrapperModel_dl(torch.nn.Module):
 
         self.filename = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
+        self.mode = 'train'
+        self.timer_cum = 0
+        self.timer_runs = 0
+
         #self.model = torchvision.models.resnet18(pretrained=True)
 
         # self.fc1_1 = torch.nn.Linear(512*2, cfg["nn_width"])
@@ -456,11 +462,11 @@ class WrapperModel_dl(torch.nn.Module):
         #     param.requires_grad = False
 
     def eval(self):
-        pass
+        self.mode = 'eval'
         #self.model.eval()
 
     def train(self):
-        pass
+        self.mode = 'train'
         #self.model.train()
 
     def forward(self, x):
@@ -473,6 +479,10 @@ class WrapperModel_dl(torch.nn.Module):
         #
         # x = x + 0.1*self.prelu2(self.fc1_2(self.prelu1(self.fc1_1(x))))
         # x = self.fc2(x)
+
+        if self.mode == 'eval':
+            t1 = time.time()
+
         nb_samples = x.shape[0]
         nb_cut = int(cfg['nn_cut_perc'] * nb_samples)
         x = x.sort(dim=0)[0]
@@ -504,10 +514,18 @@ class WrapperModel_dl(torch.nn.Module):
         x = self.fc(x)
         x = x.unsqueeze(0)
 
+        if self.mode == 'eval':
+            t2 = time.time()
+            self.timer_cum += t2-t1
+            self.timer_runs += 1
+
         return x
 
     def save(self, suffix):
         torch.save(self.state_dict(), self.filename + suffix)
+
+    def get_avg_time(self):
+        return self.timer_cum / self.timer_runs
 
 
 class WrapperModel_xgb(torch.nn.Module):
@@ -600,7 +618,7 @@ def execute_run_xgb(config_id, cfg, budget, dataset_list, session):
 
     avg_acc = sum(acc_list) / len(acc_list)
 
-    return avg_acc, 0
+    return avg_acc, 0, 0
 
 
 class Model_xgb(object):
@@ -733,6 +751,7 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
 
     print(' ')
     acc_list = []
+    time_list = []
     for i in range(num_classes):
         selected_class = i % num_classes
         dataset_test = dataset_list[selected_class][1]
@@ -744,15 +763,17 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
         if class_index != selected_class:
             raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
 
-        acc = m.test(dataset = dataset_test.get_dataset(),
+        acc, tim = m.test(dataset = dataset_test.get_dataset(),
                      dataset_name = dataset_name,
                      class_index = class_index)
         acc_list.append(acc)
+        time_list.append(tim)
 
     avg_acc = sum(acc_list) / len(acc_list)
+    avg_time = sum(time_list) / len(time_list)
     print(avg_acc)
 
-    return avg_acc, avg_loss
+    return avg_acc, avg_loss, avg_time
 
 
 class Model_dl(object):
@@ -765,7 +786,6 @@ class Model_dl(object):
         self.model.cuda()
         self.criterion = torch.nn.CrossEntropyLoss().cuda()
         self.optimizer = WrapperOptimizer(config_id = config_id, model=self.model, cfg=self.cfg)
-
 
     def train(self, dataset, dataset_name, class_index, desired_batches, iteration, save_iteration=1):
         dataloader = torch.utils.data.DataLoader(
@@ -832,12 +852,14 @@ class Model_dl(object):
             prediction_list.append(self.model(data.cuda()).cpu())
         prediction = torch.cat(prediction_list, dim=0)
 
+
         acc = calc_accuracy(prediction, class_index)
+        time = self.model.get_avg_time()
         print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
 
         #print('TEST DL END')
 
-        return acc
+        return acc, time
 
 
 
@@ -864,23 +886,24 @@ class BOHBWorker(Worker):
 
         #try:
         if cfg['use_model'] == 'xgb':
-            score, avg_loss = execute_run_xgb(config_id = config_id,
-                                              cfg = cfg,
-                                              budget = budget,
-                                              dataset_list = self.dataset_list,
-                                              session=self.session)
+            score, avg_loss, avg_time = execute_run_xgb(config_id = config_id,
+                                                        cfg = cfg,
+                                                        budget = budget,
+                                                        dataset_list = self.dataset_list,
+                                                        session=self.session)
         elif cfg['use_model'] == 'dl':
-            score, avg_loss = execute_run_dl(config_id = config_id,
-                                             cfg=cfg,
-                                             budget=budget,
-                                             dataset_list=self.dataset_list,
-                                             session=self.session)
+            score, avg_loss, avg_time = execute_run_dl(config_id = config_id,
+                                                       cfg=cfg,
+                                                       budget=budget,
+                                                       dataset_list=self.dataset_list,
+                                                       session=self.session)
         # except Exception as e:
         #     status = str(e)
         #     print(status)
 
         #info[cfg["dataset"]] = score
         info['avg_loss'] = avg_loss
+        info['avg_time'] = avg_time
         info['config'] = str(config)
         info['cfg'] = str(cfg)
 
@@ -939,7 +962,7 @@ def runBohbParallel(cfg, id):
     os.makedirs(cfg["bohb_log_dir"], exist_ok=True)
 
     if int(id) > 0:
-        time.sleep(5)
+        time.sleep(15)
         w = BOHBWorker(cfg=cfg,
                        timeout=1,
                        host=host,
@@ -1175,7 +1198,7 @@ if __name__ == "__main__":
         cfg = get_configuration(sys.argv[2])
         res = runBohbParallel(cfg, sys.argv[1])
     else:
-        cfg = get_configuration()
+        cfg = get_configuration('512')
         res = runBohbSerial(cfg)
 
     # cfg = get_configuration()
