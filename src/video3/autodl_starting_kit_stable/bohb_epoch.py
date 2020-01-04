@@ -78,8 +78,9 @@ def get_configuration(dataset, model):
     cfg["dataset"] = dataset
     cfg["model"] = model
     cfg["bohb_min_budget"] = 1
-    cfg["bohb_max_budget"] = 5
-    cfg["bohb_iterations"] = 15
+    cfg["bohb_max_budget"] = 9
+    cfg["bohb_iterations"] = 10
+    cfg["bohb_eta"] = 3
     cfg["bohb_log_dir"] = "./logs_new/" + dataset + '___' + model + '___' + str(int(time.time()))
     cfg["auc_splits"] = 10  # Unused
 
@@ -239,6 +240,7 @@ def runBOHB(cfg):
         run_id=run_id,
         min_budget=cfg["bohb_min_budget"],
         max_budget=cfg["bohb_max_budget"],
+        eta=cfg["bohb_eta"],
         nameserver="127.0.0.1",
         nameserver_port=port,
         result_logger=result_logger,
