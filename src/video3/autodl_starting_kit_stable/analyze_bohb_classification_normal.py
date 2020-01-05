@@ -4,14 +4,16 @@ import numpy as np
 import pandas as pd
 
 # parsing the log files manually is actually the quickest solution...
-x_data = ["8","16","32","64","128","256","512"]
-y_data = [0.949405093356336,
-          0.9554580903987269,
-          0.9756209018393189,
-          0.9924173049173051,
-          0.9951697770217307,
-          0.9974747474747474,
-          0.9898989898989898]
+x_data = ["4","8","16","32","64","128","256","512","1024"]
+y_data = [0.8797719371024364,
+          0.9258625836798763,
+          0.9602057318895961,
+          0.9790404418009239,
+          0.9872927408755435,
+          0.9906736446591519,
+          0.9935587761674718,
+          0.9969135802469135,
+          0.9753086419753088]
 
 def plot_accuracy():
     plt.figure(figsize=(5,3))
@@ -20,7 +22,7 @@ def plot_accuracy():
     #ax.set_xticklabels(x_data)
     plt.xlabel('batch size')
     plt.ylabel('accuracy')
-    plt.xticks(np.arange(7), x_data)
+    plt.xticks(np.arange(9), x_data)
     plt.show()
 
 if __name__ == "__main__":

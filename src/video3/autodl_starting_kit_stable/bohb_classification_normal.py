@@ -44,8 +44,8 @@ def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [1,2,4,8,16,32,64,128,256,512]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [2]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [16]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_width', choices = [1024, 200, 50]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
@@ -128,11 +128,8 @@ def get_configuration(log_subfolder=None):
                'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
                'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
                'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',
-               'Chucky', 'Decal', 'Hammer', 'Katze',
-               'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101',
-               'SMv2']
-    # without 'Munster', 'Kraut'
-
+               'Hmdb51', 'Ucf101', 'SMv2']
+    # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro',
 
     #train_datasets, test_datasets = split_datasets(datasets, 4)
     train_datasets = datasets
@@ -382,109 +379,45 @@ class Identity(torch.nn.Module):
 class WrapperModel_dl(torch.nn.Module):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
-
-        self.filename = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
+        self.cfg = cfg
+        self.filename = self.cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
         self.mode = 'train'
         self.timer_cum = 0
         self.timer_runs = 0
 
-        #self.model = torchvision.models.resnet18(pretrained=True)
-
-        # self.fc1_1 = torch.nn.Linear(512*2, cfg["nn_width"])
-        # self.prelu1 = torch.nn.PReLU()
-        # self.fc1_2 = torch.nn.Linear(cfg["nn_width"], 512*2)
-        #
-        # self.prelu2 = torch.nn.PReLU()
-        # self.fc2 = torch.nn.Linear(512*2, num_classes)
-
         mult = 0
 
-        if cfg['nn_use_med']:
+        if self.cfg['nn_use_med']:
             mult += 1
-        if cfg['nn_use_mean']:
+        if self.cfg['nn_use_mean']:
             mult += 1
-        if cfg['nn_use_std']:
+        if self.cfg['nn_use_std']:
             mult += 1
-        if cfg['nn_use_var']:
+        if self.cfg['nn_use_var']:
             mult += 1
-        if cfg['nn_use_skew']:
+        if self.cfg['nn_use_skew']:
             mult += 1
-        if cfg['nn_use_kurt']:
+        if self.cfg['nn_use_kurt']:
             mult += 1
 
         self.fc = torch.nn.Linear(512*mult, num_classes)
 
-        # if cfg['nn_num_hidden_layers'] == 0:
-        #     self.fc1 = torch.nn.Sequential(self.model.fc)
-        #
-        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
-        #                                    torch.nn.Linear(1000 * 2, num_classes))
-        # elif cfg['nn_num_hidden_layers'] == 1:
-        #     self.fc1 = torch.nn.Sequential(self.model.fc)
-        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
-        #                                    torch.nn.Linear(1000 * 2, 300),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(300, num_classes))
-        # elif cfg['nn_num_hidden_layers'] == 2:
-        #     self.fc1 = torch.nn.Sequential(self.model.fc)
-        #     self.fc2 = torch.nn.Sequential(torch.nn.PReLU(),
-        #                                    torch.nn.Linear(1000 * 2, 600),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(600, 150),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(150, num_classes))
-
-        # if cfg['nn_num_hidden_layers'] == 0:
-        #     self.fc1 = torch.nn.Sequential(Identity())
-        #
-        #     self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, num_classes))
-        # elif cfg['nn_num_hidden_layers'] == 1:
-        #     self.fc1 = torch.nn.Sequential(Identity())
-        #
-        #     self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, 300),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(300, num_classes))
-        # elif cfg['nn_num_hidden_layers'] == 2:
-        #     self.fc1 = torch.nn.Sequential(Identity())
-        #
-        #     self.fc2 = torch.nn.Sequential(torch.nn.Linear(512 * 2, 600),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(600, 150),
-        #                                    torch.nn.PReLU(),
-        #                                    torch.nn.Linear(150, num_classes))
-
         if os.path.isfile(self.filename):
             self.load_state_dict(torch.load(self.filename))
 
-        # # freeze base model
-        # for name, param in self.model.named_parameters():
-        #     param.requires_grad = False
-
     def eval(self):
         self.mode = 'eval'
-        #self.model.eval()
 
     def train(self):
         self.mode = 'train'
-        #self.model.train()
 
     def forward(self, x):
-        # x = self.fc1(x)
-        # x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
-        # x = self.fc2(x)
-        # x = x.unsqueeze(0)
-
-        # x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
-        #
-        # x = x + 0.1*self.prelu2(self.fc1_2(self.prelu1(self.fc1_1(x))))
-        # x = self.fc2(x)
-
         if self.mode == 'eval':
             t1 = time.time()
 
         nb_samples = x.shape[0]
-        nb_cut = int(cfg['nn_cut_perc'] * nb_samples)
+        nb_cut = int(self.cfg['nn_cut_perc'] * nb_samples)
         x = x.sort(dim=0)[0]
         x = x[nb_cut:nb_samples-nb_cut]
 
@@ -498,17 +431,17 @@ class WrapperModel_dl(torch.nn.Module):
         kurt = torch.mean(torch.pow(tmp, 4.0), dim=0)
 
         x = None
-        if cfg['nn_use_med']:
+        if self.cfg['nn_use_med']:
             x = med if x is None else torch.cat((x, med), 0)
-        if cfg['nn_use_mean']:
+        if self.cfg['nn_use_mean']:
             x = mean if x is None else torch.cat((x, mean), 0)
-        if cfg['nn_use_std']:
+        if self.cfg['nn_use_std']:
             x = std if x is None else torch.cat((x, std), 0)
-        if cfg['nn_use_var']:
+        if self.cfg['nn_use_var']:
             x = var if x is None else torch.cat((x, var), 0)
-        if cfg['nn_use_skew']:
+        if self.cfg['nn_use_skew']:
             x = skew if x is None else torch.cat((x, skew), 0)
-        if cfg['nn_use_kurt']:
+        if self.cfg['nn_use_kurt']:
             x = kurt if x is None else torch.cat((x, kurt), 0)
 
         x = self.fc(x)
@@ -1198,7 +1131,7 @@ if __name__ == "__main__":
         cfg = get_configuration(sys.argv[2])
         res = runBohbParallel(cfg, sys.argv[1])
     else:
-        cfg = get_configuration('512')
+        cfg = get_configuration('blubb')
         res = runBohbSerial(cfg)
 
     # cfg = get_configuration()

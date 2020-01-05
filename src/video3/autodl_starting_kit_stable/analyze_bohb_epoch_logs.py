@@ -15,8 +15,8 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
 #def load_log_names
 LOG_FOLDER = '/home/dingsda/logs_new'
-EXCLUDE_DATASETS = {'Munster'}
-OPTIM_PORTFOLIO_SIZE = 4
+EXCLUDE_DATASETS = {'Chucky', 'Decal', 'Munster', 'Pedro', 'Hammer', 'Katze', 'Kreatur', 'Kraut'}
+OPTIM_PORTFOLIO_SIZE = 3
 OPTIM_RESTARTS = 3
 OPTIM_ITERATIONS = 1000
 OPTIM_MODE = 'mixed'
@@ -221,10 +221,8 @@ def calculate_portfolio_performance(pf, data, optim_mode=None):
 
 
 def store_model_portfolio(result_dict, best_models):
-    f1 = open('result_dict', 'wb')
-    pickle.dump(result_dict, f1)
-    f2 = open('best_models', 'wb')
-    pickle.dump(best_models, f2)
+    json.dump(result_dict, open('result_dict.json', 'w'))
+    json.dump(best_models, open('best_models.json', 'w'))
 
 def optimize_model_portfolio(result_dict):
     print(result_dict)
@@ -318,10 +316,10 @@ if __name__ == "__main__":
     result_dict = find_best_results(complete_dataset_set)
     model_rank_dict, model_loss_dict = rank_result(result_dict)
     optimize_model_portfolio(result_dict)
-    #plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
-    #plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
-    #plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
-    #plot_model_portfolio_performance()
+    plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
+    plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
+    plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
+    plot_model_portfolio_performance()
 
 
 
