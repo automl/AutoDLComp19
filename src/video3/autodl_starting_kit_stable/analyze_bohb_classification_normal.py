@@ -14,7 +14,7 @@ y_data = [0.949405093356336,
           0.9898989898989898]
 
 def plot_accuracy():
-    plt.figure(figsize=(6,3))
+    plt.figure(figsize=(5,3))
     #sns.boxplot(x=data, y=name_list, order=name_list_sorted)
     ax = plt.plot(y_data, lw=2)
     #ax.set_xticklabels(x_data)

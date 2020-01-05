@@ -45,7 +45,7 @@ def get_configspace():
     # fc classifier
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [1,2,4,8,16,32,64,128,256,512]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [4]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [2]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_width', choices = [1024, 200, 50]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))

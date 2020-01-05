@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import copy
+import pickle
 
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
@@ -16,10 +16,10 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 #def load_log_names
 LOG_FOLDER = '/home/dingsda/logs_new'
 EXCLUDE_DATASETS = {'Munster'}
-OPTIM_PORTFOLIO_SIZE = 5
-OPTIM_RESTARTS = 100
-OPTIM_ITERATIONS = 100
-OPTIM_MODE = 'avg'
+OPTIM_PORTFOLIO_SIZE = 4
+OPTIM_RESTARTS = 3
+OPTIM_ITERATIONS = 1000
+OPTIM_MODE = 'mixed'
 
 def get_log_folders():
     log_folder_list = []
@@ -203,19 +203,31 @@ def plot_dataset_results(result_dict, xlabel, ylabel):
     plt.show()
 
 
-def calculate_portfolio_performance(pf, data):
+def calculate_portfolio_performance(pf, data, optim_mode=None):
     pf_perf = data[pf]
-    pf_perf_best = np.max(pf_perf, axis=0)
+    if pf_perf.shape[0] > 1:
+        pf_perf_best = np.max(pf_perf, axis=0)
+    else:
+        pf_perf_best = pf_perf
 
-    if OPTIM_MODE == 'avg':
+    if optim_mode == 'avg':
         return np.mean(pf_perf_best)
-    elif OPTIM_MODE == 'min':
+    elif optim_mode == 'min':
         return np.min(pf_perf_best)
+    elif optim_mode == 'mixed':
+        return 0.5*(np.mean(pf_perf_best)+np.min(pf_perf_best))
     else:
         print('unknown optimization option')
 
 
+def store_model_portfolio(result_dict, best_models):
+    f1 = open('result_dict', 'wb')
+    pickle.dump(result_dict, f1)
+    f2 = open('best_models', 'wb')
+    pickle.dump(best_models, f2)
+
 def optimize_model_portfolio(result_dict):
+    print(result_dict)
     _, all_model_set = get_all_datasets_and_models()
     nb_dataset = len(result_dict)
     nb_model = len(all_model_set)
@@ -229,7 +241,7 @@ def optimize_model_portfolio(result_dict):
             data[j,i] = v[j][1]
 
     best_pf = np.random.randint(nb_model, size=OPTIM_PORTFOLIO_SIZE)
-    best_perf = calculate_portfolio_performance(best_pf, data)
+    best_perf = calculate_portfolio_performance(best_pf, data, OPTIM_MODE)
 
     for rs in range(OPTIM_RESTARTS):
         if rs % 100 == 0:
@@ -237,7 +249,7 @@ def optimize_model_portfolio(result_dict):
 
         # initialize model portfolio
         pf = np.random.randint(nb_model, size=OPTIM_PORTFOLIO_SIZE)
-        perf = calculate_portfolio_performance(pf, data)
+        perf = calculate_portfolio_performance(pf, data, OPTIM_MODE)
 
         for it in range(OPTIM_ITERATIONS):
             # select random portfolio position to be optimized
@@ -248,20 +260,57 @@ def optimize_model_portfolio(result_dict):
 
             for i in range(data.shape[0]):
                 new_pf[pos] = i
-                new_perf = calculate_portfolio_performance(pf, data)
+                new_perf = calculate_portfolio_performance(new_pf, data, OPTIM_MODE)
                 if new_perf > perf:
-                    pf = new_pf
+                    pf = np.copy(new_pf)
                     perf = new_perf
 
         if perf > best_perf:
-            best_pf = pf
+            best_pf = np.copy(pf)
             best_perf = perf
 
+    best_pf = np.sort(best_pf)
     print(best_pf)
     print(best_perf)
-    best_models = [list(all_model_set)[i] for i in best_pf]
+    print(calculate_portfolio_performance(best_pf, data, 'avg'))
+    print(calculate_portfolio_performance(best_pf, data, 'min'))
+    best_models = [list(sorted(all_model_set))[i] for i in best_pf]
     print(best_models)
 
+    store_model_portfolio(result_dict, best_models)
+
+
+def plot_model_portfolio_performance():
+    x_data = [1,2,3,4,5,6,7,8,9,10]
+    y_data_avg = [0.6288899419576274,
+                  0.7324926642859595,
+                  0.7504368549613724,
+                  0.7595902190598857,
+                  0.7632494748379203,
+                  0.7650573938313365,
+                  0.7662108166810708,
+                  0.7670273560173989,
+                  0.7677931442940776,
+                  0.7683707398174213]
+    y_data_min = [0.22896530551963362,
+                  0.2534047552367036,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007,
+                  0.27800448495806007]
+
+    plt.figure(figsize=(5,3))
+    ax = plt.plot(y_data_avg, lw=2, label='avg. acc.')
+    ax = plt.plot(y_data_min, lw=2, label='min. acc.')
+    plt.xlabel('portfolio size')
+    plt.ylabel('accuracy')
+    plt.xticks(np.arange(10), x_data)
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -269,10 +318,10 @@ if __name__ == "__main__":
     result_dict = find_best_results(complete_dataset_set)
     model_rank_dict, model_loss_dict = rank_result(result_dict)
     optimize_model_portfolio(result_dict)
-    plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
-    plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
-    plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
-
+    #plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
+    #plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
+    #plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
+    #plot_model_portfolio_performance()
 
 
 
