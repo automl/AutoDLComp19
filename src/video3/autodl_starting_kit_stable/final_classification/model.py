@@ -32,19 +32,18 @@ import tensorflow as tf
 import time
 import hpbandster.core.result as hpres
 import hpbandster.visualization as hpvis
+import matplotlib.pyplot as plt
 import subprocess
 import json
 from common.utils import *
 from bohb_classification_normal import WrapperModel_dl, load_transform, Identity
 
-
-datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
+datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
             'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-            'colorectal_histology', 'deep_weeds', 'eurosat', 'emnist',
+            'colorectal_histology', 'deep_weeds', 'eurosat',
             'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
-            'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
-            'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',
-            'Hmdb51', 'Ucf101', 'SMv2']
+            'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
+            'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
 
 def load_precalculated_results(log_dir):
     result_dict = json.load(open(os.path.join(log_dir,"result_dict.json"),"r"))
@@ -89,7 +88,7 @@ class Model(object):
         parser.set_attr('file_dir', os.path.join(os.getcwd(), 'common', 'files'))
         parser.set_attr('bohb_sample_size', 32)
         parser.set_attr('bohb_log_dir', os.path.join(os.getcwd(), 'dl_logs', str(parser._parser_args.bohb_sample_size)))
-        parser.set_attr('bohb_config_id', (6,0,2))
+        parser.set_attr('bohb_config_id', (1,0,4))
         self.parser_args = parser.parse_args()
 
         self.done_training = False
@@ -97,7 +96,7 @@ class Model(object):
         self.train_batches = 0
         self.dl_train = None
         self.batch_size_train = 64
-        self.batch_size_test = 512
+        self.batch_size_test = 256
 
         self.train_round = 0
         self.test_round = 0
@@ -151,31 +150,37 @@ class Model(object):
         return self.train_batches
 
 
-
     def find_optimized_parameters(self, dataset):
         # load config parameters
         result = hpres.logged_results_to_HBS_result(self.parser_args.bohb_log_dir)
         id2conf = result.get_id2config_mapping()
         bohb_conf = id2conf[self.parser_args.bohb_config_id]['config']
-        class_conf = {'bohb_log_dir': self.parser_args.bohb_log_dir}
-        class_conf.update(bohb_conf)
 
-        trans_conf = {'model_input_size': 128, 'transform_scale': 0.7, 'transform_ratio': 0.75}
-        transform = load_transform(trans_conf, is_training=False)
-        ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=100000, transform=transform)
+        transform_temp = get_transform(is_training=False, input_size=128)
+        ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=int(10000), transform=transform_temp)
         dl_temp = torch.utils.data.DataLoader(
             ds_temp,
             batch_size=self.parser_args.bohb_sample_size,
-            shuffle=class_conf['shuffle_data'],
+            shuffle=False,
             drop_last=False
         )
         model_temp = torchvision.models.resnet18(pretrained=True)
         model_temp.fc = Identity()
 
-        class_temp = WrapperModel_dl(config_id=self.parser_args.bohb_config_id, num_classes=27, cfg=class_conf)
-        out1 = model_temp(next(iter(dl_temp))[0])
+        class_conf = {'bohb_log_dir': self.parser_args.bohb_log_dir}
+        class_conf.update(bohb_conf)
+        class_temp = WrapperModel_dl(config_id=self.parser_args.bohb_config_id, num_classes=len(datasets), cfg=class_conf)
+
+        torch.set_grad_enabled(False)
+        model_temp.cuda()
+        class_temp.cuda()
+        model_temp.eval()
+        class_temp.eval()
+
+        input_data = next(iter(dl_temp))[0].cuda()
+        out1 = model_temp(input_data)
         out2 = class_temp(out1)
-        dataset = datasets[np.argmax(out2.data)]
+        dataset = datasets[np.argmax(out2.cpu().data)]
 
         result_dict, best_models = load_precalculated_results(self.parser_args.log_dir)
 
@@ -192,6 +197,7 @@ class Model(object):
         best_params = eval(best_tup[2])
 
         print('------------')
+        print(best_models)
         print(dataset)
         print(best_model)
         print(best_params)
@@ -203,6 +209,12 @@ class Model(object):
     def late_init(self, dataset):
         LOGGER.info('INIT')
 
+        best_model, best_params = self.find_optimized_parameters(dataset)
+        setattr(self.parser_args, 'model', best_model)
+        setattr(self.parser_args, 'optimizer', best_params['optimizer'])
+        setattr(self.parser_args, 'dropout', best_params['dropout'])
+        setattr(self.parser_args, 'lr', best_params['lr'])
+
         ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=100000)
         self.info = ds_temp.scan(10)
 
@@ -212,12 +224,6 @@ class Model(object):
             setattr(self.parser_args, 'classification_type', 'multilabel')
         else:
             setattr(self.parser_args, 'classification_type', 'multiclass')
-
-        best_model, best_params = self.find_optimized_parameters(dataset)
-        setattr(self.parser_args, 'model', best_model)
-        setattr(self.parser_args, 'optimizer', best_params['optimizer'])
-        setattr(self.parser_args, 'dropout', best_params['dropout'])
-        setattr(self.parser_args, 'lr', best_params['lr'])
 
         self.model = get_model(parser_args=self.parser_args,
                                num_classes=self.num_classes)
@@ -247,6 +253,7 @@ class Model(object):
 
         torch.set_grad_enabled(False)
         self.model.eval()
+
         dl, self.batch_size_test = get_dataloader(model=self.model, dataset=dataset, session=self.session,
                                                   is_training=False, first_round=(int(self.test_round) == 1),
                                                   batch_size=self.batch_size_test, input_size=self.input_size,

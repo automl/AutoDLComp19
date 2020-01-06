@@ -45,7 +45,7 @@ def get_configspace():
     # fc classifier
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [16]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_width', choices = [1024, 200, 50]))
     #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
@@ -122,14 +122,13 @@ def get_configuration(log_subfolder=None):
     cfg['xgb_train_steps'] = 10
     cfg['xgb_train_batch_size'] = 10
 
-    datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
+    datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
                'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-               'colorectal_histology', 'deep_weeds', 'eurosat', 'emnist',
+               'colorectal_histology', 'deep_weeds', 'eurosat',
                'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
-               'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
-               'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',
-               'Hmdb51', 'Ucf101', 'SMv2']
-    # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro',
+               'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
+               'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
+    # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101', 'SMv2' 'oxford_flowers102', 'emnist', 'caltech_birds2011',
 
     #train_datasets, test_datasets = split_datasets(datasets, 4)
     train_datasets = datasets
@@ -299,7 +298,6 @@ def load_transform(cfg, is_training):
             AlignAxes(),
             FormatChannels(channels_des=3),
             ToPilFormat(),
-            #SaveImage(save_dir = '.', suffix='_1'),
             torchvision.transforms.RandomResizedCrop(size = size, scale=(scale, 1.0), ratio=(ratio, 1/ratio)),
             torchvision.transforms.RandomHorizontalFlip(),
             ToTorchFormat()])
@@ -454,8 +452,8 @@ class WrapperModel_dl(torch.nn.Module):
 
         return x
 
-    def save(self, suffix):
-        torch.save(self.state_dict(), self.filename + suffix)
+    def save(self):
+        torch.save(self.state_dict(), self.filename)
 
     def get_avg_time(self):
         return self.timer_cum / self.timer_runs
@@ -499,8 +497,8 @@ class WrapperOptimizer(object):
     def step(self):
         self.optimizer.step()
 
-    def save(self, suffix):
-        torch.save(self.optimizer.state_dict(), self.filename + suffix)
+    def save(self):
+        torch.save(self.optimizer.state_dict(), self.filename)
 
 
 def calc_accuracy(prediction, class_index):
@@ -674,11 +672,12 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
         loss = m.train(dataset = dataset_train.get_dataset(),
                        dataset_name = dataset_name,
                        class_index = class_index,
-                       desired_batches = cfg["nn_train_batches"],
-                       iteration = i,
-                       save_iteration=1)
+                       desired_batches = cfg["nn_train_batches"])
 
         loss_list.append(loss)
+
+    m.model.save()
+    m.optimizer.save()
 
     avg_loss = sum(loss_list) / len(loss_list)
 
@@ -720,7 +719,7 @@ class Model_dl(object):
         self.criterion = torch.nn.CrossEntropyLoss().cuda()
         self.optimizer = WrapperOptimizer(config_id = config_id, model=self.model, cfg=self.cfg)
 
-    def train(self, dataset, dataset_name, class_index, desired_batches, iteration, save_iteration=1):
+    def train(self, dataset, dataset_name, class_index, desired_batches):
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=self.cfg['nn_train_batch_size'],
@@ -755,20 +754,10 @@ class Model_dl(object):
                     finish_loop = True
                     break
 
-        if iteration % save_iteration == 0:
-            if save_iteration == 1:
-                suffix = ''
-            else:
-                suffix = '_' + str(iteration)
-            self.model.save(suffix)
-            self.optimizer.save(suffix)
-
         return sum(loss_list) / len(loss_list)
 
 
     def test(self, dataset, dataset_name, class_index):
-        #print('TEST DL START')
-
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=self.cfg['nn_test_batch_size'],
@@ -1113,6 +1102,29 @@ def verify_data(cfg):
         for i in range(len(output_list_raw)):
             if torch.sum(output_list_pro[i]-output_list_raw[i]) / torch.sum(torch.abs(output_list_pro[i])) > 0.001:
                 print('error too large')
+
+
+def verify_data_histogram(cfg):
+    # plot historgram of different datasets
+
+    batch_size = 128
+    dataset_list_pro = load_datasets_processed(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+
+    for i in range(len(dataset_list_pro)):
+        dataset_test_pro  = dataset_list_pro[i][1].get_dataset()
+        dataset_name_pro  = dataset_list_pro[i][2]
+
+        dl_test_pro = torch.utils.data.DataLoader(dataset_test_pro, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        sum_pro = np.zeros([512])
+        for data_pro,_ in dl_test_pro:
+            sum_pro += np.sum(data_pro.data.numpy(), axis=0)
+
+        plt.plot(sum_pro)
+        plt.xlabel(dataset_name_pro)
+        plt.savefig(dataset_name_pro + '.png')
+        plt.close()
+
 
 
 if __name__ == "__main__":

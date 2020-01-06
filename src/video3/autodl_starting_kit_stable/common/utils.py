@@ -330,35 +330,24 @@ def load_model(model, save_file):
 
     return model
 
-def get_transform(is_training, input_size):
+def get_transform(is_training, input_size, scale=0.7, ratio=0.75):
     if is_training:
         return torchvision.transforms.Compose([
             SelectSample(),
             AlignAxes(),
             FormatChannels(channels_des=3),
             ToPilFormat(),
-            #SaveImage(save_dir = '.', suffix='_2'),
-            torchvision.transforms.RandomResizedCrop(size=input_size, scale=(0.7, 1.3)),
-            #SaveImage(save_dir = '.', suffix='_3'),
+            torchvision.transforms.RandomResizedCrop(size = input_size, scale=(scale, 1.0), ratio=(ratio, 1/ratio)),
             torchvision.transforms.RandomHorizontalFlip(),
-            #SaveImage(save_dir = '.', suffix='_4'),
-            #torchvision.transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.01),
-            #SaveImage(save_dir = '.', suffix='_5'),
-            ToTorchFormat(),#])
-            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-            #SaveImage(save_dir = '.', suffix='_6')])
+            ToTorchFormat()])
     else:
         return torchvision.transforms.Compose([
             SelectSample(),
             AlignAxes(),
             FormatChannels(channels_des=3),
             ToPilFormat(),
-            #torchvision.transforms.Resize(size=(input_size, input_size)),
-            torchvision.transforms.Resize(int(input_size*1.15)),
-            torchvision.transforms.CenterCrop(input_size),
+            torchvision.transforms.Resize(size=(input_size, input_size)),
             ToTorchFormat()])
-            #torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
 
 def get_dataloader(model, dataset, session, is_training, first_round, batch_size, input_size, num_samples):
     transform = get_transform(is_training=is_training, input_size=input_size)
