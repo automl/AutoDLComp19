@@ -23,6 +23,7 @@ def plot_accuracy():
     plt.xlabel('batch size')
     plt.ylabel('accuracy')
     plt.xticks(np.arange(9), x_data)
+    plt.savefig("batch_size_acc.svg", format="svg")
     plt.show()
 
 if __name__ == "__main__":

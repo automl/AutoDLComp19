@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
 #def load_log_names
 LOG_FOLDER = '/home/dingsda/logs_new'
+SAVE_FOLDER = os.path.join(os.getcwd(), 'common', 'files')
 EXCLUDE_DATASETS = {'Chucky', 'Decal', 'Munster', 'Pedro', 'Hammer', 'Katze', 'Kreatur', 'Kraut'}
 OPTIM_PORTFOLIO_SIZE = 3
 OPTIM_RESTARTS = 3
@@ -171,6 +172,7 @@ def plot_rank_result(model_dict, xlabel, ylabel, invert=False):
         plt.ylim(reversed(plt.ylim()))
     else:
         plt.xlim(reversed(plt.xlim()))
+    plt.savefig("rank_results.svg", format="svg")
     plt.show()
 
 
@@ -196,10 +198,11 @@ def plot_dataset_results(result_dict, xlabel, ylabel):
     data = data.transpose()
     data.columns = name_list
 
-    plt.figure(figsize=(5, 6.5))
+    plt.figure(figsize=(5, 5))
     ax = sns.boxplot(data=data, order=name_list_sorted, orient='h')
     ax.set(xlabel=xlabel, ylabel=ylabel)
     plt.ylim(reversed(plt.ylim()))
+    plt.savefig("dataset_results.svg", format="svg")
     plt.show()
 
 
@@ -221,8 +224,8 @@ def calculate_portfolio_performance(pf, data, optim_mode=None):
 
 
 def store_model_portfolio(result_dict, best_models):
-    json.dump(result_dict, open('result_dict.json', 'w'))
-    json.dump(best_models, open('best_models.json', 'w'))
+    json.dump(result_dict, open(os.path.join(SAVE_FOLDER, 'result_dict.json'), 'w'))
+    json.dump(best_models, open(os.path.join(SAVE_FOLDER, 'best_models.json'), 'w'))
 
 def optimize_model_portfolio(result_dict):
     print(result_dict)
@@ -308,6 +311,7 @@ def plot_model_portfolio_performance():
     plt.ylabel('accuracy')
     plt.xticks(np.arange(10), x_data)
     plt.legend()
+    plt.savefig("portfolio_performance.svg", format="svg")
     plt.show()
 
 

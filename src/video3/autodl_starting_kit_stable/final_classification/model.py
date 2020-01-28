@@ -24,19 +24,15 @@ such as Python modules/packages, pre-trained weights, etc. The final zip file
 should not exceed 300MB.
 """
 
-import logging
-import numpy as np
+import sys
 import os
-import torch
-import tensorflow as tf
-import time
+sys.path.append(os.path.join(os.getcwd()))
+
 import hpbandster.core.result as hpres
-import hpbandster.visualization as hpvis
-import matplotlib.pyplot as plt
-import subprocess
 import json
+
 from common.utils import *
-from bohb_classification_normal import WrapperModel_dl, load_transform, Identity
+from bohb_classification_normal import WrapperModel_dl, Identity
 
 datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
             'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
@@ -84,7 +80,6 @@ class Model(object):
         parser.set_attr('nesterov', True)
         parser.set_attr('num_classes', self.num_classes)
         parser.set_attr('t_diff', 1.0/50)
-        parser.set_attr('log_dir', os.getcwd())
         parser.set_attr('file_dir', os.path.join(os.getcwd(), 'common', 'files'))
         parser.set_attr('bohb_sample_size', 32)
         parser.set_attr('bohb_log_dir', os.path.join(os.getcwd(), 'dl_logs', str(parser._parser_args.bohb_sample_size)))
@@ -182,7 +177,7 @@ class Model(object):
         out2 = class_temp(out1)
         dataset = datasets[np.argmax(out2.cpu().data)]
 
-        result_dict, best_models = load_precalculated_results(self.parser_args.log_dir)
+        result_dict, best_models = load_precalculated_results(self.parser_args.file_dir)
 
         result_list = result_dict[dataset]
         best_perf = 0
@@ -269,6 +264,3 @@ class Model(object):
 
         LOGGER.info("TESTING END: " + str(time.time()))
         return predictions
-
-
-
