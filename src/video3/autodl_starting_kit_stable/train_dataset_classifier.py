@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
+import matplotlib.pyplot as plt
 import pickle
 import xgboost as xgb
 import tensorflow as tf
@@ -40,34 +41,40 @@ def split_datasets(datasets, fraction):
     return train_datasets, test_datasets
 
 
+def get_data_type(dataset_dir):
+    for elem in ['meta', 'resnet', 'combined']:
+        if elem in dataset_dir:
+            return elem
+
+    raise ValueError('Unknown data type')
+
+
 def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_width', choices = [1024, 200, 50]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_num_hidden_layers', choices=[0,1,2]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_med', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_mean', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_var', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_std', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_skew', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_use_kurt', choices=[False, True]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_cut_perc', lower=0, upper=0.4, log=False))
-
+    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
+    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
+    # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
 
     # xgb classifier
-    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
-    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
-    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [32,64,128]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [32,64,128]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [64]))
 
     # common parameters
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_ratio', lower=0.3, upper=1, log=False))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_med', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_mean', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_var', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_std', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
+
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_data', choices=[True, False]))
 
     return cs
@@ -78,36 +85,40 @@ def get_configuration(log_subfolder=None):
     cluster_mode = False
     if cluster_mode:
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets/1e5'
-        cfg['des_num_samples'] = int(1e5)
+        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets/1e4_meta'
+        cfg['des_num_samples'] = int(1e4)
         cfg["image_dir"] = '/data/aad/image_datasets/challenge'
         cfg["video_dir"] = '/data/aad/video_datasets/challenge'
         cfg["bohb_interface"] = 'eth0'
         cfg["bohb_workers"] = 10
     else:
         cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
-        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets/1e5'
-        cfg['des_num_samples'] = int(1e5)
+        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets/1e4_meta'
+        cfg['des_num_samples'] = int(1e4)
         cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
         cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
         cfg["bohb_interface"] = 'lo'
         cfg["bohb_workers"] = 3
 
     log_folder = "dl_logs"
-    if log_subfolder == None:
+    if log_subfolder is None:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg["use_model"] = 'dl'    # xgb or dl
+    cfg["use_model"] = 'xgb'    # xgb or dl
 
     if cfg["use_model"] == 'dl':
         cfg["bohb_min_budget"] = 100
         cfg["bohb_max_budget"] = 1000
     else:
-        cfg["bohb_min_budget"] = 1000
-        cfg["bohb_max_budget"] = 10000
-    cfg["bohb_iterations"] = 10
+        cfg["bohb_min_budget"] = 100
+        cfg["bohb_max_budget"] = 1000
+
+    cfg['data_type'] = get_data_type(cfg['proc_dataset_dir'])
+    cfg["data_gain"] = 0.5
+
+    cfg["bohb_iterations"] = 100
     cfg["bohb_run_id"] = '123'
     cfg['model_input_size'] = 128
     cfg['transform_scale'] = 0.7
@@ -115,8 +126,6 @@ def get_configuration(log_subfolder=None):
     cfg['nn_lr'] = 1e-4
     cfg['nn_train_batches'] = 1
     cfg['nn_train_batch_size'] = 128
-    cfg['nn_num_hidden_layers'] = 0
-    cfg['nn_use_last_resnet_layer'] = False
     cfg['xgb_eta'] = 0.3
     cfg['xgb_max_depth'] = 6
     cfg['xgb_train_steps'] = 10
@@ -128,7 +137,7 @@ def get_configuration(log_subfolder=None):
                'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
                'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
                'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
-    # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101', 'SMv2' 'oxford_flowers102', 'emnist', 'caltech_birds2011',
+    # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101', 'SMv2', 'oxford_flowers102', 'emnist', 'caltech_birds2011',
 
     #train_datasets, test_datasets = split_datasets(datasets, 4)
     train_datasets = datasets
@@ -204,15 +213,10 @@ class BohbWrapper(Master):
 
 
 class ProcessedDataset(torch.utils.data.Dataset):
-    """
-    Data loader for the ucf 101 dataset. It assumes that in the top-level folder there is another
-    folder (aaa_recognition in our case) with the files for the test/train split
-    """
-
     def __init__(self, data_path, class_index):
         with open(data_path, 'rb') as fh:
-            self.dataset = torch.tensor(pickle.load(fh))
-            self.class_index = torch.tensor(class_index)
+            self.dataset = torch.tensor(pickle.load(fh)).float()
+            self.class_index = torch.tensor(class_index).float()
 
     def get_dataset(self):
         # for compatibility
@@ -225,17 +229,18 @@ class ProcessedDataset(torch.utils.data.Dataset):
         return self.dataset[idx], self.class_index
 
 
-def load_datasets_processed(cfg, datasets):
+def load_datasets_processed(cfg, datasets, dataset_dir=None):
     '''
     load preprocessed datasets from a list, return train/test datasets, dataset index and dataset name
     '''
+    if dataset_dir is None:
+        dataset_dir = cfg['proc_dataset_dir']
     dataset_list = []
-    dataset_dir = cfg['proc_dataset_dir']
     class_index = 0
 
     for dataset_name in datasets:
-        dataset_train_path = os.path.join(cfg['proc_dataset_dir'], dataset_name + '_train')
-        dataset_test_path = os.path.join(cfg['proc_dataset_dir'], dataset_name + '_test')
+        dataset_train_path = os.path.join(dataset_dir, dataset_name + '_train')
+        dataset_test_path = os.path.join(dataset_dir, dataset_name + '_test')
 
         try:
             dataset_train = ProcessedDataset(dataset_train_path, class_index)
@@ -310,61 +315,6 @@ def load_transform(cfg, is_training):
             torchvision.transforms.Resize(size=(size, size)),
             ToTorchFormat()])
 
-def load_dataloader(cfg, train_dataloader_dict, session, dataset, dataset_name, num_samples, is_training):
-    print(dataset_name)
-
-    transform = load_transform(cfg, is_training=is_training)
-
-    ds = TFDataset(
-        session=session,
-        dataset=dataset,
-        num_samples=num_samples,
-        transform=transform
-    )
-
-    if is_training:
-        batch_size = cfg['nn_train_batch_size']
-    else:
-        batch_size = cfg["nn_train_batch_size"] * 2
-
-    if dataset_name not in train_dataloader_dict or is_training is False:
-        # # reduce batch size until it fits into memory
-        # batch_size_ok = False
-        #
-        # while not batch_size_ok and batch_size > 1:
-        #     ds.reset()
-        #     try:
-        #         dl = torch.utils.data.DataLoader(
-        #             ds,
-        #             batch_size=batch_size,
-        #             shuffle=False,
-        #             drop_last=False
-        #         )
-        #
-        #         data, labels = next(iter(dl))
-        #         self.model(data.cuda())
-        #
-        #         batch_size_ok = True
-        #
-        #     except Exception as e:
-        #         print(str(e))
-        #         batch_size = int(batch_size / 2)
-        #         print('REDUCING BATCH SIZE TO: ' + str(batch_size))
-        # ds.reset()
-
-        dl = torch.utils.data.DataLoader(
-            ds,
-            batch_size=batch_size,
-            shuffle=False,
-            drop_last=False
-        )
-        train_dataloader_dict[dataset_name] = dl
-
-    else:
-        dl = train_dataloader_dict[dataset_name]
-
-    return dl
-
 
 class Identity(torch.nn.Module):
     def __init__(self):
@@ -380,42 +330,35 @@ class WrapperModel_dl(torch.nn.Module):
         self.cfg = cfg
         self.filename = self.cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
-        self.mode = 'train'
-        self.timer_cum = 0
-        self.timer_runs = 0
-
         mult = 0
 
-        if self.cfg['nn_use_med']:
+        if self.cfg['use_med']:
             mult += 1
-        if self.cfg['nn_use_mean']:
+        if self.cfg['use_mean']:
             mult += 1
-        if self.cfg['nn_use_std']:
+        if self.cfg['use_std']:
             mult += 1
-        if self.cfg['nn_use_var']:
+        if self.cfg['use_var']:
             mult += 1
-        if self.cfg['nn_use_skew']:
+        if self.cfg['use_skew']:
             mult += 1
-        if self.cfg['nn_use_kurt']:
+        if self.cfg['use_kurt']:
             mult += 1
 
-        self.fc = torch.nn.Linear(512*mult, num_classes)
+        if cfg['data_type'] == 'meta':
+            input_size = 18
+        elif cfg['data_type'] == 'resnet':
+            input_size = 512
+        elif cfg['data_type'] == 'combined':
+            input_size = 530
+        self.fc = torch.nn.Linear(input_size*mult, num_classes)
 
         if os.path.isfile(self.filename):
             self.load_state_dict(torch.load(self.filename))
 
-    def eval(self):
-        self.mode = 'eval'
-
-    def train(self):
-        self.mode = 'train'
-
     def forward(self, x):
-        if self.mode == 'eval':
-            t1 = time.time()
-
         nb_samples = x.shape[0]
-        nb_cut = int(self.cfg['nn_cut_perc'] * nb_samples)
+        nb_cut = int(self.cfg['cut_perc'] * nb_samples)
         x = x.sort(dim=0)[0]
         x = x[nb_cut:nb_samples-nb_cut]
 
@@ -429,54 +372,87 @@ class WrapperModel_dl(torch.nn.Module):
         kurt = torch.mean(torch.pow(tmp, 4.0), dim=0)
 
         x = None
-        if self.cfg['nn_use_med']:
+        if self.cfg['use_med']:
             x = med if x is None else torch.cat((x, med), 0)
-        if self.cfg['nn_use_mean']:
+        if self.cfg['use_mean']:
             x = mean if x is None else torch.cat((x, mean), 0)
-        if self.cfg['nn_use_std']:
+        if self.cfg['use_std']:
             x = std if x is None else torch.cat((x, std), 0)
-        if self.cfg['nn_use_var']:
+        if self.cfg['use_var']:
             x = var if x is None else torch.cat((x, var), 0)
-        if self.cfg['nn_use_skew']:
+        if self.cfg['use_skew']:
             x = skew if x is None else torch.cat((x, skew), 0)
-        if self.cfg['nn_use_kurt']:
+        if self.cfg['use_kurt']:
             x = kurt if x is None else torch.cat((x, kurt), 0)
 
         x = self.fc(x)
         x = x.unsqueeze(0)
-
-        if self.mode == 'eval':
-            t2 = time.time()
-            self.timer_cum += t2-t1
-            self.timer_runs += 1
 
         return x
 
     def save(self):
         torch.save(self.state_dict(), self.filename)
 
-    def get_avg_time(self):
-        return self.timer_cum / self.timer_runs
-
 
 class WrapperModel_xgb(torch.nn.Module):
-    def __init__(self, processed=False):
+    def __init__(self, config_id, cfg):
         super().__init__()
-        self.model = torchvision.models.resnet18(pretrained=True)
-        self.processed = processed
+        self.cfg = cfg
+        self.filename = self.cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
-    def eval(self):
-        self.model.eval()
+        mult = 0
 
-    def train(self):
-        self.model.train()
+        if self.cfg['use_med']:
+            mult += 1
+        if self.cfg['use_mean']:
+            mult += 1
+        if self.cfg['use_std']:
+            mult += 1
+        if self.cfg['use_var']:
+            mult += 1
+        if self.cfg['use_skew']:
+            mult += 1
+        if self.cfg['use_kurt']:
+            mult += 1
+
+        if os.path.isfile(self.filename):
+            self.load_state_dict(torch.load(self.filename))
 
     def forward(self, x):
-        if self.processed:
-            x = self.model(x)
-        x = torch.cat((torch.mean(x, dim=0), torch.var(x, dim=0)), 0)
+        nb_samples = x.shape[0]
+        nb_cut = int(self.cfg['cut_perc'] * nb_samples)
+        x = x.sort(dim=0)[0]
+        x = x[nb_cut:nb_samples-nb_cut]
+
+        med  = x.median(dim=0)[0]
+        mean = torch.mean(x, dim=0)
+        var  = torch.var(x, dim=0)
+        std  = torch.pow(var, 0.5)
+        diff = x - mean
+        tmp  = diff/(std+0.1)
+        skew = torch.mean(torch.pow(tmp, 3.0), dim=0)
+        kurt = torch.mean(torch.pow(tmp, 4.0), dim=0)
+
+        x = None
+        if self.cfg['use_med']:
+            x = med if x is None else torch.cat((x, med), 0)
+        if self.cfg['use_mean']:
+            x = mean if x is None else torch.cat((x, mean), 0)
+        if self.cfg['use_std']:
+            x = std if x is None else torch.cat((x, std), 0)
+        if self.cfg['use_var']:
+            x = var if x is None else torch.cat((x, var), 0)
+        if self.cfg['use_skew']:
+            x = skew if x is None else torch.cat((x, skew), 0)
+        if self.cfg['use_kurt']:
+            x = kurt if x is None else torch.cat((x, kurt), 0)
+
         x = x.unsqueeze(0)
+
         return x
+
+    def save(self):
+        torch.save(self.state_dict(), self.filename)
 
 
 class WrapperOptimizer(object):
@@ -558,7 +534,7 @@ class Model_xgb(object):
         self.cfg = cfg
         self.train_dataloader_dict = {}
         self.session = session
-        self.model = WrapperModel_xgb(processed = False)
+        self.model = WrapperModel_xgb(config_id, cfg)
         self.model.cuda()
         self.num_classes = num_classes
         self.X = []
@@ -581,19 +557,10 @@ class Model_xgb(object):
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for data, _ in dataloader:
-                output = self.model(data.cuda()).cpu()
+                data_preproc = preprocess_meta_data(data.cuda(), self.cfg)
+                output = self.model(data_preproc).cpu()
                 self.X.append(output.numpy())
                 self.y.append(np.array([class_index]))
-                # if self.X is None:
-                #     self.X = output
-                # else:
-                #     self.X = torch.cat((self.X, output), dim=0)
-                #
-                #
-                # if self.y is None:
-                #     self.y = torch.tensor([class_index])
-                # else:
-                #     self.y = torch.cat((self.y, torch.tensor([class_index])), dim=0)
 
                 train_batches += 1
                 if train_batches > desired_batches:
@@ -708,6 +675,20 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
     return avg_acc, avg_loss, avg_time
 
 
+def preprocess_meta_data(data, cfg):
+    if data.shape[1] == 512:
+        return data
+    else:
+        a = 1-cfg["data_gain"]
+        b = 1+cfg["data_gain"]
+        for i in [4]:
+            data[:,i] = data[1,i] * (a + (b-a)*np.random.random())
+        for i in [5,6,7,8,9,10,11,12,13,14,15,16]:
+            data[:,i] = 0
+
+    return data
+
+
 class Model_dl(object):
     def __init__(self, config_id, num_classes, cfg, session):
         super().__init__()
@@ -740,7 +721,8 @@ class Model_dl(object):
                 #im = data[0].cpu().permute(1,2,0).numpy()
                 #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
                 self.optimizer.zero_grad()
-                output = self.model(data.cuda())
+                data_preproc = preprocess_meta_data(data.cuda(), self.cfg)
+                output = self.model(data_preproc)
                 labels = torch.LongTensor([class_index]).cuda()
                 loss = self.criterion(output, labels)
                 #print('LOSS: ' + str(loss))
@@ -776,8 +758,7 @@ class Model_dl(object):
 
 
         acc = calc_accuracy(prediction, class_index)
-        time = self.model.get_avg_time()
-        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))# + ' ' + str(time.time() - t1))
+        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))
 
         #print('TEST DL END')
 
@@ -987,7 +968,8 @@ def continuous_training(cfg):
     return avg_acc
 
 
-def generate_samples(cfg, idx=1, idx_total=1):
+
+def generate_samples_resnet(cfg, idx=1, idx_total=1):
     model = torchvision.models.resnet18(pretrained=True)
     model.cuda()
     model.fc = Identity()
@@ -1052,6 +1034,118 @@ def generate_samples(cfg, idx=1, idx_total=1):
             pickle.dump(output_train, fh_train)
         with open(file_test, "wb") as fh_test:
             pickle.dump(output_test, fh_test)
+
+
+def generate_meta_output_vector(data, general_vector):
+    length = data.shape[-4]
+    width = data.shape[-3]
+    height = data.shape[-2]
+    channels = data.shape[1]
+
+    output_vector = np.array([[length, width, height, channels]])
+    output_vector = np.concatenate([output_vector, general_vector], axis=1)
+
+    return output_vector
+
+
+def generate_samples_meta(cfg, idx=1, idx_total=1):
+    session = tf.Session()
+    batch_size = 1
+
+    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+    print(dataset_list)
+    des_num_samples = cfg['des_num_samples']
+
+    os.makedirs(cfg["proc_dataset_dir"], exist_ok=True)
+
+    for i in range(len(dataset_list)):
+        dataset_train = dataset_list[i][0].get_dataset()
+        dataset_test  = dataset_list[i][1].get_dataset()
+        dataset_name  = dataset_list[i][2]
+
+        print(dataset_name)
+
+        if (i - idx) % idx_total != 0:
+            print('skip')
+            continue
+
+        ds_temp = TFDataset(session=session, dataset=dataset_test, num_samples=int(1e9))
+        info = ds_temp.scan()
+        print(info)
+
+        ds_train = TFDataset(session=session, dataset=dataset_train, num_samples=int(1e9), transform=None)
+        ds_test = TFDataset(session=session, dataset=dataset_test, num_samples=info['num_samples'], transform=None)
+        dl_train = torch.utils.data.DataLoader(ds_train, batch_size=batch_size, shuffle=False, drop_last=False)
+        dl_test = torch.utils.data.DataLoader(ds_test, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        torch.set_grad_enabled(False)
+
+        num_samples = 0
+        output_list_train = []
+
+        general_vector = np.array([info["num_samples"]])
+        general_vector = np.concatenate([general_vector, info["min_shape"]])
+        general_vector = np.concatenate([general_vector, info["max_shape"]])
+        general_vector = np.concatenate([general_vector, info["avg_shape"]])
+        general_vector = np.concatenate([general_vector, np.array([1 if info["is_multilabel"] else 0])])
+        general_vector = np.array([general_vector])
+        print(general_vector)
+
+        while num_samples < des_num_samples:
+            for data, _ in dl_train:
+                output_vector = generate_meta_output_vector(data, general_vector)
+                output_list_train.append(output_vector)
+
+                num_samples += batch_size
+                if num_samples >= des_num_samples:
+                    break
+
+        output_list_test = []
+        for data, _ in dl_test:
+            output_vector = generate_meta_output_vector(data, general_vector)
+            output_list_test.append(output_vector)
+
+        output_train = np.concatenate(output_list_train, axis=0)
+        output_test = np.concatenate(output_list_test, axis=0)
+
+        print(output_train.shape)
+        print(output_test.shape)
+
+        file_train = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_train')
+        file_test = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_test')
+        with open(file_train, "wb") as fh_train:
+            pickle.dump(output_train, fh_train)
+        with open(file_test, "wb") as fh_test:
+            pickle.dump(output_test, fh_test)
+
+
+def generate_samples_combined(cfg):
+    dataset_resnet_path = '/home/dingsda/data/datasets/processed_datasets/1e4_resnet'
+    dataset_meta_path = '/home/dingsda/data/datasets/processed_datasets/1e4_meta'
+    dataset_combined_path = '/home/dingsda/data/datasets/processed_datasets/1e4_combined'
+
+    dataset_list = cfg["train_datasets"] + cfg["test_datasets"]
+    print(dataset_list)
+
+    os.makedirs(dataset_combined_path, exist_ok=True)
+
+    for suffix in ['train', 'test']:
+        for dataset_name in dataset_list:
+            dataset_resnet_file = os.path.join(dataset_resnet_path, dataset_name + '_' + suffix)
+            dataset_meta_file = os.path.join(dataset_meta_path, dataset_name + '_' + suffix)
+
+            with open(dataset_resnet_file, 'rb') as fh:
+                dataset_resnet = np.array(pickle.load(fh))
+            with open(dataset_meta_file, 'rb') as fh:
+                dataset_meta = np.array(pickle.load(fh))
+
+            min_len = min(len(dataset_resnet), len(dataset_meta))
+            dataset_combined = np.concatenate([dataset_meta[:min_len], dataset_resnet[:min_len]], axis=1)
+            dataset_combined = np.float32(dataset_combined)
+
+            file_combined = os.path.join(dataset_combined_path, dataset_name + '_' + suffix)
+            with open(file_combined, "wb") as fh:
+                pickle.dump(dataset_combined, fh)
 
 
 def verify_data(cfg):
@@ -1143,13 +1237,13 @@ if __name__ == "__main__":
         cfg = get_configuration(sys.argv[2])
         res = runBohbParallel(cfg, sys.argv[1])
     else:
-        cfg = get_configuration('blubb')
+        cfg = get_configuration()
         res = runBohbSerial(cfg)
 
     # cfg = get_configuration()
     # res = verify_data(cfg)
 
     # cfg = get_configuration()
-    # generate_samples(cfg)
+    # generate_samples_combined(cfg)
 
     # res = continuous_training(cfg)

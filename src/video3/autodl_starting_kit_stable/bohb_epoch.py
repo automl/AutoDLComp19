@@ -17,7 +17,7 @@ from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB as BOHB
 from AutoDL_ingestion_program.dataset import AutoDLDataset
 from AutoDL_scoring_program.score import get_solution, accuracy, is_multiclass, autodl_auc
-from epoch.model import Model
+from model_epoch.model import Model
 from common.utils import TFDataset
 import tensorflow as tf
 import logging

@@ -40,7 +40,7 @@ def get_configspace():
 
 def get_configuration(dataset):
     cfg = {}
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/auc'
+    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable/model_auc'
     cfg["dataset"] = dataset
     cfg["bohb_min_budget"] = 30
     cfg["bohb_max_budget"] = 300
