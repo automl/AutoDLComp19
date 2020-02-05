@@ -90,10 +90,10 @@ def run_baseline(dataset_dir, code_dir, time_budget=7200):
 
   # Run ingestion and scoring at the same time
   command_ingestion =\
-    "/home/ferreira/.miniconda/envs/autodl/bin/python {} --dataset_dir={} --code_dir={} --time_budget={}"\
+    "python {} --dataset_dir={} --code_dir={} --time_budget={}"\
     .format(path_ingestion, dataset_dir, code_dir, time_budget)
   command_scoring =\
-    '/home/ferreira/.miniconda/envs/autodl/bin/python {} --solution_dir={} --time_budget={}'\
+    'python {} --solution_dir={} --time_budget={}'\
     .format(path_scoring, dataset_dir, time_budget)
   def run_ingestion():
     os.system(command_ingestion)
