@@ -1,6 +1,0 @@
-Download the pretrained models from the following link:
-
-https://drive.google.com/open?id=1bNUOYQhb4RF0TDKUNGCS3akypYtK92Ao
-
-#pretrained model for ECOfull_py
-https://drive.google.com/open?id=1EiWC89oja7f19sJvK1vVvhAKcUUVm9WE

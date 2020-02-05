@@ -1,235 +1,175 @@
-# Modified by: Shangeth Rajaa, ZhengYing, Isabelle Guyon
-"""An example of code submission for the AutoDL challenge in PyTorch.
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS-IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Modified by: Zhengying Liu, Isabelle Guyon
 
-It implements 3 compulsory methods: __init__, train, and test.
-model.py follows the template of the abstract class algorithm.py found
-in folder ingestion_program/.
+"""An example of code submission for the AutoDL challenge.
 
-The dataset is in TFRecords and Tensorflow is used to read TFRecords and get the
-Numpy array which can be used in PyTorch to convert it into Torch Tensor.
+It implements 3 compulsory methods ('__init__', 'train' and 'test') and
+an attribute 'done_training' for indicating if the model will not proceed more
+training due to convergence or limited time budget.
 
 To create a valid submission, zip model.py together with other necessary files
-such as Python modules/packages, pre-trained weights. The final zip file should
-not exceed 300MB.
+such as Python modules/packages, pre-trained weights, etc. The final zip file
+should not exceed 300MB.
 """
-import os
-import time
-
-# Import the challenge algorithm (model) API from algorithm.py
-import algorithm
-import image.models
-import image.online_concrete
-import image.online_meta
-import numpy as np
-import torch
-import utils
-
-# Disable tf device loggings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
-class Model(algorithm.Algorithm):
-    def __init__(self, metadata):
-        super(Model, self).__init__(metadata)
-        # Set seeds
-        np.random.seed(42)
-        torch.manual_seed(42)
-        torch.cuda.manual_seed_all(42)
-        # TODO(Danny) tensorflow
+from utils import *
+LOGGER.setLevel(logging.INFO)
 
-        # This flag allows you to enable the inbuilt cudnn auto-tuner to find the best
-        # algorithm to use for your hardware. Benchmark mode is good whenever your input sizes
-        # for your network do not vary
-        # https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-        # TODO(Danny): How should we handle this
-        torch.backends.cudnn.benchmark = True
 
-        # TODO(Danny): Document what metadata_ contains
-        self.no_more_training = False
-        self.output_dim = self.metadata_.get_output_size()
+class Model(object):
+    """Trivial example of valid model. Returns all-zero predictions."""
 
-        utils.print_log("Metadata={}".format(self.metadata_.__dict__))
+    def __init__(self, metadata, config, model_dir):
+        LOGGER.info("INIT START: " + str(time.time()))
+        super().__init__()
 
-        # Assume model.py and config.hjson are always in the same folder. Could possibly
-        # do this in a nicer fashion, but it must still run during the submission on
-        # codalab.
-        code_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config = utils.Config(code_dir + "/" + "config.hjson")
-        # During submission the models are in code_dir
-        if self.config.is_codalab_submission:
-            self.config.model_dir = code_dir
+        self.time_start = time.time()
 
-        utils.print_log("Config={}".format(self.config.__dict__))
+        self.metadata = metadata
+        self.num_classes = self.metadata.get_output_size()
 
-        self.train_data_iterator = None
-        self.model_input_sizes = None
-        self.model = None
+        self.train_round = 0  # flag indicating if we are in the first round of training
+        self.test_round = 0
+        self.train_counter = 0
+        self.train_batches = 0
+        self.dl_train = None
+        self.classification_type = None
 
-        if self.config.modality == "image":
-            self.online_meta = image.online_meta.OnlineMeta(self.config, self.metadata_)
-            self.online_concrete = image.online_concrete
+        # hyperparameters
+        self.model_dir = model_dir
+        self.config = config
+        print(self.config)
+        self.batch_size_test = 512
+
+        self.session = tf.Session()
+        LOGGER.info("INIT END: " + str(time.time()))
+
+
+    def train(self, dataset, desired_batches=None):
+        LOGGER.info("TRAINING START: " + str(time.time()))
+        LOGGER.info("NUM SAMPLES: " + str(desired_batches))
+
+        self.train_round += 1
+
+        # initial config during first round
+        if int(self.train_round) == 1:
+            self.late_init(dataset)
+
+        torch.set_grad_enabled(True)
+        self.model.train()
+        self.model.eval()
+        self.model.train()
+
+        finish_loop = False
+
+        if self.train_batches >= desired_batches:
+            return self.train_batches
+
+        LOGGER.info('TRAIN BATCH START')
+        while not finish_loop:
+            # Set train mode before we go into the train loop over an epoch
+            for i, (data, labels) in enumerate(self.dl_train):
+                self.optimizer.zero_grad()
+                output = self.model(data.cuda())
+                labels = format_labels(labels, self.classification_type).cuda()
+                loss = self.criterion(output, labels)
+                loss.backward()
+                self.optimizer.step()
+                self.train_counter += self.batch_size_train
+                self.train_batches += 1
+
+                LOGGER.info("TRAIN: " + str(i))
+
+                if self.train_batches > desired_batches:
+                    finish_loop = True
+                    break
+
+            LOGGER.info("TRAIN COUNTER: " + str(self.train_counter))
+            self.train_round += 1
+
+        LOGGER.info('TRAIN BATCH END')
+        LOGGER.info('LR: ')
+        for param_group in self.optimizer.param_groups:
+            LOGGER.info(param_group['lr'])
+        LOGGER.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
+        LOGGER.info("TRAINING COUNTER: " + str(self.train_counter))
+        LOGGER.info("TRAINING BATCHES: " + str(self.train_batches))
+        LOGGER.info("TRAINING END: " + str(time.time()))
+
+        return self.train_batches
+
+
+    def late_init(self, dataset):
+        LOGGER.info('INIT')
+
+        ds_temp = TFDataset(session=self.session, dataset=dataset)
+        self.info = ds_temp.scan(25)
+
+        LOGGER.info('AVG SHAPE: ' + str(self.info['avg_shape']))
+
+        if self.info['is_multilabel']:
+            self.classification_type = 'multilabel'
         else:
-            raise  # TODO(Danny): Some error message
+            self.classification_type = 'multiclass'
 
-        # Attributes for managing time budget
-        # Cumulated number of training steps
-        self.birthday = time.time()
-        self.total_train_time = 0
-        self.cumulated_num_steps = 0
-        self.estimated_time_per_step = None
-        self.total_test_time = 0
-        self.cumulated_num_tests = 0
-        self.estimated_time_test = None
-        self.trained = False
-        self.done_training = False
-        self.dataset_metadata = metadata
+        print(type(self.config["model_name"]))
 
-    def _get_steps_to_train(self, remaining_time_budget):
-        """Get number of steps for training according to `remaining_time_budget`.
+        self.model = get_model(model_name=self.config["model_name"],
+                               model_dir=self.model_dir,
+                               dropout=self.config["dropout"],
+                               num_classes=self.num_classes)
+        self.input_size = get_input_size(self.config["model_name"])
+        self.optimizer = get_optimizer(model=self.model,
+                                       optimizer_type=self.config["optimizer"],
+                                       lr=self.config["lr"])
+        self.criterion = get_loss_criterion(classification_type=self.classification_type)
 
-        The strategy is:
-          1. If no training is done before, train for 10 steps (ten batches);
-          2. Otherwise, estimate training time per step and time needed for test,
-             then compare to remaining time budget to compute a potential maximum
-             number of steps (max_steps) that can be trained within time budget;
-          3. Choose a number (steps_to_train) between 0 and max_steps and train for
-             this many steps. Double it each time.
-        """
-        if not remaining_time_budget:  # This is never true in the competition anyway
-            remaining_time_budget = 1200  # if no time limit is given, set to 20min
+        self.dl_train, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
+                                                   is_training=True, first_round=(int(self.train_round) == 1),
+                                                   batch_size=self.config["batch_size_train"], input_size=self.input_size,
+                                                   num_samples=int(10000000))
 
-        if not self.estimated_time_per_step:
-            steps_to_train = 10
-        else:
-            if self.estimated_time_test:
-                tentative_estimated_time_test = self.estimated_time_test
-            else:
-                tentative_estimated_time_test = 50  # conservative estimation for test
-            max_steps = int(
-                (remaining_time_budget - tentative_estimated_time_test) /
-                self.estimated_time_per_step
-            )
-            max_steps = max(max_steps, 1)
-            if self.cumulated_num_tests < np.log(max_steps) / np.log(2):
-                steps_to_train = int(
-                    2**self.cumulated_num_tests
-                )  # Double steps_to_train after each test
-            else:
-                steps_to_train = 0
-        return steps_to_train
 
-    def _autodl(self, dataset, dataset_metadata, steps_to_train):
-        self.model, self.optimizer, model_input_sizes = self.online_meta.select_model()
+    def test(self, dataset):
+        LOGGER.info("TESTING START: " + str(time.time()))
 
-        # If the input size changes, the tensorflow dataloader has to be recreated to
-        # accomodate this
-        self.model_input_sizes = model_input_sizes
-        return self.online_concrete.trainloop(
-            self.model,
-            self.optimizer,
-            dataset,
-            dataset_metadata,
-            self.config,
-            steps_to_train,
-            model_input_sizes,
-        )
+        self.test_round += 1
 
-    def train(self, dataset, remaining_time_budget=None):
-        steps_to_train = self._get_steps_to_train(remaining_time_budget)
-        if steps_to_train <= 0:
-            utils.print_log(
-                "Not enough time remaining for training. " +
-                "Estimated time for training per step: {:.2f}, ".
-                format(self.estimated_time_per_step) +
-                "but remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
-                "Skipping..."
-            )
-            self.done_training = True
-            return
+        if int(self.test_round) == 1:
+            scan_start = time.time()
+            ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
+            info = ds_temp.scan()
+            self.num_samples_test = info['num_samples']
+            LOGGER.info('SCAN TIME: ' + str(time.time() - scan_start))
+            LOGGER.info('TESTING: FIRST ROUND')
 
-        msg_est = ""
-        if self.estimated_time_per_step:
-            msg_est = "estimated time for this: " + "{:.2f} sec.".format(
-                steps_to_train * self.estimated_time_per_step
-            )
-        utils.print_log(
-            "Begin training for another {} steps...{}".format(steps_to_train, msg_est)
-        )
+        torch.set_grad_enabled(False)
+        self.model.eval()
+        dl, self.batch_size_test = get_dataloader(model=self.model, dataset=dataset, session=self.session,
+                                                  is_training=False, first_round=(int(self.test_round) == 1),
+                                                  batch_size=self.batch_size_test, input_size=self.input_size,
+                                                  num_samples=self.num_samples_test)
 
-        train_start = time.time()
-        self._autodl(dataset, self.dataset_metadata, steps_to_train)
-        train_end = time.time()
+        LOGGER.info('TEST BATCH START')
+        prediction_list = []
+        for i, (data, _) in enumerate(dl):
+            LOGGER.info('TEST: ' + str(i))
+            prediction_list.append(self.model(data.cuda()).cpu())
+        predictions = np.vstack(prediction_list)
+        LOGGER.info('TEST BATCH END')
 
-        # Update for time budget managing
-        train_duration = train_end - train_start
-        self.total_train_time += train_duration
-        self.cumulated_num_steps += steps_to_train
-        self.estimated_time_per_step = self.total_train_time / self.cumulated_num_steps
-        utils.print_log(
-            "{} steps trained. {:.2f} sec used. ".format(steps_to_train, train_duration) +
-            "Now total steps trained: {}. ".format(self.cumulated_num_steps) +
-            "Total time used for training: {:.2f} sec. ".format(self.total_train_time) +
-            "Current estimated time per step: {:.2e} sec.".
-            format(self.estimated_time_per_step)
-        )
-
-    def _choose_to_stop_early(self):
-        """The criterion to stop further training (thus finish train/predict
-        process).
-        """
-        # return self.cumulated_num_tests > 10 # Limit to make 10 predictions
-        # return np.random.rand() < self.early_stop_proba
-        batch_size = self.config.batch_size
-        num_examples = self.metadata_.size()
-        num_epochs = self.cumulated_num_steps * batch_size / num_examples
-        utils.print_log("Model already trained for {} epochs.".format(num_epochs))
-
-        # Train for at least certain number of epochs then stop
-        return num_epochs > self.config.num_epochs_we_want_to_train
-
-    def test(self, dataset, remaining_time_budget=None):
-        if self.done_training:
-            return None
-
-        if self._choose_to_stop_early():
-            utils.print_log("Oops! Choose to stop early for next call!")
-            self.done_training = True
-        test_begin = time.time()
-        not_enough_time_for_test = (
-            remaining_time_budget and self.estimated_time_test and
-            self.estimated_time_test > remaining_time_budget
-        )
-        if not_enough_time_for_test:
-            utils.print_log(
-                "Not enough time for test. " +
-                "Estimated time for test: {:.2e}, ".format(self.estimated_time_test) +
-                "But remaining time budget is: {:.2f}. ".format(remaining_time_budget) +
-                "Stop train/predict process by returning None."
-            )
-            return None
-
-        msg_est = ""
-        if self.estimated_time_test:
-            msg_est = "estimated time: {:.2e} sec.".format(self.estimated_time_test)
-        utils.print_log("Begin testing...", msg_est)
-
-        # PYTORCH
-        # TODO(Danny): Only load testset once if it fits nicely in 24GB
-        predictions = self.online_concrete.testloop(
-            self.model, dataset, self.model_input_sizes, self.output_dim, self.config
-        )
-
-        test_end = time.time()
-        # Update some variables for time management
-        test_duration = test_end - test_begin
-        self.total_test_time += test_duration
-        self.cumulated_num_tests += 1
-        self.estimated_time_test = self.total_test_time / self.cumulated_num_tests
-        utils.print_log(
-            "[+] Successfully made one prediction. {:.2f} sec used. ".
-            format(test_duration) +
-            "Total time used for testing: {:.2f} sec. ".format(self.total_test_time) +
-            "Current estimated time for test: {:.2e} sec.".
-            format(self.estimated_time_test)
-        )
+        LOGGER.info("TESTING END: " + str(time.time()))
         return predictions

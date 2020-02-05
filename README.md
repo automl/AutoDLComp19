@@ -1,12 +1,10 @@
 # AutoDLComp19
-AutoDL Competition Scripts 2019
+AutoDL Competition 2019
 
 
 ## Project Structure
 
 ```
-├── .miniconda/                            <<  Project-local miniconda installation
-│
 ├── competition/                           <<  Competition source code for local test
 │   ├── ingestion_program/                 <<  Main execution library
 │   ├── sample_result_submission/          <<  General output dir
@@ -16,69 +14,14 @@ AutoDL Competition Scripts 2019
 │   ├── scoring_program/                   <<  Source code to produce AUL score
 │   └── run_local_test.py                  <<  Execute competition evaluation locally
 │
-├── datasets/                              <<  Raw and processed datasets
-│
 ├── experiments/                           <<  Logs and other files generated during runtime
-│   └── cluster_oe/                        <<  Output and error files from clusters
-│
-├── models/                                <<  Parameters obtained offline (e.g., pretrained)
-│
-├── reports/                               <<  Analysis and results as tex, html, ...
 │
 ├── src/                                   <<  Source code
-│   ├── image/
-│   │   ├── download_pretrained_models.py  <<  Download pretrained models
-│   │   ├── models.py                      <<  Architectures and parameters
-│   │   ├── online_concrete.py             <<  Training and inference strategies
-│   │   ├── online_meta.py                 <<  Model/parameter selection, finetuining, ..
-│   │   └── pretrained_models.hjson        <<  Models for download_pretrained_models.py
-│   ├── ...
-│   ├── video/
-│   ├── config.hjson                       <<  Execution parameters for model.py
-│   ├── dataloading.py                     <<  Dataloading utilities
-│   ├── model.py                           <<  Main file for competition submission
-│   └── utils.py                           <<  Utility code
 │
-├── submission/                            <<  Submission utilities
-│   └── competition.py                     <<  Automatic generation of competition submissions
-│
-└── utils/                                 <<  General purpose scripts (formating, setup, ..)
+└── submission/                            <<  Submission utilities
+    └── competition.py                     <<  Automatic generation of competition submissions
 ```
 
-
-## Setup
-
-To setup the python environment or to update an environment run
-```bash
-bash utils/setup_environment.sh
-```
-
-1. If there is no miniconda installation, downloads the miniconda installer and installs it into `.miniconda`
-1. Updates conda
-1. If there is no autodl environment, installs it as specified in `utils/.environment.yml`
-1. If there is an autodl environment and there are changes to `utils/.environment.yml` performs updates
-
-To setup all tasks run
-```bash
-bash utils/setup_tasks.sh
-```
-
-This currently only does something on the meta cluster, where it symlinks `datasets/image` to the collected tfrecord datasets.
-
-
-To setup all models (download pretrained weights), run
-```bash
-bash utils/setup_models.sh
-```
-This currently only downloads image models.
-
-
-Setting up installs pre-commit. Pre-commit allows to specify, configure and share git pre-commit hooks. Formatting and format checking is therefore performed when committing. Please ensure you installed it. When in doubt, from the project's root run:
-```bash
-pre-commit install
-```
-
-To commit without runnning pre-commit supply the `--no-verify` option to `git commit`.
 
 ## Usage
 
@@ -143,22 +86,11 @@ extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
 ```
 
 
-### Miscellaneous
+### Do not run pre-commit hooks
 
-Activating an environment without having the conda installation in your `PATH`:
-```bash
-source .miniconda/bin/activate autodl
-```
+To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
-To run the pre-commit scripts manually run
-```bash
-bash utils/format.sh
-```
 
-## Deinstallation
+## License
 
-To remove the conda installation run
-
-```bash
-bash utils/clean_conda.sh
-```
+[Apache 2.0](LICENSE)
