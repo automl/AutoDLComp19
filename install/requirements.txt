@@ -27,6 +27,12 @@ tensorflow-gpu==1.13.1
 Pillow==6.0.0
 hpbandster==0.7.4
 
+# Packages for AutoFolio
+Cython
+ConfigSpace
+pyrfr
+smac>=0.11.1
+git+https://github.com/mlindauer/ASlibScenario
 
 # Packages from AutoNLP
 # More info: https://hub.docker.com/r/wahaha909/autonlp
