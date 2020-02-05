@@ -26,6 +26,8 @@ should not exceed 300MB.
 
 
 from utils import *
+
+
 LOGGER.setLevel(logging.INFO)
 
 
@@ -57,7 +59,6 @@ class Model(object):
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
 
-
     def train(self, dataset, desired_batches=None):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("NUM SAMPLES: " + str(desired_batches))
@@ -78,7 +79,7 @@ class Model(object):
         if self.train_batches >= desired_batches:
             return self.train_batches
 
-        LOGGER.info('TRAIN BATCH START')
+        LOGGER.info("TRAIN BATCH START")
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for i, (data, labels) in enumerate(self.dl_train):
@@ -100,48 +101,56 @@ class Model(object):
             LOGGER.info("TRAIN COUNTER: " + str(self.train_counter))
             self.train_round += 1
 
-        LOGGER.info('TRAIN BATCH END')
-        LOGGER.info('LR: ')
+        LOGGER.info("TRAIN BATCH END")
+        LOGGER.info("LR: ")
         for param_group in self.optimizer.param_groups:
-            LOGGER.info(param_group['lr'])
-        LOGGER.info("TRAINING FRAMES PER SEC: " + str(self.train_counter/(time.time()-self.time_start)))
+            LOGGER.info(param_group["lr"])
+        LOGGER.info(
+            "TRAINING FRAMES PER SEC: " + str(self.train_counter / (time.time() - self.time_start))
+        )
         LOGGER.info("TRAINING COUNTER: " + str(self.train_counter))
         LOGGER.info("TRAINING BATCHES: " + str(self.train_batches))
         LOGGER.info("TRAINING END: " + str(time.time()))
 
         return self.train_batches
 
-
     def late_init(self, dataset):
-        LOGGER.info('INIT')
+        LOGGER.info("INIT")
 
         ds_temp = TFDataset(session=self.session, dataset=dataset)
         self.info = ds_temp.scan(25)
 
-        LOGGER.info('AVG SHAPE: ' + str(self.info['avg_shape']))
+        LOGGER.info("AVG SHAPE: " + str(self.info["avg_shape"]))
 
-        if self.info['is_multilabel']:
-            self.classification_type = 'multilabel'
+        if self.info["is_multilabel"]:
+            self.classification_type = "multilabel"
         else:
-            self.classification_type = 'multiclass'
+            self.classification_type = "multiclass"
 
         print(type(self.config["model_name"]))
 
-        self.model = get_model(model_name=self.config["model_name"],
-                               model_dir=self.model_dir,
-                               dropout=self.config["dropout"],
-                               num_classes=self.num_classes)
+        self.model = get_model(
+            model_name=self.config["model_name"],
+            model_dir=self.model_dir,
+            dropout=self.config["dropout"],
+            num_classes=self.num_classes,
+        )
         self.input_size = get_input_size(self.config["model_name"])
-        self.optimizer = get_optimizer(model=self.model,
-                                       optimizer_type=self.config["optimizer"],
-                                       lr=self.config["lr"])
+        self.optimizer = get_optimizer(
+            model=self.model, optimizer_type=self.config["optimizer"], lr=self.config["lr"]
+        )
         self.criterion = get_loss_criterion(classification_type=self.classification_type)
 
-        self.dl_train, self.batch_size_train = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                   is_training=True, first_round=(int(self.train_round) == 1),
-                                                   batch_size=self.config["batch_size_train"], input_size=self.input_size,
-                                                   num_samples=int(10000000))
-
+        self.dl_train, self.batch_size_train = get_dataloader(
+            model=self.model,
+            dataset=dataset,
+            session=self.session,
+            is_training=True,
+            first_round=(int(self.train_round) == 1),
+            batch_size=self.config["batch_size_train"],
+            input_size=self.input_size,
+            num_samples=int(10000000),
+        )
 
     def test(self, dataset):
         LOGGER.info("TESTING START: " + str(time.time()))
@@ -152,24 +161,30 @@ class Model(object):
             scan_start = time.time()
             ds_temp = TFDataset(session=self.session, dataset=dataset, num_samples=10000000)
             info = ds_temp.scan()
-            self.num_samples_test = info['num_samples']
-            LOGGER.info('SCAN TIME: ' + str(time.time() - scan_start))
-            LOGGER.info('TESTING: FIRST ROUND')
+            self.num_samples_test = info["num_samples"]
+            LOGGER.info("SCAN TIME: " + str(time.time() - scan_start))
+            LOGGER.info("TESTING: FIRST ROUND")
 
         torch.set_grad_enabled(False)
         self.model.eval()
-        dl, self.batch_size_test = get_dataloader(model=self.model, dataset=dataset, session=self.session,
-                                                  is_training=False, first_round=(int(self.test_round) == 1),
-                                                  batch_size=self.batch_size_test, input_size=self.input_size,
-                                                  num_samples=self.num_samples_test)
+        dl, self.batch_size_test = get_dataloader(
+            model=self.model,
+            dataset=dataset,
+            session=self.session,
+            is_training=False,
+            first_round=(int(self.test_round) == 1),
+            batch_size=self.batch_size_test,
+            input_size=self.input_size,
+            num_samples=self.num_samples_test,
+        )
 
-        LOGGER.info('TEST BATCH START')
+        LOGGER.info("TEST BATCH START")
         prediction_list = []
         for i, (data, _) in enumerate(dl):
-            LOGGER.info('TEST: ' + str(i))
+            LOGGER.info("TEST: " + str(i))
             prediction_list.append(self.model(data.cuda()).cpu())
         predictions = np.vstack(prediction_list)
-        LOGGER.info('TEST BATCH END')
+        LOGGER.info("TEST BATCH END")
 
         LOGGER.info("TESTING END: " + str(time.time()))
         return predictions

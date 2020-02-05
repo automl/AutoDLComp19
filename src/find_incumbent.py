@@ -1,20 +1,21 @@
-import os
 import json
+import os
+
 import hpbandster.core.result as hpres
 
 
 def get_log_subfolders(log_dir):
     log_folder_list = []
     for root, dirs, files in os.walk(log_dir):
-        if '___' in root:
+        if "___" in root:
             log_folder_list.append(root)
     return log_folder_list
 
 
 def extract_dataset_and_model(log_folder):
-    last_folder = log_folder.split('/')[-1]
-    dataset = last_folder.split('___')[0]
-    model = last_folder.split('___')[1]
+    last_folder = log_folder.split("/")[-1]
+    dataset = last_folder.split("___")[0]
+    model = last_folder.split("___")[1]
     return dataset, model
 
 
@@ -31,11 +32,11 @@ def get_all_datasets_and_models(log_dir):
 
 
 def find_complete_datasets(log_dir, exclude_datasets):
-    '''
+    """
     find all datasets
     - for which all BOHB runs have finished (i.e. all models have been evaluated)
     - which are not manually excluded (for example because they are used as test datasets)
-    '''
+    """
 
     _, all_model_set = get_all_datasets_and_models(log_dir)
 
@@ -53,7 +54,12 @@ def find_complete_datasets(log_dir, exclude_datasets):
         processed_models = set(dm_dict[dataset])
         missing_models = all_model_set.difference(processed_models)
         if not len(missing_models) == 0:
-            print('No BOHB run on dataset "' + dataset + '" with the following models: ' + str(missing_models))
+            print(
+                'No BOHB run on dataset "'
+                + dataset
+                + '" with the following models: '
+                + str(missing_models)
+            )
         elif dataset in exclude_datasets:
             print('Manually excluded dataset "' + dataset + '" from further analysis')
         else:
@@ -80,7 +86,7 @@ def get_best_run_id(all_runs, max_budget):
             continue
 
         budget = all_runs[id].budget
-        if loss < best_loss and abs(budget-max_budget) < 1e-2:
+        if loss < best_loss and abs(budget - max_budget) < 1e-2:
             best_loss = loss
             best_id = id
 
@@ -88,9 +94,9 @@ def get_best_run_id(all_runs, max_budget):
 
 
 def find_best_results(complete_dataset_set):
-    '''
+    """
     find incumbent for every dataset
-    '''
+    """
 
     log_folder_list = get_log_subfolders(log_dir)
     result_dict = {}
@@ -106,7 +112,7 @@ def find_best_results(complete_dataset_set):
         max_budget = get_max_budget(all_runs)
         best_id = get_best_run_id(all_runs, max_budget)
         best_loss = all_runs[best_id].loss
-        best_conf = all_runs[best_id].info['config']
+        best_conf = all_runs[best_id].info["config"]
 
         result_tuple = (model, -best_loss, best_conf)
 
@@ -115,7 +121,7 @@ def find_best_results(complete_dataset_set):
         else:
             result_dict[dataset] = [result_tuple]
 
-    for k,v in result_dict.items():
+    for k, v in result_dict.items():
         v.sort(key=lambda tup: tup[1], reverse=True)
         result_dict[k] = v[0]
 
@@ -123,13 +129,22 @@ def find_best_results(complete_dataset_set):
 
 
 def save_best_results(result_dict, save_path):
-    json.dump(result_dict, open(save_path, 'w'))
+    json.dump(result_dict, open(save_path, "w"))
 
 
 if __name__ == "__main__":
-    log_dir = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/logs_new'  # directory containing the BOHB results
-    best_result_path = '/home/stolld/autodl/incumbent.json'
-    exclude_datasets = {'Chucky', 'Decal', 'Munster', 'Pedro', 'Hammer', 'Katze', 'Kreatur', 'Kraut'}
+    log_dir = "/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/logs_new"  # directory containing the BOHB results
+    best_result_path = "/home/stolld/autodl/incumbent.json"
+    exclude_datasets = {
+        "Chucky",
+        "Decal",
+        "Munster",
+        "Pedro",
+        "Hammer",
+        "Katze",
+        "Kreatur",
+        "Kraut",
+    }
 
     complete_dataset_set = find_complete_datasets(log_dir, exclude_datasets)
     result_dict = find_best_results(complete_dataset_set)

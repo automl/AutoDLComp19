@@ -1,25 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import logging
 import time
-import torch
-from torch.utils.data import Dataset
+
 import numpy as np
 import tensorflow as tf
-#from torch.nn.modules.hooks import MoveToHook
+import torch
+
+from torch.utils.data import Dataset
+
+
+# from torch.nn.modules.hooks import MoveToHook
 
 
 LOGGER = logging.getLogger(__name__)
 
 
 class TFDataset(Dataset):
-    def __init__(
-        self,
-        session,
-        dataset,
-        num_samples=None,
-        transform=None
-    ):
+    def __init__(self, session, dataset, num_samples=None, transform=None):
         super(TFDataset, self).__init__()
         self.session = session
         self.dataset = dataset
@@ -53,9 +52,7 @@ class TFDataset(Dataset):
             self.reset()
             raise StopIteration
 
-        example = self.transform(example) \
-            if self.transform is not None \
-            else example
+        example = self.transform(example) if self.transform is not None else example
         return example, label
 
     def _tf_exec(self, args):
@@ -100,10 +97,9 @@ class TFDataset(Dataset):
         self.reset()
 
         return {
-            'num_samples': self.num_samples,
-            'min_shape': self.min_shape,
-            'max_shape': self.max_shape,
-            'avg_shape': self.mean_shape,
-            'is_multilabel': self.is_multilabel,
+            "num_samples": self.num_samples,
+            "min_shape": self.min_shape,
+            "max_shape": self.max_shape,
+            "avg_shape": self.mean_shape,
+            "is_multilabel": self.is_multilabel,
         }
-

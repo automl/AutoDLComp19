@@ -1,19 +1,26 @@
-import os
 import json
 import logging
+import os
 import pickle
+
 import numpy as np
 import tensorflow as tf
+
 from sklearn.metrics import auc
+
 from dataset import AutoDLDataset
-from score import get_solution, autodl_auc
-from model import Model
 from dataset_kakaobrain import TFDataset
+from model import Model
+from score import autodl_auc
+from score import get_solution
+
 
 LOGGER = logging.getLogger(__name__)
 
+
 class BadPredictionShapeError(Exception):
     pass
+
 
 # def get_configspace():
 #     cs = CS.ConfigurationSpace()
@@ -23,11 +30,13 @@ class BadPredictionShapeError(Exception):
 #     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='optimizer', choices=['Adam', 'SGD']))
 #     return cs
 
+
 def transform_time(t, T, t0=None):
     """Logarithmic time scaling Transform for ALC """
     if t0 is None:
         t0 = T
     return np.log(1 + t / t0) / np.log(1 + T / t0)
+
 
 def calculate_alc(timestamps, scores, start_time=0, time_budget=7200):
     """Calculate ALC """
@@ -54,15 +63,17 @@ def calculate_alc(timestamps, scores, start_time=0, time_budget=7200):
 
 def run_configuration_on_dataset(config, budget, dataset_raw_dir, model_dir):
     _, dataset_name = os.path.split(dataset_raw_dir)
-    D_train = AutoDLDataset(os.path.join(dataset_raw_dir, dataset_name + '.data', 'train'))
-    D_test = AutoDLDataset(os.path.join(dataset_raw_dir, dataset_name + '.data', 'test'))
+    D_train = AutoDLDataset(os.path.join(dataset_raw_dir, dataset_name + ".data", "train"))
+    D_test = AutoDLDataset(os.path.join(dataset_raw_dir, dataset_name + ".data", "test"))
 
     ## Get correct prediction shape
     num_examples_test = D_test.get_metadata().size()
     output_dim = D_test.get_metadata().get_output_size()
     correct_prediction_shape = (num_examples_test, output_dim)
 
-    M = Model(D_train.get_metadata(), config, model_dir)  # The metadata of D_train and D_test only differ in sample_count
+    M = Model(
+        D_train.get_metadata(), config, model_dir
+    )  # The metadata of D_train and D_test only differ in sample_count
     ds_temp = TFDataset(session=tf.Session(), dataset=D_train.get_dataset())
     info = ds_temp.scan(25)
 
@@ -72,23 +83,23 @@ def run_configuration_on_dataset(config, budget, dataset_raw_dir, model_dir):
     # Each model, input, bs, dataset has
     # [[sec,batches,test_frames_per_sec],[...]]
     # corresponding to approx [3,...,...][10,][30][100][300]
-    model_name = config['model_name']
+    model_name = config["model_name"]
     # Calculate the dimension used for timing
-    if info['avg_shape'][1] < 45 or info['avg_shape'][2] < 45:
+    if info["avg_shape"][1] < 45 or info["avg_shape"][2] < 45:
         precalc_size = 32
-    elif info['avg_shape'][1] < 85 or info['avg_shape'][2] < 85:
+    elif info["avg_shape"][1] < 85 or info["avg_shape"][2] < 85:
         precalc_size = 64
-    elif info['avg_shape'][1] < 145 or info['avg_shape'][2] < 145:
+    elif info["avg_shape"][1] < 145 or info["avg_shape"][2] < 145:
         precalc_size = 128
     else:
         precalc_size = 256
     # for budget 1 use up to 30 seconds and for budget 5 use up to 300 sec
-    with open('src/configs/timings.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+    with open("src/configs/timings.pkl", "rb") as f:  # Python 3: open(..., 'rb')
         timings = pickle.load(f)
     if budget < 2:
-        ts = timings[model_name][str(config['batch_size_train'])][precalc_size][:-2]
+        ts = timings[model_name][str(config["batch_size_train"])][precalc_size][:-2]
     else:
-        ts = timings[model_name][str(config['batch_size_train'])][precalc_size]
+        ts = timings[model_name][str(config["batch_size_train"])][precalc_size]
     # Calculate time for full test
     time_for_test = num_examples_test / ts[0][2]
     for t in ts:
@@ -97,14 +108,14 @@ def run_configuration_on_dataset(config, budget, dataset_raw_dir, model_dir):
         prediction = M.test(D_test.get_dataset())
 
         if prediction is None:  # Stop train/predict process if Y_pred is None
-            LOGGER.info("The method model.test returned `None`. " +
-                        "Stop train/predict process.")
+            LOGGER.info("The method model.test returned `None`. " + "Stop train/predict process.")
         else:  # Check if the prediction has good shape
             prediction_shape = tuple(prediction.shape)
             if prediction_shape != correct_prediction_shape:
                 raise BadPredictionShapeError(
-                    "Bad prediction shape! Expected {} but got {}." \
-                        .format(correct_prediction_shape, prediction_shape)
+                    "Bad prediction shape! Expected {} but got {}.".format(
+                        correct_prediction_shape, prediction_shape
+                    )
                 )
 
         solution = get_solution(dataset_raw_dir)
@@ -115,16 +126,18 @@ def run_configuration_on_dataset(config, budget, dataset_raw_dir, model_dir):
     alc = calculate_alc(t_list, score_list, start_time=0, time_budget=7200)
     return alc
 
+
 def load_best_results(best_result_path):
-    return json.load(open(best_result_path,"r"))
+    return json.load(open(best_result_path, "r"))
+
 
 if __name__ == "__main__":
     # file created via find_incumbent.py
-    best_result_path = '/home/ferreira/autodl_data/incumbent.json'
+    best_result_path = "/home/ferreira/autodl_data/incumbent.json"
     # filder with the AutoDL dataset
-    dataset_raw_dir = '/data/aad/image_datasets/challenge/mnist'
+    dataset_raw_dir = "/data/aad/image_datasets/challenge/mnist"
     # folder containing all pretraind models
-    model_dir = '/home/ferreira/autodl_data/models_thomas'
+    model_dir = "/home/ferreira/autodl_data/models_thomas"
     _, dataset_name = os.path.split(dataset_raw_dir)
 
     best_results = load_best_results(best_result_path)
@@ -132,7 +145,6 @@ if __name__ == "__main__":
     config["model_name"] = best_results[dataset_name][0]
     print(config)
 
-    run_configuration_on_dataset(config=config,
-                                 budget=5,
-                                 dataset_raw_dir=dataset_raw_dir,
-                                 model_dir=model_dir)
+    run_configuration_on_dataset(
+        config=config, budget=5, dataset_raw_dir=dataset_raw_dir, model_dir=model_dir
+    )

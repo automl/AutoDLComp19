@@ -5,6 +5,7 @@ import sys
 
 from src.utils import Config  # noqa: E402
 
+
 sys.path.append(".")  # isort:skip
 
 if __name__ == "__main__":
@@ -17,9 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--submission_dir", default=".codalab_submission")
     parser.add_argument("--code_dir", default="src")
     parser.add_argument("--zip_name", default="codalab_submission")
-    parser.add_argument(
-        "--no_clean_up", action="store_true", help="Do not delete submission dir"
-    )
+    parser.add_argument("--no_clean_up", action="store_true", help="Do not delete submission dir")
 
     # Construct CLI dynamically from default config
     config = Config("src/config.hjson")  # Hardcode to circumvent argparse issue
@@ -41,9 +40,7 @@ if __name__ == "__main__":
     # Copy active models
     for model_file in config.active_model_files:
         model_name = model_file + ".pth"
-        shutil.copyfile(
-            config.model_dir + "/" + model_name, args.submission_dir + "/" + model_name
-        )
+        shutil.copyfile(config.model_dir + "/" + model_name, args.submission_dir + "/" + model_name)
 
     # Include extra packages
     for extra_package in config.extra_packages:
@@ -57,9 +54,7 @@ if __name__ == "__main__":
         # Include extra packages
         for pkg in config.mixed_precision_package:
             shutil.copytree(
-                pkg,
-                args.submission_dir + "/" + os.path.basename(pkg),
-                ignore=ignore,
+                pkg, args.submission_dir + "/" + os.path.basename(pkg), ignore=ignore,
             )
 
     # Write
