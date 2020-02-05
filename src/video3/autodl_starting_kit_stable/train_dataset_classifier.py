@@ -52,17 +52,17 @@ def get_data_type(dataset_dir):
 def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
-    # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
 
     # xgb classifier
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
-    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
-    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [64]))
+    # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
+    # cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
+    # cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
+    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [64]))
 
     # common parameters
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
@@ -85,7 +85,7 @@ def get_configuration(log_subfolder=None):
     cluster_mode = False
     if cluster_mode:
         cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets/1e4_meta'
+        cfg['proc_dataset_dir'] = '/data/aad/image_datasets/thomas_processed_datasets/1e4_resnet'
         cfg['des_num_samples'] = int(1e4)
         cfg["image_dir"] = '/data/aad/image_datasets/challenge'
         cfg["video_dir"] = '/data/aad/video_datasets/challenge'
@@ -93,7 +93,7 @@ def get_configuration(log_subfolder=None):
         cfg["bohb_workers"] = 10
     else:
         cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
-        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets/1e4_meta'
+        cfg['proc_dataset_dir'] = '/home/dingsda/data/datasets/processed_datasets/1e4_resnet'
         cfg['des_num_samples'] = int(1e4)
         cfg["image_dir"] = '/home/dingsda/data/datasets/challenge/image'
         cfg["video_dir"] = '/home/dingsda/data/datasets/challenge/video'
@@ -106,7 +106,7 @@ def get_configuration(log_subfolder=None):
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg["use_model"] = 'xgb'    # xgb or dl
+    cfg["use_model"] = 'dl'    # xgb or dl
 
     if cfg["use_model"] == 'dl':
         cfg["bohb_min_budget"] = 100
@@ -525,7 +525,7 @@ def execute_run_xgb(config_id, cfg, budget, dataset_list, session):
 
     avg_acc = sum(acc_list) / len(acc_list)
 
-    return avg_acc, 0, 0
+    return avg_acc, 0
 
 
 class Model_xgb(object):
@@ -650,7 +650,6 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
 
     print(' ')
     acc_list = []
-    time_list = []
     for i in range(num_classes):
         selected_class = i % num_classes
         dataset_test = dataset_list[selected_class][1]
@@ -662,17 +661,15 @@ def execute_run_dl(config_id, cfg, budget, dataset_list, session):
         if class_index != selected_class:
             raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
 
-        acc, tim = m.test(dataset = dataset_test.get_dataset(),
+        acc = m.test(dataset = dataset_test.get_dataset(),
                      dataset_name = dataset_name,
                      class_index = class_index)
         acc_list.append(acc)
-        time_list.append(tim)
 
     avg_acc = sum(acc_list) / len(acc_list)
-    avg_time = sum(time_list) / len(time_list)
     print(avg_acc)
 
-    return avg_acc, avg_loss, avg_time
+    return avg_acc, avg_loss
 
 
 def preprocess_meta_data(data, cfg):
@@ -762,7 +759,7 @@ class Model_dl(object):
 
         #print('TEST DL END')
 
-        return acc, time
+        return acc
 
 
 
@@ -789,24 +786,23 @@ class BOHBWorker(Worker):
 
         #try:
         if cfg['use_model'] == 'xgb':
-            score, avg_loss, avg_time = execute_run_xgb(config_id = config_id,
-                                                        cfg = cfg,
-                                                        budget = budget,
-                                                        dataset_list = self.dataset_list,
-                                                        session=self.session)
+            score, avg_loss = execute_run_xgb(config_id = config_id,
+                                              cfg = cfg,
+                                              budget = budget,
+                                              dataset_list = self.dataset_list,
+                                              session=self.session)
         elif cfg['use_model'] == 'dl':
-            score, avg_loss, avg_time = execute_run_dl(config_id = config_id,
-                                                       cfg=cfg,
-                                                       budget=budget,
-                                                       dataset_list=self.dataset_list,
-                                                       session=self.session)
+            score, avg_loss = execute_run_dl(config_id = config_id,
+                                             cfg=cfg,
+                                             budget=budget,
+                                             dataset_list=self.dataset_list,
+                                             session=self.session)
         # except Exception as e:
         #     status = str(e)
         #     print(status)
 
         #info[cfg["dataset"]] = score
         info['avg_loss'] = avg_loss
-        info['avg_time'] = avg_time
         info['config'] = str(config)
         info['cfg'] = str(cfg)
 
@@ -1222,15 +1218,6 @@ def verify_data_histogram(cfg):
 
 
 if __name__ == "__main__":
-    # datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011', # 4
-    #            'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100', 'colorectal_histology',       # 5
-    #            'deep_weeds', 'emnist', 'eurosat', 'fashion_mnist', 'food101',                  # 5
-    #            'horses_or_humans', 'kmnist', 'mnist', 'omniglot',                              # 4
-    #            'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',# 4
-    #            'smallnorb', 'stanford_dogs', 'svhn_cropped', 'tf_flowers', 'uc_merced',        # 5
-    #            'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
-    #            'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
-
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(arg)
@@ -1244,6 +1231,6 @@ if __name__ == "__main__":
     # res = verify_data(cfg)
 
     # cfg = get_configuration()
-    # generate_samples_combined(cfg)
+    # generate_samples_meta(cfg)
 
     # res = continuous_training(cfg)
