@@ -9,6 +9,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from train_dataset_classifier import load_datasets_processed
 
+import sys
+sys.path.insert(0,'/home/ferreira/Projects/AutoDL/AutoFolio')
+sys.path.insert(0,'/home/ferreira/Projects/AutoDL/AutoFolio/autofolio')
+print(sys.path)
 
 def get_performance_data_and_export_csv(instances_lst, algorithms_lst, path_export_dir):
     if not os.path.isdir(path_export_dir):
@@ -61,10 +65,17 @@ def get_feature_data_and_export_csv(feature_source, path_export_dir, normalize_f
     return features, file_path
 
 
-def create_autofolio_function_call(arguments, perf_data_path, feature_data_path, budget=60):
-    autofolio_program = os.path.join(arguments["autofolio_dir"], "scripts", "autofolio")
-    function_call = subprocess.Popen([autofolio_program, "--performance_csv", perf_data_path, "--feature_csv", feature_data_path, "wallclock_limit", budget, "--maximize"], stdout=subprocess.PIPE)
-    return function_call
+def create_autofolio_function_call(arguments, perf_data_path, feature_data_path, budget=60, subprocess_call=True):
+    if not subprocess_call:
+        function_call = os.path.join(arguments["autofolio_dir"], "scripts", "autofolio")
+        function_call += ' --performance_csv=' + perf_data_path
+        function_call += ' --feature_csv=' + feature_data_path
+        function_call += ' --wallclock_limit=' + str(budget)
+        function_call += '--maximize'
+        return function_call
+    else:
+        autofolio_program = os.path.join(arguments["autofolio_dir"], "scripts", "autofolio")
+        return [autofolio_program, "--performance_csv", perf_data_path, "--feature_csv", feature_data_path, "wallclock_limit", str(budget), "--maximize"]
 
 
 parser = argparse.ArgumentParser('k-means-clustering')
@@ -77,6 +88,7 @@ args = parser.parse_args()
 info = {}
 
 meta_features_path = args.dataset
+info['autofolio_dir'] = args.autofolio_dir
 info['proc_dataset_dir'] = meta_features_path
 info['n_samples_to_use'] = args.n_samples
 
@@ -91,5 +103,9 @@ performance_feature_dir_path = "./"
 perf_data, perf_data_path = get_performance_data_and_export_csv(instances_lst=info["datasets"], algorithms_lst=info["algorithms"], path_export_dir=performance_feature_dir_path)
 feature_data, feature_data_path = get_feature_data_and_export_csv(feature_source=info, path_export_dir=performance_feature_dir_path)
 
-#call = create_autofolio_function_call(info, perf_data_path, feature_data_path)
-#call.communicate()[0]
+command = create_autofolio_function_call(info, perf_data_path, feature_data_path)
+command.insert(0, "bash -c \"source activate autodl\";")
+result = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+print(result.stdout)
+
+
