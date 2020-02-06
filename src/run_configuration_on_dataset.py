@@ -146,5 +146,5 @@ if __name__ == "__main__":
 
     dataset_raw_dir = args.datasets_dir + "/" + args.dataset
     run_configuration_on_dataset(
-        config=config, budget=5, dataset_raw_dir=dataset_raw_dir, model_dir=args.model_dir
+        config=config, budget=5, dataset_raw_dir=dataset_raw_dir, model_dir=args.models_dir
     )
