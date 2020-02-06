@@ -45,7 +45,6 @@ from autofolio.selector.regressors.random_forest import RandomForestRegressor
 from autofolio.validation.validate import Stats
 from autofolio.validation.validate import Validator
 
-
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 __version__ = "2.0.0"

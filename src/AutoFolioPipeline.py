@@ -1,20 +1,15 @@
 import argparse
 import os
-import pickle
 import sys
 import warnings
 
 import numpy as np
 import pandas as pd
-import torch
 
-from src.utils import ProcessedDataset
-
-# fmt: off
+from src.utils import load_datasets_processed
 sys.path.insert(0, os.path.abspath("./AutoFolio"))
-from AutoFolio.autofolio.autofolio import AutoFolio  # noqa isort:skip
-
-# fmt: on
+#from src.AutoFolio.autofolio import AutoFolio
+from src.AutoFolio.autofolio.autofolio import AutoFolio
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -62,6 +57,8 @@ class AutoFolioPipeline(object):
 
         self.performance_data_file_path = None
         self.performance_data = None
+
+        self.dataset_path = self.args.dataset_path
 
         self.feature_data_file_path = None
         self.train_feature_data = None
@@ -113,15 +110,15 @@ class AutoFolioPipeline(object):
         return self.performance_data, self.performance_data_file_path
 
     def load_processed_datasets(self):
-        info = {"proc_dataset_dir": self.args.dataset, "datasets": self.datasets}
-        self.processed_datasets = ProcessedDataset.load_datasets_processed(info, info["datasets"])
+        info = {"proc_dataset_dir": self.dataset_path, "datasets": self.datasets}
+        self.processed_datasets = load_datasets_processed(info, info["datasets"])
         return self.processed_datasets
 
     def load_features(self, normalize_features=False):
         self.load_processed_datasets()
         print("getting features ...")
-        print("using data: {}".format(self.args.dataset))
-        print("using n_samples: {}".format(self.args.n_samples))
+        print("using data: {}".format(self.dataset_path))
+        print("using n_samples: {}".format(self.n_samples_to_use))
         print("{} datasets loaded".format(self.n_datasets))
 
         print("loading data with one sample per dataset")
@@ -147,7 +144,7 @@ class AutoFolioPipeline(object):
             features = self.test_feature_data
             csv_file_name = "features_test_data.csv"
 
-        feature_dimension =features.shape[1]
+        feature_dimension = features.shape[1]
         instance_labels = [ds[2] for ds in self.processed_datasets]
 
         self.feature_data_file_path = os.path.join(path_export_dir, csv_file_name)
@@ -172,7 +169,7 @@ if __name__ == "__main__":
     """ Pipeline arguments"""
     parser = argparse.ArgumentParser("AutoFolioPipeline")
     # or '/home/ferreira/autodl_data/processed_datasets/1e4_combined'
-    parser.add_argument("--dataset", type=str, default="/home/ferreira/autodl_data/processed_datasets/1e4_meta")
+    parser.add_argument("--dataset_path", type=str, default="/home/ferreira/autodl_data/processed_datasets/1e4_meta")
     parser.add_argument("--save_estimator", type=bool, default=True)  # stored under dataset
     parser.add_argument("--n_samples", type=int, default=1)  # per dataset use one meta-feature
 
