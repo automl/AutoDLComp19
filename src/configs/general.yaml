@@ -1,0 +1,6 @@
+# General
+model_dir: models
+
+# Codalab submission
+extra_packages: []  # Paths
+active_model_files: []  # With respect to model_dir
