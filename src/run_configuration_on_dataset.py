@@ -8,11 +8,11 @@ import tensorflow as tf
 
 from sklearn.metrics import auc
 
-from dataset import AutoDLDataset
+from competition.ingestion_program.dataset import AutoDLDataset
 from dataset_kakaobrain import TFDataset
 from model import Model
-from score import autodl_auc
-from score import get_solution
+from competition.scoring_program.score import autodl_auc
+from competition.scoring_program.score import get_solution
 
 
 LOGGER = logging.getLogger(__name__)

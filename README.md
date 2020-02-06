@@ -5,18 +5,15 @@ AutoDL Competition 2019
 ## Project Structure
 
 ```
-├── competition/                           <<  Competition source code for local test
-│   ├── ingestion_program/                 <<  Main execution library
-│   ├── sample_result_submission/          <<  General output dir
-│   ├── sample_submission/                 <<  Example submission code
-│   │   └── model.py                       <<  Pytorch version of model.py from competition
-│   ├── scoring_output/                    <<  Scoring output dir
-│   ├── scoring_program/                   <<  Source code to produce AUL score
-│   └── run_local_test.py                  <<  Execute competition evaluation locally
-│
 ├── experiments/                           <<  Logs and other files generated during runtime
 │
+├── install/                               <<  Requirements and scripts for installation
+│
 ├── src/                                   <<  Source code
+│   └── competition/                       <<  Competition source code
+│       ├── ingestion_program/             <<  Main execution library
+│       ├── scoring_program/               <<  Source code to produce AUL score
+│       └── run_local_test.py              <<  Execute competition evaluation locally
 │
 └── submission/                            <<  Submission utilities
     └── competition.py                     <<  Automatic generation of competition submissions
