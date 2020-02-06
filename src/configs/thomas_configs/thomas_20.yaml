@@ -1,0 +1,5 @@
+batch_size_train: 128
+dropout: 0.7560250754903609
+lr: 0.001486738298838039
+model: shufflenet20_224
+optimizer: Adam
