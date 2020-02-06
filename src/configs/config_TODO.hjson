@@ -1,0 +1,54 @@
+{
+  # General
+  modality: image
+  model_dir: models
+
+  # Codalab submission
+  is_codalab_submission: false
+  extra_packages: [
+    .miniconda/envs/autodl/lib/python3.5/site-packages/hjson
+  ]
+  active_model_files: [  # With respect to model_dir
+    resnet18-5c106cde
+  ]
+
+  # Execution
+  num_epochs_we_want_to_train: 200
+  dataset_split_ratio: [0.9, 0.1]
+
+  # Preprocessing
+  default_num_frames: 10
+  default_shuffle_buffer: 100
+
+  # Model construction
+  model: resnet18
+  pretrained_parameters: "resnet18_imagenet_224"  # For possible values see modality/models.py
+
+  # Finetuning
+  finetune_all: true
+  finetune_first_j: 0
+  finetune_last_k: 1  # This includes the final output layer
+
+  # Predictions
+  use_prediction_thresholding: true
+  prediction_threshold: 0.6
+
+  # Mixed Precision
+  include_mixed_precision: true # Tells the competition.py to include the mixed precision package or not
+  mixed_precision_package: [
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex-0.1-py3.5.egg-info
+    .miniconda/envs/autodl/lib/python3.5/site-packages/amp_C.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/apex_C.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_adam_cuda.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/fused_layer_norm_cuda.cpython-35m-x86_64-linux-gnu.so
+    .miniconda/envs/autodl/lib/python3.5/site-packages/syncbn.cpython-35m-x86_64-linux-gnu.so
+  ]
+  mixed_precision_args: { # See https://nvidia.github.io/apex/amp.html#opt-levels
+    opt_level: "O1" # O0 is normal learning and apex does nothing
+  }
+
+  # Training Hyperparameters
+  batch_size: 128
+  lr: 1e-3
+}
