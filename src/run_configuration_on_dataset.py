@@ -5,15 +5,12 @@ import pickle
 
 import numpy as np
 import tensorflow as tf
-
 from sklearn.metrics import auc
-
+from src.available_datasets import available_datasets
 from src.competition.ingestion_program.dataset import AutoDLDataset
-from src.competition.scoring_program.score import autodl_auc
-from src.competition.scoring_program.score import get_solution
+from src.competition.scoring_program.score import autodl_auc, get_solution
 from src.dataset_kakaobrain import TFDataset
 from src.model import Model
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -132,19 +129,22 @@ def load_best_results(best_result_path):
 
 
 if __name__ == "__main__":
-    # file created via find_incumbent.py
-    best_result_path = "/home/ferreira/autodl_data/incumbent.json"
-    # filder with the AutoDL dataset
-    dataset_raw_dir = "/data/aad/image_datasets/challenge/mnist"
-    # folder containing all pretraind models
-    model_dir = "/home/ferreira/autodl_data/models_thomas"
-    _, dataset_name = os.path.split(dataset_raw_dir)
+    import argparse
+    parser = argparse.ArgumentParser()
 
-    best_results = load_best_results(best_result_path)
-    config = eval(best_results[dataset_name][2])
-    config["model_name"] = best_results[dataset_name][0]
+    parser.add_argument("--dataset", choices=available_datasets)
+    parser.add_argument("--datasets_dir", default="/data/aad/image_datasets/challenge")
+    parser.add_argument("--models_dir", default="/home/ferreira/autodl_data/models_thomas")
+    parser.add_argument("--incumbents_file", default="/home/ferreira/autodl_data/incumbent.json")
+
+    args = parser.parse_args()
+
+    best_results = load_best_results(args.incumbents_file)
+    config = eval(best_results[args.dataset][2])
+    config["model_name"] = best_results[args.dataset][0]
     print(config)
 
+    dataset_raw_dir = args.datasets_dir + "/" + args.dataset
     run_configuration_on_dataset(
-        config=config, budget=5, dataset_raw_dir=dataset_raw_dir, model_dir=model_dir
+        config=config, budget=5, dataset_raw_dir=dataset_raw_dir, model_dir=args.model_dir
     )
