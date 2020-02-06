@@ -5,7 +5,7 @@ import torchvision.transforms.functional as F
 
 from PIL import Image
 
-from dataset_kakaobrain import *
+from src.dataset_kakaobrain import *
 
 
 def get_model(model_name, model_dir, dropout, num_classes):

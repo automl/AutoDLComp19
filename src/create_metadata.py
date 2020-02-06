@@ -6,9 +6,9 @@ import tensorflow as tf
 import torch
 import torchvision
 
-from dataset import AutoDLDataset
-from dataset_kakaobrain import TFDataset
-from utils import *
+from src.competition.ingestion_program.dataset import AutoDLDataset
+from src.dataset_kakaobrain import TFDataset
+from src.utils import *
 
 
 def generate_meta_output_vector(data, general_vector):
