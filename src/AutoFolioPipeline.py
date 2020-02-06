@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import time
 
 from src.utils import load_datasets_processed
 sys.path.insert(0, os.path.abspath("./AutoFolio"))
@@ -19,8 +20,6 @@ class AutoFolioPipeline(object):
     A wrapper class for the execution of AutoFolio code.
     """
     def __init__(self, args):
-        self.args = args
-
         self.datasets = [
             "Chucky",
             "Decal",
@@ -50,22 +49,28 @@ class AutoFolioPipeline(object):
             "mnist",
             "oxford_flowers102"
         ]
+
+        self.wallclock_limit = args.wallclock_limit
+        self.maximize = args.maximize
+        self.autofolio_model_path = args.autofolio_model_path
+        self.verbose = args.verbose
+
         self.algorithms = ["algo1", "algo2", "algo3"]
-        self.n_samples_to_use = self.args.n_samples
+        self.n_samples_to_use = args.n_samples
         self.n_datasets = len(self.datasets)
         self.n_algorithms = len(self.algorithms)
 
         self.performance_data_file_path = None
         self.performance_data = None
 
-        self.dataset_path = self.args.dataset_path
+        self.dataset_path = args.dataset_path
 
         self.feature_data_file_path = None
         self.train_feature_data = None
         self.test_feature_data = None
         self.processed_datasets = None
 
-        self.af = None  # AutoFolio instance
+        self.autofolio = None  # AutoFolio instance
 
     def create_autofolio_function_call(self, arguments, perf_data_path, feature_data_path, budget=60, subprocess_call=True):
         if not subprocess_call:
@@ -157,33 +162,57 @@ class AutoFolioPipeline(object):
         df.to_csv(self.feature_data_file_path, float_format="%.5f")
         print("feature data dumped to: {}".format(self.feature_data_file_path))
 
-    def run_autofolio(self):
-        self.af = AutoFolio()
-        af_args = {"performance_csv": self.performance_data_file_path, "feature_csv": self.feature_data_file_path,
-                   "wallclock_limit": self.args.wallclock_limit, "maximize": self.args.maximize}
+    def train_and_save_autofolio_model(self):
+        self.autofolio = AutoFolio()
+        af_args = {"performance_csv": self.performance_data_file_path,
+                   "feature_csv": self.feature_data_file_path,
+                   "wallclock_limit": self.wallclock_limit,
+                   "maximize": self.maximize,
+                   "save": self.autofolio_model_path,
+                   "verbose": self.verbose,
+                   }
 
-        self.af.run_cli(af_args)
+        self.autofolio.run_cli(af_args)  # 10 fold cv result
+
+    def load_autofolio_model_and_predict(self):
+        if self.autofolio is None:
+            self.autofolio = AutoFolio()
+
+        pd.read_csv(self.feature_data_file_path)
+
+        # TODO: use feature_vec
+        af_args = {
+                    "load":  self.autofolio_model_path,  # path to the AF model file
+                    #"feature_csv": self.feature_data_file_path,  # --> does not work here
+                    "verbose": self.verbose,
+                    #"feature_vec": None  # we can also provide feature vector instead of csv
+                   }
+
+        selected_schedule = self.autofolio.run_cli(af_args)  # yields [(algorithm, budget)]
+        print(selected_schedule)
 
 
 if __name__ == "__main__":
     """ Pipeline arguments"""
     parser = argparse.ArgumentParser("AutoFolioPipeline")
-    # or '/home/ferreira/autodl_data/processed_datasets/1e4_combined'
-    parser.add_argument("--dataset_path", type=str, default="/home/ferreira/autodl_data/processed_datasets/1e4_meta")
+    # or '/home/ferreira/autodl_data/processed_datasets/1e4_meta'
+    parser.add_argument("--dataset_path", type=str, default="/home/ferreira/autodl_data/processed_datasets/1e4_combined")
     parser.add_argument("--save_estimator", type=bool, default=True)  # stored under dataset
     parser.add_argument("--n_samples", type=int, default=1)  # per dataset use one meta-feature
 
     """ AutoFolio arguments """
     parser.add_argument("--wallclock_limit", type=str, default=str(60))  # per dataset use one meta-feature
     parser.add_argument("--maximize", type=bool, default=True)  # per dataset use one meta-feature
+    parser.add_argument("--autofolio_model_path", type=str, default="/home/ferreira/autodl_data/autofolio_models/first_submission/model")
+    parser.add_argument("--verbose", type=str, default="INFO")  # ERROR, WARNING etc.
 
     AutoFolioPipelineArgs = parser.parse_args()
-
-    afp = AutoFolioPipeline(args=AutoFolioPipelineArgs)
+    autofolio_pipeline = AutoFolioPipeline(args=AutoFolioPipelineArgs)
 
     performance_feature_dir_path = "./"
-    afp.load_performance_data_and_export_csv(path_export_dir=performance_feature_dir_path)
-    afp.load_features_and_export_csv(path_export_dir=performance_feature_dir_path, normalize_features=False)
+    autofolio_pipeline.load_performance_data_and_export_csv(path_export_dir=performance_feature_dir_path)
+    autofolio_pipeline.load_features_and_export_csv(path_export_dir=performance_feature_dir_path, normalize_features=False)
 
-    afp.run_autofolio()
+    #afp.train_and_save_autofolio_model()
+    autofolio_pipeline.load_autofolio_model_and_predict()
 

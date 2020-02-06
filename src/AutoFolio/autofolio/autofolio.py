@@ -72,7 +72,7 @@ class AutoFolio(object):
 
         self.overwrite_args = None
 
-    def run_cli(self, args):
+    def run_cli(self, args=None):
         """
             main method of AutoFolio based on command line interface
         """
@@ -92,6 +92,7 @@ class AutoFolio(object):
             )
             print("Selected Schedule [(algorithm, budget)]: %s" % (pred))
 
+            return pred
         else:
 
             scenario = ASlibScenario()
@@ -152,9 +153,10 @@ class AutoFolio(object):
                     args_.save, scenario, feature_pre_pipeline, pre_solver, selector, config
                 )
             else:
-                self.run_cv(
+                par10 = self.run_cv(
                     config=config, scenario=scenario, folds=int(scenario.cv_data.max().max())
                 )
+                return par10
 
     def _outer_cv(
         self,
