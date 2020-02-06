@@ -4,8 +4,11 @@ import torchvision
 import torchvision.transforms.functional as F
 
 from PIL import Image
-
+import logging
 from src.dataset_kakaobrain import *
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
 
 def get_input_size(model_name):

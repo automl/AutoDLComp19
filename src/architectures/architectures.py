@@ -3,6 +3,9 @@ import os
 import torchvision
 import torchvision.transforms.functional as F
 
+import torch
+import logging
+
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
