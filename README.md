@@ -2,21 +2,15 @@
 AutoDL Competition 2019
 
 
-## Project Structure
+## Installation
 
-```
-├── experiments/                           <<  Logs and other files generated during runtime
-│
-├── install/                               <<  Requirements and scripts for installation
-│
-├── src/                                   <<  Source code
-│   └── competition/                       <<  Competition source code
-│       ├── ingestion_program/             <<  Main execution library
-│       ├── scoring_program/               <<  Source code to produce AUL score
-│       └── run_local_test.py              <<  Execute competition evaluation locally
-│
-└── submission/                            <<  Submission utilities
-    └── competition.py                     <<  Automatic generation of competition submissions
+Activate a conda python3.5 environment then run
+```bash
+bash install/requirements_gcc.sh
+pip install -r install/requirements.txt
+bash install/install_torch.sh
+bash install/install_precommit.sh
+bash install/install_just.sh
 ```
 
 
@@ -86,6 +80,24 @@ extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
 ### Do not run pre-commit hooks
 
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
+
+
+## Project Structure
+
+```
+├── experiments/                           <<  Logs and other files generated during runtime
+│
+├── install/                               <<  Requirements and scripts for installation
+│
+├── src/                                   <<  Source code
+│   └── competition/                       <<  Competition source code
+│       ├── ingestion_program/             <<  Main execution library
+│       ├── scoring_program/               <<  Source code to produce AUL score
+│       └── run_local_test.py              <<  Execute competition evaluation locally
+│
+└── submission/                            <<  Submission utilities
+    └── competition.py                     <<  Automatic generation of competition submissions
+```
 
 
 ## License
