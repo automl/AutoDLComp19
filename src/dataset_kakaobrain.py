@@ -13,10 +13,6 @@ from torch.utils.data import Dataset
 
 # from torch.nn.modules.hooks import MoveToHook
 
-
-LOGGER = logging.getLogger(__name__)
-
-
 class TFDataset(Dataset):
     def __init__(self, session, dataset, num_samples=None, transform=None):
         super(TFDataset, self).__init__()

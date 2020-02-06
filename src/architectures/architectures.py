@@ -3,6 +3,8 @@ import os
 import torchvision
 import torchvision.transforms.functional as F
 
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
 def load_model(model, save_file):
     #################################################################################################
