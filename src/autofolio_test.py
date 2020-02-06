@@ -8,13 +8,11 @@ import numpy as np
 import pandas as pd
 import torch
 
-from AutoFolio.autofolio.autofolio import AutoFolio
 
-
+# fmt: off
 sys.path.insert(0, os.path.abspath("./AutoFolio"))
-
-
-
+from AutoFolio.autofolio.autofolio import AutoFolio  # noqa isort:skip
+# fmt: on
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
