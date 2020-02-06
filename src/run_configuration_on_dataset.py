@@ -136,6 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("--datasets_dir", default="/data/aad/image_datasets/challenge")
     parser.add_argument("--models_dir", default="/home/ferreira/autodl_data/models_thomas")
     parser.add_argument("--incumbents_file", default="/home/ferreira/autodl_data/incumbent.json")
+    parser.add_argument("--budget", choices=[1, 5], default=1)
 
     args = parser.parse_args()
 
