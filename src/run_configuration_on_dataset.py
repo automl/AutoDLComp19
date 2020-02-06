@@ -9,10 +9,10 @@ import tensorflow as tf
 from sklearn.metrics import auc
 
 from competition.ingestion_program.dataset import AutoDLDataset
-from dataset_kakaobrain import TFDataset
-from model import Model
 from competition.scoring_program.score import autodl_auc
 from competition.scoring_program.score import get_solution
+from dataset_kakaobrain import TFDataset
+from model import Model
 
 
 LOGGER = logging.getLogger(__name__)

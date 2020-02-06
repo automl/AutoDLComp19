@@ -3,41 +3,42 @@ import logging
 import numpy as np
 import pandas as pd
 
+from aslib_scenario.aslib_scenario import ASlibScenario
+from ConfigSpace import Configuration
+from ConfigSpace.conditions import EqualsCondition
+from ConfigSpace.conditions import InCondition
+from ConfigSpace.configuration_space import ConfigurationSpace
+from ConfigSpace.hyperparameters import CategoricalHyperparameter
+from ConfigSpace.hyperparameters import UniformFloatHyperparameter
+from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
 from sklearn.preprocessing import StandardScaler
 
-from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
-    UniformFloatHyperparameter, UniformIntegerHyperparameter
-from ConfigSpace.conditions import EqualsCondition, InCondition
-from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace import Configuration
-
-from aslib_scenario.aslib_scenario import ASlibScenario
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class StandardScalerWrapper(object):
-
     @staticmethod
     def add_params(cs: ConfigurationSpace):
-        '''
-            adds parameters to ConfigurationSpace 
-        '''
+        """
+            adds parameters to ConfigurationSpace
+        """
         switch = CategoricalHyperparameter(
-            "StandardScaler", choices=[True, False], default_value=True)
+            "StandardScaler", choices=[True, False], default_value=True
+        )
         cs.add_hyperparameter(switch)
 
     def __init__(self):
-        '''
+        """
             Constructor
-        '''
+        """
         self.scaler = None
         self.active = False
         self.logger = logging.getLogger("StandardScaler")
 
     def fit(self, scenario: ASlibScenario, config: Configuration):
-        '''
+        """
             fit StandardScaler object to ASlib scenario data
 
             Arguments
@@ -46,7 +47,7 @@ class StandardScalerWrapper(object):
                 ASlib Scenario with all data in pandas
             config: ConfigSpace.Configuration
                 configuration
-        '''
+        """
 
         if config.get("StandardScaler"):
             self.active = True
@@ -54,7 +55,7 @@ class StandardScalerWrapper(object):
             self.scaler.fit(scenario.feature_data.values)
 
     def transform(self, scenario: ASlibScenario):
-        '''
+        """
             transform ASLib scenario data
 
             Arguments
@@ -65,20 +66,22 @@ class StandardScalerWrapper(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        '''
+        """
         if self.scaler:
             self.logger.debug("Applying StandardScaler")
-            
-            values = self.scaler.transform(
-                np.array(scenario.feature_data.values))
+
+            values = self.scaler.transform(np.array(scenario.feature_data.values))
 
             scenario.feature_data = pd.DataFrame(
-                data=values, index=scenario.feature_data.index, columns=scenario.feature_data.columns)
+                data=values,
+                index=scenario.feature_data.index,
+                columns=scenario.feature_data.columns,
+            )
 
         return scenario
 
     def fit_transform(self, scenario: ASlibScenario, config: Configuration):
-        '''
+        """
             fit and transform
 
             Arguments
@@ -91,7 +94,7 @@ class StandardScalerWrapper(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        '''
+        """
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario

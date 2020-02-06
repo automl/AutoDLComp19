@@ -25,25 +25,27 @@ should not exceed 300MB.
 """
 
 import logging
-import numpy as np
 import os
 import sys
+
+import numpy as np
 import tensorflow as tf
 
-class Model(object):
-  """Trivial example of valid model. Returns all-zero predictions."""
 
-  def __init__(self, metadata):
-    """
+class Model(object):
+    """Trivial example of valid model. Returns all-zero predictions."""
+
+    def __init__(self, metadata):
+        """
     Args:
       metadata: an AutoDLMetadata object. Its definition can be found in
           ingestion_program/dataset.py
     """
-    self.done_training = False
-    self.metadata = metadata
+        self.done_training = False
+        self.metadata = metadata
 
-  def train(self, dataset, remaining_time_budget=None):
-    """Train this algorithm on the tensorflow |dataset|.
+    def train(self, dataset, remaining_time_budget=None):
+        """Train this algorithm on the tensorflow |dataset|.
 
     This method will be called REPEATEDLY during the whole training/predicting
     process. So your `train` method should be able to handle repeated calls and
@@ -85,26 +87,28 @@ class Model(object):
           should keep track of its execution time to avoid exceeding its time
           budget. If remaining_time_budget is None, no time budget is imposed.
     """
-    logger.info("This basic sample code doesn't do any training, " +
-                "but will retrieve some information on the dataset:")
-    iterator = dataset.make_one_shot_iterator()
-    example, labels = iterator.get_next()
-    sample_count = 0
-    with tf.Session() as sess:
-      while True:
-        try:
-          sess.run(labels)
-          sample_count += 1
-        except tf.errors.OutOfRangeError:
-          break
-    logger.info("Number of training examples: {}".format(sample_count))
-    logger.info("Shape of example: {}".format(example.shape))
-    logger.info("Number of classes: {}".format(labels.shape[0]))
-    assert self.metadata.get_output_size() == labels.shape[0]
-    self.done_training = True
+        logger.info(
+            "This basic sample code doesn't do any training, "
+            + "but will retrieve some information on the dataset:"
+        )
+        iterator = dataset.make_one_shot_iterator()
+        example, labels = iterator.get_next()
+        sample_count = 0
+        with tf.Session() as sess:
+            while True:
+                try:
+                    sess.run(labels)
+                    sample_count += 1
+                except tf.errors.OutOfRangeError:
+                    break
+        logger.info("Number of training examples: {}".format(sample_count))
+        logger.info("Shape of example: {}".format(example.shape))
+        logger.info("Number of classes: {}".format(labels.shape[0]))
+        assert self.metadata.get_output_size() == labels.shape[0]
+        self.done_training = True
 
-  def test(self, dataset, remaining_time_budget=None):
-    """Make predictions on the test set `dataset` (which is different from that
+    def test(self, dataset, remaining_time_budget=None):
+        """Make predictions on the test set `dataset` (which is different from that
     of the method `train`).
 
     Args:
@@ -116,43 +120,44 @@ class Model(object):
           set and `output_dim` is the number of labels to be predicted. The
           values should be binary or in the interval [0,1].
     """
-    sample_count = 0
-    iterator = dataset.make_one_shot_iterator()
-    example, labels = iterator.get_next()
-    with tf.Session() as sess:
-      while True:
-        try:
-          sess.run(labels)
-          sample_count += 1
-        except tf.errors.OutOfRangeError:
-          break
-    logger.info("Number of test examples: {}".format(sample_count))
-    output_dim = self.metadata.get_output_size()
-    predictions = np.zeros((sample_count, output_dim))
-    return predictions
+        sample_count = 0
+        iterator = dataset.make_one_shot_iterator()
+        example, labels = iterator.get_next()
+        with tf.Session() as sess:
+            while True:
+                try:
+                    sess.run(labels)
+                    sample_count += 1
+                except tf.errors.OutOfRangeError:
+                    break
+        logger.info("Number of test examples: {}".format(sample_count))
+        output_dim = self.metadata.get_output_size()
+        predictions = np.zeros((sample_count, output_dim))
+        return predictions
 
-  ##############################################################################
-  #### Above 3 methods (__init__, train, test) should always be implemented ####
-  ##############################################################################
+    ##############################################################################
+    #### Above 3 methods (__init__, train, test) should always be implemented ####
+    ##############################################################################
+
 
 def get_logger(verbosity_level):
-  """Set logging format to something like:
+    """Set logging format to something like:
        2019-04-25 12:52:51,924 INFO model.py: <message>
   """
-  logger = logging.getLogger(__file__)
-  logging_level = getattr(logging, verbosity_level)
-  logger.setLevel(logging_level)
-  formatter = logging.Formatter(
-    fmt='%(asctime)s %(levelname)s %(filename)s: %(message)s')
-  stdout_handler = logging.StreamHandler(sys.stdout)
-  stdout_handler.setLevel(logging_level)
-  stdout_handler.setFormatter(formatter)
-  stderr_handler = logging.StreamHandler(sys.stderr)
-  stderr_handler.setLevel(logging.WARNING)
-  stderr_handler.setFormatter(formatter)
-  logger.addHandler(stdout_handler)
-  logger.addHandler(stderr_handler)
-  logger.propagate = False
-  return logger
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, verbosity_level)
+    logger.setLevel(logging_level)
+    formatter = logging.Formatter(fmt="%(asctime)s %(levelname)s %(filename)s: %(message)s")
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging_level)
+    stdout_handler.setFormatter(formatter)
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+    stderr_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
+    logger.propagate = False
+    return logger
 
-logger = get_logger('INFO')
+
+logger = get_logger("INFO")

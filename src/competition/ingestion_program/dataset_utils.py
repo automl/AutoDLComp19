@@ -18,7 +18,7 @@ import tensorflow as tf
 
 
 def enforce_sequence_size(sample, sequence_size):
-  """Takes a Sample as 4-D tensor and enfore the sequence size.
+    """Takes a Sample as 4-D tensor and enfore the sequence size.
 
   The first dimension of the tensor represents the sequence length. Bundles
   will be added or removed at the end.
@@ -30,16 +30,16 @@ def enforce_sequence_size(sample, sequence_size):
     The input 4-D tensor with added padds or removed bundles if it didn't
     respect the sequence_size.
   """
-  pad_size = tf.maximum(sequence_size - tf.shape(sample)[0], 0)
+    pad_size = tf.maximum(sequence_size - tf.shape(sample)[0], 0)
 
-  padded_sample = tf.pad(sample, ((0, pad_size), (0, 0), (0, 0), (0, 0)))
+    padded_sample = tf.pad(sample, ((0, pad_size), (0, 0), (0, 0), (0, 0)))
 
-  sample = tf.slice(padded_sample, [0, 0, 0, 0], [sequence_size, -1, -1, -1])
-  return sample
+    sample = tf.slice(padded_sample, [0, 0, 0, 0], [sequence_size, -1, -1, -1])
+    return sample
 
 
 def decompress_image(compressed_image, num_channels=3):
-  """Decode a JPEG compressed image into a 3-D float Tensor.
+    """Decode a JPEG compressed image into a 3-D float Tensor.
 
   TODO(andreamichi): Test this function.
 
@@ -48,14 +48,14 @@ def decompress_image(compressed_image, num_channels=3):
   Returns:
     3-D float Tensor with values ranging from [0, 1).
   """
-  # Note that the resulting image contains an unknown height and width
-  # that is set dynamically by decode_jpeg. The returned image
-  # is a 3-D Tensor of uint8 [0, 255]. The third dimension is the channel.
-  image = tf.image.decode_image(compressed_image, channels=num_channels)
+    # Note that the resulting image contains an unknown height and width
+    # that is set dynamically by decode_jpeg. The returned image
+    # is a 3-D Tensor of uint8 [0, 255]. The third dimension is the channel.
+    image = tf.image.decode_image(compressed_image, channels=num_channels)
 
-  # Use float32 rather than uint8.
-  image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    # Use float32 rather than uint8.
+    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
-  image.set_shape([None, None, num_channels])
+    image.set_shape([None, None, num_channels])
 
-  return image
+    return image

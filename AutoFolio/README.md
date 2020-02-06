@@ -44,7 +44,7 @@ If you use Anaconda as your Python environment, you have to install three packag
 `conda install gxx_linux-64 gcc_linux-64 swig`
 
 To use pre-solving schedules, [clingo](http://potassco.sourceforge.net/) is required. We provide binary compiled under Ubuntu 14.04 which may not work under another OS. Please put a working `clingo` binary with Python support into the folder `aspeed/`.
- 
+
 ## Usage
 
 We provide under `scripts` a command-line interface for AutoFolio.
@@ -54,7 +54,7 @@ To get an overview over all options of AutoFolio, simply run:
 
 We provide some examples in `examples/`
 
-### Input Formats 
+### Input Formats
 
 AutoFolio reads two input formats: CSV and [ASlib](www.aslib.net).
 The CSV format is easier for new users but has some limitations to express all kind of input data.
@@ -68,16 +68,16 @@ All other meta-data (such as runtime cutoff) has to be specified by command line
 ### Configuration file
 
 A YAML configuration file can be given to control some of the internal AutoFolio
-behavior. It is given with the `--config` option. 
+behavior. It is given with the `--config` option.
 
 The recognized options and their types are as follows.
 
-* `wallclock_limit`. The amount of time (in seconds) for optimizing 
+* `wallclock_limit`. The amount of time (in seconds) for optimizing
   hyperparameters. Type: integer. Default: 300 seconds --- should be increased!
-  
+
 #### Feature groups
-  
-* `allowed_feature_groups`. A list of the feature groups to consider for 
+
+* `allowed_feature_groups`. A list of the feature groups to consider for
   prediction. This must match those specified in the ASlib scenario. Type: list
   of strings. Default: all feature sets are allowed.
 
@@ -122,12 +122,12 @@ python3 scripts/autofolio -s examples/asp-aslib/data/ --outer-cv
 
 The learned model and solver choices for each instance can be saved using the
 `--out-template` option. If given, the fit model and solver choices will be
-saved to this location. The string is considered a template. "${fold}" will be 
-replaced with the outer cv fold, and "${type}" will be replaced with the 
-appropriate file extension, "pkl" for the models and "csv" for the solver 
+saved to this location. The string is considered a template. "${fold}" will be
+replaced with the outer cv fold, and "${type}" will be replaced with the
+appropriate file extension, "pkl" for the models and "csv" for the solver
 choices. See string.Template for more details about valid tempaltes.
 
-**N.B.** In many shells (such as bash), it is necessary to put the template in 
+**N.B.** In many shells (such as bash), it is necessary to put the template in
 single quotes to avoid shell replacement in the template. (Double quotes will
 not typically work.)
 
@@ -162,7 +162,7 @@ Please note that the quotes around the feature vector are important.
 
 ### Self-Tuning Mode
 
-To use algorithm configuration to optimize the performance of AutoFolio please use the option `--tune`. 
+To use algorithm configuration to optimize the performance of AutoFolio please use the option `--tune`.
 
 ## Reference
 
