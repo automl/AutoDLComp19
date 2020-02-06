@@ -26,6 +26,7 @@ should not exceed 300MB.
 
 
 from src.utils import *
+from src.architectures.architectures import *
 
 
 LOGGER.setLevel(logging.INFO)
