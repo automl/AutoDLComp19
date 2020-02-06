@@ -28,7 +28,7 @@ from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
 
-import src.competition.ingestion_program.dataset_utils
+import src.competition.ingestion_program.dataset_utils as dataset_utils
 
 from src.competition.ingestion_program.data_pb2 import DataSpecification
 from src.competition.ingestion_program.data_pb2 import MatrixSpec
