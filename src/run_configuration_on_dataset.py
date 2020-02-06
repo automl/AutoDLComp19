@@ -132,7 +132,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset", choices=available_datasets)
+    parser.add_argument("--dataset", choices=available_datasets, default="mnist")
     parser.add_argument("--datasets_dir", default="/data/aad/image_datasets/challenge")
     parser.add_argument("--models_dir", default="/home/ferreira/autodl_data/models_thomas")
     parser.add_argument("--incumbents_file", default="/home/ferreira/autodl_data/incumbent.json")
