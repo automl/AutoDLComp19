@@ -39,7 +39,7 @@ import yaml
 
 from scipy.sparse import *  # used in data_binary_sparse
 
-import data_converter
+import src.competition.ingestion_program.data_converter
 
 
 try:

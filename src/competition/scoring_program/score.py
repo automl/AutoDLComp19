@@ -98,13 +98,13 @@ import yaml
 
 from sklearn.metrics import auc
 
-from libscores import _HERE
-from libscores import get_logger
-from libscores import ls
-from libscores import mvmean
-from libscores import read_array
-from libscores import sp
-from libscores import tiedrank
+from src.competition.ingestion_program.libscores import _HERE
+from src.competition.ingestion_program.libscores import get_logger
+from src.competition.ingestion_program.libscores import ls
+from src.competition.ingestion_program.libscores import mvmean
+from src.competition.ingestion_program.libscores import read_array
+from src.competition.ingestion_program.libscores import sp
+from src.competition.ingestion_program.libscores import tiedrank
 
 
 matplotlib.use("Agg")  # Solve the Tkinter display issue

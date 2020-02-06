@@ -28,10 +28,10 @@ from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
 
-import dataset_utils
+import src.competition.ingestion_program.dataset_utils
 
-from data_pb2 import DataSpecification
-from data_pb2 import MatrixSpec
+from src.competition.ingestion_program.data_pb2 import DataSpecification
+from src.competition.ingestion_program.data_pb2 import MatrixSpec
 
 
 def metadata_filename(dataset_name):
