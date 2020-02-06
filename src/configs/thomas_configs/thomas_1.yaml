@@ -1,0 +1,5 @@
+batch_size_train: 128
+dropout: 0.8993591558700005
+lr: 0.0021596560280212787
+model: efficientnet_pytorch_128
+optimizer: Adam

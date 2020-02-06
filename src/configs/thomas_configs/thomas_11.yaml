@@ -1,0 +1,5 @@
+batch_size_train: 128
+dropout: 0.5023644126146165
+lr: 0.003141359991612967
+model: densenet05_32
+optimizer: Adam
