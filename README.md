@@ -11,6 +11,7 @@ pip install -r install/requirements.txt
 bash install/install_torch.sh
 bash install/install_precommit.sh
 bash install/install_just.sh
+bash install/install_winner_cv.sh
 ```
 
 
