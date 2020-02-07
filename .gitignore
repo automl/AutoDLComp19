@@ -3,3 +3,7 @@ __pycache__
 
 # Experiments
 experiments/*
+
+
+# Models
+src/winner_cv/models/*

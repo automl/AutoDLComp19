@@ -3,15 +3,14 @@ AutoNLP and AutoSpeech).
 """
 
 import logging
-import os
-import sys
 
 import numpy as np
 import tensorflow as tf
-from winner_cv.model import Model as AutoCVModel
-from winner_nlp.model import Model as AutoNLPModel
-from winner_speech.model import Model as AutoSpeechModel
-from winner_tabular.model import Model as TabularModel
+
+# fmt: off
+import os  # isort:skip
+import sys  # isort:skip
+sys.path.insert(0, os.path.abspath("."))  # This is needed for the run_local_test ingestion
 
 here = os.path.dirname(os.path.abspath(__file__))
 model_dirs = [
@@ -23,6 +22,13 @@ model_dirs = [
 ]
 for model_dir in model_dirs:
     sys.path.append(os.path.join(here, model_dir))
+
+from winner_cv.model import Model as AutoCVModel  # isort:skip
+from winner_nlp.model import Model as AutoNLPModel  # isort:skip
+from winner_speech.model import Model as AutoSpeechModel  # isort:skip
+from winner_tabular.model import Model as TabularModel  # isort:skip
+
+# fmt: on
 
 DOMAIN_TO_MODEL = {
     'image': AutoCVModel,
@@ -37,7 +43,7 @@ class Model():
     """A model that combine all winner solutions. Using domain inferring and
   apply winner solution in the corresponding domain."""
 
-    def __init__(self, metadata):
+    def __init__(self, metadata, model_config=None):
         """
     Args:
       metadata: an AutoDLMetadata object. Its definition can be found in
