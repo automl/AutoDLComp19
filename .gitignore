@@ -7,3 +7,7 @@ experiments/*
 
 # Models
 src/winner_cv/models/*
+
+
+# Local datasets
+datasets/*
