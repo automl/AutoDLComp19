@@ -85,7 +85,7 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, code_dir, experiment_dir, time_budget=1200):
+def run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budget, overwrite):
     logging.info("#" * 50)
     logging.info("Begin running local test using")
     logging.info("code_dir = {}".format(get_basename(code_dir)))
@@ -101,8 +101,9 @@ def run_baseline(dataset_dir, code_dir, experiment_dir, time_budget=1200):
     score_dir = "{}/score".format(experiment_dir)
 
     # Run ingestion and scoring at the same time
-    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={}".format(
-        path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir, score_dir
+    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={} --model_config={}".format(
+        path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir, score_dir,
+        model_config
     )
     command_scoring = "python {} --solution_dir={} --prediction_dir={} --score_dir={}".format(
         path_scoring, dataset_dir, ingestion_output_dir, score_dir
@@ -119,7 +120,7 @@ def run_baseline(dataset_dir, code_dir, experiment_dir, time_budget=1200):
     ingestion_process = Process(name="ingestion", target=run_ingestion)
     scoring_process = Process(name="scoring", target=run_scoring)
 
-    os.makedirs(experiment_dir, exist_ok=True)
+    os.makedirs(experiment_dir, exist_ok=overwrite)
     remove_dir(ingestion_output_dir)
     remove_dir(score_dir)
 
@@ -143,8 +144,10 @@ if __name__ == "__main__":
     default_starting_kit_dir = _HERE()
     # The default dataset is 'miniciao' under the folder sample_data/
     default_dataset_dir = os.path.join(default_starting_kit_dir, "sample_data", "miniciao")
-    default_code_dir = os.path.join(default_starting_kit_dir, "sample_code_submission")
+    default_code_dir = "src"
     default_time_budget = 1200
+    default_model_config = "src/configs/thomas_configs/thomas_0.yaml"
+    default_experiment_dir = "experiments/default"
 
     tf.flags.DEFINE_string(
         "dataset_dir",
@@ -152,6 +155,19 @@ if __name__ == "__main__":
         "Directory containing the content (e.g. adult.data/ + "
         "adult.solution) of an AutoDL dataset. Specify this "
         "argument if you want to test on a different dataset.",
+    )
+    tf.flags.DEFINE_string(
+        "experiment_dir",
+        default_experiment_dir,
+        "",
+    )
+
+    tf.flags.DEFINE_string("model_config", default_model_config, "")
+
+    tf.flags.DEFINE_bool(
+        "overwrite",
+        False,
+        "overwrite logs or not",
     )
 
     tf.flags.DEFINE_string(
@@ -171,5 +187,8 @@ if __name__ == "__main__":
     dataset_dir = FLAGS.dataset_dir
     code_dir = FLAGS.code_dir
     time_budget = FLAGS.time_budget
+    overwrite = FLAGS.overwrite
+    model_config = FLAGS.model_config
+    experiment_dir = FLAGS.experiment_dir
 
-    run_baseline(dataset_dir, code_dir, "experiments/todo", time_budget)
+    run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budget, overwrite)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # Modified by: Zhengying Liu, Isabelle Guyon
-
 """An example of code submission for the AutoDL challenge.
 
 It implements 3 compulsory methods ('__init__', 'train' and 'test') and
@@ -24,9 +23,16 @@ such as Python modules/packages, pre-trained weights, etc. The final zip file
 should not exceed 300MB.
 """
 
+# fmt: off
+import os  # isort:skip
+import sys  # isort:skip
+sys.path.insert(0, os.path.abspath("."))  # This is needed for the run_local_test ingestion
 
-from src.utils import *
+import yaml
 from src.architectures.architectures import *
+from src.utils import *
+
+# fmt: on
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
@@ -35,7 +41,9 @@ LOGGER.setLevel(logging.INFO)
 class Model(object):
     """Trivial example of valid model. Returns all-zero predictions."""
 
-    def __init__(self, metadata, config, model_dir):
+    def __init__(
+        self, metadata, model_config=None, model_dir="/home/ferreira/autodl_data/models_thomas"
+    ):
         LOGGER.info("INIT START: " + str(time.time()))
         super().__init__()
 
@@ -53,14 +61,17 @@ class Model(object):
 
         # hyperparameters
         self.model_dir = model_dir
-        self.config = config
-        print(self.config)
+
+        with open(model_config) as stream:
+            self.model_config = yaml.safe_load(stream)
+
+        print(self.model_config)
         self.batch_size_test = 512
 
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
 
-    def train(self, dataset, desired_batches=None):
+    def train(self, dataset, desired_batches=None, remaining_time_budget=None):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("NUM SAMPLES: " + str(desired_batches))
 
@@ -128,17 +139,19 @@ class Model(object):
         else:
             self.classification_type = "multiclass"
 
-        print(type(self.config["model_name"]))
+        print(type(self.model_config["model"]))
 
         self.model = get_model(
-            model_name=self.config["model_name"],
+            model_name=self.model_config["model"],
             model_dir=self.model_dir,
-            dropout=self.config["dropout"],
+            dropout=self.model_config["dropout"],
             num_classes=self.num_classes,
         )
-        self.input_size = get_input_size(self.config["model_name"])
+        self.input_size = get_input_size(self.model_config["model"])
         self.optimizer = get_optimizer(
-            model=self.model, optimizer_type=self.config["optimizer"], lr=self.config["lr"]
+            model=self.model,
+            optimizer_type=self.model_config["optimizer"],
+            lr=self.model_config["lr"]
         )
         self.criterion = get_loss_criterion(classification_type=self.classification_type)
 
@@ -148,7 +161,7 @@ class Model(object):
             session=self.session,
             is_training=True,
             first_round=(int(self.train_round) == 1),
-            batch_size=self.config["batch_size_train"],
+            batch_size=self.model_config["batch_size_train"],
             input_size=self.input_size,
             num_samples=int(10000000),
         )

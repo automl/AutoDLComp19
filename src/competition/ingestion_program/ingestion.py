@@ -105,13 +105,11 @@ import os
 import signal
 import sys
 import time
-
 # Some common useful packages
 from contextlib import contextmanager
 from os import getcwd as pwd
 from os.path import join
-from sys import argv
-from sys import path
+from sys import argv, path
 
 import numpy as np
 
@@ -256,17 +254,16 @@ if __name__ == "__main__":
         "--output_dir",
         type=str,
         default=default_output_dir,
-        help="Directory storing the predictions. It will "
-        + "contain e.g. [start.txt, adult.predict_0, "
-        + "adult.predict_1, ..., end.txt] when ingestion "
-        + "terminates.",
+        help="Directory storing the predictions. It will " +
+        "contain e.g. [start.txt, adult.predict_0, " +
+        "adult.predict_1, ..., end.txt] when ingestion " + "terminates.",
     )
     parser.add_argument(
         "--ingestion_program_dir",
         type=str,
         default=default_ingestion_program_dir,
-        help="Directory storing the ingestion program "
-        + "`ingestion.py` and other necessary packages.",
+        help="Directory storing the ingestion program " +
+        "`ingestion.py` and other necessary packages.",
     )
     parser.add_argument(
         "--code_dir",
@@ -278,14 +275,19 @@ if __name__ == "__main__":
         "--score_dir",
         type=str,
         default=default_score_dir,
-        help="Directory storing the scoring output "
-        + "e.g. `scores.txt` and `detailed_results.html`.",
+        help="Directory storing the scoring output " +
+        "e.g. `scores.txt` and `detailed_results.html`.",
     )
     parser.add_argument(
         "--time_budget",
         type=float,
         default=default_time_budget,
         help="Time budget for running ingestion program.",
+    )
+    # Added by fr:
+    parser.add_argument(
+        "--model_config",
+        default=None,
     )
     args = parser.parse_args()
     logger.debug("Parsed args are: " + str(args))
@@ -299,12 +301,11 @@ if __name__ == "__main__":
     if dataset_dir.endswith("run/input") and code_dir.endswith("run/program"):
         logger.debug(
             "Since dataset_dir ends with 'run/input' and code_dir "
-            "ends with 'run/program', suppose running on "
-            + "CodaLab platform. Modify dataset_dir to 'run/input_data' "
-            "and code_dir to 'run/submission'. "
-            + "Directory parsing should be more flexible in the code of "
-            + "compute worker: we need explicit directories for "
-            + "dataset_dir and code_dir."
+            "ends with 'run/program', suppose running on " +
+            "CodaLab platform. Modify dataset_dir to 'run/input_data' "
+            "and code_dir to 'run/submission'. " +
+            "Directory parsing should be more flexible in the code of " +
+            "compute worker: we need explicit directories for " + "dataset_dir and code_dir."
         )
         dataset_dir = dataset_dir.replace("run/input", "run/input_data")
         code_dir = code_dir.replace("run/program", "run/submission")
@@ -333,8 +334,8 @@ if __name__ == "__main__":
 
     if len(datanames) != 1:
         raise ValueError(
-            "{} datasets found in dataset_dir={}!\n".format(len(datanames), dataset_dir)
-            + "Please put only ONE dataset under dataset_dir."
+            "{} datasets found in dataset_dir={}!\n".format(len(datanames), dataset_dir) +
+            "Please put only ONE dataset under dataset_dir."
         )
 
     basename = datanames[0]
@@ -366,7 +367,7 @@ if __name__ == "__main__":
             from model import Model  # in participants' model.py
 
             M = Model(
-                D_train.get_metadata()
+                D_train.get_metadata(), model_config=args.model_config
             )  # The metadata of D_train and D_test only differ in sample_count
             ###### End creating model ######
     except TimeoutException as e:
@@ -378,10 +379,8 @@ if __name__ == "__main__":
     # Mark starting time of ingestion
     start = time.time()
     logger.info(
+        "=" * 5 + " Start core part of ingestion program. " + "Version: {} ".format(VERSION) +
         "=" * 5
-        + " Start core part of ingestion program. "
-        + "Version: {} ".format(VERSION)
-        + "=" * 5
     )
 
     write_start_file(
@@ -393,8 +392,8 @@ if __name__ == "__main__":
         for attr in ["train", "test"]:
             if not hasattr(M, attr):
                 raise ModelApiError(
-                    "Your model object doesn't have the method "
-                    + "`{}`. Please implement it in model.py."
+                    "Your model object doesn't have the method " +
+                    "`{}`. Please implement it in model.py."
                 )
 
         # Check if model.py uses new done_training API instead of marking
@@ -402,11 +401,11 @@ if __name__ == "__main__":
         use_done_training_api = hasattr(M, "done_training")
         if not use_done_training_api:
             logger.warning(
-                "Your model object doesn't have an attribute "
-                + "`done_training`. But this is necessary for ingestion "
-                + "program to know whether the model has done training "
-                + "and to decide whether to proceed more training. "
-                + "Please add this attribute to your model."
+                "Your model object doesn't have an attribute " +
+                "`done_training`. But this is necessary for ingestion " +
+                "program to know whether the model has done training " +
+                "and to decide whether to proceed more training. " +
+                "Please add this attribute to your model."
             )
 
         # Keeping track of how many predictions are made
@@ -446,7 +445,8 @@ if __name__ == "__main__":
             prediction_order_number += 1
             logger.info(
                 "[+] {0:d} predictions made, time spent so far {1:.2f} sec".format(
-                    prediction_order_number, time.time() - start
+                    prediction_order_number,
+                    time.time() - start
                 )
             )
             remaining_time_budget = start + time_budget - time.time()
