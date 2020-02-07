@@ -72,10 +72,10 @@ class Model(object):
         LOGGER.info("INIT END: " + str(time.time()))
 
     def train(self, dataset, remaining_time_budget=None):
+        desired_batches = 100  # Hard coded.. originally computed from timings.pkl from thomas
+
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("NUM SAMPLES: " + str(desired_batches))
-
-        desired_batches = 100  # Hard coded.. originally computed from timings.pkl from thomas
 
         self.train_round += 1
 
