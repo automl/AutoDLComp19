@@ -43,11 +43,9 @@ import os
 import shutil  # for deleting a whole directory
 import time
 import webbrowser
-
 from multiprocessing import Process
 
 import tensorflow as tf
-
 
 logging.basicConfig(
     level=getattr(logging, verbosity_level),
@@ -87,7 +85,7 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, code_dir, time_budget=1200):
+def run_baseline(dataset_dir, code_dir, experiment_dir, time_budget=1200):
     logging.info("#" * 50)
     logging.info("Begin running local test using")
     logging.info("code_dir = {}".format(get_basename(code_dir)))
@@ -99,11 +97,16 @@ def run_baseline(dataset_dir, code_dir, time_budget=1200):
     path_ingestion = get_path_to_ingestion_program(starting_kit_dir)
     path_scoring = get_path_to_scoring_program(starting_kit_dir)
 
+    ingestion_output_dir = "{}/predictions".format(experiment_dir)
+    score_dir = "{}/score".format(experiment_dir)
+
     # Run ingestion and scoring at the same time
-    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={}".format(
-        path_ingestion, dataset_dir, code_dir, time_budget
+    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={}".format(
+        path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir, score_dir
     )
-    command_scoring = "python {} --solution_dir={}".format(path_scoring, dataset_dir)
+    command_scoring = "python {} --solution_dir={} --prediction_dir={} --score_dir={}".format(
+        path_scoring, dataset_dir, ingestion_output_dir, score_dir
+    )
 
     def run_ingestion():
         exit_code = os.system(command_ingestion)
@@ -115,24 +118,13 @@ def run_baseline(dataset_dir, code_dir, time_budget=1200):
 
     ingestion_process = Process(name="ingestion", target=run_ingestion)
     scoring_process = Process(name="scoring", target=run_scoring)
-    ingestion_output_dir = os.path.join(starting_kit_dir, "AutoDL_sample_result_submission")
-    score_dir = os.path.join(starting_kit_dir, "AutoDL_scoring_output")
+
+    os.makedirs(experiment_dir, exist_ok=True)
     remove_dir(ingestion_output_dir)
     remove_dir(score_dir)
+
     ingestion_process.start()
     scoring_process.start()
-    detailed_results_page = os.path.join(
-        starting_kit_dir, "AutoDL_scoring_output", "detailed_results.html"
-    )
-    detailed_results_page = os.path.abspath(detailed_results_page)
-
-    # Open detailed results page in a browser
-    time.sleep(2)
-    for i in range(30):
-        if os.path.isfile(detailed_results_page):
-            webbrowser.open("file://" + detailed_results_page, new=2)
-            break
-            time.sleep(1)
 
     ingestion_process.join()
     scoring_process.join()
@@ -175,4 +167,4 @@ if __name__ == "__main__":
     code_dir = FLAGS.code_dir
     time_budget = FLAGS.time_budget
 
-    run_baseline(dataset_dir, code_dir, time_budget)
+    run_baseline(dataset_dir, code_dir, "experiments/todo", time_budget)
