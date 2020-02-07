@@ -74,9 +74,8 @@ extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
 ├── install/                               <<  Requirements and scripts for installation
 │
 ├── src/                                   <<  Source code
+│   └── winner_<TRACK>/                    <<  Winner code for <TRACK>
 │   └── competition/                       <<  Competition source code
-│       ├── ingestion_program/             <<  Main execution library
-│       ├── scoring_program/               <<  Source code to produce AUL score
 │       └── run_local_test.py              <<  Execute competition evaluation locally
 │
 └── submission/                            <<  Submission utilities
