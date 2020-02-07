@@ -4,3 +4,8 @@
 # List available receipes
 @list:
   just --list
+
+
+# Clean unnecessary files
+clean:
+  rm -rf experiments/test/*
