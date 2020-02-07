@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoDL datasets.
 
 Reads data in the Tensorflow AutoDL standard format.
@@ -21,17 +20,19 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
 from google.protobuf import text_format
-from tensorflow import app
-from tensorflow import flags
-from tensorflow import gfile
-from tensorflow import logging
+from tensorflow import app, flags, gfile, logging
 
-import src.competition.ingestion_program.dataset_utils as dataset_utils
+try:
+    import src.competition.ingestion_program.dataset_utils as dataset_utils
 
-from src.competition.ingestion_program.data_pb2 import DataSpecification
-from src.competition.ingestion_program.data_pb2 import MatrixSpec
+    from src.competition.ingestion_program.data_pb2 import DataSpecification
+    from src.competition.ingestion_program.data_pb2 import MatrixSpec
+except ImportError:
+    import dataset_utils
+
+    from data_pb2 import DataSpecification
+    from data_pb2 import MatrixSpec
 
 
 def metadata_filename(dataset_name):
@@ -169,9 +170,8 @@ class AutoDLDataset(object):
                 sequence_features[self._feature_key(i, "sparse_channel_index")] = tf.VarLenFeature(
                     tf.int64
                 )
-                sequence_features[self._feature_key(i, "sparse_value")] = tf.VarLenFeature(
-                    tf.float32
-                )
+                sequence_features[self._feature_key(i,
+                                                    "sparse_value")] = tf.VarLenFeature(tf.float32)
             elif self.metadata_.is_compressed(i):
                 sequence_features[self._feature_key(i, "compressed")] = tf.VarLenFeature(tf.string)
             else:
@@ -201,10 +201,9 @@ class AutoDLDataset(object):
                 f = features[key_dense]
                 if not fixed_matrix_size:
                     raise ValueError(
-                        "To parse dense data, the tensor shape should "
-                        + "be known but got {} instead...".format(
-                            (sequence_size, row_count, col_count)
-                        )
+                        "To parse dense data, the tensor shape should " +
+                        "be known but got {} instead...".
+                        format((sequence_size, row_count, col_count))
                     )
                 f = tf.reshape(f, [sequence_size, row_count, col_count, num_channels])
                 sample.append(f)
@@ -244,7 +243,8 @@ class AutoDLDataset(object):
                     sparse_col = tf.cast(sparse_col, tf.float32)
                     sparse_channel = tf.cast(sparse_channel, tf.float32)
                     tensor = tf.concat(
-                        [tf.reshape(sparse_col, [-1, 1]), tf.reshape(sparse_val, [-1, 1])], 1
+                        [tf.reshape(sparse_col, [-1, 1]),
+                         tf.reshape(sparse_val, [-1, 1])], 1
                     )
                     tensor = tf.reshape(tensor, [1, -1, 2, 1])
                     tensor = tf.cast(tensor, tf.float32)
@@ -261,12 +261,12 @@ class AutoDLDataset(object):
                 # TODO: see how we can keep sparse tensors instead of
                 # returning dense ones.
 
-        label_indices = (contexts["label_index"].values,)
+        label_indices = (contexts["label_index"].values, )
         label_indices = tf.reshape(label_indices, [-1, 1])
         sparse_tensor = tf.sparse.SparseTensor(
             indices=label_indices,
             values=contexts["label_score"].values,
-            dense_shape=(self.metadata_.get_output_size(),),
+            dense_shape=(self.metadata_.get_output_size(), ),
         )
         labels = tf.sparse.to_dense(sparse_tensor, validate_indices=False)
         sample.append(labels)
@@ -277,9 +277,8 @@ class AutoDLDataset(object):
             files = gfile.Glob(dataset_file_pattern(self.dataset_name_))
             if not files:
                 raise IOError(
-                    "Unable to find training files. data_pattern='"
-                    + dataset_file_pattern(self.dataset_name_)
-                    + "'."
+                    "Unable to find training files. data_pattern='" +
+                    dataset_file_pattern(self.dataset_name_) + "'."
                 )
             # logging.info("Number of training files: %s.", str(len(files)))
             if len(files) > 1:
