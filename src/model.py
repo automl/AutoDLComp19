@@ -71,9 +71,11 @@ class Model(object):
         self.session = tf.Session()
         LOGGER.info("INIT END: " + str(time.time()))
 
-    def train(self, dataset, desired_batches=None, remaining_time_budget=None):
+    def train(self, dataset, remaining_time_budget=None):
         LOGGER.info("TRAINING START: " + str(time.time()))
         LOGGER.info("NUM SAMPLES: " + str(desired_batches))
+
+        desired_batches = 100  # Hard coded.. originally computed from timings.pkl from thomas
 
         self.train_round += 1
 
