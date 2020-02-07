@@ -133,6 +133,11 @@ def run_baseline(dataset_dir, code_dir, experiment_dir, time_budget=1200):
     if not scoring_process.exitcode == 0:
         raise Exception("Some error occurred in scoring program.")
 
+    score_file = "{}/scores.txt".format(score_dir)
+    with open(score_file) as stream:
+        score = float(stream.readline().lstrip("score: "))
+    return score
+
 
 if __name__ == "__main__":
     default_starting_kit_dir = _HERE()
