@@ -168,7 +168,7 @@ class Model(object):
             num_samples=int(10000000),
         )
 
-    def test(self, dataset):
+    def test(self, dataset, remaining_time_budget=None):
         LOGGER.info("TESTING START: " + str(time.time()))
 
         self.test_round += 1
