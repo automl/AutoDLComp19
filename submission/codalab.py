@@ -3,7 +3,6 @@ import os
 import shutil
 import sys
 
-
 import yaml
 
 
@@ -14,12 +13,12 @@ def _read_config(config_file):
 
 sys.path.append(".")  # isort:skip
 
-# Construct base CLI, later add args dynamically from config file too
-parser = argparse.ArgumentParser()
-parser.add_argument("--submission_dir", default=".codalab_submission")
-parser.add_argument("--code_dir", default="src")
-parser.add_argument("--config", default="general.yaml")
-parser.add_argument("--zip_name", default="codalab_submission")
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument("--submission_dir", default="codalab_submission", help=" ")
+parser.add_argument("--code_dir", default="src", help=" ")
+parser.add_argument("--config", default="general.yaml", help=" ")
+parser.add_argument("--zip_name", default="codalab_submission", help=" ")
 parser.add_argument("--no_clean_up", action="store_true", help="Do not delete submission dir")
 
 args = parser.parse_args()
@@ -30,10 +29,12 @@ if os.path.isdir(args.submission_dir):
 ignore = shutil.ignore_patterns("__pycache__")
 shutil.copytree(args.code_dir, args.submission_dir, ignore=ignore)
 
+
 # Read settings from config
 def read_config(config_file):
     with open(config_file, 'r') as stream:
         return yaml.safe_load(stream)
+
 
 config = read_config(args.code_dir + "/" + "configs/" + args.config)
 
