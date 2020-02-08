@@ -38,39 +38,21 @@ If you want to overwrite the output dir (for repeated local testing for example)
 
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
-### Making a submission (DEPRECIATED)
+### Making a submission
 
 To create a submission `.zip` for the codalab platform run
 
 ```bash
-python submission/competition.py
+python submission/codalab.py
 ```
 
-This uses the settings in `src/config.hjson` to determine the modality, lookup paths, finetuning strategy, pretrained_parameters and model to load, hyperparameters, etc. To change the settings, you can either edit `src/config.hjson` or via arguments:
-
-
-```bash
-python submission/competition.py --lr 1e-4
-```
-
-You need to specify which model parameter files you want to include in the submission. You can do this via editing the `active_model_files` attribute, e.g.,
-
-```json
-active_model_files: ["resnet18-5c106cde"]  # With respect to model_dir
-```
-
-To include a python package that is not included on the competition platform, edit the `extra_packages` attribute, e.g.,
-
-```json
-extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
-```
-
+This uses the settings in `src/configs/general.yaml`.
 
 
 ## Project Structure
 
 ```
-├── experiments/                           <<  Logs and other files generated during runtime
+├── experiments/                           <<  Files generated during runtime
 │
 ├── install/                               <<  Requirements and scripts for installation
 │
@@ -79,8 +61,10 @@ extra_packages: [".miniconda/envs/autodl/lib/python3.5/site-packages/hjson"]
 │   └── competition/                       <<  Competition source code
 │       └── run_local_test.py              <<  Execute competition evaluation locally
 │
-└── submission/                            <<  Submission utilities
-    └── competition.py                     <<  Automatic generation of competition submissions
+├── submission/                            <<  Submission utilities
+│    └── competition.py                    <<  Create codalab submission
+│
+└── justfile                               <<  Command runner file akin to Makefile
 ```
 
 
