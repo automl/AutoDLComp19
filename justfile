@@ -9,3 +9,4 @@
 # Clean unnecessary files
 clean:
   rm -rf experiments/test/*
+  rm -f codalab_submission.zip
