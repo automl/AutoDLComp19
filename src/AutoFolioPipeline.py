@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import argparse
 import os
 import sys
@@ -178,18 +179,26 @@ class AutoFolioPipeline(object):
         if self.autofolio is None:
             self.autofolio = AutoFolio()
 
-        pd.read_csv(self.feature_data_file_path)
+        """ pick one random sample from the test data for autofolio prediction """
+        rnd = np.random.randint(low=0, high=np.shape(self.test_feature_data)[0]) # 0-> index for the datasets
+        feature_vec = self.test_feature_data[rnd]
 
-        # TODO: use feature_vec
+        """ reformatting ndarray to str since AutoFolio's read_model_and_predict requires
+        a string of floats separated by space """
+        feature_vec_str = ""
+        for feature in feature_vec:
+            feature_vec_str += " {}".format(feature)
+        feature_vec_str = feature_vec_str[1:]  # remove first unwanted whitespace character
+
         af_args = {
                     "load":  self.autofolio_model_path,  # path to the AF model file
                     #"feature_csv": self.feature_data_file_path,  # --> does not work here
                     "verbose": self.verbose,
-                    #"feature_vec": None  # we can also provide feature vector instead of csv
+                    "feature_vec": feature_vec_str
                    }
 
         selected_schedule = self.autofolio.run_cli(af_args)  # yields [(algorithm, budget)]
-        print(selected_schedule)
+        return selected_schedule
 
 
 if __name__ == "__main__":
@@ -213,6 +222,6 @@ if __name__ == "__main__":
     autofolio_pipeline.load_performance_data_and_export_csv(path_export_dir=performance_feature_dir_path)
     autofolio_pipeline.load_features_and_export_csv(path_export_dir=performance_feature_dir_path, normalize_features=False)
 
-    #afp.train_and_save_autofolio_model()
+    #autofolio_pipeline.train_and_save_autofolio_model()
     autofolio_pipeline.load_autofolio_model_and_predict()
 
