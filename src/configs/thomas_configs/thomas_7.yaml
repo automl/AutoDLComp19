@@ -1,5 +1,0 @@
-batch_size_train: 128
-dropout: 0.5021918541197233
-lr: 2.243284393264907e-05
-model: squeezenet_128
-optimizer: Adam

@@ -1,5 +1,0 @@
-batch_size_train: 128
-dropout: 0.8701182169980414
-lr: 0.3512644726517296
-model: shufflenet10_224
-optimizer: SGD

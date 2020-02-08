@@ -1,6 +1,8 @@
-# General
-model_dir: models
-
 # Codalab submission
 extra_packages: []  # Paths
 active_model_files: []  # With respect to model_dir
+
+
+cluster_datasets_dir: /data/aad/image_datasets/challenge
+cluster_models_dir: /home/ferreira/autodl_data/models_thomas
+cluster_incumbents_file: /home/ferreira/autodl_data/incumbent.json

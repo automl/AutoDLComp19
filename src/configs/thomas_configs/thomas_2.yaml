@@ -1,5 +1,0 @@
-batch_size_train: 64
-dropout: 0.38484539970081894
-lr: 0.23662163090278282
-model: efficientnet_pytorch_128
-optimizer: SGD
