@@ -2,6 +2,7 @@ import argparse  # noqa: E402
 import os
 import shutil
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -29,14 +30,13 @@ if os.path.isdir(args.submission_dir):
 ignore = shutil.ignore_patterns("__pycache__")
 shutil.copytree(args.code_dir, args.submission_dir, ignore=ignore)
 
+# Read settings from config in code_dir
+with Path(args.code_dir, "configs", args.config).open() as in_stream:
+    config = yaml.safe_load(in_stream)
 
-# Read settings from config
-def read_config(config_file):
-    with open(config_file, 'r') as stream:
-        return yaml.safe_load(stream)
-
-
-config = read_config(args.code_dir + "/" + "configs/" + args.config)
+# Write config to submission_dir as default.yaml
+with Path(args.submission_dir, "configs", "default.yaml").open("w") as out_stream:
+    yaml.dump(config, out_stream)
 
 # Copy active models
 for model_file in config["active_model_files"]:
