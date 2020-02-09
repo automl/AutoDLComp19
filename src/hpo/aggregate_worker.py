@@ -21,53 +21,49 @@ class AggregateWorker(Worker):
     def get_configspace():
         cs = CS.ConfigurationSpace()
 
-        # fmt: off
+        # yapf: disable
         # Dataset sizes
-        cv_valid_ratio = CSH.UniformFloatHyperparameter("cv_valid_ratio", lower=0.05, upper=0.2)
+        cv_valid_ratio = CSH.UniformFloatHyperparameter(
+            "cv_valid_ratio", lower=0.05, upper=0.2)
         max_valid_count = CSH.UniformIntegerHyperparameter(
-            "max_valid_count", lower=128, upper=512, log=True
-        )
-        max_size = CSH.UniformIntegerHyperparameter("log2_max_size", lower=5, upper=7)
-        max_times = CSH.UniformIntegerHyperparameter("max_times", lower=4, upper=10)
+            "max_valid_count", lower=128, upper=512, log=True)
+        max_size = CSH.UniformIntegerHyperparameter(
+            "log2_max_size", lower=5, upper=7)
+        max_times = CSH.UniformIntegerHyperparameter(
+            "max_times", lower=4, upper=10)
         train_info_sample = CSH.UniformIntegerHyperparameter(
-            "train_info_sample", lower=128, upper=512, log=True
-        )
+            "train_info_sample", lower=128, upper=512, log=True)
         enough_count_video = CSH.UniformIntegerHyperparameter(
-            "enough_count_video", lower=100, upper=10000, log=True
-        )
+            "enough_count_video", lower=100, upper=10000, log=True)
         enough_count_image = CSH.UniformIntegerHyperparameter(
-            "enough_count_image", lower=1000, upper=100000, log=True
-        )
+            "enough_count_image", lower=1000, upper=100000, log=True)
 
         # Report intervalls
         steps_per_epoch = CSH.UniformIntegerHyperparameter(
-            "steps_per_epoch", lower=5, upper=250, log=True
-        )
-        early_epoch = CSH.UniformIntegerHyperparameter("early_epoch", lower=1, upper=3)
+            "steps_per_epoch", lower=5, upper=250, log=True)
+        early_epoch = CSH.UniformIntegerHyperparameter(
+            "early_epoch", lower=1, upper=3)
         skip_valid_score_threshold = CSH.UniformFloatHyperparameter(
-            "skip_valid_score_threshold", lower=0.7, upper=0.95
-        )
+            "skip_valid_score_threshold", lower=0.7, upper=0.95)
         test_after_at_least_seconds = CSH.UniformIntegerHyperparameter(
-            "test_after_at_least_seconds", lower=1, upper=3
-        )
+            "test_after_at_least_seconds", lower=1, upper=3)
         test_after_at_least_seconds_max = CSH.UniformIntegerHyperparameter(
-            "test_after_at_least_seconds_max", lower=60, upper=120
-        )
+            "test_after_at_least_seconds_max", lower=60, upper=120)
         test_after_at_least_seconds_step = CSH.UniformIntegerHyperparameter(
-            "test_after_at_least_seconds_step", lower=2, upper=10
-        )
+            "test_after_at_least_seconds_step", lower=2, upper=10)
         threshold_valid_score_diff = CSH.UniformIntegerHyperparameter(
-            "threshold_valid_score_diff", lower=0.0001, upper=0.01, log=True
-        )
+            "threshold_valid_score_diff", lower=0.0001, upper=0.01, log=True)
         max_inner_loop_ratio = CSH.UniformFloatHyperparameter(
-            "max_inner_loop_ratio", lower=0.1, upper=0.3
-        )
+            "max_inner_loop_ratio", lower=0.1, upper=0.3)
 
         # Optimization
-        batch_size = CSH.UniformIntegerHyperparameter("batch_size", lower=16, upper=64, log=True)
-        lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-1, log=True)
-        min_lr = CSH.UniformFloatHyperparameter('min_lr', lower=1e-8, upper=1e-5, log=True)
-        # fmt: on
+        batch_size = CSH.UniformIntegerHyperparameter(
+            "batch_size", lower=16, upper=64, log=True)
+        lr = CSH.UniformFloatHyperparameter(
+            'lr', lower=1e-5, upper=1e-1, log=True)
+        min_lr = CSH.UniformFloatHyperparameter(
+            'min_lr', lower=1e-8, upper=1e-5, log=True)
+        # yapf: enable
 
         cs.add_hyperparameters(
             [
