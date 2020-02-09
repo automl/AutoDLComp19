@@ -85,7 +85,15 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budget, overwrite):
+def run_baseline(
+    dataset_dir,
+    code_dir,
+    experiment_dir,
+    time_budget,
+    overwrite,
+    model_config_name=None,
+    model_config=None
+):
     logging.info("#" * 50)
     logging.info("Begin running local test using")
     logging.info("code_dir = {}".format(get_basename(code_dir)))
@@ -101,9 +109,14 @@ def run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budge
     score_dir = "{}/score".format(experiment_dir)
 
     # Run ingestion and scoring at the same time
-    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={} --model_config={}".format(
+    if model_config is not None:
+        config_command = '--model_config_dictstr="{}"'.format(model_config)  # fmt: off
+    else:
+        config_command = "--model_config_name={}".format(model_config_name)
+
+    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={} {}".format(
         path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir, score_dir,
-        model_config
+        config_command
     )
     command_scoring = "python {} --solution_dir={} --prediction_dir={} --score_dir={}".format(
         path_scoring, dataset_dir, ingestion_output_dir, score_dir
@@ -141,54 +154,27 @@ def run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budge
 
 
 if __name__ == "__main__":
-    default_starting_kit_dir = _HERE()
-    # The default dataset is 'miniciao' under the folder sample_data/
-    default_dataset_dir = os.path.join(default_starting_kit_dir, "sample_data", "miniciao")
-    default_code_dir = "src"
-    default_time_budget = 1200
-    default_model_config = "src/configs/thomas_configs/thomas_0.yaml"
-    default_experiment_dir = "experiments/default"
+    import argparse
 
-    tf.flags.DEFINE_string(
-        "dataset_dir",
-        default_dataset_dir,
-        "Directory containing the content (e.g. adult.data/ + "
-        "adult.solution) of an AutoDL dataset. Specify this "
-        "argument if you want to test on a different dataset.",
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    default_dataset_dir = os.path.join(_HERE(), "sample_data", "miniciao")
+    parser.add_argument("--dataset_dir", default=default_dataset_dir, help=" ")
+    parser.add_argument("--experiment_dir", default="experiments/default", help=" ")
+    parser.add_argument(
+        "--model_config_name", default="default.yaml", help="The config in src/configs to use"
     )
-    tf.flags.DEFINE_string(
-        "experiment_dir",
-        default_experiment_dir,
-        "",
-    )
+    parser.add_argument("--code_dir", default="src", help=" ")
+    parser.add_argument("--time_budget", type=int, default=1200, help=" ")
+    parser.add_argument("--overwrite", action="store_true", help="Do not delete submission dir")
 
-    tf.flags.DEFINE_string("model_config", default_model_config, "")
+    args = parser.parse_args()
 
-    tf.flags.DEFINE_bool(
-        "overwrite",
-        False,
-        "overwrite logs or not",
-    )
+    dataset_dir = args.dataset_dir
+    code_dir = args.code_dir
+    time_budget = args.time_budget
+    overwrite = args.overwrite
+    model_config_name = args.model_config_name
+    experiment_dir = args.experiment_dir
 
-    tf.flags.DEFINE_string(
-        "code_dir",
-        default_code_dir,
-        "Directory containing a `model.py` file. Specify this "
-        "argument if you want to test on a different algorithm.",
-    )
-
-    tf.flags.DEFINE_float(
-        "time_budget",
-        default_time_budget,
-        "Time budget for running ingestion " + "(training + prediction).",
-    )
-
-    FLAGS = tf.flags.FLAGS
-    dataset_dir = FLAGS.dataset_dir
-    code_dir = FLAGS.code_dir
-    time_budget = FLAGS.time_budget
-    overwrite = FLAGS.overwrite
-    model_config = FLAGS.model_config
-    experiment_dir = FLAGS.experiment_dir
-
-    run_baseline(dataset_dir, code_dir, experiment_dir, model_config, time_budget, overwrite)
+    run_baseline(dataset_dir, code_dir, experiment_dir, time_budget, overwrite, model_config_name)

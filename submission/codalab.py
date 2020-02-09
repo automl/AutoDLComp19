@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 
 parser.add_argument("--submission_dir", default="codalab_submission", help=" ")
 parser.add_argument("--code_dir", default="src", help=" ")
-parser.add_argument("--config", default="general.yaml", help=" ")
+parser.add_argument("--config", default="default.yaml", help=" ")
 parser.add_argument("--zip_name", default="codalab_submission", help=" ")
 parser.add_argument("--no_clean_up", action="store_true", help="Do not delete submission dir")
 

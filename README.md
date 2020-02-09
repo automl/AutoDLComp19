@@ -25,12 +25,12 @@ To run the competition evaluation locally run
 python -m src.competition.run_local_test \
     --dataset_dir DATASET_DIR \
     --code_dir src \
-    --model_config CONFIG \
+    --model_config_name CONFIG.yaml \
     --experiment_dir EXPERIMENT_DIR \
     --time_budget 1200
 ```
 
-CONFIG corresponds to one of `src/configs/thomas_configs`.
+CONFIG corresponds to one of the names of the general configs in `src/configs/`. If this argument is ommited, `src/configs/default.yaml` is used.
 
 If you want to overwrite the output dir (for repeated local testing for example), supply the `--overwrite` flag.
 
@@ -46,7 +46,7 @@ To create a submission `.zip` for the codalab platform run
 python submission/codalab.py
 ```
 
-This uses the settings in `src/configs/general.yaml`.
+This uses the settings in `src/configs/default.yaml`.
 
 
 ## Project Structure

@@ -286,7 +286,11 @@ if __name__ == "__main__":
     )
     # Added by fr:
     parser.add_argument(
-        "--model_config",
+        "--model_config_name",
+        default=None,
+    )
+    parser.add_argument(
+        "--model_config_dictstr",  # str encoded dict constructed by BOHB worker
         default=None,
     )
     args = parser.parse_args()
@@ -366,9 +370,12 @@ if __name__ == "__main__":
             logger.info("Creating model...this process should not exceed 20min.")
             from model import Model  # in participants' model.py
 
+            # The metadata of D_train and D_test only differ in sample_count
             M = Model(
-                D_train.get_metadata(), model_config=args.model_config
-            )  # The metadata of D_train and D_test only differ in sample_count
+                D_train.get_metadata(),
+                model_config_name=args.model_config_name,
+                model_config_dictstr=args.model_config_dictstr
+            )
             ###### End creating model ######
     except TimeoutException as e:
         logger.info("[-] Initialization phase exceeded time budget. Move to train/predict phase")

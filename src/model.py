@@ -6,6 +6,7 @@ import logging
 
 import numpy as np
 import tensorflow as tf
+import yaml
 
 # fmt: off
 import os  # isort:skip
@@ -43,12 +44,19 @@ class Model():
     """A model that combine all winner solutions. Using domain inferring and
   apply winner solution in the corresponding domain."""
 
-    def __init__(self, metadata, model_config=None):
+    def __init__(self, metadata, model_config_dictstr=None, model_config_name=None):
         """
-    Args:
-      metadata: an AutoDLMetadata object. Its definition can be found in
-          AutoDL_ingestion_program/dataset.py
-    """
+        Args:
+          metadata: an AutoDLMetadata object. Its definition can be found in
+              AutoDL_ingestion_program/dataset.py
+        """
+        if model_config_dictstr is None:
+            model_config_name = model_config_name or "default.yaml"
+            with open(os.path.join(here, "configs", model_config_name)) as stream:
+                model_config = yaml.safe_load(stream)
+        else:
+            model_config = eval(model_config_dictstr)  # str encoded dict constructed by BOHB worker
+
         self.done_training = False
         self.metadata = metadata
         self.domain = infer_domain(metadata)
@@ -100,34 +108,34 @@ class Model():
 
     def to_numpy(self, dataset, is_training):
         """Given the TF dataset received by `train` or `test` method, compute two
-    lists of NumPy arrays: `X_train`, `Y_train` for `train` and `X_test`,
-    `Y_test` for `test`. Although `Y_test` will always be an
-    all-zero matrix, since the test labels are not revealed in `dataset`.
-    The computed two lists will by memorized as object attribute:
-      self.X_train
-      self.Y_train
-    or
-      self.X_test
-      self.Y_test
-    according to `is_training`.
-    WARNING: since this method will load all data in memory, it's possible to
-      cause Out Of Memory (OOM) error, especially for large datasets (e.g.
-      video/image datasets).
-    Args:
-      dataset: a `tf.data.Dataset` object, received by the method `self.train`
-        or `self.test`.
-      is_training: boolean, indicates whether it concerns the training set.
-    Returns:
-      two lists of NumPy arrays, for features and labels respectively. If the
-        examples all have the same shape, they can be further converted to
-        NumPy arrays by:
-          X = np.array(X)
-          Y = np.array(Y)
-        And in this case, `X` will be of shape
-          [num_examples, sequence_size, row_count, col_count, num_channels]
-        and `Y` will be of shape
-          [num_examples, num_classes]
-    """
+        lists of NumPy arrays: `X_train`, `Y_train` for `train` and `X_test`,
+        `Y_test` for `test`. Although `Y_test` will always be an
+        all-zero matrix, since the test labels are not revealed in `dataset`.
+        The computed two lists will by memorized as object attribute:
+          self.X_train
+          self.Y_train
+        or
+          self.X_test
+          self.Y_test
+        according to `is_training`.
+        WARNING: since this method will load all data in memory, it's possible to
+          cause Out Of Memory (OOM) error, especially for large datasets (e.g.
+          video/image datasets).
+        Args:
+          dataset: a `tf.data.Dataset` object, received by the method `self.train`
+            or `self.test`.
+          is_training: boolean, indicates whether it concerns the training set.
+        Returns:
+          two lists of NumPy arrays, for features and labels respectively. If the
+            examples all have the same shape, they can be further converted to
+            NumPy arrays by:
+              X = np.array(X)
+              Y = np.array(Y)
+            And in this case, `X` will be of shape
+              [num_examples, sequence_size, row_count, col_count, num_channels]
+            and `Y` will be of shape
+              [num_examples, num_classes]
+        """
         if is_training:
             subset = 'train'
         else:
@@ -157,11 +165,11 @@ class Model():
 
     def set_domain_dataset(self, dataset, is_training=True):
         """Recover the dataset in corresponding competition format (esp. AutoNLP
-    and AutoSpeech) and set corresponding attributes:
-      self.domain_dataset_train
-      self.domain_dataset_test
-    according to `is_training`.
-    """
+        and AutoSpeech) and set corresponding attributes:
+          self.domain_dataset_train
+          self.domain_dataset_test
+        according to `is_training`.
+        """
         if is_training:
             subset = 'train'
         else:
@@ -234,9 +242,9 @@ class Model():
 def infer_domain(metadata):
     """Infer the domain from the shape of the 4-D tensor.
 
-  Args:
-    metadata: an AutoDLMetadata object.
-  """
+      Args:
+        metadata: an AutoDLMetadata object.
+      """
     row_count, col_count = metadata.get_matrix_size(0)
     sequence_size = metadata.get_sequence_size()
     channel_to_index_map = metadata.get_channel_to_index_map()
@@ -259,13 +267,13 @@ def infer_domain(metadata):
 
 def is_chinese(metadata):
     """Judge if the dataset is a Chinese NLP dataset. The current criterion is if
-  each word in the vocabulary contains one single character, because when the
-  documents are in Chinese, we tokenize each character when formatting the
-  dataset.
+    each word in the vocabulary contains one single character, because when the
+    documents are in Chinese, we tokenize each character when formatting the
+    dataset.
 
-  Args:
+    Args:
     metadata: an AutoDLMetadata object.
-  """
+    """
     domain = infer_domain(metadata)
     if domain != 'text':
         return False
@@ -279,12 +287,12 @@ def is_chinese(metadata):
 
 def get_domain_metadata(metadata, domain, is_training=True):
     """Recover the metadata in corresponding competitions, esp. AutoNLP
-  and AutoSpeech.
+    and AutoSpeech.
 
-  Args:
+    Args:
     metadata: an AutoDLMetadata object.
     domain: str, can be one of 'image', 'video', 'text', 'speech' or 'tabular'.
-  """
+    """
     if domain == 'text':
         # Fetch metadata info from `metadata`
         class_num = metadata.get_output_size()
@@ -334,7 +342,7 @@ def get_domain_metadata(metadata, domain, is_training=True):
 def get_logger(verbosity_level):
     """Set logging format to something like:
        2019-04-25 12:52:51,924 INFO model.py: <message>
-  """
+    """
     logger = logging.getLogger(__file__)
     logging_level = getattr(logging, verbosity_level)
     logger.setLevel(logging_level)
