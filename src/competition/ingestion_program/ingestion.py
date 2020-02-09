@@ -228,80 +228,22 @@ class Timer:
                 raise TimeoutException("Timed out for the process: {}!".format(pname))
 
 
-# =========================== BEGIN PROGRAM ================================
-
-if __name__ == "__main__":
-
+def ingestion_fn(
+    dataset_dir,
+    code_dir,
+    time_budget,
+    output_dir,
+    score_dir,
+    model_config_name=None,
+    model_config=None
+):
     #### Check whether everything went well
     ingestion_success = True
 
-    # Parse directories from input arguments
+    # Parse directories
     root_dir = _HERE(os.pardir)
-    default_dataset_dir = join(root_dir, "sample_data")
-    default_output_dir = join(root_dir, "AutoDL_sample_result_submission")
-    default_ingestion_program_dir = join(root_dir, "ingestion_program")
-    default_code_dir = join(root_dir, "sample_code_submission")
-    default_score_dir = join(root_dir, "AutoDL_scoring_output")
-    default_time_budget = 1200
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset_dir",
-        type=str,
-        default=default_dataset_dir,
-        help="Directory storing the dataset (containing " + "e.g. adult.data/)",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default=default_output_dir,
-        help="Directory storing the predictions. It will " +
-        "contain e.g. [start.txt, adult.predict_0, " +
-        "adult.predict_1, ..., end.txt] when ingestion " + "terminates.",
-    )
-    parser.add_argument(
-        "--ingestion_program_dir",
-        type=str,
-        default=default_ingestion_program_dir,
-        help="Directory storing the ingestion program " +
-        "`ingestion.py` and other necessary packages.",
-    )
-    parser.add_argument(
-        "--code_dir",
-        type=str,
-        default=default_code_dir,
-        help="Directory storing the submission code " + "`model.py` and other necessary packages.",
-    )
-    parser.add_argument(
-        "--score_dir",
-        type=str,
-        default=default_score_dir,
-        help="Directory storing the scoring output " +
-        "e.g. `scores.txt` and `detailed_results.html`.",
-    )
-    parser.add_argument(
-        "--time_budget",
-        type=float,
-        default=default_time_budget,
-        help="Time budget for running ingestion program.",
-    )
-    # Added by fr:
-    parser.add_argument(
-        "--model_config_name",
-        default=None,
-    )
-    parser.add_argument(
-        "--model_config_dictstr",  # str encoded dict constructed by BOHB worker
-        default=None,
-    )
-    args = parser.parse_args()
-    logger.debug("Parsed args are: " + str(args))
-    logger.debug("-" * 50)
-    dataset_dir = args.dataset_dir
-    output_dir = args.output_dir
-    ingestion_program_dir = args.ingestion_program_dir
-    code_dir = args.code_dir
-    score_dir = args.score_dir
-    time_budget = args.time_budget
+    ingestion_program_dir = join(root_dir, "ingestion_program")
+
     if dataset_dir.endswith("run/input") and code_dir.endswith("run/program"):
         logger.debug(
             "Since dataset_dir ends with 'run/input' and code_dir "
@@ -361,27 +303,28 @@ if __name__ == "__main__":
     correct_prediction_shape = (num_examples_test, output_dim)
 
     # 20 min for participants to initializing and install other packages
-    try:
-        init_time_budget = 20 * 60  # time budget for initilization.
-        timer = Timer()
-        timer.set(init_time_budget)
-        with timer.time_limit("Initialization"):
-            ##### Begin creating model #####
-            logger.info("Creating model...this process should not exceed 20min.")
-            from model import Model  # in participants' model.py
+    # try:
+    #     init_time_budget = 20 * 60  # time budget for initilization.
+    #     timer = Timer()
+    #     timer.set(init_time_budget)
+    #     with timer.time_limit("Initialization"):
 
-            # The metadata of D_train and D_test only differ in sample_count
-            M = Model(
-                D_train.get_metadata(),
-                model_config_name=args.model_config_name,
-                model_config_dictstr=args.model_config_dictstr
-            )
-            ###### End creating model ######
-    except TimeoutException as e:
-        logger.info("[-] Initialization phase exceeded time budget. Move to train/predict phase")
-    except Exception as e:
-        logger.error("Failed to initializing model.")
-        logger.error("Encountered exception:\n" + str(e), exc_info=True)
+    ##### Begin creating model #####
+    logger.info("Creating model...this process should not exceed 20min.")
+    from model import Model  # in participants' model.py
+
+    # The metadata of D_train and D_test only differ in sample_count
+    M = Model(
+        D_train.get_metadata(), model_config_name=model_config_name, model_config=model_config
+    )
+    ###### End creating model ######
+
+    # except TimeoutException as e:
+    #     logger.info("[-] Initialization phase exceeded time budget. Move to train/predict phase")
+    # except Exception as e:
+    #     logger.error("Failed to initializing model.")
+    #     logger.error("Encountered exception:\n" + str(e), exc_info=True)
+    #
 
     # Mark starting time of ingestion
     start = time.time()

@@ -44,18 +44,16 @@ class Model():
     """A model that combine all winner solutions. Using domain inferring and
   apply winner solution in the corresponding domain."""
 
-    def __init__(self, metadata, model_config_dictstr=None, model_config_name=None):
+    def __init__(self, metadata, model_config=None, model_config_name=None):
         """
         Args:
           metadata: an AutoDLMetadata object. Its definition can be found in
               AutoDL_ingestion_program/dataset.py
         """
-        if model_config_dictstr is None:
+        if model_config is None:
             model_config_name = model_config_name or "default.yaml"
             with open(os.path.join(here, "configs", model_config_name)) as stream:
                 model_config = yaml.safe_load(stream)
-        else:
-            model_config = eval(model_config_dictstr)  # str encoded dict constructed by BOHB worker
 
         self.done_training = False
         self.metadata = metadata

@@ -1107,45 +1107,8 @@ class Evaluator(object):
                 )
 
 
-# =============================== MAIN ========================================
-
-if __name__ == "__main__":
+def score_fn(solution_dir, prediction_dir, score_dir):
     logger.info("=" * 5 + " Start scoring program. " + "Version: {} ".format(VERSION) + "=" * 5)
-
-    # Default I/O directories:
-    root_dir = _HERE(os.pardir)
-    default_solution_dir = join(root_dir, "sample_data")
-    default_prediction_dir = join(root_dir, "AutoDL_sample_result_submission")
-    default_score_dir = join(root_dir, "AutoDL_scoring_output")
-
-    # Parse directories from input arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--solution_dir",
-        type=str,
-        default=default_solution_dir,
-        help="Directory storing the solution with true " + "labels, e.g. adult.solution.",
-    )
-    parser.add_argument(
-        "--prediction_dir",
-        type=str,
-        default=default_prediction_dir,
-        help="Directory storing the predictions. It should" +
-        "contain e.g. [start.txt, adult.predict_0, " + "adult.predict_1, ..., end.txt].",
-    )
-    parser.add_argument(
-        "--score_dir",
-        type=str,
-        default=default_score_dir,
-        help="Directory storing the scoring output " +
-        "e.g. `scores.txt` and `detailed_results.html`.",
-    )
-    args = parser.parse_args()
-    logger.debug("Parsed args are: " + str(args))
-    logger.debug("-" * 50)
-    solution_dir = args.solution_dir
-    prediction_dir = args.prediction_dir
-    score_dir = args.score_dir
 
     logger.debug("Version: {}. Description: {}".format(VERSION, DESCRIPTION))
     logger.debug("Using solution_dir: " + str(solution_dir))
@@ -1154,6 +1117,7 @@ if __name__ == "__main__":
 
     #################################################################
     # Initialize an evaluator (scoring program) object
+    global evaluator
     evaluator = Evaluator(
         solution_dir, prediction_dir, score_dir, scoring_functions=scoring_functions
     )

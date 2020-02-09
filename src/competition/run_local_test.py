@@ -46,6 +46,8 @@ import webbrowser
 from multiprocessing import Process
 
 import tensorflow as tf
+from src.competition.ingestion_program.ingestion import ingestion_fn
+from src.competition.scoring_program.score import score_fn
 
 logging.basicConfig(
     level=getattr(logging, verbosity_level),
@@ -103,49 +105,24 @@ def run_baseline(
     # Current directory containing this script
     starting_kit_dir = os.path.dirname(os.path.realpath(__file__))
     path_ingestion = get_path_to_ingestion_program(starting_kit_dir)
-    path_scoring = get_path_to_scoring_program(starting_kit_dir)
 
     ingestion_output_dir = "{}/predictions".format(experiment_dir)
     score_dir = "{}/score".format(experiment_dir)
-
-    # Run ingestion and scoring at the same time
-    if model_config is not None:
-        config_command = '--model_config_dictstr="{}"'.format(model_config)  # fmt: off
-    else:
-        config_command = "--model_config_name={}".format(model_config_name)
-
-    command_ingestion = "python {} --dataset_dir={} --code_dir={} --time_budget={} --output_dir={} --score_dir={} {}".format(
-        path_ingestion, dataset_dir, code_dir, time_budget, ingestion_output_dir, score_dir,
-        config_command
-    )
-    command_scoring = "python {} --solution_dir={} --prediction_dir={} --score_dir={}".format(
-        path_scoring, dataset_dir, ingestion_output_dir, score_dir
-    )
-
-    def run_ingestion():
-        exit_code = os.system(command_ingestion)
-        assert exit_code == 0
-
-    def run_scoring():
-        exit_code = os.system(command_scoring)
-        assert exit_code == 0
-
-    ingestion_process = Process(name="ingestion", target=run_ingestion)
-    scoring_process = Process(name="scoring", target=run_scoring)
 
     os.makedirs(experiment_dir, exist_ok=overwrite)
     remove_dir(ingestion_output_dir)
     remove_dir(score_dir)
 
-    ingestion_process.start()
-    scoring_process.start()
-
-    ingestion_process.join()
-    scoring_process.join()
-    if not ingestion_process.exitcode == 0:
-        logging.info("Some error occurred in ingestion program.")
-    if not scoring_process.exitcode == 0:
-        raise Exception("Some error occurred in scoring program.")
+    ingestion_fn(
+        dataset_dir,
+        code_dir,
+        time_budget,
+        ingestion_output_dir,
+        score_dir,
+        model_config_name=model_config_name,
+        model_config=model_config
+    )
+    score_fn(dataset_dir, ingestion_output_dir, score_dir)
 
     score_file = "{}/scores.txt".format(score_dir)
     with open(score_file) as stream:
