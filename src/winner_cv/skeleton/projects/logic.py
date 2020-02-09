@@ -18,7 +18,7 @@ LOGGER = get_logger(__name__)
 
 
 class LogicModel(Model):
-    def __init__(self, metadata, session=None):
+    def __init__(self, metadata, session=None, model_config=None):
         super(LogicModel, self).__init__(metadata)
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
@@ -58,59 +58,10 @@ class LogicModel(Model):
             'terminate': False
         }
 
-        # TODO: adaptive logic for hyper parameter
-        self.hyper_params = {
-            'optimizer': {
-                'lr': 0.025,
-            },
-            'dataset':
-                {
-                    'train_info_sample': 256,
-                    'cv_valid_ratio': 0.1,
-                    'max_valid_count': 256,
-                    'max_size': 64,
-                    'base': 16,  # input size should be multipliers of 16
-                    'max_times': 8,
-                    'enough_count': {
-                        'image': 10000,
-                        'video': 1000
-                    },
-                    'batch_size': 32,
-                    'steps_per_epoch': 30,
-                    'max_epoch': 1000,  # initial value
-                    'batch_size_test': 256,
-                },
-            'checkpoints': {
-                'keep': 50
-            },
-            'conditions':
-                {
-                    'score_type':
-                        'auc',
-                    'early_epoch':
-                        1,
-                    'skip_valid_score_threshold':
-                        0.90,  # if bigger then 1.0 is not use
-                    'skip_valid_after_test':
-                        min(10, max(3, int(self.info['dataset']['size'] // 1000))),
-                    'test_after_at_least_seconds':
-                        1,
-                    'test_after_at_least_seconds_max':
-                        90,
-                    'test_after_at_least_seconds_step':
-                        2,
-                    'threshold_valid_score_diff':
-                        0.001,
-                    'threshold_valid_best_score':
-                        0.997,
-                    'max_inner_loop_ratio':
-                        0.2,
-                    'min_lr':
-                        1e-6,
-                    'use_fast_auto_aug':
-                        True
-                }
-        }
+        self.hyper_params = model_config
+        skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
+        self.hyper_params["conditions"]["skip_valid_after_test"] = skip_valid_after_test
+
         self.checkpoints = []
         LOGGER.info('[init] build')
 

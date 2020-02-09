@@ -64,7 +64,7 @@ class Model():
                     .format(self.domain))
         self.domain_metadata = get_domain_metadata(metadata, self.domain)
         DomainModel = DOMAIN_TO_MODEL[self.domain]
-        self.domain_model = DomainModel(self.domain_metadata)
+        self.domain_model = DomainModel(self.domain_metadata, model_config)
 
     def train(self, dataset, remaining_time_budget=None):
         """Train method of domain-specific model."""

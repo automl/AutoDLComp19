@@ -22,7 +22,7 @@ set_session(sess)
 
 
 class Model(object):
-    def __init__(self, metadata, train_output_path="./", test_input_path="./"):
+    def __init__(self, metadata, model_config, train_output_path="./", test_input_path="./"):
         """ Initialization for model
         :param metadata: a dict formed like:
             {"class_num": 7,

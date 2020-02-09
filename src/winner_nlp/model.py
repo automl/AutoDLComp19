@@ -255,7 +255,7 @@ class Model(object):
         see `https://aclweb.org/anthology/D14-1181` for more information.
     """
 
-    def __init__(self, metadata, train_output_path="./", test_input_path="./"):
+    def __init__(self, metadata, model_config, train_output_path="./", test_input_path="./"):
         """ Initialization for model
         :param metadata: a dict formed like:
             {"class_num": 10,

@@ -38,9 +38,9 @@ def set_random_seed_all(seed, deterministic=False):
 
 
 class Model(LogicModel):
-    def __init__(self, metadata):
+    def __init__(self, metadata, model_config):
         # set_random_seed_all(0xC0FFEE)
-        super(Model, self).__init__(metadata)
+        super(Model, self).__init__(metadata, model_config=model_config["autocv"])
         self.use_test_time_augmentation = False
         self.update_transforms = False
 

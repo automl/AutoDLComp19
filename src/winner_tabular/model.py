@@ -39,7 +39,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 class Model(object):
     """Fully connected neural network with no hidden layer."""
 
-    def __init__(self, metadata):
+    def __init__(self, metadata, model_config):
         """
     Args:
       metadata: an AutoDLMetadata object. Its definition can be found in
