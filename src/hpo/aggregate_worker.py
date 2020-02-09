@@ -1,19 +1,82 @@
 import logging
 import time
+from copy import deepcopy
+from pathlib import Path
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
+import yaml
 from hpbandster.core.worker import Worker
+from src.available_datasets import train_datasets
+from src.competition.run_local_test import run_baseline as evaluate_on_dataset
 
 
 class AggregateWorker(Worker):
-    def __init__(self, **kwargs):
+    def __init__(self, working_directory, **kwargs):
         super().__init__(**kwargs)
 
-    def compute(self, config_id, config, budget, working_directory, *args, **kwargs):
-        time.sleep(5)  # Remove this
+        with Path("src/configs/default.yaml").open() as in_stream:
+            self._default_config = yaml.safe_load(in_stream)
+
+        self._datasets_dir = self._default_config["cluster__datasets_dir"]
+        self._working_directory = working_directory
+
+    def _construct_model_config(self, config):
+        mc = deepcopy(self._default_config)
+
+        # yapf: disable
+        mc["autocv"]["dataset"]["cv_valid_ratio"] = config["cv_valid_ratio"]
+        mc["autocv"]["dataset"]["max_valid_count"] = config["max_valid_count"]
+        mc["autocv"]["dataset"]["log2_max_size"] = 2 ** config["log2_max_size"]
+        mc["autocv"]["dataset"]["max_times"] = config["max_times"]
+        mc["autocv"]["dataset"]["train_info_sample"] = config["train_info_sample"]
+        mc["autocv"]["dataset"]["enough_count"]["image"] = config["enough_count_image"]
+        mc["autocv"]["dataset"]["enough_count"]["video"] = config["enough_count_video"]
+
+        mc["autocv"]["dataset"]["steps_per_epoch"] = config["steps_per_epoch"]
+        mc["autocv"]["conditions"]["early_epoch"] = config["early_epoch"]
+        mc["autocv"]["conditions"]["skip_valid_score_threshold"] = config["skip_valid_score_threshold"]
+        mc["autocv"]["conditions"]["test_after_at_least_seconds"] = config["test_after_at_least_seconds"]
+        mc["autocv"]["conditions"]["test_after_at_least_seconds_max"] = config["test_after_at_least_seconds_max"]
+        mc["autocv"]["conditions"]["test_after_at_least_seconds_step"] = config["test_after_at_least_seconds_step"]
+        mc["autocv"]["conditions"]["threshold_valid_score_diff"] = config["threshold_valid_score_diff"]
+        mc["autocv"]["conditions"]["max_inner_loop_ratio"] = config["max_inner_loop_ratio"]
+
+        mc["autocv"]["optimizer"]["lr"] = config["lr"]
+        mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]
+        mc["autocv"]["dataset"]["batch_size"] = config["batch_size"]
+        # yapf: enable
+
+        return mc
+
+    def _run_on_dataset(self, dataset, config_experiment_path, model_config):
+        experiment_path = config_experiment_path / dataset
+        dataset_path = Path(self._datasets_dir, dataset)
+
+        dataset_score = evaluate_on_dataset(
+            dataset_dir=str(dataset_path),
+            code_dir="src",
+            experiment_dir=str(experiment_path),
+            time_budget=60,  # seconds, TODO: this changes behavior
+            overwrite=True,
+            model_config_name=None,
+            model_config=model_config
+        )
+        return dataset_score
+
+    def compute(self, config_id, config, budget, *args, **kwargs):
+        config_id_formated = "_".join(map(str, config_id))
+        config_experiment_path = Path(self._working_directory, config_id_formated, str(budget))
+
+        model_config = self._construct_model_config(config)
+        scores = [
+            self._run_on_dataset(dataset, config_experiment_path, model_config)
+            for dataset in train_datasets
+        ]
+        mean_score = sum(scores) / len(scores)  # TODO: use improvement scores + is mean correct?
+
         return ({
-            'loss': 1,  # remember: HpBandSter always minimizes!
+            'loss': -mean_score,  # remember: HpBandSter always minimizes!
             'info': {}
         })
 
@@ -51,7 +114,7 @@ class AggregateWorker(Worker):
             "test_after_at_least_seconds_max", lower=60, upper=120)
         test_after_at_least_seconds_step = CSH.UniformIntegerHyperparameter(
             "test_after_at_least_seconds_step", lower=2, upper=10)
-        threshold_valid_score_diff = CSH.UniformIntegerHyperparameter(
+        threshold_valid_score_diff = CSH.UniformFloatHyperparameter(
             "threshold_valid_score_diff", lower=0.0001, upper=0.01, log=True)
         max_inner_loop_ratio = CSH.UniformFloatHyperparameter(
             "max_inner_loop_ratio", lower=0.1, upper=0.3)
@@ -78,10 +141,10 @@ class AggregateWorker(Worker):
 
 
 if __name__ == "__main__":
-    worker = AggregateWorker(run_id='0')
+    worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker', run_id='0')
     cs = worker.get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
     print(config)
-    res = worker.compute(config=config, budget=1, working_directory='.')
+    res = worker.compute(config=config, config_id=(0, 0, 0), budget=1)
     print(res)

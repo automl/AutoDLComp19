@@ -16,7 +16,7 @@ from src.hpo.aggregate_worker import AggregateWorker
 
 def run_worker(args):
     time.sleep(5)  # short artificial delay to make sure the nameserver is already running
-    w = AggregateWorker(run_id=args.run_id, host=args.host)
+    w = AggregateWorker(run_id=args.run_id, host=args.host, working_directory=args.log_path)
     w.load_nameserver_credentials(working_directory=args.log_path)
     w.run(background=False)
 
@@ -33,6 +33,7 @@ def run_master(args):
         host=args.host,
         nameserver=ns_host,
         nameserver_port=ns_port,
+        working_directory=args.log_path,
     )
     w.run(background=True)
 
