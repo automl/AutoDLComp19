@@ -124,7 +124,7 @@ def get_configspace():
 
 
 class Worker(Worker):
-    def __init__(self, working_directory, n_repeat, **kwargs):
+    def __init__(self, working_directory, n_repeat, dataset, **kwargs):
         super().__init__(**kwargs)
 
         with Path("src/configs/default.yaml").open() as in_stream:
@@ -133,21 +133,22 @@ class Worker(Worker):
         self._datasets_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
         self.n_repeat = n_repeat
+        self.dataset = dataset
 
 
-    def compute(self, config_id, config, budget, dataset, *args, **kwargs):
+    def compute(self, config_id, config, budget, *args, **kwargs):
         config_id_formated = "_".join(map(str, config_id))
         config_experiment_path = Path(self._working_directory, config_id_formated, str(budget))
 
         model_config = _construct_model_config(config, default_config=self._default_config)
-        repetition_scores, repetition_mean = _run_on_dataset(dataset,
+        repetition_scores, repetition_mean = _run_on_dataset(self.dataset,
                                                          config_experiment_path,
                                                          model_config,
                                                          dataset_dir=self._dataset_dir,
                                                          n_repeat=self.n_repeat
                                                          )
 
-        info = {"{}_repetition_{}_score".format(dataset, n): score for n, score in enumerate(repetition_scores)}
+        info = {"{}_repetition_{}_score".format(self.dataset, n): score for n, score in enumerate(repetition_scores)}
 
         return ({
             'loss': -repetition_mean,  # remember: HpBandSter always minimizes!
