@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#SBATCH -p ml_gpu-rtx2080-x
-#SBATCH -t 02-00:00
+#SBATCH -p bosch_gpu-rtx2080
+#SBATCH -t 00-16:00
 #SBATCH -a 1-6
 
-#SBATCH --gres=gpu:10
+#SBATCH --gres=gpu:5
+#SBATCH --mem 16000
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 26000
 
-#SBATCH -o experiments/kakaobrain_optimized_per_dataset/%A-%a.%x.out
-#SBATCH -e experiments/kakaobrain_optimized_per_dataset/%A-%a.%x.err
+#SBATCH -o experiments/kakaobrain_optimized_per_dataset_%A-%a.%x.out
+#SBATCH -e experiments/kakaobrain_optimized_per_dataset_%A-%a.%x.err
 #SBATCH --job-name kakaobrain_optimized_per_dataset
 
 source .miniconda/bin/activate autodl
