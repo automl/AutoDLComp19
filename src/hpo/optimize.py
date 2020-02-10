@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 from hpbandster.optimizers import BOHB as BOHB
-from src.hpo.aggregate_worker import AggregateWorker, Worker
+from src.hpo.aggregate_worker import AggregateWorker, Worker, get_configspace
 
 
 def run_worker(args):
@@ -64,7 +64,7 @@ def run_master(args):
     # Create an optimizer
     result_logger = hpres.json_result_logger(directory=args.bohb_root_path, overwrite=False)
     optimizer = BOHB(
-        configspace=AggregateWorker.get_configspace(),
+        configspace=get_configspace(),
         run_id=args.run_id,
         nameserver=ns_host,
         nameserver_port=ns_port,
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     p.add_argument("--experiment_group", default="kakaobrain_optimized_per_dataset")
     p.add_argument("--experiment_name", default="dataset1")
 
-    p.add_argument("--n_repeat", type=int, default=None,
+    p.add_argument("--n_repeat", type=int, default=3,
                    help="Number of worker runs per dataset")
     p.add_argument("--job_id", default=None)
     p.add_argument("--seed", type=int, default=2, help="random seed")

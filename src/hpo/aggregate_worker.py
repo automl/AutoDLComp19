@@ -10,7 +10,7 @@ from src.available_datasets import train_datasets
 from src.competition.run_local_test import run_baseline as evaluate_on_dataset
 
 
-def _construct_model_config(self, config, default_config):
+def _construct_model_config(config, default_config):
     mc = deepcopy(default_config)
 
     # yapf: disable
@@ -48,7 +48,7 @@ def _run_on_dataset(dataset, config_experiment_path, model_config, dataset_dir, 
     dataset_path = Path(dataset_dir, dataset)
 
     repetition_scores = []
-    for _ in n_repeat:
+    for _ in range(n_repeat):
         score = evaluate_on_dataset(
             dataset_dir=str(dataset_path),
             code_dir="src",
@@ -144,7 +144,7 @@ class Worker(Worker):
         repetition_scores, repetition_mean = _run_on_dataset(self.dataset,
                                                          config_experiment_path,
                                                          model_config,
-                                                         dataset_dir=self._dataset_dir,
+                                                         dataset_dir=self._datasets_dir,
                                                          n_repeat=self.n_repeat
                                                          )
 
@@ -200,7 +200,7 @@ class AggregateWorker(Worker):
 
 if __name__ == "__main__":
     worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker', run_id='0')
-    cs = worker.get_configspace()
+    cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
     print(config)
