@@ -27,7 +27,7 @@ def run_worker(args):
                    host=args.host,
                    working_directory=args.bohb_root_path,
                    n_repeat=args.n_repeat,
-                   dataaset=args.dataset)
+                   dataset=args.dataset)
 
     w.load_nameserver_credentials(working_directory=args.bohb_root_path)
     w.run(background=False)
