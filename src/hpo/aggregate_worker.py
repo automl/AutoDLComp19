@@ -190,7 +190,6 @@ class AggregateWorker(Worker):
                 for n, (repetition_scores, repetition_mean) in enumerate(score_results_tuples)
                 for score in repetition_scores}
 
-
         return ({
             'loss': -scores_mean_over_datasets,  # remember: HpBandSter always minimizes!
             'info': info

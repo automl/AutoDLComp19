@@ -122,7 +122,6 @@ if __name__ == '__main__':
     p.add_argument("--optimize_generalist", action="store_true",
                    help="If set, optimize the average score over all datasets. "
                         "Otherwise optimize individual configs per dataset")
-    p.set_defaults(optimize_generalist=False)
     # fmt: on
 
     args = p.parse_args()
