@@ -11,12 +11,16 @@ import numpy as np
 import tensorflow as tf
 import torch
 from hpbandster.optimizers import BOHB as BOHB
-from src.hpo.aggregate_worker import AggregateWorker
+from src.hpo.aggregate_worker import AggregateWorker, Worker
 
 
 def run_worker(args):
     time.sleep(5)  # short artificial delay to make sure the nameserver is already running
-    w = AggregateWorker(run_id=args.run_id, host=args.host, working_directory=args.log_path)
+    # TODO: control which worker (aggregate or non-aggregate)
+    if args.optimize_generalist:
+        w = AggregateWorker(run_id=args.run_id, host=args.host, working_directory=args.log_path)
+    else:
+        w = Worker(run_id=args.run_id, host=args.host, working_directory=args.log_path)
     w.load_nameserver_credentials(working_directory=args.log_path)
     w.run(background=False)
 
@@ -28,13 +32,22 @@ def run_master(args):
     ns_host, ns_port = NS.start()
 
     # Start a background worker for the master node
-    w = AggregateWorker(
-        run_id=args.run_id,
-        host=args.host,
-        nameserver=ns_host,
-        nameserver_port=ns_port,
-        working_directory=args.log_path,
-    )
+    if args.optimize_generalist:
+        w = AggregateWorker(
+            run_id=args.run_id,
+            host=args.host,
+            nameserver=ns_host,
+            nameserver_port=ns_port,
+            working_directory=args.log_path,
+        )
+    else:
+        w = Worker(
+            run_id=args.run_id,
+            host=args.host,
+            nameserver=ns_host,
+            nameserver_port=ns_port,
+            working_directory=args.log_path,
+        )
     w.run(background=True)
 
     # Create an optimizer
@@ -60,7 +73,7 @@ def main(args):
     args.run_id = args.job_id or args.name
     args.host = hpns.nic_name_to_host(args.nic_name)
 
-    args.log_path = str(Path("experiments", args.experiment_group, args.run_id))
+    args.bohb_root = str(Path("experiments", args.experiment_group, args.run_id))
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -80,16 +93,19 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     # fmt: off
-    p.add_argument("--experiment_group", default="test")
-    p.add_argument(
-        "--name",
-        default="test_1",
-    )
-    p.add_argument("--job_id", default=None)
+    p.add_argument("--experiment_group", default="test")  # per-dataset-optimized
+    p.add_argument("--experiment_name", default="test_1",)  # dataset
+
+    p.add_argument("--n_repeat", type=int, default=None,
+                   help="Number of worker runs per dataset")
+    p.add_argument("--job_id", default=None)  # $SLURM_ARRAY_JOB_ID
     p.add_argument("--seed", type=int, default=2, help="random seed")
-    p.add_argument("--n_iterations", type=int, default=3, help="")
+    p.add_argument("--n_iterations", type=int, default=3, help="")  # SH iterations, unclear how many configs are sampled --> check how many configs are sampled
     p.add_argument("--nic_name", default="lo", help="The network interface to use")
-    p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
+    p.add_argument("--worker", action="store_true", help="Make this execution a worker server")  # if $SLURM_ARRAY_JOB_ID == 0 = master else worker
+    p.add_argument("--optimize_generalist", action="store_true",
+                   help="If set, optimize the average score over all datasets. Otherwise optimize individual configs per dataset")
+    p.set_defaults(optimize_generalist=False)
     # fmt: on
 
     args = p.parse_args()

@@ -98,7 +98,8 @@ def main(*argv):
         return os.path.abspath(os.path.join(h, *args))
 
     starting_kit_dir = _HERE()
-    public_date_dir = os.path.join(starting_kit_dir, "public_data")
+    #public_date_dir = os.path.join(starting_kit_dir, "public_data")
+    public_date_dir = "/data/aad/image_datasets/public_datasets/"
 
     for dataset_name in dataset_names:
         msg = "Downloading data files and solution file for the dataset {}...".format(dataset_name)
