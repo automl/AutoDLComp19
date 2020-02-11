@@ -11,3 +11,7 @@ src/winner_cv/models/*
 
 # Local datasets
 datasets/*
+
+
+# Submission args
+submission/*.args
