@@ -1,12 +1,14 @@
+# TODO: uncomment datasets
+
 train_datasets = [
-    "Chucky",
-    "Hammer",
-    "Hmdb51",
-    "Kreatur",
-    "Munster",
-    "Pedro",
-    "SMv2",
-    "Ucf101",
+    #"Chucky",
+    #"Hammer",
+    #"Hmdb51",
+    #"Kreatur",
+    #"Munster",
+    #"Pedro",
+    #"SMv2",
+    #"Ucf101",
     "binary_alpha_digits",
     "caltech101",
     "caltech_birds2010",

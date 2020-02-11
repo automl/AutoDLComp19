@@ -23,13 +23,20 @@ def run_worker(args):
         w = AggregateWorker(run_id=args.run_id,
                             host=args.host,
                             working_directory=args.bohb_root_path,
-                            n_repeat=args.n_repeat)
+                            n_repeat=args.n_repeat,
+                            time_budget=args.time_budget,
+                            time_budget_approx=args.time_budget_approx
+                            )
     else:
         w = SingleWorker(run_id=args.run_id,
                    host=args.host,
                    working_directory=args.bohb_root_path,
                    n_repeat=args.n_repeat,
-                   dataset=args.dataset)
+                   dataset=args.dataset,
+                   time_budget=args.time_budget,
+                   time_budget_approx=args.time_budget_approx
+
+                   )
 
     w.load_nameserver_credentials(working_directory=args.bohb_root_path)
     w.run(background=False)
@@ -49,7 +56,9 @@ def run_master(args):
             nameserver=ns_host,
             nameserver_port=ns_port,
             working_directory=args.bohb_root_path,
-            n_repeat=args.n_repeat
+            n_repeat=args.n_repeat,
+            time_budget=args.time_budget,
+            time_budget_approx=args.time_budget_approx
         )
     else:
         w = SingleWorker(
@@ -59,7 +68,9 @@ def run_master(args):
             nameserver_port=ns_port,
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
-            dataset=args.dataset
+            dataset=args.dataset,
+            time_budget=args.time_budget,
+            time_budget_approx=args.time_budget_approx
         )
     w.run(background=True)
 
@@ -124,7 +135,12 @@ if __name__ == '__main__':
     p.add_argument("--optimize_generalist", action="store_true",
                    help="If set, optimize the average score over all datasets. "
                         "Otherwise optimize individual configs per dataset")
-    # fmt: on
+
+    p.add_argument("--time_budget_approx", type=int, default=60,
+                   help="Specifies <lower_time> to simulate cutting a run with "
+                        "budget <actual_time> after <lower-time> seconds.")
+    p.add_argument("--time_budget", type=int, default=1200,
+                   help="Specifies <actual_time> (see argument --time_budget_approx")
 
     args = p.parse_args()
     main(args)
