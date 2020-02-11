@@ -2,7 +2,7 @@
 
 #SBATCH -p bosch_gpu-rtx2080
 #SBATCH -t 00-24:00
-#SBATCH -a 1-20 # array size
+#SBATCH -a 1-28 # array size
 
 #SBATCH --gres=gpu:5
 #SBATCH --mem 16000
