@@ -232,6 +232,7 @@ def ingestion_fn(
     dataset_dir,
     code_dir,
     time_budget,
+    time_budget_approx,
     output_dir,
     score_dir,
     model_config_name=None,
@@ -368,9 +369,9 @@ def ingestion_fn(
             logger.info("Begin training the model...")
             M.train(D_train.get_dataset(), remaining_time_budget=remaining_time_budget)
             logger.info("Finished training the model.")
-            remaining_time_budget = start + time_budget - time.time()
             # Make predictions using the trained model
             logger.info("Begin testing the model by making predictions " + "on test set...")
+            remaining_time_budget = start + time_budget - time.time()
             Y_pred = M.test(D_test.get_dataset(), remaining_time_budget=remaining_time_budget)
             logger.info("Finished making predictions.")
             if Y_pred is None:  # Stop train/predict process if Y_pred is None
@@ -386,6 +387,9 @@ def ingestion_fn(
                             correct_prediction_shape, prediction_shape
                         )
                     )
+            remaining_time_budget = start + time_budget_approx - time.time()
+            if remaining_time_budget < 0:
+                break
             # Write timestamp to 'start.txt'
             write_timestamp(output_dir, predict_idx=prediction_order_number, timestamp=time.time())
             # Prediction files: adult.predict_0, adult.predict_1, ...
@@ -399,10 +403,9 @@ def ingestion_fn(
                     time.time() - start
                 )
             )
-            remaining_time_budget = start + time_budget - time.time()
+            remaining_time_budget = start + time_budget_approx - time.time()
             logger.info("[+] Time left {0:.2f} sec".format(remaining_time_budget))
-            if remaining_time_budget <= 0:
-                break
+
     except Exception as e:
         ingestion_success = False
         logger.info("Failed to run ingestion.")

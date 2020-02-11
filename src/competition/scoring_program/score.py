@@ -506,23 +506,6 @@ def end_file_generated(prediction_dir):
     return os.path.isfile(end_filepath)
 
 
-def is_process_alive(pid):
-    """Check if a process is alive according to its PID."""
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    else:
-        return True
-
-
-def terminate_process(pid):
-    """Kill a process according to its PID."""
-    process = psutil.Process(pid)
-    process.terminate()
-    logger.debug("Terminated process with pid={} in scoring.".format(pid))
-
-
 class IngestionError(Exception):
     pass
 
@@ -867,13 +850,6 @@ class Evaluator(object):
     def end_file_generated(self):
         return end_file_generated(self.prediction_dir)
 
-    def ingestion_is_alive(self):
-        return is_process_alive(self.ingestion_pid)
-
-    def kill_ingestion(self):
-        terminate_process(self.ingestion_pid)
-        assert not self.ingestion_is_alive()
-
     def prediction_filename_pattern(self):
         return "{}.predict_*".format(self.task_name)
 
@@ -1126,34 +1102,6 @@ def score_fn(solution_dir, prediction_dir, score_dir):
     ingestion_start = evaluator.ingestion_start
     time_budget = evaluator.time_budget
 
-    try:
-        while time.time() < ingestion_start + time_budget:
-            if evaluator.end_file_generated():
-                logger.info(
-                    "Detected ingestion program had stopped running " +
-                    "because an 'end.txt' file is written by ingestion. " + "Stop scoring now."
-                )
-                evaluator.scoring_success = True
-                break
-            time.sleep(1)
-
-            ### Fetch new predictions, compute their scores and update variables ###
-            evaluator.score_new_predictions()
-            ########################################################################
-
-            logger.debug("Prediction files so far: {}".format(evaluator.prediction_files_so_far))
-        else:  # When time budget is used up, kill ingestion
-            if evaluator.ingestion_is_alive():
-                evaluator.time_limit_exceeded = True
-                evaluator.kill_ingestion()
-                logger.info(
-                    "Detected time budget is used up. Killed ingestion and " +
-                    "terminating scoring..."
-                )
-    except Exception as e:
-        evaluator.scoring_success = False
-        logger.error("[-] Error occurred in scoring:\n" + str(e), exc_info=True)
-
     evaluator.score_new_predictions()
 
     logger.info(
@@ -1200,8 +1148,6 @@ def score_fn(solution_dir, prediction_dir, score_dir):
                 "Predictions made so far will be used for evaluation."
             )
         else:  # Less probable to fall in this case
-            if evaluator.ingestion_is_alive():
-                evaluator.kill_ingestion()
             logger.error(
                 "[-] No 'end.txt' file is produced by ingestion. " +
                 "Ingestion or scoring may have not terminated normally."

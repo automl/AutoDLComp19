@@ -92,6 +92,7 @@ def run_baseline(
     code_dir,
     experiment_dir,
     time_budget,
+    time_budget_approx,
     overwrite,
     model_config_name=None,
     model_config=None
@@ -117,6 +118,7 @@ def run_baseline(
         dataset_dir,
         code_dir,
         time_budget,
+        time_budget_approx,
         ingestion_output_dir,
         score_dir,
         model_config_name=model_config_name,
@@ -137,12 +139,13 @@ if __name__ == "__main__":
 
     default_dataset_dir = os.path.join(_HERE(), "sample_data", "miniciao")
     parser.add_argument("--dataset_dir", default=default_dataset_dir, help=" ")
-    parser.add_argument("--experiment_dir", default="experiments/default", help=" ")
+    parser.add_argument("--experiment_dir", default="experiments/test/default", help=" ")
     parser.add_argument(
         "--model_config_name", default="default.yaml", help="The config in src/configs to use"
     )
     parser.add_argument("--code_dir", default="src", help=" ")
     parser.add_argument("--time_budget", type=int, default=1200, help=" ")
+    parser.add_argument("--time_budget_approx", type=int, default=1200, help=" ")
     parser.add_argument("--overwrite", action="store_true", help="Do not delete submission dir")
 
     args = parser.parse_args()
@@ -150,8 +153,12 @@ if __name__ == "__main__":
     dataset_dir = args.dataset_dir
     code_dir = args.code_dir
     time_budget = args.time_budget
+    time_budget_approx = args.time_budget_approx
     overwrite = args.overwrite
     model_config_name = args.model_config_name
     experiment_dir = args.experiment_dir
 
-    run_baseline(dataset_dir, code_dir, experiment_dir, time_budget, overwrite, model_config_name)
+    run_baseline(
+        dataset_dir, code_dir, experiment_dir, time_budget, time_budget_approx, overwrite,
+        model_config_name
+    )

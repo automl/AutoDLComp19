@@ -8,7 +8,7 @@ Activate a conda python3.5 environment then run
 ```bash
 bash install/requirements_gcc.sh
 pip install -r install/requirements.txt
-bash install/requirements_torch.sh
+bash install/requirements_torch_cuda100.sh
 bash install/install_precommit.sh
 bash install/install_just.sh
 bash install/install_winner_cv.sh
@@ -27,10 +27,12 @@ python -m src.competition.run_local_test \
     --code_dir src \
     --model_config_name CONFIG.yaml \
     --experiment_dir EXPERIMENT_DIR \
-    --time_budget 1200
+    --time_budget 1200 \
 ```
 
 CONFIG corresponds to one of the names of the general configs in `src/configs/`. If this argument is ommited, `src/configs/default.yaml` is used.
+
+You can use `--time_budget_approx <LOWER_TIME>` and `--time_budget <ACTUAL_TIME>` to simulate cutting a run with budget `<ACTUAL_TIME>` after `<LOWER_TIME>` seconds.
 
 If you want to overwrite the output dir (for repeated local testing for example), supply the `--overwrite` flag.
 
