@@ -1,3 +1,5 @@
+# TODO: uncomment datasets
+
 train_datasets = [
     #"Chucky",
     #"Hammer",
