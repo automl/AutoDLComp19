@@ -84,7 +84,7 @@ def main(args):
     args.run_id = args.job_id or args.experiment_name
     args.host = hpns.nic_name_to_host(args.nic_name)
 
-    args.bohb_root_path = str(Path("experiments", args.experiment_group, args.run_id))
+    args.bohb_root_path = str(Path("experiments", args.experiment_group, args.experiment_name))
 
     args.dataset = args.experiment_name
 
