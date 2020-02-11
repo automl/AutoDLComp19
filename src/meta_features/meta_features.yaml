@@ -1,0 +1,168 @@
+binary_alpha_digits:
+  num_channels: 1
+  num_classes: 36
+  resolution: !!python/tuple
+  - 16
+  - 20
+  sequence_size: 1
+caltech101:
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+caltech_birds2010:
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+caltech_birds2011:
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+cats_vs_dogs:
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+cifar10:
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cifar100:
+  num_channels: 3
+  num_classes: 100
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+coil100:
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+colorectal_histology:
+  num_channels: 3
+  num_classes: 8
+  resolution: !!python/tuple
+  - 150
+  - 150
+  sequence_size: 1
+deep_weeds:
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+emnist:
+  num_channels: 1
+  num_classes: 62
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+eurosat:
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+fashion_mnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+horses_or_humans:
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 300
+  - 300
+  sequence_size: 1
+kmnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+mnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+oxford_flowers102:
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+oxford_iiit_pet:
+  num_channels: 3
+  num_classes: 37
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+patch_camelyon:
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 96
+  - 96
+  sequence_size: 1
+rock_paper_scissors:
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 300
+  - 300
+  sequence_size: 1
+smallnorb:
+  num_channels: 1
+  num_classes: 5
+  resolution: !!python/tuple
+  - 96
+  - 96
+  sequence_size: 1
+svhn_cropped:
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+tf_flowers:
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+uc_merced:
+  num_channels: 3
+  num_classes: 21
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
