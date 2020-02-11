@@ -26,7 +26,8 @@ python -m src.competition.run_local_test \
     --dataset_dir DATASET_DIR \
     --code_dir src \
     --model_config_name CONFIG.yaml \
-    --experiment_dir EXPERIMENT_DIR \
+    --experiment_group EXPERIMENT_GROUP \
+    --experiment_name EXPERIMENT_NAME \
     --time_budget 1200 \
 ```
 

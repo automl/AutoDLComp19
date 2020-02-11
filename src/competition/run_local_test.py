@@ -44,6 +44,7 @@ import shutil  # for deleting a whole directory
 import time
 import webbrowser
 from multiprocessing import Process
+from pathlib import Path
 
 import tensorflow as tf
 from src.competition.ingestion_program.ingestion import ingestion_fn
@@ -139,7 +140,8 @@ if __name__ == "__main__":
 
     default_dataset_dir = os.path.join(_HERE(), "sample_data", "miniciao")
     parser.add_argument("--dataset_dir", default=default_dataset_dir, help=" ")
-    parser.add_argument("--experiment_dir", default="experiments/test/default", help=" ")
+    parser.add_argument("--experiment_group", default="test", help=" ")
+    parser.add_argument("--experiment_name", default="default", help=" ")
     parser.add_argument(
         "--model_config_name", default="default.yaml", help="The config in src/configs to use"
     )
@@ -156,7 +158,7 @@ if __name__ == "__main__":
     time_budget_approx = args.time_budget_approx
     overwrite = args.overwrite
     model_config_name = args.model_config_name
-    experiment_dir = args.experiment_dir
+    experiment_dir = str(Path("experiments", args.experiment_group, args.experiment_name))
 
     run_baseline(
         dataset_dir, code_dir, experiment_dir, time_budget, time_budget_approx, overwrite,
