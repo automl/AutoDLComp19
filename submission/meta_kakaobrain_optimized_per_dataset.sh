@@ -4,8 +4,7 @@
 #SBATCH -t 00-24:00
 #SBATCH -a 1-28 # array size
 
-#SBATCH --gres=gpu:5
-#SBATCH --mem 16000
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
 
 #SBATCH -o experiments/kakaobrain_optimized_per_dataset_%A-%a.%x.out
