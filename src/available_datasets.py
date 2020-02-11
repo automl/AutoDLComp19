@@ -24,3 +24,5 @@ train_datasets = [
 ]
 
 val_datasets = ["Decal", "Katze", "coil100", "kmnist", "oxford_flowers102"]
+
+all_datasets = train_datasets + val_datasets
