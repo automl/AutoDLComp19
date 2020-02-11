@@ -1,6 +1,8 @@
+import sys
+import os
+sys.path.append(os.getcwd())
 import argparse
-import logging
-import pickle
+
 import random
 import time
 from pathlib import Path
@@ -11,7 +13,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 from hpbandster.optimizers import BOHB as BOHB
-from src.hpo.aggregate_worker import AggregateWorker, Worker, get_configspace
+from src.hpo.aggregate_worker import AggregateWorker, SingleWorker, get_configspace
 
 
 def run_worker(args):
@@ -23,7 +25,7 @@ def run_worker(args):
                             working_directory=args.bohb_root_path,
                             n_repeat=args.n_repeat)
     else:
-        w = Worker(run_id=args.run_id,
+        w = SingleWorker(run_id=args.run_id,
                    host=args.host,
                    working_directory=args.bohb_root_path,
                    n_repeat=args.n_repeat,
@@ -50,7 +52,7 @@ def run_master(args):
             n_repeat=args.n_repeat
         )
     else:
-        w = Worker(
+        w = SingleWorker(
             run_id=args.run_id,
             host=args.host,
             nameserver=ns_host,

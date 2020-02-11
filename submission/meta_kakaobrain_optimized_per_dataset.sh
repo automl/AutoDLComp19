@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH -p bosch_gpu-rtx2080
-#SBATCH -t 00-16:00
-#SBATCH -a 1-6
+#SBATCH -t 00-24:00
+#SBATCH -a 1-6 # array size
 
 #SBATCH --gres=gpu:5
 #SBATCH --mem 16000
@@ -14,23 +14,26 @@
 
 source ~/.miniconda/bin/activate autodl
 
-if [ $SLURM_ARRAY_TASK_ID -eq 1 ]; then
+if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
 fi
-if [ $SLURM_ARRAY_TASK_ID -eq 2 ]; then
+
+if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 fi
 
-if [ $SLURM_ARRAY_TASK_ID -eq 3 ]; then
+if [ 3 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="cifar10" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
 fi
-if [ $SLURM_ARRAY_TASK_ID -eq 4 ]; then
+
+if [ 4 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="cifar10" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 fi
 
-if [ $SLURM_ARRAY_TASK_ID -eq 5 ]; then
+if [ 5 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="caltech101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
 fi
-if [ $SLURM_ARRAY_TASK_ID -eq 6 ]; then
+
+if [ 6 -eq $SLURM_ARRAY_TASK_ID ]; then
   python src/hpo/optimize.py --experiment_name="caltech101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 fi

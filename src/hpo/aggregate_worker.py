@@ -123,7 +123,7 @@ def get_configspace():
     return cs
 
 
-class Worker(Worker):
+class SingleWorker(Worker):
     def __init__(self, working_directory, n_repeat, dataset, **kwargs):
         super().__init__(**kwargs)
 
@@ -175,7 +175,7 @@ class AggregateWorker(Worker):
         model_config = _construct_model_config(config, default_config=self._default_config)
         score_results_tuples = [
             _run_on_dataset(dataset, config_experiment_path, model_config,
-                            dataset_dir=self._dataset_dir, n_repeat=self.n_repeat)
+                            dataset_dir=self._datasets_dir, n_repeat=self.n_repeat)
             for dataset in train_datasets
         ]
 
@@ -198,7 +198,16 @@ class AggregateWorker(Worker):
 
 
 if __name__ == "__main__":
-    worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker', run_id='0')
+    # worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker',
+    #                          n_repeat=1,
+    #                          run_id='0'
+    #                          )
+
+    worker = SingleWorker(working_directory='experiments/test/test_aggregate_worker',
+                             n_repeat=1,
+                             run_id='0',
+                             dataset="emnist"
+                             )
     cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
