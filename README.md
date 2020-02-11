@@ -41,6 +41,17 @@ If you want to overwrite the output dir (for repeated local testing for example)
 
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
+
+### Pre-Computing meta features
+
+To pre-compute meta features run
+
+```bash
+python -m src.meta_features.precompute_meta_features --dataset_path DATASET_PATH
+```
+
+the default output_path is `src/meta_features/meta_features.yaml`.
+
 ### Making a submission
 
 To create a submission `.zip` for the codalab platform run
