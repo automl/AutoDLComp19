@@ -130,7 +130,7 @@ class SingleWorker(Worker):
         with Path("src/configs/default.yaml").open() as in_stream:
             self._default_config = yaml.safe_load(in_stream)
 
-        self._datasets_dir = self._default_config["cluster_datasets_dir"]
+        self._dataset_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
         self.n_repeat = n_repeat
         self.dataset = dataset
@@ -144,7 +144,7 @@ class SingleWorker(Worker):
         repetition_scores, repetition_mean = _run_on_dataset(self.dataset,
                                                          config_experiment_path,
                                                          model_config,
-                                                         dataset_dir=self._datasets_dir,
+                                                         dataset_dir=self._dataset_dir,
                                                          n_repeat=self.n_repeat
                                                          )
 
@@ -163,7 +163,7 @@ class AggregateWorker(Worker):
         with Path("src/configs/default.yaml").open() as in_stream:
             self._default_config = yaml.safe_load(in_stream)
 
-        self._datasets_dir = self._default_config["cluster_datasets_dir"]
+        self._dataset_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
         self.n_repeat = n_repeat
 
@@ -175,7 +175,7 @@ class AggregateWorker(Worker):
         model_config = _construct_model_config(config, default_config=self._default_config)
         score_results_tuples = [
             _run_on_dataset(dataset, config_experiment_path, model_config,
-                            dataset_dir=self._datasets_dir, n_repeat=self.n_repeat)
+                            dataset_dir=self._dataset_dir, n_repeat=self.n_repeat)
             for dataset in train_datasets
         ]
 
