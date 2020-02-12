@@ -15,3 +15,7 @@ datasets/*
 
 # Submission args
 submission/*.args
+
+
+# PyCharm
+**/.idea
