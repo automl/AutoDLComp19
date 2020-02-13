@@ -3,7 +3,9 @@ extra_packages: []  # Paths
 active_model_files: []  # With respect to model_dir
 
 # Cluster
-cluster_datasets_dir: /data/aad/image_datasets/challenge/
+#cluster_datasets_dir: /data/aad/image_datasets/challenge/
+#cluster_datasets_dir: /data/aad/image_datasets/public_datasets
+cluster_datasets_dir: /data/aad/video_datasets/challenge
 cluster_model_dir: /home/ferreira/autodl_data/models
 
 # AutoCV, defaults from kakaobrain

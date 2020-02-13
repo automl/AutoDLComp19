@@ -210,10 +210,11 @@ if __name__ == "__main__":
     parser.add_argument("--n_samples", type=int, default=1)  # per dataset use one meta-feature
 
     """ AutoFolio arguments """
-    parser.add_argument("--wallclock_limit", type=str, default=str(60))  # per dataset use one meta-feature
+    parser.add_argument("--wallclock_limit", type=str, default=str(60))
     parser.add_argument("--maximize", type=bool, default=True)  # per dataset use one meta-feature
     parser.add_argument("--autofolio_model_path", type=str, default="/home/ferreira/autodl_data/autofolio_models/first_submission/model")
     parser.add_argument("--verbose", type=str, default="INFO")  # ERROR, WARNING etc.
+    parser.add_argument("--tune", type=bool, default=True)
 
     AutoFolioPipelineArgs = parser.parse_args()
     autofolio_pipeline = AutoFolioPipeline(args=AutoFolioPipelineArgs)
