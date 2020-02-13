@@ -127,8 +127,7 @@ if __name__ == '__main__':
     p.add_argument("--job_id", default=None)
     p.add_argument("--seed", type=int, default=2, help="random seed")
 
-    # TODO: check how many configs are sampled here
-    p.add_argument("--n_iterations", type=int, default=3, help="")
+    p.add_argument("--n_iterations", type=int, default=100, help="Number of evaluations per BOHB run")
 
     p.add_argument("--nic_name", default="lo", help="The network interface to use")
     p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
@@ -136,7 +135,7 @@ if __name__ == '__main__':
                    help="If set, optimize the average score over all datasets. "
                         "Otherwise optimize individual configs per dataset")
 
-    p.add_argument("--time_budget_approx", type=int, default=60,
+    p.add_argument("--time_budget_approx", type=int, default=90,
                    help="Specifies <lower_time> to simulate cutting a run with "
                         "budget <actual_time> after <lower-time> seconds.")
     p.add_argument("--time_budget", type=int, default=1200,
