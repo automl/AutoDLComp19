@@ -34,7 +34,5 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
     args = parser.parse_args()
 
-    experiment_group_dir = "/home/ferreira/autodl_data/experiments/kakaobrain_optimized_per_dataset"
-
     for experiment_path in args.experiment_group_dir.iterdir():
         incumbent_to_config(experiment_path, args.configs_path, args.output_dir)
