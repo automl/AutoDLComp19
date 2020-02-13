@@ -1,58 +1,34 @@
-import numpy as np
-from copy import deepcopy
 from pathlib import Path
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
+import numpy as np
 import yaml
 from hpbandster.core.worker import Worker
 from src.available_datasets import train_datasets
 from src.competition.run_local_test import run_baseline as evaluate_on_dataset
+from src.hpo.utils import construct_model_config
 
 
-def _construct_model_config(config, default_config):
-    mc = deepcopy(default_config)
-
-    # yapf: disable
-    mc["autocv"]["dataset"]["cv_valid_ratio"] = config["cv_valid_ratio"]
-    mc["autocv"]["dataset"]["max_valid_count"] = config["max_valid_count"]
-    mc["autocv"]["dataset"]["log2_max_size"] = 2 ** config["log2_max_size"]
-    mc["autocv"]["dataset"]["max_times"] = config["max_times"]
-    mc["autocv"]["dataset"]["train_info_sample"] = config["train_info_sample"]
-    mc["autocv"]["dataset"]["enough_count"]["image"] = config["enough_count_image"]
-    mc["autocv"]["dataset"]["enough_count"]["video"] = config["enough_count_video"]
-
-    mc["autocv"]["dataset"]["steps_per_epoch"] = config["steps_per_epoch"]
-    mc["autocv"]["conditions"]["early_epoch"] = config["early_epoch"]
-    mc["autocv"]["conditions"]["skip_valid_score_threshold"] = config["skip_valid_score_threshold"]
-    mc["autocv"]["conditions"]["test_after_at_least_seconds"] = config[
-        "test_after_at_least_seconds"]
-    mc["autocv"]["conditions"]["test_after_at_least_seconds_max"] = config[
-        "test_after_at_least_seconds_max"]
-    mc["autocv"]["conditions"]["test_after_at_least_seconds_step"] = config[
-        "test_after_at_least_seconds_step"]
-    mc["autocv"]["conditions"]["threshold_valid_score_diff"] = config["threshold_valid_score_diff"]
-    mc["autocv"]["conditions"]["max_inner_loop_ratio"] = config["max_inner_loop_ratio"]
-
-    mc["autocv"]["optimizer"]["lr"] = config["lr"]
-    mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]
-    mc["autocv"]["dataset"]["batch_size"] = config["batch_size"]
-    # yapf: enable
-
-    return mc
-
-
-def _run_on_dataset(dataset, config_experiment_path, model_config, dataset_dir, n_repeat,
-                    time_budget, time_budget_approx):
+def _run_on_dataset(
+    dataset, config_experiment_path, model_config, dataset_dir, n_repeat, time_budget,
+    time_budget_approx
+):
     experiment_path = config_experiment_path
     dataset_path = Path(dataset_dir, dataset)
 
     repetition_scores = []
     for _ in range(n_repeat):
-        score = evaluate_on_dataset(dataset_dir=str(dataset_path), code_dir="src",
-            experiment_dir=str(experiment_path), time_budget=time_budget,
-            time_budget_approx=time_budget_approx, overwrite=True, model_config_name=None,
-            model_config=model_config)
+        score = evaluate_on_dataset(
+            dataset_dir=str(dataset_path),
+            code_dir="src",
+            experiment_dir=str(experiment_path),
+            time_budget=time_budget,
+            time_budget_approx=time_budget_approx,
+            overwrite=True,
+            model_config_name=None,
+            model_config=model_config
+        )
         repetition_scores.append(score)
 
     repetition_mean = np.mean(repetition_scores)
@@ -99,17 +75,22 @@ def get_configspace():
     min_lr = CSH.UniformFloatHyperparameter('min_lr', lower=1e-8, upper=1e-5, log=True)
     # yapf: enable
 
-    cs.add_hyperparameters([cv_valid_ratio, max_valid_count, max_size, max_times, train_info_sample,
-        enough_count_video, enough_count_image, steps_per_epoch, early_epoch,
-        skip_valid_score_threshold, test_after_at_least_seconds, test_after_at_least_seconds_max,
-        test_after_at_least_seconds_step, threshold_valid_score_diff, max_inner_loop_ratio,
-        batch_size, lr, min_lr])
+    cs.add_hyperparameters(
+        [
+            cv_valid_ratio, max_valid_count, max_size, max_times, train_info_sample,
+            enough_count_video, enough_count_image, steps_per_epoch, early_epoch,
+            skip_valid_score_threshold, test_after_at_least_seconds,
+            test_after_at_least_seconds_max, test_after_at_least_seconds_step,
+            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr, min_lr
+        ]
+    )
     return cs
 
 
 class SingleWorker(Worker):
-    def __init__(self, working_directory, n_repeat, dataset, time_budget, time_budget_approx,
-                 **kwargs):
+    def __init__(
+        self, working_directory, n_repeat, dataset, time_budget, time_budget_approx, **kwargs
+    ):
         super().__init__(**kwargs)
 
         with Path("src/configs/default.yaml").open() as in_stream:
@@ -126,22 +107,26 @@ class SingleWorker(Worker):
         config_id_formated = "_".join(map(str, config_id))
         config_experiment_path = Path(self._working_directory, config_id_formated, str(budget))
 
-        model_config = _construct_model_config(config, default_config=self._default_config)
+        model_config = construct_model_config(config, default_config=self._default_config)
         repetition_scores, repetition_mean = _run_on_dataset(
-                                                 self.dataset,
-                                                 config_experiment_path,
-                                                 model_config,
-                                                 dataset_dir=self._dataset_dir,
-                                                 n_repeat=self.n_repeat,
-                                                 time_budget=self.time_budget,
-                                                 time_budget_approx=self.time_budget_approx
-                                                 )
+            self.dataset,
+            config_experiment_path,
+            model_config,
+            dataset_dir=self._dataset_dir,
+            n_repeat=self.n_repeat,
+            time_budget=self.time_budget,
+            time_budget_approx=self.time_budget_approx
+        )
 
-        info = {"{}_repetition_{}_score".format(self.dataset, n): score for n, score in
-                enumerate(repetition_scores)}
+        info = {
+            "{}_repetition_{}_score".format(self.dataset, n): score
+            for n, score in enumerate(repetition_scores)
+        }
 
-        return ({'loss': -repetition_mean,  # remember: HpBandSter always minimizes!
-            'info': info})
+        return ({
+            'loss': -repetition_mean,  # remember: HpBandSter always minimizes!
+            'info': info
+        })
 
 
 class AggregateWorker(Worker):
@@ -161,17 +146,18 @@ class AggregateWorker(Worker):
         config_id_formated = "_".join(map(str, config_id))
         config_experiment_path = Path(self._working_directory, config_id_formated, str(budget))
 
-        model_config = _construct_model_config(config, default_config=self._default_config)
-        score_results_tuples = [_run_on_dataset(
-                                                dataset,
-                                                config_experiment_path,
-                                                model_config,
-                                                dataset_dir=self._dataset_dir,
-                                                n_repeat=self.n_repeat,
-                                                time_budget=budget,
-                                                time_budget_approx=self.time_budget_approx
-                                                )
-                                for dataset in train_datasets]
+        model_config = construct_model_config(config, default_config=self._default_config)
+        score_results_tuples = [
+            _run_on_dataset(
+                dataset,
+                config_experiment_path,
+                model_config,
+                dataset_dir=self._dataset_dir,
+                n_repeat=self.n_repeat,
+                time_budget=budget,
+                time_budget_approx=self.time_budget_approx
+            ) for dataset in train_datasets
+        ]
 
         # just get the repetition means for optimization
         repetition_scores_mean_per_dataset = np.array(score_results_tuples)[:, 1]
@@ -179,12 +165,19 @@ class AggregateWorker(Worker):
         scores_mean_over_datasets = np.mean(repetition_scores_mean_per_dataset)
 
         # for the report, just use the repetition means
-        info = {"{}_repetition_{}_score".format(dataset, n): score for dataset in train_datasets for
-                n, (repetition_scores, repetition_mean) in enumerate(score_results_tuples) for score
-                in repetition_scores}
+        info = {
+            "{}_repetition_{}_score".format(dataset, n): score
+            for dataset in train_datasets
+            for n, (repetition_scores, repetition_mean) in enumerate(score_results_tuples)
+            for score in repetition_scores
+        }
 
-        return ({'loss': -scores_mean_over_datasets,  # remember: HpBandSter always minimizes!
-            'info': info})
+        return (
+            {
+                'loss': -scores_mean_over_datasets,  # remember: HpBandSter always minimizes!
+                'info': info
+            }
+        )
 
 
 if __name__ == "__main__":
@@ -195,8 +188,14 @@ if __name__ == "__main__":
     #                          time_budget_approx = 1200
     #                          )
 
-    worker = SingleWorker(working_directory='experiments/test/test_aggregate_worker', n_repeat=1,
-                          run_id='0', dataset="emnist", time_budget=60, time_budget_approx=1200)
+    worker = SingleWorker(
+        working_directory='experiments/test/test_aggregate_worker',
+        n_repeat=1,
+        run_id='0',
+        dataset="emnist",
+        time_budget=60,
+        time_budget_approx=1200
+    )
     cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
