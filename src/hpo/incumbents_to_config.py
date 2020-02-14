@@ -35,4 +35,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     for experiment_path in args.experiment_group_dir.iterdir():
-        incumbent_to_config(experiment_path, args.configs_dir, args.output_dir)
+        try:
+            incumbent_to_config(experiment_path, args.configs_dir, args.output_dir)
+        except:
+            print(experiment_path.name, " has an issue")
