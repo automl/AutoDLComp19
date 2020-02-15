@@ -2,40 +2,40 @@
 
 #SBATCH -p bosch_gpu-rtx2080
 #SBATCH -t 00-24:00
-#SBATCH -a 1-6 #array size
+#SBATCH -a 1-2 #array size
 
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
 
 #SBATCH -o experiments/kakaobrain_optimized_per_dataset_%A-%a.%x.out
 #SBATCH -e experiments/kakaobrain_optimized_per_dataset_%A-%a.%x.err
-#SBATCH --job-name kakaobrain_optimized_per_dataset_emnist
+#SBATCH --job-name kakaobrain_optimized_per_dataset_eurosat
 
 source ~/.miniconda/bin/activate autodl
 
-if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="Ucf101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
-fi
+#if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="Ucf101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
+#fi
 
-if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="Ucf101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
-fi
+#if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="Ucf101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
+#fi
 
-if [ 3 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="SMv2" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
-fi
+#if [ 3 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="SMv2" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
+#fi
 
-if [ 4 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="SMv2" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
-fi
+#if [ 4 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="SMv2" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
+#fi
 
-if [ 5 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="Hmdb51" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
-fi
+#if [ 5 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="Hmdb51" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
+#fi
 
-if [ 6 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="Hmdb51" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
-fi
+#if [ 6 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="Hmdb51" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
+#fi
 
 #if [ 7 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="Kreatur" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
@@ -80,13 +80,13 @@ fi
 #fi
 ###################################################################################
 
-if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
-fi
+#if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
+#fi
 
-if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
-  python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
-fi
+#if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
+#  python src/hpo/optimize.py --experiment_name="emnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
+#fi
 
 #if [ 3 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="cifar10" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
@@ -104,11 +104,11 @@ fi
 #  python src/hpo/optimize.py --experiment_name="caltech101" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 #fi
 #
-#if [ 7 -eq $SLURM_ARRAY_TASK_ID ]; then
+#if [ 3 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="caltech_birds2010" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
 #fi
 
-#if [ 8 -eq $SLURM_ARRAY_TASK_ID ]; then
+#if [ 4 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="caltech_birds2010" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 #fi
 
@@ -160,19 +160,19 @@ fi
 #  python src/hpo/optimize.py --experiment_name="deep_weeds" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 #fi
 #
-#if [ 21 -eq $SLURM_ARRAY_TASK_ID ]; then
-#  python src/hpo/optimize.py --experiment_name="eurosat" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
-#fi
+if [ 1 -eq $SLURM_ARRAY_TASK_ID ]; then
+  python src/hpo/optimize.py --experiment_name="eurosat" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
+fi
 
-#if [ 22 -eq $SLURM_ARRAY_TASK_ID ]; then
-#  python src/hpo/optimize.py --experiment_name="eurosat" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
-#fi
+if [ 2 -eq $SLURM_ARRAY_TASK_ID ]; then
+  python src/hpo/optimize.py --experiment_name="eurosat" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
+fi
 
-#if [ 23 -eq $SLURM_ARRAY_TASK_ID ]; then
+#if [ 5 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="fashion_mnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0
 #fi
 
-#if [ 24 -eq $SLURM_ARRAY_TASK_ID ]; then
+#if [ 6 -eq $SLURM_ARRAY_TASK_ID ]; then
 #  python src/hpo/optimize.py --experiment_name="fashion_mnist" --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --worker
 #fi
 
