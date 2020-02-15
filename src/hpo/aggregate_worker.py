@@ -188,10 +188,8 @@ if __name__ == "__main__":
     #                          time_budget_approx = 1200
     #                          )
 
-<<<<<<< HEAD
     worker = SingleWorker(working_directory='experiments/test/test_aggregate_worker', n_repeat=1,
                           run_id='0', dataset="Ucf101", time_budget=60, time_budget_approx=1200)
-=======
     worker = SingleWorker(
         working_directory='experiments/test/test_aggregate_worker',
         n_repeat=1,
@@ -200,7 +198,6 @@ if __name__ == "__main__":
         time_budget=60,
         time_budget_approx=1200
     )
->>>>>>> 52334769991339926241c0e2370fdd2279d87366
     cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
