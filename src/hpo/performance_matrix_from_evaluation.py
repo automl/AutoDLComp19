@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 from pathlib import Path
 
 
@@ -51,8 +52,20 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
     args = parser.parse_args()
 
-    df = pd.DataFrame()
+    for i, dataset_dir in enumerate(sorted(args.experiment_group_dir.iterdir())):
+        if dataset_dir.is_dir():  # iterdir also yields files
+            avg_config_scores, config_names = get_scores_dataset_x_configs(dataset_dir)
 
-    for dataset_dir in sorted(args.experiment_group_dir.iterdir()):
-        get_scores_dataset_x_configs(dataset_dir)
+            if i == 0:
+                # some datasets have been misnamed, correct here:
+                config_names = [config_name.replace("Chuck", "Chucky")
+                                for config_name in config_names]
+                config_names = [config_name.replace("colorectal_histolog", "colorectal_histology")
+                                for config_name in config_names]
 
+                df = pd.DataFrame(columns=config_names, index=config_names)
+
+            df.loc[dataset_dir.name] = avg_config_scores
+
+    df.to_pickle(path=args.experiment_group_dir / "perf_matrix.pkl")
+    df.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix.csv", float_format="%.5f")
