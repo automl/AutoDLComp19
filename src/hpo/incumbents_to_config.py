@@ -30,15 +30,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
-    # TODO: set output_dir to src/configs/kakaobrain_optimized_per_dataset_initial_02_15
     parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
     parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
     args = parser.parse_args()
 
     for experiment_path in args.experiment_group_dir.iterdir():
-        try
+        try:
             # TODO: remove if:
-            if ["caltech_birds2010", "emnist", "eurosat", "fashion_mnist"] in experiment_path:
+            if experiment_path.name in ["Katze", "Kreatur"]:
                 incumbent_to_config(experiment_path, args.configs_dir, args.output_dir)
         except:
             print(experiment_path.name, " has an issue")

@@ -119,7 +119,7 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     # fmt: off
-    p.add_argument("--experiment_group", default="kakaobrain_optimized_per_dataset")
+    p.add_argument("--experiment_group", default="kakaobrain_optimized_all_datasets")
     p.add_argument("--experiment_name", default="dataset1")
 
     p.add_argument("--n_repeat", type=int, default=3,

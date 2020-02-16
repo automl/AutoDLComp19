@@ -17,7 +17,7 @@ configs_path = Path("src/configs")
 
 
 def generate_all_commands(configs_path, commands_file, n_repeats):
-    with Path(configs_path, "default.yaml").open() as in_stream:
+    with Path(configs_path / "..", "default.yaml").open() as in_stream:
         config = yaml.safe_load(in_stream)
     base_datasets_dir = config["cluster_datasets_dir"]
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("--configs_path", default="src/configs", type=Path, help=" ")
-    parser.add_argument("--command_file_name", default="dataset_x_configs_v1.args", help=" ")
+    parser.add_argument("--command_file_name", default="dataset_x_configs_v3.args", help=" ")
     parser.add_argument("--n_repeats", default=5, type=int, help=" ")
 
     args = parser.parse_args()
