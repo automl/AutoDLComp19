@@ -2,7 +2,7 @@
 
 #SBATCH -p bosch_gpu-rtx2080
 #SBATCH -t 0-01:00
-#SBATCH -a 1-360
+#SBATCH -a 1-190
 
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
@@ -14,7 +14,7 @@
 
 source ~/.miniconda/bin/activate autodl
 
-ARGS_FILE=submission/dataset_x_configs_v2.args # ATTENTION: specify which file ot be used here
+ARGS_FILE=submission/dataset_x_configs_v4.args
 TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
 python -m src.competition.run_local_test \
