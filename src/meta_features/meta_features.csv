@@ -16,7 +16,6 @@ cifar100,3,100,32,32,1
 coil100,3,72,128,128,1
 colorectal_histology,3,8,150,150,1
 deep_weeds,3,5,256,256,1
-emnist,1,62,28,28,1
 eurosat,3,10,64,64,1
 fashion_mnist,1,10,28,28,1
 horses_or_humans,3,2,300,300,1
