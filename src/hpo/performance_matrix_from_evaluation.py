@@ -54,7 +54,11 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True):
                 config_names = [config_name.replace("colorectal_histolog", "colorectal_histology")
                                 for config_name in config_names]
 
-                df = pd.DataFrame(columns=config_names, index=config_names)
+                # remove default from indices (i.e. datasets since there are only configs of it)
+                indices = config_names.copy()
+                indices.remove("default")
+
+                df = pd.DataFrame(columns=config_names, index=indices)
 
             df.loc[dataset_dir.name] = avg_config_scores
 
