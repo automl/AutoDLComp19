@@ -1,3 +1,52 @@
+Chucky:
+  num_channels: 1
+  num_classes: 100
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+Decal:
+  num_channels: 3
+  num_classes: 11
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+Hammer:
+  num_channels: 3
+  num_classes: 7
+  resolution: !!python/tuple
+  - 400
+  - 300
+  sequence_size: 1
+Katze:
+  num_channels: 1
+  num_classes: 6
+  resolution: !!python/tuple
+  - 120
+  - 160
+  sequence_size: -1
+Kreatur:
+  num_channels: 3
+  num_classes: 6
+  resolution: !!python/tuple
+  - 60
+  - 80
+  sequence_size: -1
+Munster:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+Pedro:
+  num_channels: 3
+  num_classes: 26
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
 binary_alpha_digits:
   num_channels: 1
   num_classes: 36
@@ -68,13 +117,6 @@ deep_weeds:
   - 256
   - 256
   sequence_size: 1
-emnist:
-  num_channels: 1
-  num_classes: 62
-  resolution: !!python/tuple
-  - 28
-  - 28
-  sequence_size: 1
 eurosat:
   num_channels: 3
   num_classes: 10
@@ -113,55 +155,6 @@ mnist:
 oxford_flowers102:
   num_channels: 3
   num_classes: 102
-  resolution: !!python/tuple
-  - -1
-  - -1
-  sequence_size: 1
-oxford_iiit_pet:
-  num_channels: 3
-  num_classes: 37
-  resolution: !!python/tuple
-  - -1
-  - -1
-  sequence_size: 1
-patch_camelyon:
-  num_channels: 3
-  num_classes: 2
-  resolution: !!python/tuple
-  - 96
-  - 96
-  sequence_size: 1
-rock_paper_scissors:
-  num_channels: 3
-  num_classes: 3
-  resolution: !!python/tuple
-  - 300
-  - 300
-  sequence_size: 1
-smallnorb:
-  num_channels: 1
-  num_classes: 5
-  resolution: !!python/tuple
-  - 96
-  - 96
-  sequence_size: 1
-svhn_cropped:
-  num_channels: 3
-  num_classes: 10
-  resolution: !!python/tuple
-  - 32
-  - 32
-  sequence_size: 1
-tf_flowers:
-  num_channels: 3
-  num_classes: 5
-  resolution: !!python/tuple
-  - -1
-  - -1
-  sequence_size: 1
-uc_merced:
-  num_channels: 3
-  num_classes: 21
   resolution: !!python/tuple
   - -1
   - -1

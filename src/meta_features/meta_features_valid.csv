@@ -1,0 +1,5 @@
+,num_channels,num_classes,resolution_0,resolution_1,sequence_size
+Decal,3,11,-1,-1,1
+coil100,3,72,128,128,1
+kmnist,1,10,28,28,1
+oxford_flowers102,3,102,-1,-1,1
