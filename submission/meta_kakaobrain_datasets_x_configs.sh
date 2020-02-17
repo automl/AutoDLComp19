@@ -2,7 +2,7 @@
 
 #SBATCH -p bosch_gpu-rtx2080
 #SBATCH -t 0-01:00
-#SBATCH -a 1-190
+#SBATCH -a 1-115
 
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
@@ -10,7 +10,7 @@
 #SBATCH -o experiments/kakaobrain_datasets_x_configs_%A-%a.%x.out
 #SBATCH -e experiments/kakaobrain_datasets_x_configs_%A-%a.%x.err
 
-#SBATCH --job-name dt_x_cf
+#SBATCH --job-name def_cfg
 
 source ~/.miniconda/bin/activate autodl
 

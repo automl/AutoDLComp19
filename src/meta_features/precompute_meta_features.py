@@ -7,7 +7,7 @@ import collections
 from src.available_datasets import all_datasets, train_datasets, val_datasets
 from pathlib import Path
 from src.competition.ingestion_program.dataset import AutoDLDataset
-
+from src.utils import load_datasets_processed
 
 def convert_metadata_to_df(metadata):
     k, v = list(metadata.items())[0]
@@ -52,6 +52,56 @@ def parse_meta_features(meta_data):
     )
 
 
+def load_processed_datasets(dataset_path):
+    info = {"proc_dataset_dir": dataset_path, "datasets": all_datasets}
+    processed_datasets = load_datasets_processed(info, info["datasets"])
+    return processed_datasets
+
+
+def precompute_nn_meta_features(dataset_path, normalize_features=False):
+    processed_datasets = load_processed_datasets(dataset_path=dataset_path)
+    print("getting features ...")
+    print("using data: {}".format(dataset_path))
+
+    train_feature_data = [ds[0].dataset.numpy()
+                          for ds in processed_datasets]
+    train_feature_data = np.concatenate(train_feature_data, axis=0)
+
+    test_feature_data = [ds[1].dataset.numpy()
+                         for ds in processed_datasets]
+    test_feature_data = np.concatenate(test_feature_data, axis=0)
+
+    # TODO
+    if normalize_features:
+        raise NotImplementedError
+
+    return train_feature_data, test_feature_data, processed_datasets
+
+
+def export_nn_meta_features(dataset_path, path_export_dir, normalize_features=False, use_train_data=True):
+    train_feature_data, test_feature_data, processed_datasets = \
+        precompute_nn_meta_features(dataset_path=dataset_path, normalize_features=normalize_features)
+
+    if use_train_data:
+        features = train_feature_data
+        csv_file_name = "features_train_data.csv"
+    else:
+        features = test_feature_data
+        csv_file_name = "features_test_data.csv"
+
+    feature_dimension = features.shape[1]
+    instance_labels = [ds[2] for ds in processed_datasets]
+
+    feature_data_file_path = os.path.join(path_export_dir, csv_file_name)
+
+    df = pd.DataFrame(columns=[np.arange(feature_dimension)])
+    for i, instance_label in enumerate(instance_labels):
+        df.loc[instance_label] = features[i]
+
+    df.to_csv(feature_data_file_path, float_format="%.5f")
+    print("feature data dumped to: {}".format(feature_data_file_path))
+
+
 def dump_meta_features_df_and_csv(meta_features, output_path, split_df=True):
     df = convert_metadata_to_df(meta_features)
     if split_df:
@@ -63,9 +113,12 @@ def dump_meta_features_df_and_csv(meta_features, output_path, split_df=True):
 
         df_valid.to_csv(output_path.parent / "meta_features_valid.csv")
         df_valid.to_pickle(output_path.parent / "meta_features_valid.pkl")
+
     else:
         df.to_csv(output_path.with_suffix(".csv"))
         df.to_pickle(output_path.with_suffix(".pkl"))
+
+    print("meta features data dumped to: {}".format(output_path.parent))
 
 
 def get_meta_features_from_dataset(dataset_path):

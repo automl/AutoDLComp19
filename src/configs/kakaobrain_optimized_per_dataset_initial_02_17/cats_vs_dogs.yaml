@@ -1,0 +1,37 @@
+active_model_files: []
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 3
+    max_inner_loop_ratio: 0.2212668161691833
+    min_lr: 1.0e-06
+    score_type: auc
+    skip_valid_score_threshold: 0.8740719742395973
+    test_after_at_least_seconds: 1
+    test_after_at_least_seconds_max: 120
+    test_after_at_least_seconds_step: 4
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.0012060677100418817
+    use_fast_auto_aug: true
+  dataset:
+    base: 16
+    batch_size: 19
+    batch_size_test: 256
+    cv_valid_ratio: 0.1348016164395399
+    enough_count:
+      image: 20021
+      video: 2546
+    log2_max_size: 128
+    max_epoch: 1000
+    max_size: 64
+    max_times: 8
+    max_valid_count: 181
+    steps_per_epoch: 29
+    train_info_sample: 272
+  optimizer:
+    lr: 0.00780357699085593
+    min_lr: 9.845399328913062e-06
+cluster_datasets_dir: /data/aad/image_datasets/challenge/
+cluster_model_dir: /home/ferreira/autodl_data/models
+extra_packages: []
