@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import os
+from src.available_datasets import train_datasets, val_datasets
 from pathlib import Path
 
 
@@ -42,17 +42,8 @@ def get_scores_dataset_x_configs(dataset_dir):
     return avg_config_scores, config_names
 
 
-
-if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
-    parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
-    parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
-    args = parser.parse_args()
-
-    for i, dataset_dir in enumerate(sorted(args.experiment_group_dir.iterdir())):
+def create_df_perf_matrix(experiment_group_dir, split_df=True):
+    for i, dataset_dir in enumerate(sorted(experiment_group_dir.iterdir())):
         if dataset_dir.is_dir():  # iterdir also yields files
             avg_config_scores, config_names = get_scores_dataset_x_configs(dataset_dir)
 
@@ -66,6 +57,31 @@ if __name__ == '__main__':
                 df = pd.DataFrame(columns=config_names, index=config_names)
 
             df.loc[dataset_dir.name] = avg_config_scores
+
+    if split_df:
+        df_train = df.loc[df.index.isin(train_datasets)]
+        df_valid = df.loc[df.index.isin(val_datasets)]
+        return df, df_train, df_valid
+    else:
+        return df
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
+    parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
+    parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
+    args = parser.parse_args()
+
+    df, df_train, df_valid = create_df_perf_matrix(args.experiment_group_dir, split_df=True)
+
+    df_train.to_pickle(path=args.experiment_group_dir / "perf_matrix_train.pkl")
+    df_train.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_train.csv", float_format="%.5f")
+
+    df_valid.to_pickle(path=args.experiment_group_dir / "perf_matrix_valid.pkl")
+    df_valid.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_valid.csv", float_format="%.5f")
 
     df.to_pickle(path=args.experiment_group_dir / "perf_matrix.pkl")
     df.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix.csv", float_format="%.5f")

@@ -59,10 +59,10 @@ def dump_meta_features_df_and_csv(meta_features, output_path, split_df=True):
         df_valid = df.loc[df.index.isin(val_datasets)]
 
         df_train.to_csv(output_path.parent / "meta_features_train.csv")
-        df_train.to_pickle(output_path.parent / "meta_featres_train.pkl")
+        df_train.to_pickle(output_path.parent / "meta_features_train.pkl")
 
         df_valid.to_csv(output_path.parent / "meta_features_valid.csv")
-        df_valid.to_pickle(output_path.parent / "meta_featres_valid.pkl")
+        df_valid.to_pickle(output_path.parent / "meta_features_valid.pkl")
     else:
         df.to_csv(output_path.with_suffix(".csv"))
         df.to_pickle(output_path.with_suffix(".pkl"))
@@ -113,5 +113,5 @@ if __name__ == '__main__':
          args.dataset_path,
          args.output_path,
          dump_dataframe_csv=True,
-         split_df=True
+         split_df=False
     )
