@@ -61,7 +61,7 @@ def precompute_nn_meta_features(dataset_path,
                                 output_path,
                                 dump_dataframe_csv=True,
                                 split_df=True,
-                                n_samples_to_use=100,
+                                n_samples_to_use=50,
                                 file_name="meta_features"):
 
     processed_datasets = load_processed_datasets(dataset_path=str(dataset_path))
