@@ -37,16 +37,7 @@ import jieba_fast as jieba  # isort:skip
 
 os.system("pip install jieba_fast")
 
-CHI_WORD_LENGTH = 2
-MAX_CHAR_LENGTH = 96
-MAX_VOCAB_SIZE = 20000
-MAX_SEQ_LENGTH = 301
-MAX_VALID_PERCLASS_SAMPLE = 400
-MAX_SAMPLE_TRIAN = 18000
-MAX_TRAIN_PERCLASS_SAMPLE = 800
-
-
-def clean_en_text(dat, ratio=0.1, is_ratio=True):
+def clean_en_text(dat, max_seq_length, ratio=0.1, is_ratio=True):
 
     REPLACE_BY_SPACE_RE = re.compile('["/(){}\[\]\|@,;]')
     BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
@@ -60,9 +51,9 @@ def clean_en_text(dat, ratio=0.1, is_ratio=True):
         line_split = line.split()
 
         if is_ratio:
-            NUM_WORD = max(int(len(line_split) * ratio), MAX_SEQ_LENGTH)
+            NUM_WORD = max(int(len(line_split) * ratio), max_seq_length)
         else:
-            NUM_WORD = MAX_SEQ_LENGTH
+            NUM_WORD = max_seq_length
 
         if len(line_split) > NUM_WORD:
             line = " ".join(line_split[0:NUM_WORD])
@@ -70,7 +61,7 @@ def clean_en_text(dat, ratio=0.1, is_ratio=True):
     return ret
 
 
-def clean_zh_text(dat, ratio=0.1, is_ratio=False):
+def clean_zh_text(dat, max_char_length, ratio=0.1, is_ratio=False):
     REPLACE_BY_SPACE_RE = re.compile('[“”【】/（）：！～「」、|，；。"/(){}\[\]\|@,\.;]')
 
     ret = []
@@ -79,9 +70,9 @@ def clean_zh_text(dat, ratio=0.1, is_ratio=False):
         line = line.strip()
 
         if is_ratio:
-            NUM_CHAR = max(int(len(line) * ratio), MAX_CHAR_LENGTH)
+            NUM_CHAR = max(int(len(line) * ratio), max_char_length)
         else:
-            NUM_CHAR = MAX_CHAR_LENGTH
+            NUM_CHAR = max_char_length
 
         if len(line) > NUM_CHAR:
             # line = " ".join(line.split()[0:MAX_CHAR_LENGTH])
@@ -95,11 +86,11 @@ def _tokenize_chinese_words(text):
 
 
 class DataGenerator(object):
-    def __init__(self, train_dataset, metadata):
-
+    def __init__(self, train_dataset, metadata, model_config):
         self.meta_data_x,\
         self.meta_data_y = train_dataset
         self.metadata = metadata
+        self.model_config = model_config
 
         self.num_classes = self.metadata['class_num']
         self.num_samples_train = self.metadata['train_num']
@@ -126,8 +117,8 @@ class DataGenerator(object):
         val_index = []
         for i in range(self.num_classes):
             tmp = random.sample(all_index[i], int(len(all_index[i]) * 0.2))
-            if len(tmp) > MAX_VALID_PERCLASS_SAMPLE:
-                tmp = tmp[:MAX_VALID_PERCLASS_SAMPLE]
+            if len(tmp) > self.model_config["data_manager"]["max_valid_perclass_sample"]:
+                tmp = tmp[:self.model_config["data_manager"]["max_valid_perclass_sample"]]
             val_index += tmp
             all_index[i] = list(set(all_index[i]).difference(set(tmp)))
         self.all_index = all_index
@@ -141,11 +132,11 @@ class DataGenerator(object):
         self.max_sample_num_per_class = int(np.max(train_label_distribution) * 4 / 5)
 
         if self.sample_num_per_class is None:
-            if self.num_samples_train < MAX_SAMPLE_TRIAN:
+            if self.num_samples_train < self.model_config["data_manager"]["max_sample_train"]:
                 self.sample_num_per_class = self.max_sample_num_per_class
             else:
                 self.sample_num_per_class = min(
-                    MAX_TRAIN_PERCLASS_SAMPLE, self.max_sample_num_per_class
+                    self.model_config["data_manager"]["max_train_perclass_sample"], self.max_sample_num_per_class
                 )
         meta_train_index = []
         for i in range(self.num_classes):
@@ -174,11 +165,11 @@ class DataGenerator(object):
     def dataset_preporocess(self, x_train):
         if self.language == 'ZH':
             print("this is a ZH dataset")
-            x_train = clean_zh_text(x_train)
+            x_train = clean_zh_text(x_train, self.model_config["common"]["max_char_length"])
             word_avr = np.mean([len(i) for i in x_train])
             test_num = self.metadata['test_num']
-            chi_num_chars_train = int(word_avr * len(x_train) / CHI_WORD_LENGTH)
-            chi_num_chars_test = int(word_avr * test_num / CHI_WORD_LENGTH)
+            chi_num_chars_train = int(word_avr * len(x_train) / self.model_config["data_manager"]["chi_word_length"])
+            chi_num_chars_test = int(word_avr * test_num / self.model_config["data_manager"]["chi_word_length"])
 
             self.meta_data_feature = {
                 'chi_num_chars_train': chi_num_chars_train,
@@ -192,7 +183,7 @@ class DataGenerator(object):
         else:
             self.meta_data_feature = {'language': self.language}
             self.set_feature_mode()
-            x_train = clean_en_text(x_train)
+            x_train = clean_en_text(x_train, self.model_config["common"]["max_seq_length"])
 
         return x_train, self.feature_mode
 
@@ -274,10 +265,10 @@ class DataGenerator(object):
         if tokenizer is None:
             if feature_mode == 0:
                 tokenizer = text.Tokenizer(
-                    num_words=MAX_VOCAB_SIZE, char_level=True, oov_token="UNK"
+                    num_words=self.model_config["common"]["max_vocab_size"], char_level=True, oov_token="UNK"
                 )
             elif feature_mode == 1:
-                tokenizer = text.Tokenizer(num_words=MAX_VOCAB_SIZE)
+                tokenizer = text.Tokenizer(num_words=self.model_config["common"]["max_vocab_size"])
             tokenizer.fit_on_texts(train_contents)
         x_train = tokenizer.texts_to_sequences(train_contents)
 
@@ -290,16 +281,16 @@ class DataGenerator(object):
             print("max_length_word_training:", max_length)
             print("ave_length_word_training:", ave_length)
 
-        if max_length > MAX_SEQ_LENGTH:
-            max_length = MAX_SEQ_LENGTH
+        if max_length > self.model_config["common"]["max_seq_length"]:
+            max_length = self.model_config["common"]["max_seq_length"]
 
         x_train = sequence.pad_sequences(x_train, maxlen=max_length)
         if val_contents:
             x_val = sequence.pad_sequences(x_val, maxlen=max_length)
 
         word_index = tokenizer.word_index
-        num_features = min(len(word_index) + 1, MAX_VOCAB_SIZE)
-        print("vacab_word:", len(word_index))
+        num_features = min(len(word_index) + 1, self.model_config["common"]["max_vocab_size"])
+        print("vocab_word:", len(word_index))
         if val_contents:
             return x_train, x_val, word_index, num_features, tokenizer, max_length
         else:
