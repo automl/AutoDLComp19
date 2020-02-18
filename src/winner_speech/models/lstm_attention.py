@@ -4,7 +4,6 @@
 # @Author:  Mecthew
 
 import tensorflow as tf
-from CONSTANT import AUDIO_SAMPLE_RATE, IS_CUT_AUDIO, MAX_AUDIO_DURATION, MAX_FRAME_NUM
 from data_process import extract_mfcc_parallel, get_max_length, ohe2cat, pad_seq
 from models.attention import Attention
 from models.my_classifier import Classifier
@@ -31,18 +30,22 @@ class LstmAttention(Classifier):
         self.stft_mean, self.stft_std = None, None
 
     def preprocess_data(self, x):
-        if IS_CUT_AUDIO:
-            x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
+        if self.model_config["common"]["is_cut_audio"]:
+            x = [sample[0:self.model_config["common"]["max_audio_duration"] * self.model_config["common"]["audio_sample_rate"]] for sample in x]
         # extract mfcc
-        x_mfcc = extract_mfcc_parallel(x, n_mfcc=96)
+        x_mfcc = extract_mfcc_parallel(x,
+                                       sr=self.model_config["common"]["sr"],
+                                       fft_duration=self.model_config["common"]["fft_duration"],
+                                       hop_duration=self.model_config["common"]["hop_duration"],
+                                       n_mfcc=self.model_config["common"]["num_mfcc"])
         if self.max_length is None:
             self.max_length = get_max_length(x_mfcc)
-            self.max_length = min(MAX_FRAME_NUM, self.max_length)
+            self.max_length = min(self.model_config["common"]["max_frame_num"], self.max_length)
         x_mfcc = pad_seq(x_mfcc, pad_len=self.max_length)
 
         return x_mfcc
 
-    def init_model(self, input_shape, num_classes, **kwargs):
+    def init_model(self, input_shape, num_classes, model_config, **kwargs):
         inputs = Input(shape=input_shape)
         lstm_1 = CuDNNLSTM(128, return_sequences=True)(inputs)
         activation_1 = Activation('tanh')(lstm_1)
@@ -71,9 +74,15 @@ class LstmAttention(Classifier):
         dense_1 = Dense(units=256, activation='softplus')(dropout2)
         outputs = Dense(units=num_classes, activation='softmax')(dense_1)
 
+        self.model_config = model_config
+
         model = TFModel(inputs=inputs, outputs=outputs)
         optimizer = optimizers.Nadam(
-            lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=None, schedule_decay=0.004
+            lr=self.model_config["optimizer"]["lr"],
+            beta_1=self.model_config["optimizer"]["beta_1"],
+            beta_2=self.model_config["optimizer"]["beta_2"],
+            epsilon=self.model_config["optimizer"]["epsilon"],
+            schedule_decay=self.model_config["optimizer"]["decay"]
         )
         model.compile(
             optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy']

@@ -6,8 +6,7 @@
 import librosa
 import numpy as np
 import tensorflow as tf
-from CONSTANT import AUDIO_SAMPLE_RATE, IS_CUT_AUDIO, MAX_AUDIO_DURATION
-from data_process import extract_mfcc, extract_mfcc_parallel, get_max_length, ohe2cat, pad_seq
+from data_process import extract_mfcc_parallel, get_max_length, ohe2cat, pad_seq
 from models.my_classifier import Classifier
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.backend import clear_session
@@ -27,7 +26,7 @@ class CnnModel2D(Classifier):
         self._model = None
         self.is_init = False
 
-    def init_model(self, input_shape, num_classes, max_layer_num=5, **kwargs):
+    def init_model(self, input_shape, num_classes, model_config, max_layer_num=5, **kwargs):
         # FIXME: keras sequential model is better than keras functional api,
         # why???
         model = Sequential()
@@ -51,9 +50,19 @@ class CnnModel2D(Classifier):
         model.add(Dense(num_classes))
         model.add(Activation('softmax'))
 
+        self.model_config = model_config
+
         # optimizer = tf.keras.optimizers.SGD(lr=0.01, decay=1e-6)
 
-        optimizer = tf.keras.optimizers.Adam()
+        # Thomas' comment: copied parameters from default constructor
+        optimizer = tf.keras.optimizers.Adam(
+            lr = self.model_config["optimizer"]["lr"],
+            beta_1 = self.model_config["optimizer"]["beta_1"],
+            beta_2 = self.model_config["optimizer"]["beta_2"],
+            epsilon = self.model_config["optimizer"]["epsilon"],
+            decay = self.model_config["optimizer"]["decay"],
+            amsgrad = self.model_config["optimizer"]["amsgrad"]
+        )
         # optimizer = optimizers.SGD(lr=1e-3, decay=2e-4, momentum=0.9, clipvalue=5)
         model.compile(
             loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy']
@@ -63,10 +72,14 @@ class CnnModel2D(Classifier):
         self._model = model
 
     def preprocess_data(self, x):
-        if IS_CUT_AUDIO:
-            x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
+        if self.model_config["common"]["is_cut_audio"]:
+            x = [sample[0:self.model_config["common"]["max_audio_duration"] * self.model_config["common"]["audio_sample_rate"]] for sample in x]
         # extract mfcc
-        x = extract_mfcc_parallel(x, n_mfcc=96)
+        x = extract_mfcc_parallel(x,
+                                  sr=self.model_config["common"]["sr"],
+                                  fft_duration=self.model_config["common"]["fft_duration"],
+                                  hop_duration=self.model_config["common"]["hop_duration"],
+                                  n_mfcc=self.model_config["common"]["num_mfcc"])
         if self.max_length is None:
             self.max_length = get_max_length(x)
         x = pad_seq(x, self.max_length)
@@ -125,190 +138,6 @@ class CnnModel2D(Classifier):
 
         callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)]
 
-        self._model.fit(
-            train_x,
-            ohe2cat(train_y),
-            epochs=epochs,
-            callbacks=callbacks,
-            validation_data=(val_x, ohe2cat(val_y)),
-            verbose=1,  # Logs once per epoch.
-            batch_size=32,
-            shuffle=True
-        )
-
-    def predict(self, x_test, batch_size=32):
-        return self._model.predict(x_test, batch_size=batch_size)
-
-
-# Input of CNN1D is speech raw data， shape of each sample is
-# (sample_rate*default_duration, 1)
-class CnnModel1D(Classifier):
-    def __init__(self):
-        clear_session()
-        self.max_length = None
-        self.mean = None
-        self.std = None
-
-        self._model = None
-        self.is_init = False
-
-    def preprocess_data(self, x):
-        # extract mfcc
-        x = extract_mfcc(x)
-        if self.max_length is None:
-            self.max_length = get_max_length(x)
-        x = pad_seq(x, self.max_length)
-        # feature scale
-        if self.mean is None or self.std is None:
-            self.mean = np.mean(x)
-            self.std = np.std(x)
-            x = (x - self.mean) / self.std
-        # calculate mean of mfcc
-        x = np.mean(x, axis=-1)
-        x = x[:, :, np.newaxis]
-        return x
-
-    def init_model(self, input_shape, num_classes, **kwargs):
-        # New model
-        model = Sequential()
-        model.add(
-            Conv1D(256, 8, padding='same', input_shape=(input_shape[0], 1))
-        )  # X_train.shape[0] = No. of Columns
-        model.add(Activation('relu'))
-        model.add(Conv1D(256, 8, padding='same'))
-        model.add(BatchNormalization())
-        model.add(Activation('relu'))
-        model.add(Dropout(0.25))
-        model.add(MaxPool1D(pool_size=8))
-        model.add(Conv1D(128, 8, padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv1D(128, 8, padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv1D(128, 8, padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv1D(128, 8, padding='same'))
-        model.add(BatchNormalization())
-        model.add(Activation('relu'))
-        model.add(Dropout(0.25))
-        model.add(MaxPool1D(pool_size=8))
-        model.add(Conv1D(64, 8, padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv1D(64, 8, padding='same'))
-        model.add(Activation('relu'))
-        model.add(Flatten())
-        model.add(Dense(num_classes))  # Target class number
-        model.add(Activation('softmax'))
-        # opt = keras.optimizers.SGD(lr=0.01, momentum=0.0, decay=1e-6, nesterov=False)
-        # opt = keras.optimizers.Adam(lr=0.0001)
-        opt = optimizers.rmsprop(lr=0.0001, decay=1e-6)
-        model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=['acc'])
-        model.summary()
-        self._model = model
-        self.is_init = True
-
-    def fit(self, train_x, train_y, validation_data_fit, train_loop_num, **kwargs):
-        val_x, val_y = validation_data_fit
-        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)]
-        epochs = 10 if train_loop_num == 1 else 30
-        self._model.fit(
-            train_x,
-            ohe2cat(train_y),
-            epochs=epochs,
-            callbacks=callbacks,
-            validation_data=(val_x, ohe2cat(val_y)),
-            verbose=1,  # Logs once per epoch.
-            batch_size=32,
-            shuffle=True
-        )
-
-    def predict(self, x_test, batch_size=32):
-        return self._model.predict(x_test, batch_size=batch_size)
-
-
-# use raw wave data as input
-class CnnModelRawData(Classifier):
-    def __init__(self):
-        clear_session()
-        self.max_length = None
-
-        self._model = None
-        self.is_init = False
-
-    def init_model(self, input_shape, num_classes, **kwargs):
-        model = Sequential()
-        model.add(Conv2D(100, (3, 1), input_shape=input_shape, padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(3, 1), strides=2, padding='same'))
-
-        model.add(Conv2D(64, (3, 1), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(2, 1), strides=2, padding='same'))
-
-        model.add(Conv2D(128, (3, 1), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(2, 1), strides=2, padding='same'))
-
-        model.add(Conv2D(128, (3, 1), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(2, 1), strides=2, padding='same'))
-
-        model.add(Conv2D(128, (3, 1), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(2, 1), strides=2, padding='same'))
-
-        model.add(Conv2D(128, (3, 1), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=(2, 1), strides=2, padding='same'))
-
-        model.add(Flatten())
-        model.add(Dropout(rate=0.5))
-        model.add(Dense(1024, 'relu'))
-        model.add(Dropout(rate=0.5))
-        model.add(Dense(512, activation='relu'))
-        model.add(Dense(num_classes))
-        model.add(Activation('softmax'))
-        optimizer = optimizers.SGD(lr=1e-4, decay=5e-5, momentum=0.9, clipnorm=4)
-        model.compile(
-            loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy']
-        )
-        model.summary()
-
-        self._model = model
-        self.is_init = True
-
-    @timeit
-    def preprocess_data(self, x):
-        if self.max_length is None:
-            self.max_length = 8000 * 2
-        x_resample = []
-        for sample in x:
-            data = librosa.core.resample(sample, orig_sr=16000, target_sr=8000, res_type='scipy')
-            if len(data) > self.max_length:
-                embedded_data = data[:self.max_length]
-            elif len(data) < self.max_length:
-                embedded_data = np.zeros(self.max_length)
-                offset = np.random.randint(low=0, high=self.max_length - len(data))
-                embedded_data[offset:offset + len(data)] = data
-            else:
-                # nothing to do here
-                embedded_data = data
-            embedded_data /= (np.percentile(embedded_data, 95) + 0.001)
-            x_resample.append(embedded_data)
-
-        x_resample = np.array(x_resample)[:, :, np.newaxis, np.newaxis]
-        return x_resample
-
-    def fit(self, train_x, train_y, validation_data_fit, train_loop_num, **kwargs):
-        val_x, val_y = validation_data_fit
-        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)]
-        epochs = 10 if train_loop_num == 1 else 30
-        log('train_x: {}; train_y: {}'.format(train_x.shape, train_y.shape))
         self._model.fit(
             train_x,
             ohe2cat(train_y),

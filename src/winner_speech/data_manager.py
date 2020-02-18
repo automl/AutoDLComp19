@@ -5,8 +5,6 @@ import random
 from functools import partial
 
 import numpy as np
-from CONSTANT import *
-from CONSTANT import MAX_VALID_PERCLASS_SAMPLE
 from data_augmentation import dyn_change, noise, pitch, shift, speed_npitch, stretch
 from data_process import (
     extract_melspectrogram_parallel, extract_mfcc_parallel, get_max_length, pad_seq
@@ -16,7 +14,8 @@ from tools import log, timeit
 
 
 class DataManager:
-    def __init__(self, metadata, train_dataset):
+    def __init__(self, metadata, train_dataset, model_config):
+        self.model_config = model_config
         self._metadata = metadata
 
         self._all_x, self._all_y = train_dataset
@@ -36,7 +35,7 @@ class DataManager:
         self._max_class_num, self._min_class_num = 0, 0
         self._pre_data = []
 
-        self._num_classes = self._metadata[CLASS_NUM]
+        self._num_classes = self._metadata['class_num']
         self.fea_max_length = None
         self.raw_max_length = None
         self._start_nn = False
@@ -80,10 +79,10 @@ class DataManager:
             all_index.append(list(np.where(self._all_y[:, i] == 1)[0]))
         for i in range(self._num_classes):
             tmp = random.sample(
-                all_index[i], max(MIN_VALID_PER_CLASS, int(len(all_index[i]) * (1 - ratio)))
+                all_index[i], max(self.model_config["data_manager"]["min_valid_per_class"], int(len(all_index[i]) * (1 - ratio)))
             )
-            if len(tmp) > MAX_VALID_PERCLASS_SAMPLE:
-                tmp = tmp[:MAX_VALID_PERCLASS_SAMPLE]
+            if len(tmp) > self.model_config["data_manager"]["max_valid_perclass_sample"]:
+                tmp = tmp[:self.model_config["data_manager"]["max_valid_perclass_sample"]]
             val_index += tmp
             differ_set = set(all_index[i]).difference(set(tmp))
             # avoid some classes only have one sample
@@ -174,7 +173,7 @@ class DataManager:
 
         # for lr
         if model_num == 0:
-            if train_loop_num == MODEL_FIRST_MAX_RUN_LOOP:
+            if train_loop_num == self.model_config["common"]["model_first_max_run_loop"]:
                 lr_sample_num = min(
                     sum([len(self._even_class_index[i]) for i in range(self._num_classes)]), 4000
                 )
@@ -204,7 +203,7 @@ class DataManager:
                 self._start_nn = True
                 sample_num = max(int(len(self._train_y) * 0.1), 200)
             elif train_loop_num < 10:
-                sample_num = int(self._metadata[TRAIN_NUM] * 0.15)
+                sample_num = int(self._metadata['train_num'] * 0.15)
             elif train_loop_num == 10:
                 sample_num = sum([len(self._even_class_index[i]) for i in range(self._num_classes)])
             else:
@@ -216,7 +215,10 @@ class DataManager:
         if round_num == 0 and model_num == 1 and train_loop_num <= 10:
             train_samples = self._get_samples_from_even_class(sample_num)
             pre_func = partial(
-                self.nn_preprocess, n_mfcc=96, max_duration=FIRST_ROUND_DURATION, is_mfcc=use_mfcc
+                self.nn_preprocess,
+                n_mfcc=self.model_config["common"]["num_mfcc"],
+                max_duration=self.model_config["common"]["first_round_duration"],
+                is_mfcc=use_mfcc
             )
             if len(train_samples) > 0:
                 train_x, train_y = self._get_preprocess_train(train_samples, pre_func)
@@ -235,15 +237,15 @@ class DataManager:
             if round_num < 2:
                 pre_func = partial(
                     self.nn_preprocess,
-                    n_mfcc=96,
-                    max_duration=FIRST_ROUND_DURATION,
+                    n_mfcc=self.model_config["common"]["num_mfcc"],
+                    max_duration=self.model_config["common"]["first_round_duration"],
                     is_mfcc=use_mfcc
                 )
             else:
                 pre_func = partial(
                     self.nn_preprocess,
-                    n_mfcc=128,
-                    max_duration=SECOND_ROUND_DURATION,
+                    n_mfcc=int(self.model_config["common"]["num_mfcc"]*4/3),
+                    max_duration=self.model_config["common"]["second_round_duration"],
                     is_mfcc=use_mfcc
                 )
             if len(train_samples) > 0:
@@ -255,15 +257,18 @@ class DataManager:
             if round_num < 2:
                 self._pre_val_x = np.array(
                     self.nn_preprocess(
-                        self._val_x, n_mfcc=96, max_duration=FIRST_ROUND_DURATION, is_mfcc=use_mfcc
+                        self._val_x,
+                        n_mfcc=self.model_config["common"]["num_mfcc"],
+                        max_duration=self.model_config["common"]["first_round_duration"],
+                        is_mfcc=use_mfcc
                     )
                 )
             else:
                 self._pre_val_x = np.array(
                     self.nn_preprocess(
                         self._val_x,
-                        n_mfcc=128,
-                        max_duration=SECOND_ROUND_DURATION,
+                        n_mfcc=int(self.model_config["common"]["num_mfcc"]*4/3),
+                        max_duration=self.model_config["common"]["second_round_duration"],
                         is_mfcc=use_mfcc
                     )
                 )
@@ -278,32 +283,53 @@ class DataManager:
         return np.asarray(self._pre_train_x), np.asarray(self._pre_train_y),\
             np.asarray(self._pre_val_x), np.asarray(self._pre_val_y)
 
-    def nn_preprocess(self, x, n_mfcc=96, max_duration=5, is_mfcc=True):
+    def nn_preprocess(self, x, n_mfcc=None, max_duration=5, is_mfcc=True):
+        ass = self.model_config["common"]["audio_sample_rate"]
+        mad = self.model_config["common"]["max_audio_duration"]
+        mfn = self.model_config["common"]["max_frame_num"]
+        mid = self.model_config["common"]["middle_duration"]
+
         if self.raw_max_length is None:
             self.raw_max_length = get_max_length(x)
-            if self.raw_max_length > (MIDDLE_DURATION * AUDIO_SAMPLE_RATE):
+            if self.raw_max_length > (mid*ass):
                 self.need_30s = True
                 if len(self._train_y) < 1000 and self._num_classes < 30:
                     self.crnn_first = True
-            self.raw_max_length = min(max_duration * AUDIO_SAMPLE_RATE, self.raw_max_length)
-            self.raw_max_length = max(MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE, self.raw_max_length)
+            self.raw_max_length = min(max_duration * ass, self.raw_max_length)
+            self.raw_max_length = max(mad * ass, self.raw_max_length)
         x = [sample[0:self.raw_max_length] for sample in x]
 
         if is_mfcc:
             # extract mfcc
-            x = extract_mfcc_parallel(x, n_mfcc=n_mfcc)
+            x = extract_mfcc_parallel(x,
+                                      sr=self.model_config["common"]["sr"],
+                                      fft_duration=self.model_config["common"]["fft_duration"],
+                                      hop_duration=self.model_config["common"]["hop_duration"],
+                                      n_mfcc=n_mfcc)
         else:
-            x = extract_melspectrogram_parallel(x, n_mels=128, use_power_db=True)
+            x = extract_melspectrogram_parallel(x,
+                                                sr=self.model_config["common"]["sr"],
+                                                fft_duration=self.model_config["common"]["fft_duration"],
+                                                hop_duration=self.model_config["common"]["hop_duration"],
+                                                n_mels=128,
+                                                use_power_db=True)
         if self.fea_max_length is None:
             self.fea_max_length = get_max_length(x)
-            self.fea_max_length = min(MAX_FRAME_NUM, self.fea_max_length)
+            self.fea_max_length = min(mfn, self.fea_max_length)
         x = pad_seq(x, pad_len=self.fea_max_length)
 
         return x
 
     def lr_preprocess(self, x):
-        x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
-        x_mel = extract_melspectrogram_parallel(x, n_mels=30, use_power_db=True)
+        ass = self.model_config["common"]["audio_sample_rate"]
+        mad = self.model_config["common"]["max_audio_duration"]
+        x = [sample[0:mad * ass] for sample in x]
+        x_mel = extract_melspectrogram_parallel(x,
+                                                sr=self.model_config["common"]["sr"],
+                                                fft_duration=self.model_config["common"]["fft_duration"],
+                                                hop_duration=self.model_config["common"]["hop_duration"],
+                                                n_mels=30,
+                                                use_power_db=True)
         # x_contrast = extract_bandwidth_parallel(x)
 
         x_feas = []

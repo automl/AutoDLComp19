@@ -4,7 +4,6 @@
 # @Author:  Mecthew
 
 import numpy as np
-from CONSTANT import AUDIO_SAMPLE_RATE, MAX_AUDIO_DURATION
 from data_process import extract_melspectrogram_parallel, ohe2cat
 from models.my_classifier import Classifier
 from sklearn.linear_model import logistic
@@ -22,7 +21,8 @@ class LogisticRegression(Classifier):
         self._model = None
         self.is_init = False
 
-    def init_model(self, kernel, max_iter=200, C=1.0, **kwargs):
+    def init_model(self, kernel, model_config, max_iter=200, C=1.0, **kwargs):
+        self.model_config = model_config
         self._model = logistic.LogisticRegression(
             C=C, max_iter=max_iter, solver='liblinear', multi_class='auto'
         )
@@ -31,10 +31,12 @@ class LogisticRegression(Classifier):
     @timeit
     def preprocess_data(self, x):
         # cut down
-        x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
-        # extract mfcc
-        # x_mfcc = extract_mfcc_parallel(x, n_mfcc=63)
-        x_mel = extract_melspectrogram_parallel(x, n_mels=40, use_power_db=True)
+        x = [sample[0:self.model_config["common"]["max_audio_duration"] * self.model_config["common"]["audio_sample_rate"]] for sample in x]
+        x_mel = extract_melspectrogram_parallel(x,
+                                                sr=self.model_config["common"]["sr"],
+                                                fft_duration=self.model_config["common"]["fft_duration"],
+                                                hop_duration=self.model_config["common"]["hop_duration"],
+                                                n_mels=40, use_power_db=True)
         # x_chroma_stft = extract_chroma_stft_parallel(x, n_chroma=12)
         # x_rms = extract_rms_parallel(x)
         # x_contrast = extract_spectral_contrast_parallel(x, n_bands=6)

@@ -31,8 +31,6 @@ from keras.layers import (
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import LinearSVC
 
-MAX_VOCAB_SIZE = 20000
-
 
 class ModelGenerator(object):
     def __init__(
@@ -103,7 +101,10 @@ class ModelGenerator(object):
             self.model = self.cnn_model_lib[model_name](**kwargs)
             self.model.compile(
                 loss="categorical_crossentropy",
-                optimizer=keras.optimizers.RMSprop(),
+                optimizer=keras.optimizers.RMSprop(
+                    learning_rate = self.model_config["optimizer"]["lr"],
+                    rho = self.model_config["optimizer"]["rho"]
+                ),
                 metrics=["accuracy"]
             )
 
