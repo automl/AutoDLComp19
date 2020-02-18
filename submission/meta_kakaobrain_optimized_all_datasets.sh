@@ -22,6 +22,6 @@ python src/hpo/optimize.py \
     --job_id $SLURM_ARRAY_JOB_ID \
     --experiment_group kakaobrain_optimized_all_datasets \
     --time_budget 1200 \
-    --time_budget_approx 90 \
-    --n_repeat 15 \
+    --time_budget_approx 300 \
+    --n_repeat 5 \
     $TASK_SPECIFIC_ARGS
