@@ -1,0 +1,2 @@
+--experiment_name generalist --optimize_generalist --worker
+--experiment_name generalist --optimize_generalist

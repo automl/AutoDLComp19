@@ -23,4 +23,5 @@ python src/hpo/optimize.py \
     --experiment_group kakaobrain_optimized_per_dataset_test \
     --time_budget 1200 \
     --time_budget_approx 90 \
+    --n_repeat 3 \
     $TASK_SPECIFIC_ARGS

@@ -181,23 +181,21 @@ class AggregateWorker(Worker):
 
 
 if __name__ == "__main__":
-    # worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker',
-    #                          n_repeat=1,
-    #                          run_id='0'
-    #                          time_budget = 60,
-    #                          time_budget_approx = 1200
-    #                          )
+    worker = AggregateWorker(working_directory='experiments/test/test_aggregate_worker',
+                             n_repeat=1,
+                             run_id='0',
+                             time_budget=60,
+                             time_budget_approx=1200
+                             )
 
-    worker = SingleWorker(working_directory='experiments/test/test_aggregate_worker', n_repeat=1,
-                          run_id='0', dataset="Ucf101", time_budget=60, time_budget_approx=1200)
-    worker = SingleWorker(
-        working_directory='experiments/test/test_aggregate_worker',
-        n_repeat=1,
-        run_id='0',
-        dataset="emnist",
-        time_budget=60,
-        time_budget_approx=1200
-    )
+    # worker = SingleWorker(
+    #     working_directory='experiments/test/test_aggregate_worker',
+    #     n_repeat=1,
+    #     run_id='0',
+    #     dataset="emnist",
+    #     time_budget=60,
+    #     time_budget_approx=1200
+    # )
     cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()

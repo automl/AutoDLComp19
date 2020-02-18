@@ -1,0 +1,38 @@
+--experiment_name Chucky --worker
+--experiment_name Chucky
+--experiment_name Hammer --worker
+--experiment_name Hammer
+--experiment_name Katze --worker
+--experiment_name Katze
+--experiment_name Kreatur --worker
+--experiment_name Kreatur
+--experiment_name Munster --worker
+--experiment_name Munster
+--experiment_name Pedro --worker
+--experiment_name Pedro
+--experiment_name binary_alpha_digits --worker
+--experiment_name binary_alpha_digits
+--experiment_name caltech101 --worker
+--experiment_name caltech101
+--experiment_name caltech_birds2010 --worker
+--experiment_name caltech_birds2010
+--experiment_name caltech_birds2011 --worker
+--experiment_name caltech_birds2011
+--experiment_name cats_vs_dogs --worker
+--experiment_name cats_vs_dogs
+--experiment_name cifar100 --worker
+--experiment_name cifar100
+--experiment_name cifar10 --worker
+--experiment_name cifar10
+--experiment_name colorectal_histology --worker
+--experiment_name colorectal_histology
+--experiment_name deep_weeds --worker
+--experiment_name deep_weeds
+--experiment_name eurosat --worker
+--experiment_name eurosat
+--experiment_name fashion_mnist --worker
+--experiment_name fashion_mnist
+--experiment_name horses_or_humans --worker
+--experiment_name horses_or_humans
+--experiment_name mnist --worker
+--experiment_name mnist
