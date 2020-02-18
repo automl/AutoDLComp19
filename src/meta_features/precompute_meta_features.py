@@ -61,7 +61,7 @@ def precompute_nn_meta_features(dataset_path,
                                 output_path,
                                 dump_dataframe_csv=True,
                                 split_df=True,
-                                n_samples_to_use=50,
+                                n_samples_to_use=100,
                                 file_name="meta_features"):
 
     processed_datasets = load_processed_datasets(dataset_path=str(dataset_path))
@@ -74,10 +74,18 @@ def precompute_nn_meta_features(dataset_path,
     for dataset in processed_datasets:
         data = dataset[0].dataset.numpy()
         sample_indices = np.random.choice(data.shape[0], n_samples_to_use, replace=False)
-        data_sampled_flattened = np.concatenate(data[sample_indices, :], axis=0)
-        dataset_to_nn_meta_features[dataset[2]] = data_sampled_flattened
 
-    df = pd.DataFrame(columns=[np.arange(data_sampled_flattened.shape[0])])
+        # data filtering
+        data = data[sample_indices, :]
+        data = np.delete(data, [np.arange(4, 17)], axis=1)  # remove elements 4..16 (test data info)
+        meta_data = data[0, :5]  # is static over all samples --> take from first samples
+        resnet_data = data[:, 5:]
+        resnet_data = np.concatenate(resnet_data, axis=0)
+        data = np.concatenate((meta_data, resnet_data))
+
+        dataset_to_nn_meta_features[dataset[2]] = data
+
+    df = pd.DataFrame(columns=[np.arange(data.shape[0])])
     for i, dataset_name in enumerate(sorted(list(dataset_to_nn_meta_features.keys()))):
         df.loc[dataset_name] = dataset_to_nn_meta_features[dataset_name]
 
