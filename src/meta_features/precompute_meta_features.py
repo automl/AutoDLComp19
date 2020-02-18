@@ -57,21 +57,28 @@ def load_processed_datasets(dataset_path):
     return processed_datasets
 
 
-def precompute_nn_meta_features(dataset_path,
+def precompute_nn_meta_features(processed_datasets_path,
                                 output_path,
+                                dataset_path,
                                 dump_dataframe_csv=True,
                                 split_df=True,
                                 n_samples_to_use=100,
                                 file_name="meta_features"):
 
-    processed_datasets = load_processed_datasets(dataset_path=str(dataset_path))
+    processed_datasets = load_processed_datasets(dataset_path=str(processed_datasets_path))
 
     print("getting features ...")
-    print("using data: {}".format(dataset_path))
+    print("using data: {}".format(processed_datasets_path))
+
+    # we need to get num_channels and num_classes from the original datasets
+    dataset_to_meta_features = {dataset.name: get_meta_features_from_dataset(dataset)
+                                for dataset in dataset_path.iterdir()
+                                if dataset.name in all_datasets}
 
     # as before, we're for now only using the train ([0]) data
     dataset_to_nn_meta_features = {}
     for dataset in processed_datasets:
+        dataset_name = dataset[2]
         data = dataset[0].dataset.numpy()
         sample_indices = np.random.choice(data.shape[0], n_samples_to_use, replace=False)
 
@@ -79,11 +86,22 @@ def precompute_nn_meta_features(dataset_path,
         data = data[sample_indices, :]
         data = np.delete(data, [np.arange(4, 17)], axis=1)  # remove elements 4..16 (test data info)
         meta_data = data[0, :5]  # is static over all samples --> take from first samples
+
+        if dataset_name in dataset_to_meta_features:
+            num_channels = dataset_to_meta_features[dataset_name]['num_channels']
+            num_classes = dataset_to_meta_features[dataset_name]['num_classes']
+
+            meta_data[3] = num_channels
+            meta_data[4] = num_classes
+        else:
+            print("Could not get num_channels and num_classes from dataset due to dataset mismatch "
+                  "between datasets here {} and here{}".format(dataset_path, processed_datasets_path))
+
         resnet_data = data[:, 5:]
         resnet_data = np.concatenate(resnet_data, axis=0)
         data = np.concatenate((meta_data, resnet_data))
 
-        dataset_to_nn_meta_features[dataset[2]] = data
+        dataset_to_nn_meta_features[dataset_name] = data
 
     df = pd.DataFrame(columns=[np.arange(data.shape[0])])
     for i, dataset_name in enumerate(sorted(list(dataset_to_nn_meta_features.keys()))):
@@ -122,9 +140,8 @@ def dump_meta_features_df_and_csv(meta_features,
         df_valid.to_pickle(output_path / Path(file_name + "_valid.pkl"))
 
     else:
-        output_path = output_path / file_name
-        df.to_csv(output_path.with_suffix(".csv"))
-        df.to_pickle(output_path.with_suffix(".pkl"))
+        df.to_csv((output_path / file_name).with_suffix(".csv"))
+        df.to_pickle((output_path / file_name).with_suffix(".pkl"))
 
     print("meta features data dumped to: {}".format(output_path))
 
@@ -183,9 +200,17 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--seed", type=int, default=2, help="random seed")
+
+    parser.add_argument(
+        "--processed_datasets_path",
+        default="/data/aad/image_datasets/processed_datasets/1e4_combined",
+        type=Path,
+        help=" "
+    )
+
     parser.add_argument(
         "--dataset_path",
-        default="/data/aad/image_datasets/processed_datasets/1e4_combined",
+        default="/data/aad/image_datasets/all_symlinks/",
         type=Path,
         help=" "
     )
@@ -200,21 +225,15 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
 
     precompute_nn_meta_features(
-            args.dataset_path,
+            args.processed_datasets_path,
             args.output_path,
+            args.dataset_path,
             dump_dataframe_csv=True,
             split_df=True
     )
 
 
     """ example (non-nn) meta features """
-    # parser.add_argument(
-    #     "--dataset_path",
-    #     default="/data/aad/image_datasets/all_symlinks/",
-    #     type=Path,
-    #     help=" "
-    # )
-
     # parser.add_argument(
     #     "--output_path", default="src/meta_features/non-nn", type=Path, help=" "
     # )
