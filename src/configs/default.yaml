@@ -73,30 +73,6 @@ autonlp:
     embedding_dim: 300        # word embedding size
 
 
-autospeech:
-  optimizer:
-    lr:
-    decay:
-
-  common:
-    model_first_max_run_loop: 3
-    max_audio_duration: 5
-    first_round_duration: 10
-    second_round_duration: 30
-    audio_sample_rate: 16000
-    max_frame_num: 700
-    is_cut_audio: True
-    num_mfcc: 96
-    sr: 16000
-    fft_duration: 700
-    hop_duration: 0.04
-
-  data_manager:
-    max_valid_perclass_sample: 200
-    min_valid_per_class: 1
-    middle_duration: 15
-
-
 
 
 
