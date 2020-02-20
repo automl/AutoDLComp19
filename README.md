@@ -9,9 +9,10 @@ Activate a conda python3.5 environment then run
 bash install/requirements_gcc.sh
 pip install -r install/requirements.txt
 bash install/requirements_torch_cuda100.sh
-bash install/install_precommit.sh
-bash install/install_just.sh
 bash install/install_winner_cv.sh
+bash install/install_winner_speech.sh
+bash install/install_just.sh        # Optional command runner
+bash install/install_precommit.sh   # Developer dependency
 ```
 
 
