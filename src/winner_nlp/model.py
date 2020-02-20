@@ -55,26 +55,8 @@ print(keras.__version__)
 # sess = tf.Session(config=config)
 # set_session(sess)  # set this TensorFlow session as the default session for Keras
 
-MAX_SEQ_LENGTH = 301
 # Limit on the number of features. We use the top 20K features
-MAX_VOCAB_SIZE = 20000
-MAX_CHAR_LENGTH = 96  # 128
-MIN_SAMPLE_NUM = 6000
 
-SAMPLE_NUM_PER_CLASS = 800
-SAMPLE_NUM_PER_CLASS_ZH = 1000
-SAMPLE_NUM_PER_CLASS_EN = 5000
-
-NUM_EPOCH = 1
-VALID_RATIO = 0.1
-TOTAL_CALL_NUM = 20
-NUM_MIN_SAMPLES = 8000
-UP_SAMPING_FACTOR = 10
-
-NUM_UPSAMPLING_MAX = 100000
-INIT_BATCH_SIZE = 32
-CHI_WORD_LENGTH = 2
-EMBEDDING_SIZE = 300
 verbosity_level = 'INFO'
 
 
@@ -148,7 +130,7 @@ def mvmean(R, axis=0):
 
 
 # code form https://towardsdatascience.com/multi-class-text-classification-with-lstm-1590bee1bd17
-def clean_en_text(dat, ratio=0.1, is_ratio=True):
+def clean_en_text(dat, max_seq_length, ratio=0.1, is_ratio=True):
 
     REPLACE_BY_SPACE_RE = re.compile('["/(){}\[\]\|@,;]')
     BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z #+_]')
@@ -162,9 +144,9 @@ def clean_en_text(dat, ratio=0.1, is_ratio=True):
         line_split = line.split()
 
         if is_ratio:
-            NUM_WORD = max(int(len(line_split) * ratio), MAX_SEQ_LENGTH)
+            NUM_WORD = max(int(len(line_split) * ratio), max_seq_length)
         else:
-            NUM_WORD = MAX_SEQ_LENGTH
+            NUM_WORD = max_seq_length
 
         if len(line_split) > NUM_WORD:
             line = " ".join(line_split[0:NUM_WORD])
@@ -172,7 +154,7 @@ def clean_en_text(dat, ratio=0.1, is_ratio=True):
     return ret
 
 
-def clean_zh_text(dat, ratio=0.1, is_ratio=False):
+def clean_zh_text(dat, max_char_length, ratio=0.1, is_ratio=False):
     REPLACE_BY_SPACE_RE = re.compile('[“”【】/（）：！～「」、|，；。"/(){}\[\]\|@,\.;]')
 
     ret = []
@@ -181,63 +163,15 @@ def clean_zh_text(dat, ratio=0.1, is_ratio=False):
         line = line.strip()
 
         if is_ratio:
-            NUM_CHAR = max(int(len(line) * ratio), MAX_CHAR_LENGTH)
+            NUM_CHAR = max(int(len(line) * ratio), max_char_length)
         else:
-            NUM_CHAR = MAX_CHAR_LENGTH
+            NUM_CHAR = max_char_length
 
         if len(line) > NUM_CHAR:
             # line = " ".join(line.split()[0:MAX_CHAR_LENGTH])
             line = line[0:NUM_CHAR]
         ret.append(line)
     return ret
-
-
-def categorical_focal_loss_fixed(y_true, y_pred):
-    """
-        :param y_true: A tensor of the same shape as `y_pred`
-        :param y_pred: A tensor resulting from a softmax
-        :return: Output tensor.
-        """
-
-    gamma = 2.
-    alpha = .25
-    # Scale predictions so that the class probas of each sample sum to 1
-    y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
-
-    # Clip the prediction value to prevent NaN's and Inf's
-    epsilon = K.epsilon()
-    y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
-
-    # Calculate Cross Entropy
-    cross_entropy = -y_true * K.log(y_pred)
-
-    # Calculate Focal Loss
-    loss = alpha * K.pow(1 - y_pred, gamma) * cross_entropy
-
-    # Sum the losses in mini_batch
-    return K.sum(loss, axis=1)
-
-
-def convert_data(tokenizer, train_contents, max_length_fixed, val_contents=None):
-
-    x_train = tokenizer.texts_to_sequences(train_contents)
-
-    if val_contents:
-        x_val = tokenizer.texts_to_sequences(val_contents)
-
-    max_length = len(max(x_train, key=len))
-    ave_length = np.mean([len(i) for i in x_train])
-    print("max_length_word_training:", max_length)
-    print("ave_length_word_training:", ave_length)
-
-    x_train = sequence.pad_sequences(x_train, maxlen=max_length_fixed)
-    if val_contents:
-        x_val = sequence.pad_sequences(x_val, maxlen=max_length_fixed)
-
-    if val_contents:
-        return x_train, x_val
-    else:
-        return x_train
 
 
 def _tokenize_chinese_words(text):
@@ -266,14 +200,14 @@ class Model(object):
         """
         self.done_training = False
         self.metadata = metadata
+        self.model_config = model_config["autonlp"]
         self.train_output_path = train_output_path
         self.test_input_path = test_input_path
         self.model = None
         self.call_num = 0
         self.load_pretrain_emb = True
-        self.emb_size = EMBEDDING_SIZE
-        self.batch_size = INIT_BATCH_SIZE
-        self.total_call_num = TOTAL_CALL_NUM
+        self.batch_size = self.model_config["model"]["init_batch_size"]
+        self.total_call_num = self.model_config["model"]["total_call_num"]
         self.valid_cost_list = []
         self.auc = 0
         self.svm = True
@@ -293,7 +227,7 @@ class Model(object):
         # 2: sparse_categorical_crossentropy
         self.metric = 1
 
-        self.num_features = MAX_VOCAB_SIZE
+        self.num_features = self.model_config["common"]["max_vocab_size"]
         # load pretrian embeding
         if self.load_pretrain_emb:
             self._load_emb()
@@ -313,7 +247,7 @@ class Model(object):
             return
 
         if self.call_num == 0:
-            self.data_generator = DataGenerator(train_dataset, self.metadata)
+            self.data_generator = DataGenerator(train_dataset, self.metadata, self.model_config)
 
         x_train, y_train = self.data_generator.sample_dataset_from_metadataset()
         x_train, feature_mode = self.data_generator.dataset_preporocess(x_train)
@@ -322,6 +256,7 @@ class Model(object):
             #self.data_generator.dataset_postprocess(x_train,y_train,'svm')
             self.model_manager = ModelGenerator(
                 self.data_generator.feature_mode,
+                self.model_config,
                 load_pretrain_emb=self.load_pretrain_emb,
                 fasttext_embeddings_index=self.fasttext_embeddings_index
             )
@@ -350,16 +285,18 @@ class Model(object):
             history = self.model.fit(
                 self.data_generator.x_train,
                 self.data_generator.y_train,
-                epochs=NUM_EPOCH,
+                epochs=self.model_config["model"]["num_epoch"],
                 callbacks=callbacks,
-                validation_split=VALID_RATIO,
+                validation_split=self.model_config["model"]["valid_ratio"],
                 validation_data=(self.data_generator.valid_x, self.data_generator.valid_y),
                 verbose=2,
                 batch_size=self.batch_size,
                 shuffle=True
             )
 
-            self.feedback_simulation(history)
+            self.feedback_simulation(history,
+                                     self.model_config["model"]["increase_batch_acc"],
+                                     self.model_config["model"]["early_stop_auc"])
 
     def _get_valid_columns(self, solution):
         """Get a list of column indices for which the column has more than one class.
@@ -441,11 +378,11 @@ class Model(object):
         if self.call_num == 0:
             # tokenizing Chinese words
             if self.metadata['language'] == 'ZH':
-                x_test = clean_zh_text(x_test)
+                x_test = clean_zh_text(x_test, self.model_config["common"]["max_char_length"])
                 if self.data_generator.feature_mode == 1:
                     x_test = list(map(_tokenize_chinese_words, x_test))
             else:
-                x_test = clean_en_text(x_test)
+                x_test = clean_en_text(x_test, self.model_config["common"]["max_seq_length"])
             self.x_test_clean = x_test
 
             x_test = self.svm_token.transform(x_test)
@@ -476,17 +413,20 @@ class Model(object):
     def _load_emb(self):
         # loading pretrained embedding
 
-        FT_DIR = '/app/embedding'
+        f = None
         fasttext_embeddings_index = {}
-        if self.metadata['language'] == 'ZH':
-            f = gzip.open(os.path.join(FT_DIR, 'cc.zh.300.vec.gz'), 'rb')
-        elif self.metadata['language'] == 'EN':
-            f = gzip.open(os.path.join(FT_DIR, 'cc.en.300.vec.gz'), 'rb')
-        else:
-            raise ValueError(
-                'Unexpected embedding path:'
-                ' {unexpected_embedding}. '.format(unexpected_embedding=FT_DIR)
-            )
+        for ft_dir in self.model_config["model"]["ft_dir"]:
+            if self.metadata['language'] == 'ZH':
+                ft_file = os.path.join(ft_dir, 'cc.zh.300.vec.gz')
+                if os.path.isfile(ft_file):
+                    f = gzip.open(ft_file, 'rb')
+            if self.metadata['language'] == 'EN':
+                ft_file = os.path.join(ft_dir, 'cc.en.300.vec.gz')
+                if os.path.isfile(ft_file):
+                    f = gzip.open(ft_file, 'rb')
+
+        if f is None:
+            raise ValueError("Embedding not found")
 
         for line in f.readlines():
             values = line.strip().split()
@@ -505,11 +445,11 @@ class Model(object):
         #self.embedding_matrix = np.zeros((self.num_features, EMBEDDING_DIM))
         #return self.embedding_matrix
 
-    def feedback_simulation(self, history):
+    def feedback_simulation(self, history, increase_batch_acc=None, early_stop_auc=None):
         # Model Selection and Sample num from Feedback Dynamic Regulation of Simulator
         # Dynamic sampling ,if accuracy is lower than 0.65 ,Increase sample size
         self.sample_num_per_class = self.data_generator.sample_num_per_class
-        if history.history['acc'][0] < 0.65:
+        if history.history['accuracy'][0] < increase_batch_acc:
             self.sample_num_per_class = min(
                 4 * self.data_generator.sample_num_per_class,
                 self.data_generator.max_sample_num_per_class
@@ -532,7 +472,7 @@ class Model(object):
         pre_auc = self.auc
         self.auc = valid_auc
         self.valid_cost_list.append(valid_auc)
-        early_stop_conditon1 = self.auc < pre_auc and self.auc > 0.8
+        early_stop_conditon1 = self.auc < pre_auc and self.auc > early_stop_auc
         if early_stop_conditon1 or early_stop_conditon2:
             self.done_training = True
             if early_stop_conditon2:

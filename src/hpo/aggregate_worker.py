@@ -150,7 +150,7 @@ class AggregateWorker(Worker):
         score_results_tuples = [
             _run_on_dataset(
                 dataset,
-                config_experiment_path,
+                config_experiment_path / dataset,
                 model_config,
                 dataset_dir=self._dataset_dir,
                 n_repeat=self.n_repeat,
