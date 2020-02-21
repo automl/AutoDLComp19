@@ -125,12 +125,7 @@ def run_baseline(
         model_config_name=model_config_name,
         model_config=model_config
     )
-    score_fn(dataset_dir, ingestion_output_dir, score_dir)
-
-    score_file = "{}/scores.txt".format(score_dir)
-    with open(score_file) as stream:
-        score = float(stream.readline().lstrip("score: "))
-    return score
+    return score_fn(dataset_dir, ingestion_output_dir, score_dir)
 
 
 if __name__ == "__main__":
