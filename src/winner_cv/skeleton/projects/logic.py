@@ -174,8 +174,6 @@ class LogicModel(Model):
             aspect_ratio, input_shape
         )
 
-
-
         self.hyper_params['dataset']['input'] = input_shape
 
         num_class = self.info['dataset']['num_class']

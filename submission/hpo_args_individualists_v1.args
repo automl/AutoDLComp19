@@ -2,6 +2,8 @@
 --experiment_name Chucky
 --experiment_name Hammer --worker
 --experiment_name Hammer
+--experiment_name Hmdb51 --worker
+--experiment_name Hmdb51
 --experiment_name Katze --worker
 --experiment_name Katze
 --experiment_name Kreatur --worker
@@ -10,6 +12,10 @@
 --experiment_name Munster
 --experiment_name Pedro --worker
 --experiment_name Pedro
+--experiment_name SMv2 --worker
+--experiment_name SMv2
+--experiment_name Ucf101 --worker
+--experiment_name Ucf101
 --experiment_name binary_alpha_digits --worker
 --experiment_name binary_alpha_digits
 --experiment_name caltech101 --worker

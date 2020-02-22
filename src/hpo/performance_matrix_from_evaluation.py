@@ -70,9 +70,31 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True):
         return df
 
 
+def transform_to_long_matrix(df, n_samples):
+    """
+    transform a dataframe of shape (n_algorithms, n_datasets) to
+    shape (n_algorithms * n_samples, n_datasets) by simply copying the rows n_sample times.
+    This is required s.t. the perf matrix complies with the shape of the feature matrix.
+    """
+    new_df = pd.DataFrame(columns=df.columns)
+    for index, row in df.iterrows():
+        for i in range(n_samples):
+            new_index = index + "_{}".format(i)
+            new_df.loc[new_index] = row
+
+
+    train_dataset_names = [d + "_{}".format(i) for d in train_datasets
+                           for i in range(n_samples)]
+    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets
+                           for i in range(n_samples)]
+    new_df_train = new_df.loc[new_df.index.isin(train_dataset_names)]
+    new_df_valid = new_df.loc[new_df.index.isin(valid_dataset_names)]
+
+    return new_df, new_df_train, new_df_valid
+
+
 if __name__ == '__main__':
     import argparse
-
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
     parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
@@ -81,11 +103,13 @@ if __name__ == '__main__':
 
     df, df_train, df_valid = create_df_perf_matrix(args.experiment_group_dir, split_df=True)
 
-    df_train.to_pickle(path=args.experiment_group_dir / "perf_matrix_train.pkl")
-    df_train.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_train.csv", float_format="%.5f")
+    df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)
 
-    df_valid.to_pickle(path=args.experiment_group_dir / "perf_matrix_valid.pkl")
-    df_valid.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_valid.csv", float_format="%.5f")
+    df_train.to_pickle(path=args.experiment_group_dir / "perf_matrix_train_samples_along_rows.pkl")
+    df_train.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_train_samples_along_rows.csv", float_format="%.5f")
 
-    df.to_pickle(path=args.experiment_group_dir / "perf_matrix.pkl")
-    df.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix.csv", float_format="%.5f")
+    df_valid.to_pickle(path=args.experiment_group_dir / "perf_matrix_valid_samples_along_rows.pkl")
+    df_valid.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_valid_samples_along_rows.csv", float_format="%.5f")
+
+    df.to_pickle(path=args.experiment_group_dir / "perf_matrix_samples_along_rows.pkl")
+    df.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_samples_along_rows.csv", float_format="%.5f")
