@@ -1,6 +1,5 @@
 import random
 from pathlib import Path
-from time import sleep
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -12,6 +11,9 @@ from hpbandster.core.worker import Worker
 from src.available_datasets import train_datasets
 from src.competition.run_local_test import run_baseline as evaluate_on_dataset
 from src.hpo.utils import construct_model_config
+from src.winner_cv.skeleton.projects.others import get_logger
+
+LOGGER = get_logger(__name__)
 
 
 def _run_on_dataset(
@@ -165,6 +167,9 @@ class AggregateWorker(Worker):
                     time_budget_approx=self.time_budget_approx
                 )
             except RuntimeError:
+                LOGGER.info(
+                    '--------------- Caught RuntimeError. Returning score = 0 ---------------'
+                )
                 score = 0
             score_results_tuples.append(score)
 
