@@ -154,17 +154,19 @@ class AggregateWorker(Worker):
 
         score_results_tuples = []
         for dataset in train_datasets:
-            score = _run_on_dataset(
-                dataset,
-                config_experiment_path / dataset,
-                model_config,
-                dataset_dir=self._dataset_dir,
-                n_repeat=self.n_repeat,
-                time_budget=budget,
-                time_budget_approx=self.time_budget_approx
-            )
+            try:
+                score = _run_on_dataset(
+                    dataset,
+                    config_experiment_path / dataset,
+                    model_config,
+                    dataset_dir=self._dataset_dir,
+                    n_repeat=self.n_repeat,
+                    time_budget=budget,
+                    time_budget_approx=self.time_budget_approx
+                )
+            except RuntimeError:
+                score = 0
             score_results_tuples.append(score)
-            sleep(10)
 
         # just get the repetition means for optimization
         repetition_scores_mean_per_dataset = np.array(score_results_tuples)[:, 1]
