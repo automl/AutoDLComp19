@@ -52,9 +52,9 @@ def get_configspace():
     train_info_sample = CSH.UniformIntegerHyperparameter("train_info_sample", lower=128, upper=512,
                                                          log=True)
     enough_count_video = CSH.UniformIntegerHyperparameter("enough_count_video", lower=100,
-                                                          upper=10000, log=True)
+                                                          upper=1000, log=True)
     enough_count_image = CSH.UniformIntegerHyperparameter("enough_count_image", lower=1000,
-                                                          upper=100000, log=True)
+                                                          upper=5000, log=True)
 
     # Report intervalls
     steps_per_epoch = CSH.UniformIntegerHyperparameter("steps_per_epoch", lower=5, upper=250,
