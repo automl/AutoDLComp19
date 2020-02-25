@@ -164,7 +164,7 @@ class AggregateWorker(Worker):
                     time_budget_approx=self.time_budget_approx
                 )
             except RuntimeError:
-                score = 0
+                score = (None, 0)
             score_results_tuples.append(score)
 
         # just get the repetition means for optimization
