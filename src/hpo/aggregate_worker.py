@@ -160,7 +160,7 @@ class AggregateWorker(Worker):
                     model_config,
                     dataset_dir=self._dataset_dir,
                     n_repeat=self.n_repeat,
-                    time_budget=budget,
+                    time_budget=self.time_budget,
                     time_budget_approx=self.time_budget_approx
                 )
             except RuntimeError:
