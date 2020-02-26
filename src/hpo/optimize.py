@@ -1,9 +1,8 @@
-import sys
-import os
-sys.path.append(os.getcwd())
 import argparse
-
+import logging
+import os
 import random
+import sys
 import time
 from pathlib import Path
 
@@ -15,28 +14,31 @@ import torch
 from hpbandster.optimizers import BOHB as BOHB
 from src.hpo.aggregate_worker import AggregateWorker, SingleWorker, get_configspace
 
+sys.path.append(os.getcwd())
+
 
 def run_worker(args):
     time.sleep(5)  # short artificial delay to make sure the nameserver is already running
 
     if args.optimize_generalist:
-        w = AggregateWorker(run_id=args.run_id,
-                            host=args.host,
-                            working_directory=args.bohb_root_path,
-                            n_repeat=args.n_repeat,
-                            time_budget=args.time_budget,
-                            time_budget_approx=args.time_budget_approx
-                            )
+        w = AggregateWorker(
+            run_id=args.run_id,
+            host=args.host,
+            working_directory=args.bohb_root_path,
+            n_repeat=args.n_repeat,
+            time_budget=args.time_budget,
+            time_budget_approx=args.time_budget_approx
+        )
     else:
-        w = SingleWorker(run_id=args.run_id,
-                   host=args.host,
-                   working_directory=args.bohb_root_path,
-                   n_repeat=args.n_repeat,
-                   dataset=args.dataset,
-                   time_budget=args.time_budget,
-                   time_budget_approx=args.time_budget_approx
-
-                   )
+        w = SingleWorker(
+            run_id=args.run_id,
+            host=args.host,
+            working_directory=args.bohb_root_path,
+            n_repeat=args.n_repeat,
+            dataset=args.dataset,
+            time_budget=args.time_budget,
+            time_budget_approx=args.time_budget_approx
+        )
 
     w.load_nameserver_credentials(working_directory=args.bohb_root_path)
     w.run(background=False)
@@ -76,6 +78,11 @@ def run_master(args):
 
     # Create an optimizer
     result_logger = hpres.json_result_logger(directory=args.bohb_root_path, overwrite=False)
+
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, args.logger_level)
+    logger.setLevel(logging_level)
+
     optimizer = BOHB(
         configspace=get_configspace(),
         run_id=args.run_id,
@@ -84,6 +91,7 @@ def run_master(args):
         min_budget=1,
         max_budget=1,
         result_logger=result_logger,
+        logger=logger
     )
 
     res = optimizer.run(n_iterations=args.n_iterations)
@@ -122,24 +130,44 @@ if __name__ == '__main__':
     p.add_argument("--experiment_group", default="kakaobrain_optimized_all_datasets")
     p.add_argument("--experiment_name", default="dataset1")
 
-    p.add_argument("--n_repeat", type=int, default=3,
-                   help="Number of worker runs per dataset")
+    p.add_argument("--n_repeat", type=int, default=3, help="Number of worker runs per dataset")
     p.add_argument("--job_id", default=None)
     p.add_argument("--seed", type=int, default=2, help="random seed")
 
-    p.add_argument("--n_iterations", type=int, default=100, help="Number of evaluations per BOHB run")
+    p.add_argument(
+        "--n_iterations", type=int, default=100, help="Number of evaluations per BOHB run"
+    )
 
     p.add_argument("--nic_name", default="lo", help="The network interface to use")
     p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
-    p.add_argument("--optimize_generalist", action="store_true",
-                   help="If set, optimize the average score over all datasets. "
-                        "Otherwise optimize individual configs per dataset")
+    p.add_argument(
+        "--optimize_generalist",
+        action="store_true",
+        help="If set, optimize the average score over all datasets. "
+        "Otherwise optimize individual configs per dataset"
+    )
 
-    p.add_argument("--time_budget_approx", type=int, default=90,
-                   help="Specifies <lower_time> to simulate cutting a run with "
-                        "budget <actual_time> after <lower-time> seconds.")
-    p.add_argument("--time_budget", type=int, default=1200,
-                   help="Specifies <actual_time> (see argument --time_budget_approx")
+    p.add_argument(
+        "--time_budget_approx",
+        type=int,
+        default=90,
+        help="Specifies <lower_time> to simulate cutting a run with "
+        "budget <actual_time> after <lower-time> seconds."
+    )
+    p.add_argument(
+        "--time_budget",
+        type=int,
+        default=1200,
+        help="Specifies <actual_time> (see argument --time_budget_approx"
+    )
+
+    p.add_argument(
+        "--logger_level",
+        type=str,
+        default="INFO",
+        help=
+        "Sets the logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
+    )
 
     args = p.parse_args()
     main(args)
