@@ -2,6 +2,7 @@ import logging
 import sys
 from collections import OrderedDict
 from copy import copy
+import numpy as np
 
 import skeleton
 import torch
@@ -240,6 +241,15 @@ class EfficientNet(nn.Module):
 
     def forward_origin(self, x):
         bs = x.size(0)
+        if x.size(2) < 32:
+            pad_length = 32 - x.size(2)
+            x = nn.ZeroPad2d((0, 0, int(np.ceil(pad_length/2)),
+                                    int(np.floor(pad_length/2))))(x)
+        if x.size(3) < 32:
+            pad_length = 32 - x.size(3)
+            x = nn.ZeroPad2d((int(np.ceil(pad_length/2)),
+                              int(np.floor(pad_length/2)), 0, 0))(x)
+
         # Convolution layers
         x = self.extract_features(x)
 

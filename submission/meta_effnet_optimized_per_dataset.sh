@@ -16,7 +16,7 @@ source activate autodl
 ARGS_FILE=submission/hpo_args_individualists_v1.args
 TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
-python src/hpo/optimize.py \
+PYTHONPATH=$PWD python src/hpo/optimize.py \
     --nic_name eth0 \
     --job_id $SLURM_ARRAY_JOB_ID \
     --experiment_group effnet_optimized_per_dataset_test \
