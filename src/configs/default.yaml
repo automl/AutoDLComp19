@@ -11,7 +11,7 @@ cluster_model_dir: /home/ferreira/autodl_data/models
 # AutoCV, defaults from kakaobrain
 autocv:
   model:
-    architecture: ResNet18
+    architecture: efficientnetb0
 
   optimizer:
     lr: 0.025
