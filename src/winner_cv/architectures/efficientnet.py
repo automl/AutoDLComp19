@@ -132,7 +132,6 @@ class EfficientNet(nn.Module):
         assert len(blocks_args) > 0, 'block args must be greater than 0'
         self._global_params = global_params
         self._blocks_args = blocks_args
-        self.in_channels = copy(in_channels)
 
         # Get static or dynamic convolution depending on image size
         Conv2d = get_same_padding_conv2d(image_size=global_params.image_size)
@@ -141,21 +140,23 @@ class EfficientNet(nn.Module):
         bn_mom = 1 - self._global_params.batch_norm_momentum
         bn_eps = self._global_params.batch_norm_epsilon
 
-        #if in_channels == 3:
-        #    self.stem = torch.nn.Sequential(
-        #        skeleton.nn.Normalize(0.5, 0.25, inplace=False),
-        #    )
-        #elif in_channels == 1:
-        #    self.stem = torch.nn.Sequential(
-        #        skeleton.nn.Normalize(0.5, 0.25, inplace=False),
-        #        skeleton.nn.CopyChannels(3),
-        #    )
-        #else:
-        #    self.stem = torch.nn.Sequential(
-        #        skeleton.nn.Normalize(0.5, 0.25, inplace=False),
-        #        torch.nn.Conv2d(in_channels, 3, kernel_size=3, stride=1, padding=1, bias=False),
-        #        torch.nn.BatchNorm2d(3),
-        #    )
+        if in_channels == 3:
+            self.stem = torch.nn.Sequential(
+                skeleton.nn.Normalize(0.5, 0.25, inplace=False),
+            )
+        elif in_channels == 1:
+            self.stem = torch.nn.Sequential(
+                skeleton.nn.Normalize(0.5, 0.25, inplace=False),
+                skeleton.nn.CopyChannels(3),
+            )
+        else:
+            self.stem = torch.nn.Sequential(
+                skeleton.nn.Normalize(0.5, 0.25, inplace=False),
+                torch.nn.Conv2d(in_channels, 3, kernel_size=3, stride=1, padding=1, bias=False),
+                torch.nn.BatchNorm2d(3),
+            )
+
+        in_channels = 3
 
         # Stem
         out_channels = round_filters(32, self._global_params)  # number of output channels
@@ -222,6 +223,7 @@ class EfficientNet(nn.Module):
         """ Returns output of the final convolution layer """
 
         # Stem
+        inputs = self.stem(inputs)
         x = self._swish(self._bn0(self._conv_stem(inputs)))
 
         # Blocks
@@ -321,12 +323,6 @@ class EfficientNet(nn.Module):
              advprop=True, gain=1.):
         load_pretrained_weights(self, model_name, model_dir=model_dir,
                                 advprop=advprop)
-
-        if self.in_channels != 3:
-            Conv2d = get_same_padding_conv2d(image_size = self._global_params.image_size)
-            out_channels = round_filters(32, self._global_params)
-            self._conv_stem = Conv2d(self.in_channels, out_channels, kernel_size=3,
-                                     stride=2, bias=False)
 
         torch.nn.init.xavier_uniform_(self._fc.weight, gain=gain)
         LOGGER.debug('initialize classifier weight')

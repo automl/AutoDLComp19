@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH -p bosch_gpu-rtx2080
-#SBATCH -t 0-02:00
 #SBATCH -a 1-38
 
 #SBATCH --gres=gpu:1
