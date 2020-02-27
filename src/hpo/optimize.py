@@ -50,6 +50,10 @@ def run_master(args):
     )
     ns_host, ns_port = NS.start()
 
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, args.logger_level)
+    logger.setLevel(logging_level)
+
     # Start a background worker for the master node
     if args.optimize_generalist:
         w = AggregateWorker(
@@ -60,7 +64,8 @@ def run_master(args):
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx
+            time_budget_approx=args.time_budget_approx,
+            logger=logger
         )
     else:
         w = SingleWorker(
@@ -72,16 +77,13 @@ def run_master(args):
             n_repeat=args.n_repeat,
             dataset=args.dataset,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx
+            time_budget_approx=args.time_budget_approx,
+            logger=logger
         )
     w.run(background=True)
 
     # Create an optimizer
     result_logger = hpres.json_result_logger(directory=args.bohb_root_path, overwrite=False)
-
-    logger = logging.getLogger(__file__)
-    logging_level = getattr(logging, args.logger_level)
-    logger.setLevel(logging_level)
 
     optimizer = BOHB(
         configspace=get_configspace(),
@@ -166,7 +168,7 @@ if __name__ == '__main__':
         type=str,
         default="INFO",
         help=
-        "Sets the logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
+        "Sets the bohb master and worker logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
     )
 
     args = p.parse_args()

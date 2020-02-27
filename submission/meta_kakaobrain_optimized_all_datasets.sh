@@ -1,14 +1,15 @@
 #!/bin/bash
 
 #SBATCH -p bosch_gpu-rtx2080
-#SBATCH -t 1-12:00
+
 #SBATCH -a 1-100
+#SBATCH -x mlgpu05,mlgpu06,mlgpu07,mlgpu13,mlgpu14,mlgpu15
 
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
 
-#SBATCH -o experiments/kakaobrain_optimized_all_datasets_%A-%a.%x.out
-#SBATCH -e experiments/kakaobrain_optimized_all_datasets_%A-%a.%x.err
+#SBATCH -o experiments/kakaobrain_optimized_all_datasets_new4%A-%a.%x.out
+#SBATCH -e experiments/kakaobrain_optimized_all_datasets_new4%A-%a.%x.err
 
 #SBATCH --job-name kb_all_video
 
@@ -19,7 +20,7 @@ TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
 
 if [ $SLURM_ARRAY_TASK_ID -eq 1 ]
-   then python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --logger_level DEBUG
+   then python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new4 --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --logger_level DEBUG
 else
-   python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --worker --logger_level DEBUG
+   python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new4 --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --worker --logger_level DEBUG
 fi
