@@ -200,7 +200,7 @@ if __name__ == "__main__":
         n_repeat=1,
         run_id='0',
         time_budget=1200,
-        time_budget_approx=60
+        time_budget_approx=60,
     )
 
     # worker = SingleWorker(
