@@ -17,7 +17,7 @@ from src.hpo.aggregate_worker import AggregateWorker, SingleWorker, get_configsp
 sys.path.append(os.getcwd())
 
 
-def run_worker(args, logger):
+def run_worker(args):
     time.sleep(5)  # short artificial delay to make sure the nameserver is already running
 
     if args.optimize_generalist:
@@ -27,8 +27,7 @@ def run_worker(args, logger):
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx,
-            logger=logger
+            time_budget_approx=args.time_budget_approx
         )
     else:
         w = SingleWorker(
@@ -38,54 +37,54 @@ def run_worker(args, logger):
             n_repeat=args.n_repeat,
             dataset=args.dataset,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx,
-            logger=logger
+            time_budget_approx=args.time_budget_approx
         )
 
     w.load_nameserver_credentials(working_directory=args.bohb_root_path)
     w.run(background=False)
 
 
-def run_master(args, logger):
-    NS = hpns.NameServer(
-        run_id=args.run_id, host=args.host, port=0, working_directory=args.bohb_root_path
-    )
+def run_master(args):
+    NS = hpns.NameServer(run_id=args.run_id, nic_name='eth0', working_directory=args.bohb_root_path)
     ns_host, ns_port = NS.start()
 
     # Start a background worker for the master node
     if args.optimize_generalist:
         w = AggregateWorker(
             run_id=args.run_id,
-            host=args.host,
+            host=ns_host,
             nameserver=ns_host,
             nameserver_port=ns_port,
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx,
-            logger=logger
+            time_budget_approx=args.time_budget_approx
         )
     else:
         w = SingleWorker(
             run_id=args.run_id,
-            host=args.host,
+            host=ns_host,
             nameserver=ns_host,
             nameserver_port=ns_port,
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
             dataset=args.dataset,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx,
-            logger=logger
+            time_budget_approx=args.time_budget_approx
         )
     w.run(background=True)
 
     # Create an optimizer
     result_logger = hpres.json_result_logger(directory=args.bohb_root_path, overwrite=False)
 
+    logger = logging.getLogger(__file__)
+    logging_level = getattr(logging, args.logger_level)
+    logger.setLevel(logging_level)
+
     optimizer = BOHB(
         configspace=get_configspace(),
         run_id=args.run_id,
+        host=ns_host,
         nameserver=ns_host,
         nameserver_port=ns_port,
         min_budget=1,
@@ -115,14 +114,10 @@ def main(args):
     torch.cuda.manual_seed_all(args.seed)
     tf.set_random_seed(args.seed)
 
-    logger = logging.getLogger(__file__)
-    logging_level = getattr(logging, args.logger_level)
-    logger.setLevel(logging_level)
-
     if args.worker:
-        run_worker(args, logger)
+        run_worker(args)
     else:
-        run_master(args, logger)
+        run_master(args)
 
 
 if __name__ == '__main__':
@@ -170,7 +165,7 @@ if __name__ == '__main__':
         type=str,
         default="INFO",
         help=
-        "Sets the bohb master and worker logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
+        "Sets the logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
     )
 
     args = p.parse_args()
