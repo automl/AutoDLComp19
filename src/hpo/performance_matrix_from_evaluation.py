@@ -1,7 +1,8 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from src.available_datasets import train_datasets, val_datasets
-from pathlib import Path
 
 
 def get_scores_dataset_x_configs(dataset_dir):
@@ -11,14 +12,16 @@ def get_scores_dataset_x_configs(dataset_dir):
     n_repeat = len(set([int(str(c.absolute())[-1]) for c in all_config_paths]))
 
     config_names = []
-    [config_names.append(config_path.name[:-2])
-     for config_path in all_config_paths
-     if config_path.name[:-2] not in config_names
-     ]
+    [
+        config_names.append(config_path.name[:-2])
+        for config_path in all_config_paths if config_path.name[:-2] not in config_names
+    ]
 
     # splits all config paths [Chuck_0, Chuck_1, ..., Hammer_0, Hammer_1]
     # into according sublists [[Chuck_0, Chuck_1],..., [Hammer_0, Hammer1]]
-    config_sublists = [all_config_paths[x:x + n_repeat] for x in range(0, len(all_config_paths), n_repeat)]
+    config_sublists = [
+        all_config_paths[x:x + n_repeat] for x in range(0, len(all_config_paths), n_repeat)
+    ]
 
     avg_config_scores = []
     for i, config_path_sublist in enumerate(config_sublists):
@@ -42,25 +45,31 @@ def get_scores_dataset_x_configs(dataset_dir):
     return avg_config_scores, config_names
 
 
-def create_df_perf_matrix(experiment_group_dir, split_df=True):
+def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None):
     for i, dataset_dir in enumerate(sorted(experiment_group_dir.iterdir())):
         if dataset_dir.is_dir():  # iterdir also yields files
             avg_config_scores, config_names = get_scores_dataset_x_configs(dataset_dir)
 
             if i == 0:
                 # some datasets have been misnamed, correct here:
-                config_names = [config_name.replace("Chuck", "Chucky")
-                                for config_name in config_names]
-                config_names = [config_name.replace("colorectal_histolog", "colorectal_histology")
-                                for config_name in config_names]
+                config_names = [
+                    config_name.replace("Chuck", "Chucky") for config_name in config_names
+                ]
+                config_names = [
+                    config_name.replace("colorectal_histolog", "colorectal_histology")
+                    for config_name in config_names
+                ]
 
                 # remove default from indices (i.e. datasets since there are only configs of it)
                 indices = config_names.copy()
-                indices.remove("default")
+                # indices.remove("default")
 
                 df = pd.DataFrame(columns=config_names, index=indices)
 
             df.loc[dataset_dir.name] = avg_config_scores
+
+    if existing_df is not None:
+        df = pd.concat([existing_df, df], axis=1)
 
     if split_df:
         df_train = df.loc[df.index.isin(train_datasets)]
@@ -82,34 +91,58 @@ def transform_to_long_matrix(df, n_samples):
             new_index = index + "_{}".format(i)
             new_df.loc[new_index] = row
 
-
-    train_dataset_names = [d + "_{}".format(i) for d in train_datasets
-                           for i in range(n_samples)]
-    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets
-                           for i in range(n_samples)]
+    train_dataset_names = [d + "_{}".format(i) for d in train_datasets for i in range(n_samples)]
+    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
     new_df_train = new_df.loc[new_df.index.isin(train_dataset_names)]
     new_df_valid = new_df.loc[new_df.index.isin(valid_dataset_names)]
 
     return new_df, new_df_train, new_df_valid
 
 
+def export_df(df, experiment_group_dir, df_train=None, df_valid=None, file_name="perf_matrix"):
+    train_file_name = file_name + "_train.pkl"
+    valid_file_name = file_name + "_valid.pkl"
+    file_name = file_name + ".pkl"
+
+    export_path = experiment_group_dir / "perf_matrix"
+    export_path.mkdir(parents=True, exist_ok=True)
+
+    df.to_pickle(path=export_path / file_name)
+    df.to_csv(path_or_buf=(export_path / file_name).with_suffix(".csv"), float_format="%.5f")
+
+    if df_train is not None:
+        df_train.to_pickle(path=export_path / train_file_name)
+        df_train.to_csv(
+            path_or_buf=(export_path / train_file_name).with_suffix(".csv"), float_format="%.5f"
+        )
+
+    if df_valid is not None:
+        df_valid.to_pickle(path=export_path / valid_file_name)
+        df_valid.to_csv(
+            path_or_buf=(export_path / valid_file_name).with_suffix(".csv"), float_format="%.5f"
+        )
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
-    parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
     parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
     args = parser.parse_args()
 
-    df, df_train, df_valid = create_df_perf_matrix(args.experiment_group_dir, split_df=True)
+    df_to_merge = pd.read_pickle(
+        "experiments/kakaobrain_optimized_per_dataset_datasets_x_configs_evaluations/perf_matrix/perf_matrix.pkl"
+    )
 
-    df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)
+    df, df_train, df_valid = create_df_perf_matrix(
+        args.experiment_group_dir, split_df=True, existing_df=df_to_merge
+    )
+    export_df(
+        df=df,
+        experiment_group_dir=args.experiment_group_dir,
+        df_train=df_train,
+        df_valid=df_valid,
+        file_name="perf_matrix"
+    )
 
-    df_train.to_pickle(path=args.experiment_group_dir / "perf_matrix_train_samples_along_rows.pkl")
-    df_train.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_train_samples_along_rows.csv", float_format="%.5f")
-
-    df_valid.to_pickle(path=args.experiment_group_dir / "perf_matrix_valid_samples_along_rows.pkl")
-    df_valid.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_valid_samples_along_rows.csv", float_format="%.5f")
-
-    df.to_pickle(path=args.experiment_group_dir / "perf_matrix_samples_along_rows.pkl")
-    df.to_csv(path_or_buf=args.experiment_group_dir / "perf_matrix_samples_along_rows.csv", float_format="%.5f")
+    #df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)
+    #export_df(df=df, experiment_group_dir=args.experiment_group_dir, df_train=df_train, df_valid=df_valid, file_name="perf_matrix_samples_along_rows")

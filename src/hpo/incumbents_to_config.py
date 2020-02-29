@@ -25,7 +25,6 @@ def incumbent_to_config(experiment_path, configs_path, output_dir):
         yaml.dump(incumbent_config, out_stream)
 
 
-6
 if __name__ == '__main__':
     import argparse
 
