@@ -63,6 +63,7 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
                 # remove default from indices (i.e. datasets since there are only configs of it)
                 indices = config_names.copy()
                 # indices.remove("default")
+                indices.remove("generalist")
 
                 df = pd.DataFrame(columns=config_names, index=indices)
 
