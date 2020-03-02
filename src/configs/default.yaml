@@ -54,11 +54,11 @@ autonlp:
 
   model:
     num_epoch: 1              # number of epochs to train the classifier
-    valid_ratio: 0.1          # train/validation split ratio
     total_call_num: 20        # how often the test function shall be called
-    init_batch_size: 32       # guess what
+    valid_ratio: 0.1          # train/validation split ratio
     increase_batch_acc: 0.65  # batch size will be increased below this accuracy
     early_stop_auc: 0.8       # minimum auc for an early stop
+    init_batch_size: 32       # guess what
     ft_dir: ['/app/embedding',
              '/home/ferreira/autodl_data/embedding',
              '/home/dingsda/data/embedding']  # paths to look for the embedding model
@@ -70,7 +70,11 @@ autonlp:
     max_train_perclass_sample: 800
 
   model_manager:
-    embedding_dim: 300        # word embedding size
+    embedding_dim: 300      # word embedding size
+
+  optimizer:
+    lr: 0.001
+    rho: 0.1                # actually the parameter is 1-rho. But this way the config space can be described more easily
 
 
 
