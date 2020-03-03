@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -p bosch_gpu-rtx2080
-#SBATCH -a 1-38
+#SBATCH -a 1-34
 
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task 1
