@@ -220,7 +220,7 @@ class DataGenerator(object):
             self.x_train = x_train
             self.y_train = y_train
             print("max_length_training:", self.max_length)
-            print("num_featrues_training:", self.num_features)
+            print("num_features_training:", self.num_features)
 
             self.valid_x = self.x_train[len(self.meta_train_index):]
             self.valid_y = self.y_train[len(self.meta_train_index):, :]
