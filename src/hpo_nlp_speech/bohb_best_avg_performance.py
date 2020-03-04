@@ -119,6 +119,9 @@ class BOHBWorker(Worker):
         print('MODEL CONFIG: ' + str(model_config))
         print('----------------------------')
 
+        config_id_formatted = "_".join(map(str, config_id))
+        config_experiment_dir = os.path.join(self.working_dir, config_id_formatted, str(budget))
+
         info = {}
 
         status = 'ok'
@@ -135,7 +138,7 @@ class BOHBWorker(Worker):
                 score_ind = run_baseline(
                     dataset_dir=dataset_dir,
                     code_dir="src",
-                    experiment_dir=self.working_dir,
+                    experiment_dir=config_experiment_dir,
                     time_budget=budget,
                     time_budget_approx=budget,
                     overwrite=True,
