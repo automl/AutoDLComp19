@@ -100,7 +100,7 @@ class ModelGenerator(object):
             self.model = self.cnn_model_lib[model_name](**kwargs)
             self.model.compile(
                 loss="categorical_crossentropy",
-                optimizer=keras.optimizers.RMSprop(learning_rate=self.model_config["optimizer"]["lr"],
+                optimizer=keras.optimizers.RMSprop(lr=self.model_config["optimizer"]["lr"],
                                                    rho=1-self.model_config["optimizer"]["rho"]),
                 metrics=["accuracy"]
             )

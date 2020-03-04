@@ -468,7 +468,7 @@ class Model(object):
         # Model Selection and Sample num from Feedback Dynamic Regulation of Simulator
         # Dynamic sampling ,if accuracy is lower than 0.65 ,Increase sample size
         self.sample_num_per_class = self.data_generator.sample_num_per_class
-        if history.history['accuracy'][0] < increase_batch_acc:
+        if history.history['acc'][0] < increase_batch_acc:
             self.sample_num_per_class = min(
                 4 * self.data_generator.sample_num_per_class,
                 self.data_generator.max_sample_num_per_class

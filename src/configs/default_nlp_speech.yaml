@@ -1,0 +1,38 @@
+# Codalab submission
+extra_packages: []  # Paths
+active_model_files: []  # With respect to model_dir
+
+autonlp:
+  common:
+    max_vocab_size: 20000   # maximum number of vocabulary to be embedded, must be larger than number of different words in the dataset
+    max_char_length: 96     # maximum number of characters for chinese samples
+    max_seq_length: 301     # maximum sequence length for non chinese samples
+
+  model:
+    num_epoch: 1              # number of epochs to train the classifier
+    total_call_num: 20        # how often the test function shall be called
+    valid_ratio: 0.1          # train/validation split ratio
+    increase_batch_acc: 0.65  # batch size will be increased below this accuracy
+    early_stop_auc: 0.8       # minimum auc for an early stop
+    init_batch_size: 32       # guess what
+    ft_dir: ['/app/embedding',
+             '/home/ferreira/autodl_data/embedding',
+             '/home/dingsda/data/embedding']  # paths to look for the embedding model
+
+  data_manager:
+    chi_word_length: 2
+    max_valid_perclass_sample: 400
+    max_sample_train: 18000
+    max_train_perclass_sample: 800
+
+  model_manager:
+    embedding_dim: 300      # word embedding size
+
+  optimizer:
+    lr: 0.001
+    rho: 0.1                # actually the parameter is 1-rho. But this way the config space can be described more easily
+
+
+
+
+
