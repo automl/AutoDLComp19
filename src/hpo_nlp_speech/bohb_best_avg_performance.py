@@ -40,7 +40,7 @@ BOHB_MIN_BUDGET = 90
 BOHB_MAX_BUDGET = 360
 BOHB_ETA = 2
 BOHB_WORKERS = 2
-BOHB_ITERATIONS = 100
+BOHB_ITERATIONS = 1000
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
