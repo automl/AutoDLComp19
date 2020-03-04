@@ -20,7 +20,7 @@ TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
 
 if [ $SLURM_ARRAY_TASK_ID -eq 1 ]
-   then python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --logger_level DEBUG
+   then python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 120 --n_repeat_lower_budget 1 --n_repeat_upper_budget 3 --experiment_name generalist --optimize_generalist --logger_level DEBUG
 else
-   python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 90 --n_repeat 3 --experiment_name generalist --optimize_generalist --worker --logger_level DEBUG
+   python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 120 --n_repeat_lower_budget 1 --n_repeat_upper_budget 3 --experiment_name generalist --optimize_generalist --worker --logger_level DEBUG
 fi
