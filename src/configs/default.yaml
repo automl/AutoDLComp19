@@ -1,6 +1,7 @@
 # Codalab submission
 extra_packages: []  # Paths
 active_model_files: []  # With respect to model_dir
+is_submission: False
 
 # Cluster
 cluster_datasets_dir: /data/aad/image_datasets/all_symlinks
@@ -75,8 +76,3 @@ autonlp:
   optimizer:
     lr: 0.001
     rho: 0.1                # actually the parameter is 1-rho. But this way the config space can be described more easily
-
-
-
-
-
