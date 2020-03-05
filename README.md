@@ -42,6 +42,13 @@ If you want to overwrite the output dir (for repeated local testing for example)
 
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
+### Generate a performance matrix 
+#### 1. todo
+#### 2. todo 
+#### 3. Once the evaluation directory has been generated, generate the pandas DataFrames and csv files with the following command
+```bash
+python src/hpo/performance_matrix_from_evaluation.py --experiment_group_dir EVALUATION_DIR_PATH
+```
 
 ### Pre-Computing meta features
 
