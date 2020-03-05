@@ -1,6 +1,7 @@
 # Codalab submission
 extra_packages: []  # Paths
 active_model_files: []  # With respect to model_dir
+is_submission: False
 
 # Cluster
 cluster_datasets_dir: /data/aad/image_datasets/all_symlinks
@@ -10,6 +11,9 @@ cluster_model_dir: /home/ferreira/autodl_data/models
 
 # AutoCV, defaults from kakaobrain
 autocv:
+  model:
+    architecture: ResNet18
+
   optimizer:
     lr: 0.025
 
@@ -45,66 +49,3 @@ autocv:
     use_fast_auto_aug: True
     # In src/winner_cv/skeleton/projects/logic:
     # skip_valid_after_test: min(10 max(3 int(self.info["dataset"]["size"] // 1000)))
-
-autonlp:
-  optimizer:
-    lr: 1e-3,
-    rho: 0.9
-
-  common:
-    max_vocab_size: 20000   # maximum number of vocabulary to be embedded, must be larger than number of different words in the dataset
-    max_char_length: 96     # maximum number of characters for chinese samples
-    max_seq_length: 301     # maximum sequence length for non chinese samples
-
-  model:
-    num_epoch: 1              # number of epochs to train the classifier
-    valid_ratio: 0.1          # train/validation split ratio
-    total_call_num: 20        # how often the test function shall be called
-    init_batch_size: 32       # guess what
-    increase_batch_acc: 0.65  # batch size will be increased below this accuracy
-    early_stop_auc: 0.8       # minimum auc for an early stop
-    ft_dir: ['/app/embedding',
-             '/home/ferreira/autodl_data/embedding',
-             '/home/dingsda/data/embedding']  # paths to look for the embedding model
-
-  data_manager:
-    chi_word_length: 2
-    max_valid_perclass_sample: 400
-    max_sample_train: 18000
-    max_train_perclass_sample: 800
-
-  model_manager:
-    embedding_dim: 300        # word embedding size
-
-
-autospeech:
-  optimizer:
-    lr: 1e-3,
-    beta_1: 0.9,
-    beta_2: 0.999,
-    epsilon: 1e-08,
-    decay: 1e-4,
-    amsgrad: True
-
-  common:
-    model_first_max_run_loop: 3
-    max_audio_duration: 5           # original comment: limited length of audio, like 20s
-    first_round_duration: 10
-    middle_duration: 15
-    second_round_duration: 30
-    audio_sample_rate: 16000
-    max_frame_num: 700
-    is_cut_audio: True
-    num_mfcc: 96                    # original comment: num of mfcc features, default value is 24
-    sr: 16000
-    fft_duration: 0.1
-    hop_duration: 0.04
-
-  data_manager:
-    max_valid_perclass_sample: 200
-    min_valid_per_class: 1
-
-
-
-
-

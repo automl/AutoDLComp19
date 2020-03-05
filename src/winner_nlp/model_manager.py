@@ -101,10 +101,8 @@ class ModelGenerator(object):
             self.model = self.cnn_model_lib[model_name](**kwargs)
             self.model.compile(
                 loss="categorical_crossentropy",
-                optimizer=keras.optimizers.RMSprop(
-                    learning_rate = self.model_config["optimizer"]["lr"],
-                    rho = self.model_config["optimizer"]["rho"]
-                ),
+                optimizer=keras.optimizers.RMSprop(lr=self.model_config["optimizer"]["lr"],
+                                                   rho=1-self.model_config["optimizer"]["rho"]),
                 metrics=["accuracy"]
             )
 
@@ -130,7 +128,7 @@ class ModelGenerator(object):
     def generate_emb_matrix(self):
 
         cnt = 0
-        self.embedding_matrix = np.zeros((self.num_features,
+        self.embedding_matrix = np.zeros((self.model_config["common"]["max_vocab_size"],
                                           self.model_config["model_manager"]["embedding_dim"]))
         for word, i in self.word_index.items():
             if i >= self.num_features:

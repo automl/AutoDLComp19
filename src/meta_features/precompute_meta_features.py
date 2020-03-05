@@ -63,7 +63,8 @@ def precompute_nn_meta_features(processed_datasets_path,
                                 dump_dataframe_csv=True,
                                 split_df=True,
                                 n_samples_to_use=100,
-                                file_name="meta_features"):
+                                file_name="meta_features",
+                                samples_along_rows=True):
 
     processed_datasets = load_processed_datasets(dataset_path=str(processed_datasets_path))
 
@@ -84,22 +85,25 @@ def precompute_nn_meta_features(processed_datasets_path,
 
         # data filtering
         data = data[sample_indices, :]
-        data = np.delete(data, [np.arange(4, 17)], axis=1)  # remove elements 4..16 (test data info)
-        meta_data = data[0, :5]  # is static over all samples --> take from first samples
+        data = np.delete(data, [np.arange(5, 17)], axis=1)  # remove elements 5..16 (test data info)
+        # see /data/aad/image_datasets/processed_datasets/readme.txt
+
+        simple_meta_data = data[0, :5]  # is static over all samples --> take from first sample
 
         if dataset_name in dataset_to_meta_features:
             num_channels = dataset_to_meta_features[dataset_name]['num_channels']
             num_classes = dataset_to_meta_features[dataset_name]['num_classes']
 
-            meta_data[3] = num_channels
-            meta_data[4] = num_classes
+            simple_meta_data[3] = num_channels
+            simple_meta_data = np.append(simple_meta_data, num_classes)
+
         else:
             print("Could not get num_channels and num_classes from dataset due to dataset mismatch "
                   "between datasets here {} and here{}".format(dataset_path, processed_datasets_path))
 
-        resnet_data = data[:, 5:]
+        resnet_data = data[:, 6:]
         resnet_data = np.concatenate(resnet_data, axis=0)
-        data = np.concatenate((meta_data, resnet_data))
+        data = np.concatenate((simple_meta_data, resnet_data))
 
         dataset_to_nn_meta_features[dataset_name] = data
 
@@ -107,22 +111,48 @@ def precompute_nn_meta_features(processed_datasets_path,
     for i, dataset_name in enumerate(sorted(list(dataset_to_nn_meta_features.keys()))):
         df.loc[dataset_name] = dataset_to_nn_meta_features[dataset_name]
 
+    if samples_along_rows:
+        df = transform_to_long_matrix(df, len(simple_meta_data), n_samples=n_samples_to_use)
+
 
     if dump_dataframe_csv:
         dump_meta_features_df_and_csv(
             meta_features=df,
             output_path=output_path,
             split_df=split_df,
-            file_name=file_name
+            file_name=file_name,
+            samples_along_rows=samples_along_rows,
+            n_samples=n_samples_to_use
         )
 
     return df
 
 
+def transform_to_long_matrix(df, length_simple_meta_data, n_samples):
+    """ transforms a df with shape
+    (n_datasets, n_samples*(length_simple_meta_data+length_nn_meta_data) into
+    a df with shape
+     (n_datasets*n_samples, length_simple_meta_data+length_nn_meta_data)
+    """
+    len_nn_features = (len(df.columns) - length_simple_meta_data) // n_samples
+    new_df = pd.DataFrame(columns=[np.arange(length_simple_meta_data+len_nn_features)])
+
+    for index, row in df.iterrows():
+        simple_meta_data = np.asarray(row[:length_simple_meta_data])
+        nn_meta_data = np.asarray(row[length_simple_meta_data:])
+        nn_meta_splits = np.split(nn_meta_data, n_samples, axis=0)
+        for i in range(n_samples):
+            new_index = index + "_{}".format(i)
+            new_df.loc[new_index] = np.concatenate([simple_meta_data, nn_meta_splits[i]], axis=0)
+
+    return new_df
+
 def dump_meta_features_df_and_csv(meta_features,
                                   output_path,
                                   split_df=True,
-                                  file_name="meta_features"):
+                                  file_name="meta_features",
+                                  samples_along_rows=False,
+                                  n_samples=None):
 
     if not isinstance(meta_features, pd.DataFrame):
         df = convert_metadata_to_df(meta_features)
@@ -130,8 +160,18 @@ def dump_meta_features_df_and_csv(meta_features,
         df = meta_features
 
     if split_df:
-        df_train = df.loc[df.index.isin(train_datasets)]
-        df_valid = df.loc[df.index.isin(val_datasets)]
+        if samples_along_rows and n_samples:
+            train_dataset_names = [d + "_{}".format(i) for d in train_datasets
+                                   for i in range(n_samples)]
+            valid_dataset_names = [d + "_{}".format(i) for d in val_datasets
+                                   for i in range(n_samples)]
+            file_name = "meta_features_samples_along_rows"
+        else:
+            train_dataset_names = train_datasets
+            valid_dataset_names = val_datasets
+
+        df_train = df.loc[df.index.isin(train_dataset_names)]
+        df_valid = df.loc[df.index.isin(valid_dataset_names)]
 
         df_train.to_csv(output_path / Path(file_name + "_train.csv"))
         df_train.to_pickle(output_path / Path(file_name + "_train.pkl"))
@@ -142,6 +182,8 @@ def dump_meta_features_df_and_csv(meta_features,
     else:
         df.to_csv((output_path / file_name).with_suffix(".csv"))
         df.to_pickle((output_path / file_name).with_suffix(".pkl"))
+
+
 
     print("meta features data dumped to: {}".format(output_path))
 
@@ -229,7 +271,8 @@ if __name__ == '__main__':
             args.output_path,
             args.dataset_path,
             dump_dataframe_csv=True,
-            split_df=True
+            split_df=True,
+            samples_along_rows=True
     )
 
 

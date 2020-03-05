@@ -1,15 +1,16 @@
 import itertools as it
-import yaml
 import os
-
 from pathlib import Path
+
+import yaml
 from src.available_datasets import all_datasets
 
 
 def construct_command(config, dataset, base_datasets_dir, repeat, configs_path):
     dataset_dir = Path(base_datasets_dir, dataset)
     return "--model_config_name {} --dataset_dir {} --experiment_name {}/{}_{}".format(
-        os.path.join(configs_path.name, config), dataset_dir, dataset, config.rstrip(".yaml"), repeat
+        os.path.join(configs_path.name, config), dataset_dir, dataset, config.rstrip(".yaml"),
+        repeat
     )
 
 
@@ -31,9 +32,23 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("--configs_path", default="src/configs", type=Path, help=" ")
-    parser.add_argument("--command_file_name", default="dataset_x_configs_v4.args", help=" ")
-    parser.add_argument("--n_repeats", default=5, type=int, help=" ")
+    parser.add_argument(
+        "--configs_path",
+        default="src/configs",
+        type=Path,
+        help="Specifies where the incumbent configurations are stored"
+    )
+    parser.add_argument(
+        "--command_file_name",
+        default="dataset_x_configs_v4.args",
+        help="Specifies the name of the args file to be outputted"
+    )
+    parser.add_argument(
+        "--n_repeats",
+        default=5,
+        type=int,
+        help="Specifies how many times one incumbent configuration should be evaluated per dataset"
+    )
 
     args = parser.parse_args()
 

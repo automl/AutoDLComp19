@@ -24,20 +24,33 @@ def incumbent_to_config(experiment_path, configs_path, output_dir):
     with out_config_path.open("w") as out_stream:
         yaml.dump(incumbent_config, out_stream)
 
-6
+
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--configs_dir", default="src/configs/", type=Path, help=" ")
-    parser.add_argument("--output_dir", default="src/configs/", type=Path, help=" ")
-    parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
+    parser.add_argument(
+        "--configs_dir",
+        default="src/configs/",
+        type=Path,
+        help="Specifies where the default yaml file is (usually set to src/configs/"
+    )
+    parser.add_argument(
+        "--output_dir",
+        default="src/configs/",
+        type=Path,
+        help="Specifies where the incumbent configs should be stored e.g. src/configs/experiment_name"
+    )
+    parser.add_argument(
+        "--experiment_group_dir",
+        required=True,
+        type=Path,
+        help="Specifies the path to the bohb working directory of an experiment"
+    )
     args = parser.parse_args()
 
     for experiment_path in args.experiment_group_dir.iterdir():
         try:
-            # TODO: remove if:
-            if experiment_path.name in ["Katze", "Kreatur"]:
-                incumbent_to_config(experiment_path, args.configs_dir, args.output_dir)
+            incumbent_to_config(experiment_path, args.configs_dir, args.output_dir)
         except:
             print(experiment_path.name, " has an issue")

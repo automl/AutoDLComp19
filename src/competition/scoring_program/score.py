@@ -1173,3 +1173,4 @@ def score_fn(solution_dir, prediction_dir, score_dir):
             )
 
     logger.info("[Scoring terminated]")
+    return evaluator.learning_curve.get_alc()

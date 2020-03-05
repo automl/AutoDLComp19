@@ -159,22 +159,37 @@ class LogicModel(Model):
                 if min_times > self.hyper_params['dataset']['base'] else min_times
             ] + size + [channels]
 
-        if self.is_video():
-            self.hyper_params['dataset']['batch_size'] = int(
-                self.hyper_params['dataset']['batch_size'] // 2
-            )
-            # self.hyper_params['dataset']['batch_size_test'] = int(self.hyper_params['dataset']['batch_size_test'] // 2)
         LOGGER.info(
-            '[input_shape] origin:%s aspect_ratio:%f target:%s', [times, height, width, channels],
-            aspect_ratio, input_shape
+            '################################### batch size: {}'.format(
+                self.hyper_params['dataset']['batch_size']
+            )
         )
+
+        # if self.is_video():
+        #     self.hyper_params['dataset']['batch_size'] = int(
+        #         self.hyper_params['dataset']['batch_size'] // 2
+        #     )
+        #     # if self.hyper_params['dataset']['batch_size'] < 2:
+        #     #     self.hyper_params['dataset']['batch_size'] = 2
+        #     # self.hyper_params['dataset']['batch_size_test'] = int(self.hyper_params['dataset']['batch_size_test'] // 2)
+        # LOGGER.info(
+        #     '[input_shape] origin:%s aspect_ratio:%f target:%s', [times, height, width, channels],
+        #     aspect_ratio, input_shape
+        # )
 
         self.hyper_params['dataset']['input'] = input_shape
 
-        num_class = self.info['dataset']['num_class']
-        batch_size = self.hyper_params['dataset']['batch_size']
-        if num_class > batch_size / 2 and not self.is_video():
-            self.hyper_params['dataset']['batch_size'] = batch_size * 2
+        LOGGER.info('----------------------- is video: {}'.format(self.is_video()))
+
+        # num_class = self.info['dataset']['num_class']
+        # batch_size = self.hyper_params['dataset']['batch_size']
+        # if num_class > batch_size / 2 and not self.is_video():
+        #     # if batch_size < 2:
+        #     #     self.hyper_params['dataset']['batch_size'] = 2
+        #
+        #     self.hyper_params['dataset']['batch_size'] = batch_size * 2
+        #     LOGGER.info('################################### batch size: {}'.format(
+        #         self.hyper_params['dataset']['batch_size']))
         batch_size = self.hyper_params['dataset']['batch_size']
 
         preprocessor1 = get_tf_resize(
@@ -223,6 +238,8 @@ class LogicModel(Model):
         values = self.info['dataset']['sample']['example']['value']
         if mode == 'train':
             batch_size = self.hyper_params['dataset']['batch_size']
+            LOGGER.info('################################### batch size: {}'.format(batch_size))
+
             # input_shape = self.hyper_params['dataset']['input']
             preprocessor = get_tf_to_tensor(is_random_flip=True)
             # dataset = dataset.prefetch(buffer_size=batch_size * 3)
@@ -248,6 +265,8 @@ class LogicModel(Model):
                 ]
             )
             dataset = skeleton.data.TransformDataset(dataset, transform, index=0)
+
+            LOGGER.info('################################### batch size: {}'.format(batch_size))
 
             self.dataloaders['train'] = skeleton.data.FixedSizeDataLoader(
                 dataset,

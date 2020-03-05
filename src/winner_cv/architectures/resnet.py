@@ -115,7 +115,7 @@ class ResNet18(models.ResNet):
     def is_video(self):
         return self._is_video
 
-    def init(self, model_dir=None, gain=1.):
+    def init(self, model_dir=None, model_name=None, gain=1.):
         self.model_dir = model_dir if model_dir is not None else self.model_dir
         sd = model_zoo.load_url(model_urls['resnet18'], model_dir=self.model_dir)
         # sd = model_zoo.load_url(model_urls['resnet34'], model_dir='./models/')

@@ -29,6 +29,7 @@ import os
 import re
 import sys
 import time
+import pickle
 from functools import reduce
 
 import keras
@@ -201,6 +202,10 @@ class Model(object):
         self.done_training = False
         self.metadata = metadata
         self.model_config = model_config["autonlp"]
+        print('-----------')
+        print(self.model_config)
+        print('-----------')
+
         self.train_output_path = train_output_path
         self.test_input_path = test_input_path
         self.model = None
@@ -229,8 +234,10 @@ class Model(object):
 
         self.num_features = self.model_config["common"]["max_vocab_size"]
         # load pretrian embeding
+
         if self.load_pretrain_emb:
             self._load_emb()
+
 
     def train(self, train_dataset, remaining_time_budget=None):
         """model training on train_dataset.It can be seen as metecontroller
@@ -401,7 +408,7 @@ class Model(object):
             result = self.svm_result
             print("load svm again!!!")
         else:
-            result = self.model.predict(self.x_test, batch_size=self.batch_size * 16)
+            result = self.model.predict(self.x_test, batch_size=512)
 
         # Cumulative training times
         self.call_num = self.call_num + 1
@@ -413,29 +420,41 @@ class Model(object):
     def _load_emb(self):
         # loading pretrained embedding
 
-        f = None
-        fasttext_embeddings_index = {}
+        if self.metadata['language'] == 'ZH':
+            ft_file = 'cc.zh.300.vec.gz'
+            emb_file = 'ZH.pkl'
+        else:
+            ft_file = 'cc.en.300.vec.gz'
+            emb_file = 'EN.pkl'
+
+        emb_path = None
         for ft_dir in self.model_config["model"]["ft_dir"]:
-            if self.metadata['language'] == 'ZH':
-                ft_file = os.path.join(ft_dir, 'cc.zh.300.vec.gz')
-                if os.path.isfile(ft_file):
-                    f = gzip.open(ft_file, 'rb')
-            if self.metadata['language'] == 'EN':
-                ft_file = os.path.join(ft_dir, 'cc.en.300.vec.gz')
-                if os.path.isfile(ft_file):
-                    f = gzip.open(ft_file, 'rb')
+            if os.path.isfile(os.path.join(ft_dir, emb_file)):
+                emb_path = os.path.join(ft_dir, emb_file)
+                break
 
-        if f is None:
-            raise ValueError("Embedding not found")
+        fasttext_embeddings_index = {}
+        if emb_path is None:
+            print('found no embedding file')
+            f = None
+            for ft_dir in self.model_config["model"]["ft_dir"]:
+                ft_path = os.path.join(ft_dir, ft_file)
+                if os.path.isfile(ft_path):
+                    f = gzip.open(ft_path, 'rb')
+                    break
 
-        for line in f.readlines():
-            values = line.strip().split()
-            if self.metadata['language'] == 'ZH':
+            if f is None:
+                raise ValueError("Embedding not found")
+
+            for line in f.readlines():
+                values = line.strip().split()
                 word = values[0].decode('utf8')
-            else:
-                word = values[0].decode('utf8')
-            coefs = np.asarray(values[1:], dtype='float32')
-            fasttext_embeddings_index[word] = coefs
+                coefs = np.asarray(values[1:], dtype='float32')
+                fasttext_embeddings_index[word] = coefs
+        else:
+            print('found embedding file')
+            fasttext_embeddings_index = pickle.load(open(emb_path, "rb"))
+
 
         print('Found %s fastText word vectors.' % len(fasttext_embeddings_index))
         self.fasttext_embeddings_index = fasttext_embeddings_index
@@ -449,11 +468,14 @@ class Model(object):
         # Model Selection and Sample num from Feedback Dynamic Regulation of Simulator
         # Dynamic sampling ,if accuracy is lower than 0.65 ,Increase sample size
         self.sample_num_per_class = self.data_generator.sample_num_per_class
-        if history.history['accuracy'][0] < increase_batch_acc:
-            self.sample_num_per_class = min(
-                4 * self.data_generator.sample_num_per_class,
-                self.data_generator.max_sample_num_per_class
-            )
+        for key in ['acc', 'accuracy']:
+            if key in history.history.keys():
+                if history.history[key][0] < increase_batch_acc:
+                    self.sample_num_per_class = min(
+                        4 * self.data_generator.sample_num_per_class,
+                        self.data_generator.max_sample_num_per_class
+                    )
+
         #TODO self.sample_num_per_class
         self.data_generator.set_sample_num_per_class(self.sample_num_per_class)
 
@@ -474,6 +496,7 @@ class Model(object):
         self.valid_cost_list.append(valid_auc)
         early_stop_conditon1 = self.auc < pre_auc and self.auc > early_stop_auc
         if early_stop_conditon1 or early_stop_conditon2:
+            print('EARLY OUT')
             self.done_training = True
             if early_stop_conditon2:
                 self.model.set_weights(self.model_weights_list[self.call_num - 3])

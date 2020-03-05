@@ -9,9 +9,10 @@ Activate a conda python3.5 environment then run
 bash install/requirements_gcc.sh
 pip install -r install/requirements.txt
 bash install/requirements_torch_cuda100.sh
-bash install/install_precommit.sh
-bash install/install_just.sh
 bash install/install_winner_cv.sh
+bash install/install_winner_speech.sh
+bash install/install_just.sh        # Optional command runner
+bash install/install_precommit.sh   # Developer dependency
 ```
 
 
@@ -41,6 +42,13 @@ If you want to overwrite the output dir (for repeated local testing for example)
 
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
+### Generate a performance matrix 
+#### 1. todo
+#### 2. todo 
+#### 3. Once the evaluation directory has been generated, generate the pandas DataFrames and csv files with the following command
+```bash
+python src/hpo/performance_matrix_from_evaluation.py --experiment_group_dir EVALUATION_DIR_PATH
+```
 
 ### Pre-Computing meta features
 

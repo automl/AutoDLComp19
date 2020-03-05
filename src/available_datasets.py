@@ -1,4 +1,4 @@
-datasets_to_exclude = ["Hmdb51", "SMv2", "Ucf101", "emnist"]
+datasets_to_exclude = ["Hmdb51", "SMv2", "Ucf101"]
 
 train_datasets = [
     "Chucky",
@@ -33,6 +33,3 @@ val_datasets = ["Decal", "coil100", "kmnist", "oxford_flowers102"]
 val_datasets = [x for x in val_datasets if x not in datasets_to_exclude]
 
 all_datasets = train_datasets + val_datasets
-
-
-
