@@ -39,6 +39,7 @@ autospeech:
     beta_2: 0.999,
     epsilon: 1e-08,
     decay: 1e-4,
+    schedule_decay: 0.004,
     amsgrad: True
 
   common:

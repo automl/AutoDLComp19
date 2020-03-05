@@ -284,19 +284,19 @@ class DataManager:
             np.asarray(self._pre_val_x), np.asarray(self._pre_val_y)
 
     def nn_preprocess(self, x, n_mfcc=None, max_duration=5, is_mfcc=True):
-        ass = self.model_config["common"]["audio_sample_rate"]
+        asr = self.model_config["common"]["audio_sample_rate"]
         mad = self.model_config["common"]["max_audio_duration"]
         mfn = self.model_config["common"]["max_frame_num"]
         mid = self.model_config["common"]["middle_duration"]
 
         if self.raw_max_length is None:
             self.raw_max_length = get_max_length(x)
-            if self.raw_max_length > (mid*ass):
+            if self.raw_max_length > (mid*asr):
                 self.need_30s = True
                 if len(self._train_y) < 1000 and self._num_classes < 30:
                     self.crnn_first = True
-            self.raw_max_length = min(max_duration * ass, self.raw_max_length)
-            self.raw_max_length = max(mad * ass, self.raw_max_length)
+            self.raw_max_length = min(max_duration * asr, self.raw_max_length)
+            self.raw_max_length = max(mad * asr, self.raw_max_length)
         x = [sample[0:self.raw_max_length] for sample in x]
 
         if is_mfcc:

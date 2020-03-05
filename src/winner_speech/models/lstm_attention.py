@@ -82,7 +82,7 @@ class LstmAttention(Classifier):
             beta_1=self.model_config["optimizer"]["beta_1"],
             beta_2=self.model_config["optimizer"]["beta_2"],
             epsilon=self.model_config["optimizer"]["epsilon"],
-            schedule_decay=self.model_config["optimizer"]["decay"]
+            schedule_decay=self.model_config["optimizer"]["schedule_decay"]
         )
         model.compile(
             optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy']
