@@ -9,7 +9,7 @@ from models.attention import Attention
 from models.my_classifier import Classifier
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (
-    Activation, CuDNNLSTM, Dense, Dropout, Flatten, GlobalMaxPool1D, Input, Lambda,
+    Activation, LSTM, Dense, Dropout, Flatten, GlobalMaxPool1D, Input, Lambda,
     SpatialDropout1D
 )
 from tensorflow.python.keras.models import Model as TFModel
@@ -47,7 +47,7 @@ class LstmAttention(Classifier):
 
     def init_model(self, input_shape, num_classes, model_config, **kwargs):
         inputs = Input(shape=input_shape)
-        lstm_1 = CuDNNLSTM(128, return_sequences=True)(inputs)
+        lstm_1 = LSTM(128, return_sequences=True)(inputs)
         activation_1 = Activation('tanh')(lstm_1)
         if num_classes >= 20:
             if num_classes < 30:
