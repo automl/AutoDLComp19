@@ -40,8 +40,8 @@ SEED = 41
 BOHB_MIN_BUDGET = 80
 BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-BOHB_WORKERS = 2
-BOHB_ITERATIONS = 1000
+BOHB_WORKERS = 12
+BOHB_ITERATIONS = 100000
 
 def get_configspace(use_nlp):
     cs = CS.ConfigurationSpace()
