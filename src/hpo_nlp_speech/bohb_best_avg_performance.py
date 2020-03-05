@@ -345,10 +345,19 @@ def runBohbParallel(id, run_id):
                          working_directory=working_dir)
     ns_host, ns_port = ns.start()
 
+    w = BOHBWorker(timeout=1,
+                   host=host,
+                   nameserver=ns_host,
+                   nameserver_port=ns_port,
+                   run_id=run_id,
+                   working_dir=working_dir,
+                   use_nlp=use_nlp)
+    w.run(background=False)
+
     result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
 
-    bohb = BohbWrapper(
+    bohb = BOHB(
         configspace=get_configspace(use_nlp),
         run_id=run_id,
         eta=BOHB_ETA,
