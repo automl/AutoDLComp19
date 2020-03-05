@@ -39,7 +39,7 @@ SEED = 41
 BOHB_MIN_BUDGET = 90
 BOHB_MAX_BUDGET = 360
 BOHB_ETA = 2
-BOHB_WORKERS = 2
+BOHB_WORKERS = 9
 BOHB_ITERATIONS = 1000
 
 def get_configspace():
@@ -291,7 +291,8 @@ def runBohbParallel(id, run_id):
         max_budget=BOHB_MAX_BUDGET,
         result_logger=result_logger)
 
-    res = bohb.run(n_iterations=BOHB_ITERATIONS)
+    res = bohb.run(n_iterations=BOHB_ITERATIONS,
+                   min_n_workers=BOHB_WORKERS)
 
     bohb.shutdown(shutdown_workers=True)
     ns.shutdown()
@@ -342,9 +343,11 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(SEED)
     tf.set_random_seed(SEED)
 
-    for arg in sys.argv[1:]:
-        print(arg)
-    res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
-    #res = runBohbSerial(run_id='123')
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
+    else:
+        res = runBohbSerial(run_id='123')
 
 
