@@ -329,8 +329,7 @@ def runBohbParallel(id, run_id):
     if int(id) > 0:
         print('START NEW WORKER')
         time.sleep(10)
-        w = BOHBWorker(timeout=1,
-                       host=host,
+        w = BOHBWorker(host=host,
                        run_id=run_id,
                        working_dir=working_dir,
                        use_nlp=use_nlp)
@@ -345,8 +344,7 @@ def runBohbParallel(id, run_id):
                          working_directory=working_dir)
     ns_host, ns_port = ns.start()
 
-    w = BOHBWorker(timeout=1,
-                   host=host,
+    w = BOHBWorker(host=host,
                    nameserver=ns_host,
                    nameserver_port=ns_port,
                    run_id=run_id,
