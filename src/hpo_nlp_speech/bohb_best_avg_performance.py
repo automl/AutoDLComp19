@@ -328,7 +328,7 @@ def runBohbParallel(id, run_id):
 
     if int(id) > 0:
         print('START NEW WORKER')
-        time.sleep(15)
+        time.sleep(10)
         w = BOHBWorker(timeout=1,
                        host=host,
                        run_id=run_id,
