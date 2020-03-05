@@ -145,7 +145,7 @@ if __name__ == '__main__':
         df_train=df_train,
         df_valid=df_valid,
         file_name="perf_matrix",
-        export_path=args.experiment_group_dir.parent / "perf_matrix"
+        # export_path=args.experiment_group_dir.parent / "perf_matrix"
     )
 
     #df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)
