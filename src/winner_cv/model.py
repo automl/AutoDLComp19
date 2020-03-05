@@ -10,6 +10,7 @@ import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
+from architectures.efficientnet import EfficientNet, efficientnetb0
 from architectures.resnet import ResNet18
 from skeleton.projects import LogicModel, get_logger
 from skeleton.projects.others import AUC, NBAC
@@ -57,13 +58,13 @@ class Model(LogicModel):
         self.session = tf.Session()
 
         LOGGER.info('[init] Model')
-        Network = ResNet18  # ResNet18  # BasicNet, SENet18, ResNet18
+        Network = eval(self.hyper_params['model']['architecture'])
         self.model = Network(in_channels, num_class)
         self.model_pred = Network(in_channels, num_class).eval()
         # torch.cuda.synchronize()
 
         LOGGER.info('[init] weight initialize')
-        if Network in [ResNet18]:
+        if Network in [ResNet18, EfficientNet]:
             model_path = os.path.join(base_dir, 'models')
             LOGGER.info('model path: %s', model_path)
 
@@ -119,7 +120,7 @@ class Model(LogicModel):
         params = [p for p in self.model.parameters() if p.requires_grad]
         params_fc = [
             p for n, p in self.model.named_parameters()
-            if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6]
+            if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6] or '_fc' == n[:3]
         ]
 
         init_lr = self.hyper_params['optimizer']['lr']

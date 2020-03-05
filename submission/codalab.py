@@ -34,6 +34,8 @@ shutil.copytree(args.code_dir, args.submission_dir, ignore=ignore)
 with Path(args.code_dir, "configs", args.config).open() as in_stream:
     config = yaml.safe_load(in_stream)
 
+config["is_submission"] = True  # Set submission flag
+
 # Write config to submission_dir as default.yaml
 with Path(args.submission_dir, "configs", "default.yaml").open("w") as out_stream:
     yaml.dump(config, out_stream)

@@ -1,5 +1,13 @@
 import os
 import sys
+
+script_dir = os.path.dirname(os.path.abspath( __file__ ))
+par_dir = os.path.join(script_dir, os.pardir)
+root_dir = os.path.join(par_dir, os.pardir)
+
+sys.path.append(root_dir)
+os.chdir(root_dir)
+
 import tensorflow as tf
 import random
 import numpy as np
@@ -10,32 +18,29 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
+import psutil
 from hpbandster.core.worker import Worker
 from hpbandster.core.master import Master
 from hpbandster.optimizers.iterations import SuccessiveHalving
 from hpbandster.optimizers.config_generators.bohb import BOHB as BOHB
-from src.competition.run_local_test import run_baseline
 from copy import deepcopy
-
+from src.competition.run_local_test import run_baseline
 
 USE_NLP = True
 
 NLP_DATASETS = ['O1', 'O2', 'O3', 'O4', 'O5']
 SPEECH_DATASETS = ['data01', 'data02', 'data03', 'data04', 'data05']
 
-DATASET_DIRS = ['/home/dingsda/data/datasets/AutoDL_public_data']
+DATASET_DIRS = ['/home/dingsda/data/datasets/AutoDL_public_data',
+                '/data/aad/nlp_datasets/challenge']
 
 SEED = 41
 
 BOHB_MIN_BUDGET = 90
 BOHB_MAX_BUDGET = 360
 BOHB_ETA = 2
-BOHB_WORKERS = 10
-BOHB_ITERATIONS = 100
-BOHB_INTERFACE = 'eth0'
-BOHB_RUN_ID = '123'
-BOHB_WORKING_DIR = str(os.path.join(os.getcwd(), "experiments", BOHB_RUN_ID))
-
+BOHB_WORKERS = 9
+BOHB_ITERATIONS = 1000
 
 def get_configspace():
     cs = CS.ConfigurationSpace()
@@ -96,24 +101,26 @@ def construct_model_config(cso, default_config):
     return mc
 
 class BOHBWorker(Worker):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, working_dir, *args, **kwargs):
         super(BOHBWorker, self).__init__(*args, **kwargs)
         self.session = tf.Session()
+        print(kwargs)
+        self.working_dir = working_dir
 
-        with open(os.path.join(os.getcwd(), "src/configs/default.yaml")) as in_stream:
+        with open(os.path.join(os.getcwd(), "src/configs/default_nlp_speech.yaml")) as in_stream:
             self.default_config = yaml.safe_load(in_stream)
 
     def compute(self, config_id, config, budget, *args, **kwargs):
+        model_config = construct_model_config(config, self.default_config)
         print('----------------------------')
         print("START BOHB ITERATION")
         print('CONFIG: ' + str(config))
         print('BUDGET: ' + str(budget))
+        print('MODEL CONFIG: ' + str(model_config))
         print('----------------------------')
 
-        model_config = construct_model_config(config, self.default_config)
-        print('!!!!!!!!!!!!!')
-        print(model_config)
-        print('!!!!!!!!!!!!!')
+        config_id_formatted = "_".join(map(str, config_id))
+        config_experiment_dir = os.path.join(self.working_dir, config_id_formatted, str(budget))
 
         info = {}
 
@@ -131,7 +138,7 @@ class BOHBWorker(Worker):
                 score_ind = run_baseline(
                     dataset_dir=dataset_dir,
                     code_dir="src",
-                    experiment_dir=BOHB_WORKING_DIR,
+                    experiment_dir=config_experiment_dir,
                     time_budget=budget,
                     time_budget_approx=budget,
                     overwrite=True,
@@ -228,34 +235,54 @@ class BohbWrapper(Master):
                                   **iteration_kwargs))
 
 
-def runBohbParallel(id):
-    # every process has to lookup the hostname
-    host = hpns.nic_name_to_host(BOHB_INTERFACE)
+def get_bohb_interface():
+    addrs = psutil.net_if_addrs()
+    if 'eth0' in addrs.keys():
+        return 'eth0'
+    else:
+        return 'lo'
 
-    cs = get_configspace()
-    os.makedirs(BOHB_WORKING_DIR, exist_ok=True)
+
+def get_working_dir(run_id):
+    return str(os.path.join(os.getcwd(), "experiments", run_id))
+
+
+def runBohbParallel(id, run_id):
+    # get suitable interface (eth0 or lo)
+    bohb_interface = get_bohb_interface()
+
+    # get BOHB log directory
+    working_dir = get_working_dir(run_id)
+
+    # every process has to lookup the hostname
+    host = hpns.nic_name_to_host(bohb_interface)
+
+    os.makedirs(working_dir, exist_ok=True)
 
     if int(id) > 0:
+        print('START NEW WORKER')
         time.sleep(15)
-        w = BOHBWorker(timeout=10,
+        w = BOHBWorker(timeout=2,
                        host=host,
-                       run_id=BOHB_RUN_ID)
-        w.load_nameserver_credentials(working_directory=BOHB_WORKING_DIR)
+                       run_id=run_id,
+                       working_dir=working_dir)
+        w.load_nameserver_credentials(working_directory=working_dir)
         w.run(background=False)
         exit(0)
 
-    ns = hpns.NameServer(run_id=BOHB_RUN_ID,
+    print('START NEW MASTER')
+    ns = hpns.NameServer(run_id=run_id,
                          host=host,
                          port=0,
-                         working_directory=BOHB_RUN_ID)
+                         working_directory=working_dir)
     ns_host, ns_port = ns.start()
 
-    result_logger = hpres.json_result_logger(directory=BOHB_WORKING_DIR,
+    result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
 
     bohb = BohbWrapper(
         configspace=get_configspace(),
-        run_id=BOHB_RUN_ID,
+        run_id=run_id,
         eta=BOHB_ETA,
         host=host,
         nameserver=ns_host,
@@ -266,30 +293,35 @@ def runBohbParallel(id):
 
     res = bohb.run(n_iterations=BOHB_ITERATIONS,
                    min_n_workers=BOHB_WORKERS)
+
     bohb.shutdown(shutdown_workers=True)
     ns.shutdown()
 
     return res
 
 
-def runBohbSerial():
+def runBohbSerial(run_id):
+    # get BOHB log directory
+    working_dir = get_working_dir(run_id)
+
     # assign random port in the 30000-40000 range to avoid using a blocked port because of a previous improper bohb shutdown
     port = int(30000 + random.random() * 10000)
 
-    ns = hpns.NameServer(run_id=BOHB_RUN_ID, host="127.0.0.1", port=port)
+    ns = hpns.NameServer(run_id=run_id, host="127.0.0.1", port=port)
     ns.start()
 
     w = BOHBWorker(nameserver="127.0.0.1",
-                   run_id=BOHB_RUN_ID,
-                   nameserver_port=port)
+                   run_id=run_id,
+                   nameserver_port=port,
+                   working_dir=working_dir)
     w.run(background=True)
 
-    result_logger = hpres.json_result_logger(directory=BOHB_WORKING_DIR,
+    result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
 
     bohb = BohbWrapper(
         configspace=get_configspace(),
-        run_id=BOHB_RUN_ID,
+        run_id=run_id,
         eta=BOHB_ETA,
         min_budget=BOHB_MIN_BUDGET,
         max_budget=BOHB_MIN_BUDGET,
@@ -311,9 +343,11 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(SEED)
     tf.set_random_seed(SEED)
 
-    # for arg in sys.argv[1:]:
-    #     print(arg)
-    # res = runBohbParallel(id=sys.argv[1])
-    res = runBohbSerial()
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(arg)
+        res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
+    else:
+        res = runBohbSerial(run_id='123')
 
 

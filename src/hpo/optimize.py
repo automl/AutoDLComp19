@@ -45,7 +45,9 @@ def run_worker(args):
 
 
 def run_master(args):
-    NS = hpns.NameServer(run_id=args.run_id, nic_name='eth0', working_directory=args.bohb_root_path)
+    NS = hpns.NameServer(
+        run_id=args.run_id, nic_name=args.nic_name, working_directory=args.bohb_root_path
+    )
     ns_host, ns_port = NS.start()
 
     # Start a background worker for the master node
@@ -57,6 +59,7 @@ def run_master(args):
             nameserver_port=ns_port,
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
+            has_repeats_as_budget=args.n_repeat is None,
             time_budget=args.time_budget,
             time_budget_approx=args.time_budget_approx
         )
@@ -87,8 +90,8 @@ def run_master(args):
         host=ns_host,
         nameserver=ns_host,
         nameserver_port=ns_port,
-        min_budget=1,
-        max_budget=1,
+        min_budget=args.n_repeat_lower_budget,
+        max_budget=args.n_repeat_upper_budget,
         result_logger=result_logger,
         logger=logger
     )
@@ -107,6 +110,9 @@ def main(args):
     args.bohb_root_path = str(Path("experiments", args.experiment_group, args.experiment_name))
 
     args.dataset = args.experiment_name
+
+    if args.n_repeat_lower_budget is not None or args.n_repeat_upper_budget is not None:
+        args.n_repeat = None
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -129,6 +135,8 @@ if __name__ == '__main__':
     p.add_argument("--experiment_group", default="kakaobrain_optimized_all_datasets")
     p.add_argument("--experiment_name", default="dataset1")
 
+    p.add_argument("--n_repeat_lower_budget", type=int, default=None, help="Overrides n_repeat")
+    p.add_argument("--n_repeat_upper_budget", type=int, default=None, help="")
     p.add_argument("--n_repeat", type=int, default=3, help="Number of worker runs per dataset")
     p.add_argument("--job_id", default=None)
     p.add_argument("--seed", type=int, default=2, help="random seed")
@@ -137,7 +145,7 @@ if __name__ == '__main__':
         "--n_iterations", type=int, default=100, help="Number of evaluations per BOHB run"
     )
 
-    p.add_argument("--nic_name", default="lo", help="The network interface to use")
+    p.add_argument("--nic_name", default="eth0", help="The network interface to use")
     p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
     p.add_argument(
         "--optimize_generalist",

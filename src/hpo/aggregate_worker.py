@@ -133,7 +133,10 @@ class SingleWorker(Worker):
 
 
 class AggregateWorker(Worker):
-    def __init__(self, working_directory, n_repeat, time_budget, time_budget_approx, **kwargs):
+    def __init__(
+        self, working_directory, n_repeat, has_repeats_as_budget, time_budget, time_budget_approx,
+        **kwargs
+    ):
         super().__init__(**kwargs)
 
         with Path("src/configs/default.yaml").open() as in_stream:
@@ -142,6 +145,7 @@ class AggregateWorker(Worker):
         self._dataset_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
         self.n_repeat = n_repeat
+        self.has_repeats_as_budget = has_repeats_as_budget
         self.time_budget = time_budget
         self.time_budget_approx = time_budget_approx
 
@@ -151,6 +155,11 @@ class AggregateWorker(Worker):
 
         model_config = construct_model_config(config, default_config=self._default_config)
 
+        if self.has_repeats_as_budget:
+            n_repeat = int(budget)
+        else:
+            n_repeat = self.n_repeat
+
         score_results_tuples = []
         for dataset in train_datasets:
             try:
@@ -159,7 +168,7 @@ class AggregateWorker(Worker):
                     config_experiment_path / dataset,
                     model_config,
                     dataset_dir=self._dataset_dir,
-                    n_repeat=self.n_repeat,
+                    n_repeat=n_repeat,
                     time_budget=self.time_budget,
                     time_budget_approx=self.time_budget_approx
                 )
