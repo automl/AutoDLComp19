@@ -1,0 +1,62 @@
+active_model_files: []
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 2
+    max_inner_loop_ratio: 0.18038346709264963
+    min_lr: 1.0e-06
+    score_type: auc
+    skip_valid_score_threshold: 0.7266706293808904
+    test_after_at_least_seconds: 1
+    test_after_at_least_seconds_max: 108
+    test_after_at_least_seconds_step: 2
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.009294862099342703
+    use_fast_auto_aug: true
+  dataset:
+    base: 16
+    batch_size: 54
+    batch_size_test: 256
+    cv_valid_ratio: 0.08411945707655352
+    enough_count:
+      image: 1144
+      video: 1926
+    log2_max_size: 128
+    max_epoch: 1000
+    max_size: 64
+    max_times: 8
+    max_valid_count: 339
+    steps_per_epoch: 21
+    train_info_sample: 429
+  model:
+    architecture: efficientnetb0
+  optimizer:
+    lr: 0.013831901325091014
+    min_lr: 3.6349804923771017e-07
+autonlp:
+  common:
+    max_char_length: 96
+    max_seq_length: 301
+    max_vocab_size: 20000
+  data_manager:
+    chi_word_length: 2
+    max_sample_train: 18000
+    max_train_perclass_sample: 800
+    max_valid_perclass_sample: 400
+  model:
+    early_stop_auc: 0.8
+    ft_dir:
+    - /app/embedding
+    - /home/ferreira/autodl_data/embedding
+    - /home/dingsda/data/embedding
+    increase_batch_acc: 0.65
+    init_batch_size: 32
+    num_epoch: 1
+    total_call_num: 20
+    valid_ratio: 0.1
+  model_manager:
+    embedding_dim: 300
+cluster_datasets_dir: /data/aad/image_datasets/all_symlinks
+cluster_model_dir: /home/ferreira/autodl_data/models
+extra_packages: []
