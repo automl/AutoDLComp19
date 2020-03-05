@@ -4,6 +4,7 @@ from pathlib import Path
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import torch
 import yaml
@@ -132,15 +133,33 @@ class SingleWorker(Worker):
         })
 
 
+def _normalize(list_, mean, std):
+    return [(x - mean) / std for x in list_]
+
+
 class AggregateWorker(Worker):
     def __init__(
-        self, working_directory, n_repeat, has_repeats_as_budget, time_budget, time_budget_approx,
+        self,
+        working_directory,
+        n_repeat,
+        has_repeats_as_budget,
+        time_budget,
+        time_budget_approx,
+        performance_matrix=None,
         **kwargs
     ):
         super().__init__(**kwargs)
 
         with Path("src/configs/default.yaml").open() as in_stream:
             self._default_config = yaml.safe_load(in_stream)
+
+        if performance_matrix is not None:
+            pm = pd.read_csv(performance_matrix, index_col=0)
+            self.dataset_to_mean = pm.mean(axis=1).to_dict()
+            self.dataset_to_std = pm.std(axis=1).to_dict()
+        else:
+            self.dataset_to_mean = None
+            self.dataset_to_std = None
 
         self._dataset_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
@@ -160,10 +179,10 @@ class AggregateWorker(Worker):
         else:
             n_repeat = self.n_repeat
 
-        score_results_tuples = []
+        per_dataset_score = []
         for dataset in train_datasets:
             try:
-                score = _run_on_dataset(
+                repetition_scores, _ = _run_on_dataset(
                     dataset,
                     config_experiment_path / dataset,
                     model_config,
@@ -173,28 +192,21 @@ class AggregateWorker(Worker):
                     time_budget_approx=self.time_budget_approx
                 )
             except RuntimeError:
-                score = (None, 0)
-            score_results_tuples.append(score)
+                repetition_scores = n_repeat * [0]
 
-        # just get the repetition means for optimization
-        repetition_scores_mean_per_dataset = np.array(score_results_tuples)[:, 1]
-        # TODO: use improvement scores + is mean correct?
-        scores_mean_over_datasets = np.mean(repetition_scores_mean_per_dataset)
+            do_normalize = self.dataset_to_mean is not None and self.dataset_to_std is not None
+            if do_normalize:
+                mean, std = self.dataset_to_mean[dataset], self.dataset_to_std[dataset]
+                repetition_scores = _normalize(repetition_scores, mean, std)
 
-        # for the report, just use the repetition means
-        info = {
-            "{}_repetition_{}_score".format(dataset, n): score
-            for dataset in train_datasets
-            for n, (repetition_scores, repetition_mean) in enumerate(score_results_tuples)
-            for score in repetition_scores
-        }
+            mean_score = sum(repetition_scores) / len(repetition_scores)
+            per_dataset_score.append(mean_score)
 
-        return (
-            {
-                'loss': -scores_mean_over_datasets,  # remember: HpBandSter always minimizes!
-                'info': info
-            }
-        )
+        mean_score = sum(per_dataset_score) / len(per_dataset_score)
+        return ({
+            'loss': -mean_score,  # remember: HpBandSter always minimizes!
+            'info': None
+        })
 
 
 if __name__ == "__main__":

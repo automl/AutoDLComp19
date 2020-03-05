@@ -27,7 +27,8 @@ def run_worker(args):
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx
+            time_budget_approx=args.time_budget_approx,
+            performance_matrix=args.performance_matrix
         )
     else:
         w = SingleWorker(
@@ -61,7 +62,8 @@ def run_master(args):
             n_repeat=args.n_repeat,
             has_repeats_as_budget=args.n_repeat is None,
             time_budget=args.time_budget,
-            time_budget_approx=args.time_budget_approx
+            time_budget_approx=args.time_budget_approx,
+            performance_matrix=args.performance_matrix
         )
     else:
         w = SingleWorker(
@@ -111,8 +113,12 @@ def main(args):
 
     args.dataset = args.experiment_name
 
-    if args.n_repeat_lower_budget is not None or args.n_repeat_upper_budget is not None:
+    # Handle case of budget dictating n_repeat vs. n_repeat directly
+    if args.n_repeat_lower_budget is not None and args.n_repeat_upper_budget is not None:
         args.n_repeat = None
+    else:
+        args.n_repeat_lower_budget = 1
+        args.n_repeat_upper_budget = 1
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -147,6 +153,7 @@ if __name__ == '__main__':
 
     p.add_argument("--nic_name", default="eth0", help="The network interface to use")
     p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
+    p.add_argument("--performance_matrix", default=None, help="Path to the performance_matrix")
     p.add_argument(
         "--optimize_generalist",
         action="store_true",
