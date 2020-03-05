@@ -64,7 +64,7 @@ def get_configspace(use_nlp):
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_sample_train', lower=5000, upper=36000, log=True, default_value=18000))
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_train_perclass_sample', lower=400, upper=1600, log=True, default_value=800))
 
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='rho', lower=0.01, upper=0.3, log=True, default_value=0.1))
 
     else:
@@ -83,14 +83,14 @@ def get_configspace(use_nlp):
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=100, upper=400, log=True, default_value=200))
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='min_valid_per_class', lower=1, upper=3, log=False, default_value=1))
 
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_attention_gru', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_bilstm_attention', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_cnn', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_larger', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_vgg', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_lstm_attention', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_attention_gru', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_bilstm_attention', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_cnn', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_larger', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_vgg', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_lstm_attention', lower=7e-5, upper=2e-2, log=True, default_value=1e-3))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='beta_1', lower=0.03, upper=0.2, log=True, default_value=0.1))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='beta_2', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
@@ -418,6 +418,6 @@ if __name__ == "__main__":
             print(arg)
         res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
     else:
-        res = runBohbSerial(run_id='NLP')
+        res = runBohbSerial(run_id='NL1P')
 
 
