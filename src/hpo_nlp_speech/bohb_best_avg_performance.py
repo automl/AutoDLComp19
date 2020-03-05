@@ -32,9 +32,8 @@ NLP_DATASETS = ['O1', 'O2', 'O3', 'O4', 'O5']
 SPEECH_DATASETS = ['data01', 'data02', 'data03', 'data04', 'data05']
 
 DATASET_DIRS = ['/home/dingsda/data/datasets/AutoDL_public_data',
-                '/home/dingsda/data/datasets/challenge/speech',
                 '/data/aad/nlp_datasets/challenge',
-                '/data/aad/AutoDLSpeechDataset/challenge']
+                '/data/aad/speech_datasets/challenge']
 
 SEED = 41
 
@@ -44,10 +43,10 @@ BOHB_ETA = 2
 BOHB_WORKERS = 12
 BOHB_ITERATIONS = 1000
 
-def get_configspace():
+def get_configspace(use_nlp):
     cs = CS.ConfigurationSpace()
 
-    if USE_NLP:
+    if use_nlp:
         # nlp parameters
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_vocab_size', lower=5000, upper=50000, log=True, default_value=20000))
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_char_length', lower=20, upper=300, log=True, default_value=96))
@@ -58,7 +57,7 @@ def get_configspace():
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='valid_ratio', lower=0.05, upper=0.2, log=True, default_value=0.1))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='increase_batch_acc', lower=0.4, upper=0.9, log=False, default_value=0.65))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='early_stop_auc', lower=0.65, upper=0.95, log=False, default_value=0.8))
-        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='init_batch_size', choices=[8, 16, 32, 64, 128]), default_value=32)
+        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='init_batch_size', choices=[8, 16, 32, 64, 128], default_value=32))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='chi_word_length', lower=1, upper=4, log=True, default_value=2))
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=200, upper=800, log=True, default_value=400))
@@ -103,10 +102,10 @@ def get_configspace():
     return cs
 
 
-def construct_model_config(cso, default_config):
+def construct_model_config(cso, default_config, use_nlp):
     mc = deepcopy(default_config)
 
-    if USE_NLP:
+    if use_nlp:
         mc["autonlp"]["common"]["max_vocab_size"]       = cso["max_vocab_size"]
         mc["autonlp"]["common"]["max_char_length"]      = cso["max_char_length"]
         mc["autonlp"]["common"]["max_seq_length"]       = cso["max_seq_length"]
@@ -163,17 +162,18 @@ def construct_model_config(cso, default_config):
     return mc
 
 class BOHBWorker(Worker):
-    def __init__(self, working_dir, *args, **kwargs):
+    def __init__(self, working_dir, use_nlp, *args, **kwargs):
         super(BOHBWorker, self).__init__(*args, **kwargs)
         self.session = tf.Session()
         print(kwargs)
         self.working_dir = working_dir
+        self.use_nlp = use_nlp
 
         with open(os.path.join(os.getcwd(), "src/configs/default_nlp_speech.yaml")) as in_stream:
             self.default_config = yaml.safe_load(in_stream)
 
     def compute(self, config_id, config, budget, *args, **kwargs):
-        model_config = construct_model_config(config, self.default_config)
+        model_config = construct_model_config(config, self.default_config, self.use_nlp)
         print('----------------------------')
         print("START BOHB ITERATION")
         print('CONFIG: ' + str(config))
@@ -189,7 +189,7 @@ class BOHBWorker(Worker):
         status = 'ok'
         score_list = []
 
-        if USE_NLP:
+        if self.use_nlp:
             datasets = NLP_DATASETS
         else:
             datasets = SPEECH_DATASETS
@@ -316,6 +316,9 @@ def runBohbParallel(id, run_id):
     # get BOHB log directory
     working_dir = get_working_dir(run_id)
 
+    # select whether to process NLP or speech datasets
+    use_nlp = 'NLP' in run_id
+
     # every process has to lookup the hostname
     host = hpns.nic_name_to_host(bohb_interface)
 
@@ -327,7 +330,8 @@ def runBohbParallel(id, run_id):
         w = BOHBWorker(timeout=2,
                        host=host,
                        run_id=run_id,
-                       working_dir=working_dir)
+                       working_dir=working_dir,
+                       use_nlp=use_nlp)
         w.load_nameserver_credentials(working_directory=working_dir)
         w.run(background=False)
         exit(0)
@@ -343,7 +347,7 @@ def runBohbParallel(id, run_id):
                                              overwrite=True)
 
     bohb = BohbWrapper(
-        configspace=get_configspace(),
+        configspace=get_configspace(use_nlp),
         run_id=run_id,
         eta=BOHB_ETA,
         host=host,
@@ -369,20 +373,24 @@ def runBohbSerial(run_id):
     # assign random port in the 30000-40000 range to avoid using a blocked port because of a previous improper bohb shutdown
     port = int(30000 + random.random() * 10000)
 
+    # select whether to process NLP or speech datasets
+    use_nlp = 'NLP' in run_id
+
     ns = hpns.NameServer(run_id=run_id, host="127.0.0.1", port=port)
     ns.start()
 
     w = BOHBWorker(nameserver="127.0.0.1",
                    run_id=run_id,
                    nameserver_port=port,
-                   working_dir=working_dir)
+                   working_dir=working_dir,
+                   use_nlp=use_nlp)
     w.run(background=True)
 
     result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
 
     bohb = BohbWrapper(
-        configspace=get_configspace(),
+        configspace=get_configspace(use_nlp),
         run_id=run_id,
         eta=BOHB_ETA,
         min_budget=BOHB_MIN_BUDGET,
@@ -410,6 +418,6 @@ if __name__ == "__main__":
             print(arg)
         res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
     else:
-        res = runBohbSerial(run_id='123')
+        res = runBohbSerial(run_id='NLP')
 
 
