@@ -60,7 +60,7 @@ class AttentionGru(Classifier):
         model = TFModel(inputs=inputs, outputs=outputs)
         optimizer = optimizers.Adam(
             # learning_rate=1e-3,
-            lr = self.model_config["optimizer"]["lr"],
+            lr = self.model_config["optimizer"]["lr_attention_gru"],
             beta_1 = self.model_config["optimizer"]["beta_1"],
             beta_2 = self.model_config["optimizer"]["beta_2"],
             epsilon = self.model_config["optimizer"]["epsilon"],

@@ -26,20 +26,22 @@ from hpbandster.optimizers.config_generators.bohb import BOHB as BOHB
 from copy import deepcopy
 from src.competition.run_local_test import run_baseline
 
-USE_NLP = True
+USE_NLP = False
 
 NLP_DATASETS = ['O1', 'O2', 'O3', 'O4', 'O5']
 SPEECH_DATASETS = ['data01', 'data02', 'data03', 'data04', 'data05']
 
 DATASET_DIRS = ['/home/dingsda/data/datasets/AutoDL_public_data',
-                '/data/aad/nlp_datasets/challenge']
+                '/home/dingsda/data/datasets/challenge/speech',
+                '/data/aad/nlp_datasets/challenge',
+                '/data/aad/AutoDLSpeechDataset/challenge']
 
 SEED = 41
 
-BOHB_MIN_BUDGET = 90
-BOHB_MAX_BUDGET = 360
+BOHB_MIN_BUDGET = 80
+BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-BOHB_WORKERS = 9
+BOHB_WORKERS = 12
 BOHB_ITERATIONS = 1000
 
 def get_configspace():
@@ -47,27 +49,56 @@ def get_configspace():
 
     if USE_NLP:
         # nlp parameters
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_vocab_size', lower=5000, upper=50000, log=True))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_char_length', lower=30, upper=300, log=True))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_seq_length', lower=100, upper=900, log=True))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_vocab_size', lower=5000, upper=50000, log=True, default_value=20000))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_char_length', lower=20, upper=300, log=True, default_value=96))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_seq_length', lower=50, upper=900, log=True, default_value=301))
 
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_epoch', lower=1, upper=3, log=False))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='total_num_call', lower=10, upper=40, log=True))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='valid_ratio', lower=0.05, upper=0.2, log=True))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='increase_batch_acc', lower=0.4, upper=0.9, log=False))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='early_stop_auc', lower=0.6, upper=0.95, log=False))
-        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='init_batch_size', choices=[8, 16, 32, 64, 128]))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_epoch', lower=1, upper=3, log=False, default_value=1))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='total_num_call', lower=10, upper=40, log=True, default_value=20))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='valid_ratio', lower=0.05, upper=0.2, log=True, default_value=0.1))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='increase_batch_acc', lower=0.4, upper=0.9, log=False, default_value=0.65))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='early_stop_auc', lower=0.65, upper=0.95, log=False, default_value=0.8))
+        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='init_batch_size', choices=[8, 16, 32, 64, 128]), default_value=32)
 
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='chi_word_length', lower=1, upper=4, log=True))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=200, upper=800, log=True))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_sample_train', lower=9000, upper=36000, log=True))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_train_perclass_sample', lower=400, upper=1600, log=True))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='chi_word_length', lower=1, upper=4, log=True, default_value=2))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=200, upper=800, log=True, default_value=400))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_sample_train', lower=5000, upper=36000, log=True, default_value=18000))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_train_perclass_sample', lower=400, upper=1600, log=True, default_value=800))
 
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-2, log=True))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='rho', lower=0.03, upper=0.3, log=True))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='rho', lower=0.01, upper=0.3, log=True, default_value=0.1))
+
     else:
-        # speech parameters (still to do)
-        pass
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='model_first_max_run_loop', lower=1, upper=5, log=False, default_value=3))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_audio_duration', lower=2, upper=10, log=True, default_value=5))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='first_round_duration', lower=5, upper=20, log=True, default_value=10))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='middle_duration', lower=7, upper=30, log=True, default_value=15))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='second_round_duration', lower=15, upper=60, log=True, default_value=30))
+        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='audio_sample_rate', choices=[8000, 16000, 32000], default_value=16000))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_frame_num', lower=350, upper=1400, log=True, default_value=700))
+        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='is_cut_audio', choices=[False, True], default_value=True))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_mfcc', lower=48, upper=192, log=True, default_value=96))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='fft_duration', lower=0.05, upper=0.2, log=True, default_value=0.1))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='hop_duration', lower=0.02, upper=0.08, log=True, default_value=0.04))
+
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=100, upper=400, log=True, default_value=200))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='min_valid_per_class', lower=1, upper=3, log=False, default_value=1))
+
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_attention_gru', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_bilstm_attention', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_cnn', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_larger', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_vgg', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_lstm_attention', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='beta_1', lower=0.03, upper=0.2, log=True, default_value=0.1))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='beta_2', lower=1e-4, upper=1e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='epsilon', lower=1e-9, upper=1e-7, log=True, default_value=1e-8))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='decay', lower=1e-5, upper=1e-3, log=True, default_value=1e-4))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='schedule_decay', lower=1e-4, upper=5e-2, log=True, default_value=4e-3))
+        cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='amsgrad', choices=[False, True], default_value=True))
 
     return cs
 
@@ -96,7 +127,38 @@ def construct_model_config(cso, default_config):
         mc["autonlp"]["optimizer"]["rho"] = cso["rho"]
 
     else:
-        pass
+        mc["autospeech"]["common"]["model_first_max_run_loop"]  = cso["model_first_max_run_loop"]
+        mc["autospeech"]["common"]["max_audio_duration"]        = cso["max_audio_duration"]
+        mc["autospeech"]["common"]["first_round_duration"]      = cso["first_round_duration"]
+        mc["autospeech"]["common"]["middle_duration"]           = cso["middle_duration"]
+        mc["autospeech"]["common"]["second_round_duration"]     = cso["second_round_duration"]
+        mc["autospeech"]["common"]["audio_sample_rate"]         = cso["audio_sample_rate"]
+        mc["autospeech"]["common"]["max_frame_num"]             = cso["max_frame_num"]
+        mc["autospeech"]["common"]["is_cut_audio"]              = cso["is_cut_audio"]
+        mc["autospeech"]["common"]["num_mfcc"]                  = cso["num_mfcc"]
+        mc["autospeech"]["common"]["fft_duration"]              = cso["fft_duration"]
+        mc["autospeech"]["common"]["hop_duration"]              = cso["hop_duration"]
+        # seems to be the same parameter
+        mc["autospeech"]["common"]["sr"]                        = cso["audio_sample_rate"]
+
+        mc["autospeech"]["common"]["max_valid_perclass_sample"] = cso["max_valid_perclass_sample"]
+        mc["autospeech"]["common"]["min_valid_per_class"]       = cso["min_valid_per_class"]
+
+        mc["autospeech"]["common"]["lr_attention_gru"]      = cso["lr_attention_gru"]
+        mc["autospeech"]["common"]["lr_bilstm_attention"]   = cso["lr_bilstm_attention"]
+        mc["autospeech"]["common"]["lr_cnn"]                = cso["lr_cnn"]
+        mc["autospeech"]["common"]["lr_crnn"]               = cso["lr_crnn"]
+        mc["autospeech"]["common"]["lr_crnn2d"]             = cso["lr_crnn2d"]
+        mc["autospeech"]["common"]["lr_crnn2d_larger"]      = cso["lr_crnn2d_larger"]
+        mc["autospeech"]["common"]["lr_crnn2d_vgg"]         = cso["lr_crnn2d_vgg"]
+        mc["autospeech"]["common"]["lr_lstm_attention"]     = cso["lr_lstm_attention"]
+
+        mc["autospeech"]["common"]["beta_1"]            = cso["beta_1"]
+        mc["autospeech"]["common"]["beta_2"]            = cso["beta_2"]
+        mc["autospeech"]["common"]["epsilon"]           = cso["epsilon"]
+        mc["autospeech"]["common"]["decay"]             = cso["decay"]
+        mc["autospeech"]["common"]["schedule_decay"]    = cso["schedule_decay"]
+        mc["autospeech"]["common"]["amsgrad"]           = cso["amsgrad"]
 
     return mc
 

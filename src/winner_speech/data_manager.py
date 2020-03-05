@@ -321,9 +321,9 @@ class DataManager:
         return x
 
     def lr_preprocess(self, x):
-        ass = self.model_config["common"]["audio_sample_rate"]
+        asr = self.model_config["common"]["audio_sample_rate"]
         mad = self.model_config["common"]["max_audio_duration"]
-        x = [sample[0:mad * ass] for sample in x]
+        x = [sample[0:mad * asr] for sample in x]
         x_mel = extract_melspectrogram_parallel(x,
                                                 sr=self.model_config["common"]["sr"],
                                                 fft_duration=self.model_config["common"]["fft_duration"],

@@ -55,7 +55,7 @@ class BilstmAttention(Classifier):
 
         model = TFModel(inputs=inputs, outputs=outputs)
         optimizer = optimizers.Adam(
-            lr = self.model_config["optimizer"]["lr"],
+            lr = self.model_config["optimizer"]["lr_bilstm_attention"],
             beta_1 = self.model_config["optimizer"]["beta_1"],
             beta_2 = self.model_config["optimizer"]["beta_2"],
             epsilon = self.model_config["optimizer"]["epsilon"],

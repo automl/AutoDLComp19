@@ -91,7 +91,7 @@ class Crnn2dModel(Classifier):
 
         model = TFModel(inputs=melgram_input, outputs=outputs)
         optimizer = optimizers.Adam(
-            lr = self.model_config["optimizer"]["lr"],
+            lr = self.model_config["optimizer"]["lr_crnn2d"],
             beta_1 = self.model_config["optimizer"]["beta_1"],
             beta_2 = self.model_config["optimizer"]["beta_2"],
             epsilon = self.model_config["optimizer"]["epsilon"],
