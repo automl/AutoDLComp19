@@ -300,8 +300,10 @@ class BohbWrapper(Master):
 def get_bohb_interface():
     addrs = psutil.net_if_addrs()
     if 'eth0' in addrs.keys():
+        print('FOUND eth0 INTERFACE')
         return 'eth0'
     else:
+        print('FOUND lo INTERFACE')
         return 'lo'
 
 
