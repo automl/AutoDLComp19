@@ -32,6 +32,7 @@ class Model(object):
         """
         self.done_training = False
         self.metadata = metadata
+        self.model_config = model_config["autospeech"]
         self.train_loop_num = 0
         log('Metadata: {}'.format(self.metadata))
 
@@ -58,8 +59,8 @@ class Model(object):
         self.train_loop_num += 1
 
         if self.train_loop_num == 1:
-            self.data_manager = DataManager(self.metadata, train_dataset)
-            self.model_manager = ModelManager(self.metadata, self.data_manager)
+            self.data_manager = DataManager(self.metadata, train_dataset, self.model_config)
+            self.model_manager = ModelManager(self.metadata, self.data_manager, self.model_config)
 
         self.model_manager.fit(train_loop_num=self.train_loop_num)
 

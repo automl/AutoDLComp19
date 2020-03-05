@@ -4,7 +4,6 @@
 
 import numpy as np
 import tensorflow as tf
-from CONSTANT import AUDIO_SAMPLE_RATE, IS_CUT_AUDIO, MAX_AUDIO_DURATION, MAX_FRAME_NUM
 from data_process import extract_mfcc_parallel, get_max_length, ohe2cat, pad_seq
 from models.my_classifier import Classifier
 from tensorflow.python.keras import optimizers
@@ -23,25 +22,22 @@ class Crnn2dVggModel(Classifier):
         self.is_init = False
 
     def preprocess_data(self, x):
-        # mel-spectrogram parameters
-        SR = 16000
-        N_FFT = 512
-        N_MELS = 96
-        HOP_LEN = 256
-        DURA = 21.84  # to make it 1366 frame.
-        if IS_CUT_AUDIO:
-            x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
+        if self.model_config["common"]["is_cut_audio"]:
+            x = [sample[0:self.model_config["common"]["max_audio_duration"] * self.model_config["common"]["audio_sample_rate"]] for sample in x]
 
-        # x_mel = extract_melspectrogram_parallel(x, n_mels=128, use_power_db=True)
-        x_mel = extract_mfcc_parallel(x, n_mfcc=96)
+        x_mel = extract_mfcc_parallel(x,
+                                      sr=self.model_config["common"]["sr"],
+                                      fft_duration=self.model_config["common"]["fft_duration"],
+                                      hop_duration=self.model_config["common"]["hop_duration"],
+                                      n_mfcc=self.model_config["common"]["num_mfcc"])
         if self.max_length is None:
             self.max_length = get_max_length(x_mel)
-            self.max_length = min(MAX_FRAME_NUM, self.max_length)
+            self.max_length = min(self.model_config["common"]["max_frame_num"], self.max_length)
         x_mel = pad_seq(x_mel, pad_len=self.max_length)
         x_mel = x_mel[:, :, :, np.newaxis]
         return x_mel
 
-    def init_model(self, input_shape, num_classes, **kwargs):
+    def init_model(self, input_shape, num_classes, model_config, **kwargs):
         layers = 5
         filters_size = [64, 128, 256, 512, 512]
         kernel_size = (3, 3)
@@ -122,15 +118,16 @@ class Crnn2dVggModel(Classifier):
         x = Dropout(0.2)(x)
         outputs = Dense(num_classes, activation='softmax', name='output')(x)
 
+        self.model_config = model_config
+
         model = TFModel(inputs=melgram_input, outputs=outputs)
         optimizer = optimizers.Adam(
-            # learning_rate=1e-3,
-            lr=1e-3,
-            beta_1=0.9,
-            beta_2=0.999,
-            epsilon=1e-08,
-            decay=1e-4,
-            amsgrad=True
+            lr = self.model_config["optimizer"]["lr"],
+            beta_1 = self.model_config["optimizer"]["beta_1"],
+            beta_2 = self.model_config["optimizer"]["beta_2"],
+            epsilon = self.model_config["optimizer"]["epsilon"],
+            decay = self.model_config["optimizer"]["decay"],
+            amsgrad = self.model_config["optimizer"]["amsgrad"]
         )
         model.compile(
             optimizer=optimizer, loss="sparse_categorical_crossentropy", metrics=['accuracy']

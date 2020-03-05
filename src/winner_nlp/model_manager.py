@@ -31,6 +31,7 @@ from keras.layers import (
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import LinearSVC
 
+
 class ModelGenerator(object):
     def __init__(
         self,
