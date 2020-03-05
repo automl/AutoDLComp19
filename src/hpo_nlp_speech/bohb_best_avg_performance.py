@@ -40,7 +40,7 @@ SEED = 41
 BOHB_MIN_BUDGET = 80
 BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-BOHB_WORKERS = 12
+BOHB_WORKERS = 2
 BOHB_ITERATIONS = 1000
 
 def get_configspace(use_nlp):
@@ -352,7 +352,7 @@ def runBohbParallel(id, run_id):
                    run_id=run_id,
                    working_dir=working_dir,
                    use_nlp=use_nlp)
-    w.run(background=False)
+    w.run(background=True)
 
     result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
