@@ -13,8 +13,8 @@ def get_scores_dataset_x_configs(dataset_dir):
 
     config_names = []
     [
-        config_names.append(config_path.name[:-2])
-        for config_path in all_config_paths if config_path.name[:-2] not in config_names
+        config_names.append(config_path.name.rsplit("_", maxsplit=1)[0])
+        for config_path in all_config_paths if config_path.name.rsplit("_", maxsplit=1)[0] not in config_names
     ]
 
     # splits all config paths [Chuck_0, Chuck_1, ..., Hammer_0, Hammer_1]
@@ -33,12 +33,12 @@ def get_scores_dataset_x_configs(dataset_dir):
                 score = float(score_path.read_text().split(" ")[1].split("\n")[0])
                 config_scores.append(score)
             except:
-                print("config {} has an issue".format(config_path.name))
+                print("following config has an issue: {}".format(config_path.parent.name + "/" + config_path.name))
 
         if not config_scores:
-            config_names.pop(i)
-
-        avg_config_scores.append(np.mean(config_scores))
+            avg_config_scores.append(0)
+        else:
+            avg_config_scores.append(np.mean(config_scores))
 
     assert len(avg_config_scores) == len(config_names), \
         "something went wrong, number of configs != scores"
@@ -62,8 +62,8 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
 
                 # remove default from indices (i.e. datasets since there are only configs of it)
                 indices = config_names.copy()
-                # indices.remove("default")
-                indices.remove("generalist")
+                indices.remove("default")
+                # indices.remove("generalist")
 
                 df = pd.DataFrame(columns=config_names, index=indices)
 
@@ -100,12 +100,14 @@ def transform_to_long_matrix(df, n_samples):
     return new_df, new_df_train, new_df_valid
 
 
-def export_df(df, experiment_group_dir, df_train=None, df_valid=None, file_name="perf_matrix"):
+def export_df(df, experiment_group_dir, df_train=None, df_valid=None, file_name="perf_matrix", export_path=None):
     train_file_name = file_name + "_train.pkl"
     valid_file_name = file_name + "_valid.pkl"
     file_name = file_name + ".pkl"
 
-    export_path = experiment_group_dir / "perf_matrix"
+    if export_path is None:
+        export_path = experiment_group_dir / "perf_matrix"
+
     export_path.mkdir(parents=True, exist_ok=True)
 
     df.to_pickle(path=export_path / file_name)
@@ -130,19 +132,20 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_group_dir", required=True, type=Path, help=" ")
     args = parser.parse_args()
 
-    df_to_merge = pd.read_pickle(
-        "experiments/kakaobrain_optimized_per_dataset_datasets_x_configs_evaluations/perf_matrix/perf_matrix.pkl"
-    )
+    #df_to_merge = pd.read_pickle(
+    #    "experiments/kakaobrain_optimized_per_dataset_datasets_x_configs_evaluations/perf_matrix/perf_matrix.pkl"
+    #)
 
     df, df_train, df_valid = create_df_perf_matrix(
-        args.experiment_group_dir, split_df=True, existing_df=df_to_merge
+        args.experiment_group_dir, split_df=True, existing_df=None  # df_to_merge
     )
     export_df(
         df=df,
         experiment_group_dir=args.experiment_group_dir,
         df_train=df_train,
         df_valid=df_valid,
-        file_name="perf_matrix"
+        file_name="perf_matrix",
+        export_path=args.experiment_group_dir.parent / "perf_matrix"
     )
 
     #df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)
