@@ -43,9 +43,24 @@ If you want to overwrite the output dir (for repeated local testing for example)
 To commit without runnning `pre-commit` use `git commit --no-verify -m <COMMIT MESSAGE>`.
 
 ### Generate a performance matrix 
-#### 1. todo
-#### 2. todo 
-#### 3. Once the evaluation directory has been generated, generate the pandas DataFrames and csv files with the following command
+#### 0. create available_datasets.py dynamically (to be implemented)
+#### 1. Create the arguments for the HPO and run them on META as follows
+```bash
+python submission/create_hpo_args.py --command_file_name ARGS_FILE_NAME #--> args file outputted
+sbatch submission/meta_kakaobrain_optimized_per_dataset.sh # --> set ARGS_FILE parameter to newly created ARGS_FILE_NAME, set experiment_group to EXPERIMENT_DIR, set budgets
+```
+#### 2. Generate incumbent configs
+```bash
+mkdir experiments/INC_OUTPUT_DIR
+python src/hpo/incumbents_to_config.py --output_dir INC_OUTPUT_DIR --experiment_group_dir EXPERIMENT_DIR # --> .yaml configs outputted to EXPERIMENT_DIR
+```
+#### 3. Evaluate configurations
+```bash
+python submission/create_datasets_x_configs_args.py --config_path INC_OUTPUT_DIR --command_file_name EVAL_ARGS_FILE_NAME # --> EVAL_ARGS_FILE_NAME stored in submission/
+sbatch submission/meta_kakaobrain_datasets_x_configs.sh # --> set ARGS_FILE to EVAL_ARGS_FILE_NAME, set --experiment_group to EVALUATION_DIR_PATH, evaluations stored in EVALUATION_DIR_PATH
+```
+
+#### 4. Once the evaluation directory has been generated, generate the pandas DataFrames and csv files with the following command
 ```bash
 python src/hpo/performance_matrix_from_evaluation.py --experiment_group_dir EVALUATION_DIR_PATH
 ```
