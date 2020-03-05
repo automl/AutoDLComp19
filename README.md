@@ -51,10 +51,15 @@ sbatch submission/meta_kakaobrain_optimized_per_dataset.sh # --> set ARGS_FILE p
 ```
 #### 2. Generate incumbent configs
 ```bash
-mkdir experiments/OUTPUT_DIR
-python src/hpo/incumbents_to_config.py --output_dir OUTPUT_DIR --experiment_group_dir EXPERIMENT_DIR # --> .yaml configs outputted to EXPERIMENT_DIR
+mkdir experiments/INC_OUTPUT_DIR
+python src/hpo/incumbents_to_config.py --output_dir INC_OUTPUT_DIR --experiment_group_dir EXPERIMENT_DIR # --> .yaml configs outputted to EXPERIMENT_DIR
 ```
-#### 3. Evaluate configurations (todo)
+#### 3. Evaluate configurations
+```bash
+python submission/create_datasets_x_configs_args.py --config_path INC_OUTPUT_DIR --command_file_name EVAL_ARGS_FILE_NAME # --> EVAL_ARGS_FILE_NAME stored in submission/
+sbatch submission/meta_kakaobrain_datasets_x_configs.sh # --> set ARGS_FILE to EVAL_ARGS_FILE_NAME, set --experiment_group to EVALUATION_DIR_PATH, evaluations stored in EVALUATION_DIR_PATH
+```
+
 #### 4. Once the evaluation directory has been generated, generate the pandas DataFrames and csv files with the following command
 ```bash
 python src/hpo/performance_matrix_from_evaluation.py --experiment_group_dir EVALUATION_DIR_PATH
