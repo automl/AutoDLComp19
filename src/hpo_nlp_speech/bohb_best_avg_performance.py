@@ -357,7 +357,7 @@ def runBohbParallel(id, run_id):
     result_logger = hpres.json_result_logger(directory=working_dir,
                                              overwrite=True)
 
-    bohb = BOHB(
+    bohb = BohbWrapper(
         configspace=get_configspace(use_nlp),
         run_id=run_id,
         eta=BOHB_ETA,
