@@ -16,6 +16,11 @@ autocv:
 
   optimizer:
     lr: 0.025
+    wd: 0.00025
+    momentum: 0.9
+    type: SGD
+    amsgrad: False
+    nesterov: True
 
   dataset:
     train_info_sample: 256

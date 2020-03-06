@@ -129,7 +129,13 @@ class Model(LogicModel):
             if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6] or '_fc' == n[:3]
         ]
 
+        opt_type = self.hyper_params['optimizer']['type']
         init_lr = self.hyper_params['optimizer']['lr']
+        wd = self.hyper_params['optimizer']['wd']
+        momentum = self.hyper_params['optimizer']['momentum']
+        nesterov = self.hyper_params['optimizer']['nesterov']
+        amsgrad = self.hyper_params['optimizer']['amsgrad']
+
         warmup_multiplier = 2.0
         lr_multiplier = max(0.5, batch_size / 32)
         scheduler_lr = skeleton.optim.get_change_scale(
@@ -147,25 +153,27 @@ class Model(LogicModel):
         )
         self.optimizer_fc = skeleton.optim.ScheduledOptimizer(
             params_fc,
-            torch.optim.SGD,
+            eval("torch.optim.{}".format(opt_type)),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=0.9,
-            weight_decay=0.00025,
-            nesterov=True
+            momentum=momentum,
+            weight_decay=wd,
+            amsgrad=amsgrad,
+            nesterov=nesterov
         )
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
-            torch.optim.SGD,
+            eval("torch.optim.{}".format(opt_type)),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=0.9,
-            weight_decay=0.00025,
-            nesterov=True
+            momentum=momentum,
+            weight_decay=wd,
+            amsgrad=amsgrad,
+            nesterov=nesterov
         )
         LOGGER.info(
             '[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__,

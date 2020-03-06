@@ -77,6 +77,11 @@ def get_configspace():
     batch_size = CSH.UniformIntegerHyperparameter("batch_size", lower=16, upper=64, log=True)
     lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-1, log=True)
     min_lr = CSH.UniformFloatHyperparameter('min_lr', lower=1e-8, upper=1e-5, log=True)
+    wd = CSH.UniformFloatHyperparameter('wd', lower=1e-5, upper=1e-2, log=True)
+    momentum = CSH.UniformFloatHyperparameter('momentum', lower=0.01, upper=0.99, log=False)
+    optimizer = CSH.CategoricalHyperparameter('optimizer', ['SGD', 'Adam', 'AdamW'])
+    nesterov = CSH.CategoricalHyperparameter('nesterov', ['True', 'False'])
+    amsgrad = CSH.CategoricalHyperparameter('amsgrad', ['True', 'False'])
 
     # Architecture
     architecture = CSH.CategoricalHyperparameter(
@@ -99,10 +104,17 @@ def get_configspace():
             skip_valid_score_threshold, test_after_at_least_seconds,
             test_after_at_least_seconds_max, test_after_at_least_seconds_step,
             threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
-            min_lr, architecture
+            min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad
         ]
     )
-    #cs.add_conditions([condition_1, condition_2])
+
+    condition_1 = CS.EqualsCondition(momentum, optimizer, 'SGD')
+    condition_2 = CS.EqualsCondition(nesterov, optimizer, 'SGD')
+    condition_3 = CS.OrConjunction(
+        CS.EqualsCondition(amsgrad, optimizer, 'Adam'),
+        CS.EqualsCondition(amsgrad, optimizer, 'AdamW')
+    )
+    cs.add_conditions([condition_1, condition_2, condition_3])
     return cs
 
 
