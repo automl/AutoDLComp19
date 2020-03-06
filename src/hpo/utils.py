@@ -27,6 +27,7 @@ def construct_model_config(config, default_config):
 
     mc["autocv"]["optimizer"]["lr"] = config["lr"]
     mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]
+    mc["autocv"]["optimizer"]["scheduler"] = config["scheduler"]
     mc["autocv"]["optimizer"]["wd"] = config["wd"]
     mc["autocv"]["optimizer"]["type"] = config["optimizer"]
     if config["optimizer"] == 'SGD':

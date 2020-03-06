@@ -138,19 +138,28 @@ class Model(LogicModel):
 
         warmup_multiplier = 2.0
         lr_multiplier = max(0.5, batch_size / 32)
+        if self.hyper_params['optimizer']['scheduler'] == 'plateau':
+            base_scheduler = skeleton.optim.get_reduce_on_plateau_scheduler(
+                init_lr * lr_multiplier / warmup_multiplier,
+                patience=10,
+                factor=.5,
+                metric_name='train_loss'
+            )
+        elif self.hyper_params['optimizer']['scheduler'] == 'cosine':
+            base_scheduler = skeleton.optim.get_cosine_scheduler(
+                init_lr * lr_multiplier / warmup_multiplier,
+                maximum_epoch=self.hyper_params['dataset']['max_epoch']
+            )
+
         scheduler_lr = skeleton.optim.get_change_scale(
             skeleton.optim.gradual_warm_up(
-                skeleton.optim.get_reduce_on_plateau_scheduler(
-                    init_lr * lr_multiplier / warmup_multiplier,
-                    patience=10,
-                    factor=.5,
-                    metric_name='train_loss'
-                ),
+                base_scheduler,
                 warm_up_epoch=5,
                 multiplier=warmup_multiplier
             ),
             init_scale=1.0
         )
+
         self.optimizer_fc = skeleton.optim.ScheduledOptimizer(
             params_fc,
             eval("torch.optim.{}".format(opt_type)),
@@ -163,6 +172,7 @@ class Model(LogicModel):
             amsgrad=amsgrad,
             nesterov=nesterov
         )
+
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
             eval("torch.optim.{}".format(opt_type)),
@@ -175,6 +185,7 @@ class Model(LogicModel):
             amsgrad=amsgrad,
             nesterov=nesterov
         )
+
         LOGGER.info(
             '[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__,
             batch_size

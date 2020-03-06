@@ -82,6 +82,7 @@ def get_configspace():
     optimizer = CSH.CategoricalHyperparameter('optimizer', ['SGD', 'Adam', 'AdamW'])
     nesterov = CSH.CategoricalHyperparameter('nesterov', ['True', 'False'])
     amsgrad = CSH.CategoricalHyperparameter('amsgrad', ['True', 'False'])
+    scheduler = CSH.CategoricalHyperparameter('scheduler', ['plateau', 'cosine'])
 
     # Architecture
     architecture = CSH.CategoricalHyperparameter(
@@ -104,7 +105,8 @@ def get_configspace():
             skip_valid_score_threshold, test_after_at_least_seconds,
             test_after_at_least_seconds_max, test_after_at_least_seconds_step,
             threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
-            min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad
+            min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
+            scheduler
         ]
     )
 
