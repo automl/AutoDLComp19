@@ -61,7 +61,7 @@ class Model(LogicModel):
 
         LOGGER.info('[init] Model')
         Network = eval(
-            self.hyper_params['model']['architecture'].replace('-', '')
+            self.hyper_params['model']['architecture']
         )
         self.model = Network(in_channels, num_class)
         self.model_pred = Network(in_channels, num_class).eval()

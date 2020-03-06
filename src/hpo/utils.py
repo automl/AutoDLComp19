@@ -28,6 +28,8 @@ def construct_model_config(config, default_config):
     mc["autocv"]["optimizer"]["lr"] = config["lr"]
     mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]
     mc["autocv"]["dataset"]["batch_size"] = config["batch_size"]
+    mc["autocv"]["model"]["architecture"] = config["architecture"]
+    #mc["autocv"]["model"]["architecture"] = config["efficientnet"] if config['arch_family'] == 'EffNet' else config["resnet"]
     # yapf: enable
 
     return mc

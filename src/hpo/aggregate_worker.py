@@ -77,6 +77,19 @@ def get_configspace():
     batch_size = CSH.UniformIntegerHyperparameter("batch_size", lower=16, upper=64, log=True)
     lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-1, log=True)
     min_lr = CSH.UniformFloatHyperparameter('min_lr', lower=1e-8, upper=1e-5, log=True)
+
+    # Architecture
+    architecture = CSH.CategoricalHyperparameter(
+        "architecture", ['ResNet18', 'efficientnetb0', 'efficientnetb1', 'efficientnetb2']
+    )
+    #arch_family = CSH.CategoricalHyperparameter("arch_family", ['ResNet', 'EffNet'])
+    #TODO: think about if we want to change the way this is designed
+    #efficientnet = CSH.CategoricalHyperparameter("efficientnet",
+    #                                             ['efficientnetb%d'%x for x in
+    #                                             range(2)])
+    #resnet = CSH.Constant("resnet", 'ResNet18')
+    #condition_1 = CS.EqualsCondition(efficientnet, arch_family, 'EffNet')
+    #condition_2 = CS.EqualsCondition(resnet, arch_family, 'ResNet')
     # yapf: enable
 
     cs.add_hyperparameters(
@@ -85,9 +98,11 @@ def get_configspace():
             enough_count_video, enough_count_image, steps_per_epoch, early_epoch,
             skip_valid_score_threshold, test_after_at_least_seconds,
             test_after_at_least_seconds_max, test_after_at_least_seconds_step,
-            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr, min_lr
+            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
+            min_lr, architecture
         ]
     )
+    #cs.add_conditions([condition_1, condition_2])
     return cs
 
 
