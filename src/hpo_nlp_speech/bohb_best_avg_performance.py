@@ -216,6 +216,7 @@ class BOHBWorker(Worker):
 
         info['config'] = str(config)
         info['model_config'] = str(model_config)
+        info['score_list'] = str(score_list)
         info['status'] = status
 
         print('----------------------------')
@@ -427,6 +428,6 @@ if __name__ == "__main__":
             print(arg)
         res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
     else:
-        res = runBohbSerial(run_id='NLP')
+        res = runBohbSerial(run_id='NL1P')
 
 
