@@ -4,6 +4,7 @@ from pathlib import Path
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import torch
 import yaml
@@ -76,6 +77,25 @@ def get_configspace():
     batch_size = CSH.UniformIntegerHyperparameter("batch_size", lower=16, upper=64, log=True)
     lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-1, log=True)
     min_lr = CSH.UniformFloatHyperparameter('min_lr', lower=1e-8, upper=1e-5, log=True)
+    wd = CSH.UniformFloatHyperparameter('wd', lower=1e-5, upper=1e-2, log=True)
+    momentum = CSH.UniformFloatHyperparameter('momentum', lower=0.01, upper=0.99, log=False)
+    optimizer = CSH.CategoricalHyperparameter('optimizer', ['SGD', 'Adam', 'AdamW'])
+    nesterov = CSH.CategoricalHyperparameter('nesterov', ['True', 'False'])
+    amsgrad = CSH.CategoricalHyperparameter('amsgrad', ['True', 'False'])
+    scheduler = CSH.CategoricalHyperparameter('scheduler', ['plateau', 'cosine'])
+
+    # Architecture
+    architecture = CSH.CategoricalHyperparameter(
+        "architecture", ['ResNet18', 'efficientnetb0', 'efficientnetb1', 'efficientnetb2']
+    )
+    #arch_family = CSH.CategoricalHyperparameter("arch_family", ['ResNet', 'EffNet'])
+    #TODO: think about if we want to change the way this is designed
+    #efficientnet = CSH.CategoricalHyperparameter("efficientnet",
+    #                                             ['efficientnetb%d'%x for x in
+    #                                             range(2)])
+    #resnet = CSH.Constant("resnet", 'ResNet18')
+    #condition_1 = CS.EqualsCondition(efficientnet, arch_family, 'EffNet')
+    #condition_2 = CS.EqualsCondition(resnet, arch_family, 'ResNet')
     # yapf: enable
 
     cs.add_hyperparameters(
@@ -84,9 +104,19 @@ def get_configspace():
             enough_count_video, enough_count_image, steps_per_epoch, early_epoch,
             skip_valid_score_threshold, test_after_at_least_seconds,
             test_after_at_least_seconds_max, test_after_at_least_seconds_step,
-            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr, min_lr
+            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
+            min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
+            scheduler
         ]
     )
+
+    condition_1 = CS.EqualsCondition(momentum, optimizer, 'SGD')
+    condition_2 = CS.EqualsCondition(nesterov, optimizer, 'SGD')
+    condition_3 = CS.OrConjunction(
+        CS.EqualsCondition(amsgrad, optimizer, 'Adam'),
+        CS.EqualsCondition(amsgrad, optimizer, 'AdamW')
+    )
+    cs.add_conditions([condition_1, condition_2, condition_3])
     return cs
 
 
@@ -132,15 +162,33 @@ class SingleWorker(Worker):
         })
 
 
+def _normalize(list_, mean, std):
+    return [(x - mean) / std for x in list_]
+
+
 class AggregateWorker(Worker):
     def __init__(
-        self, working_directory, n_repeat, has_repeats_as_budget, time_budget, time_budget_approx,
+        self,
+        working_directory,
+        n_repeat,
+        has_repeats_as_budget,
+        time_budget,
+        time_budget_approx,
+        performance_matrix=None,
         **kwargs
     ):
         super().__init__(**kwargs)
 
         with Path("src/configs/default.yaml").open() as in_stream:
             self._default_config = yaml.safe_load(in_stream)
+
+        if performance_matrix is not None:
+            pm = pd.read_csv(performance_matrix, index_col=0)
+            self.dataset_to_mean = pm.mean(axis=1).to_dict()
+            self.dataset_to_std = pm.std(axis=1).to_dict()
+        else:
+            self.dataset_to_mean = None
+            self.dataset_to_std = None
 
         self._dataset_dir = self._default_config["cluster_datasets_dir"]
         self._working_directory = working_directory
@@ -160,10 +208,10 @@ class AggregateWorker(Worker):
         else:
             n_repeat = self.n_repeat
 
-        score_results_tuples = []
+        per_dataset_score = []
         for dataset in train_datasets:
             try:
-                score = _run_on_dataset(
+                repetition_scores, _ = _run_on_dataset(
                     dataset,
                     config_experiment_path / dataset,
                     model_config,
@@ -173,28 +221,21 @@ class AggregateWorker(Worker):
                     time_budget_approx=self.time_budget_approx
                 )
             except RuntimeError:
-                score = (None, 0)
-            score_results_tuples.append(score)
+                repetition_scores = n_repeat * [0]
 
-        # just get the repetition means for optimization
-        repetition_scores_mean_per_dataset = np.array(score_results_tuples)[:, 1]
-        # TODO: use improvement scores + is mean correct?
-        scores_mean_over_datasets = np.mean(repetition_scores_mean_per_dataset)
+            do_normalize = self.dataset_to_mean is not None and self.dataset_to_std is not None
+            if do_normalize:
+                mean, std = self.dataset_to_mean[dataset], self.dataset_to_std[dataset]
+                repetition_scores = _normalize(repetition_scores, mean, std)
 
-        # for the report, just use the repetition means
-        info = {
-            "{}_repetition_{}_score".format(dataset, n): score
-            for dataset in train_datasets
-            for n, (repetition_scores, repetition_mean) in enumerate(score_results_tuples)
-            for score in repetition_scores
-        }
+            mean_score = sum(repetition_scores) / len(repetition_scores)
+            per_dataset_score.append(mean_score)
 
-        return (
-            {
-                'loss': -scores_mean_over_datasets,  # remember: HpBandSter always minimizes!
-                'info': info
-            }
-        )
+        mean_score = sum(per_dataset_score) / len(per_dataset_score)
+        return ({
+            'loss': -mean_score,  # remember: HpBandSter always minimizes!
+            'info': None
+        })
 
 
 if __name__ == "__main__":

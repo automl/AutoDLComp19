@@ -329,7 +329,7 @@ class EfficientNet(nn.Module):
         self._half = True
         return self
 
-    def init(self, model_dir=None, model_name='efficientnet-b0',
+    def init(self, model_dir, model_name,
              advprop=True, gain=1.):
         load_pretrained_weights(self, model_name, model_dir=model_dir,
                                 advprop=advprop)
@@ -352,11 +352,40 @@ class EfficientNet(nn.Module):
     @classmethod
     def _check_model_name_is_valid(cls, model_name):
         """ Validates model name. """
-        valid_models = ['efficientnet-b'+str(i) for i in range(9)]
+        valid_models = ['efficientnetb'+str(i) for i in range(9)]
         if model_name not in valid_models:
             raise ValueError('model_name should be one of: ' + ', '.join(valid_models))
 
 
 def efficientnetb0(in_channels, num_classes):
-    return EfficientNet.from_name(in_channels, num_classes, 'efficientnet-b0',
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb0',
                                   override_params={'num_classes': num_classes})
+
+def efficientnetb1(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb1',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb2(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb2',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb3(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb3',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb4(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb4',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb5(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb5',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb6(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb6',
+                                  override_params={'num_classes': num_classes})
+
+def efficientnetb7(in_channels, num_classes):
+    return EfficientNet.from_name(in_channels, num_classes, 'efficientnetb7',
+                                  override_params={'num_classes': num_classes})
+

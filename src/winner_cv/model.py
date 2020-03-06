@@ -10,8 +10,10 @@ import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
-from architectures.efficientnet import EfficientNet, efficientnetb0
 from architectures.resnet import ResNet18
+from architectures.efficientnet import EfficientNet, efficientnetb0,\
+efficientnetb1, efficientnetb2, efficientnetb3, efficientnetb4,\
+efficientnetb5, efficientnetb6, efficientnetb7
 from skeleton.projects import LogicModel, get_logger
 from skeleton.projects.others import AUC, NBAC
 
@@ -58,17 +60,21 @@ class Model(LogicModel):
         self.session = tf.Session()
 
         LOGGER.info('[init] Model')
-        Network = eval(self.hyper_params['model']['architecture'])
+        Network = eval(
+            self.hyper_params['model']['architecture']
+        )
         self.model = Network(in_channels, num_class)
         self.model_pred = Network(in_channels, num_class).eval()
         # torch.cuda.synchronize()
 
         LOGGER.info('[init] weight initialize')
-        if Network in [ResNet18, EfficientNet]:
+        if type(self.model) in [ResNet18, EfficientNet]:
             model_path = os.path.join(base_dir, 'models')
             LOGGER.info('model path: %s', model_path)
 
-            self.model.init(model_dir=model_path, gain=1.0)
+            self.model.init(model_dir=model_path,
+                            model_name=self.hyper_params['model']['architecture'],
+                            gain=1.0)
         else:
             self.model.init(gain=1.0)
         # torch.cuda.synchronize()
@@ -123,44 +129,63 @@ class Model(LogicModel):
             if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6] or '_fc' == n[:3]
         ]
 
+        opt_type = self.hyper_params['optimizer']['type']
         init_lr = self.hyper_params['optimizer']['lr']
+        wd = self.hyper_params['optimizer']['wd']
+        momentum = self.hyper_params['optimizer']['momentum']
+        nesterov = self.hyper_params['optimizer']['nesterov']
+        amsgrad = self.hyper_params['optimizer']['amsgrad']
+
         warmup_multiplier = 2.0
         lr_multiplier = max(0.5, batch_size / 32)
+        if self.hyper_params['optimizer']['scheduler'] == 'plateau':
+            base_scheduler = skeleton.optim.get_reduce_on_plateau_scheduler(
+                init_lr * lr_multiplier / warmup_multiplier,
+                patience=10,
+                factor=.5,
+                metric_name='train_loss'
+            )
+        elif self.hyper_params['optimizer']['scheduler'] == 'cosine':
+            base_scheduler = skeleton.optim.get_cosine_scheduler(
+                init_lr * lr_multiplier / warmup_multiplier,
+                maximum_epoch=self.hyper_params['dataset']['max_epoch']
+            )
+
         scheduler_lr = skeleton.optim.get_change_scale(
             skeleton.optim.gradual_warm_up(
-                skeleton.optim.get_reduce_on_plateau_scheduler(
-                    init_lr * lr_multiplier / warmup_multiplier,
-                    patience=10,
-                    factor=.5,
-                    metric_name='train_loss'
-                ),
+                base_scheduler,
                 warm_up_epoch=5,
                 multiplier=warmup_multiplier
             ),
             init_scale=1.0
         )
+
         self.optimizer_fc = skeleton.optim.ScheduledOptimizer(
             params_fc,
-            torch.optim.SGD,
+            eval("torch.optim.{}".format(opt_type)),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=0.9,
-            weight_decay=0.00025,
-            nesterov=True
+            momentum=momentum,
+            weight_decay=wd,
+            amsgrad=amsgrad,
+            nesterov=nesterov
         )
+
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
-            torch.optim.SGD,
+            eval("torch.optim.{}".format(opt_type)),
             # skeleton.optim.SGDW,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=0.9,
-            weight_decay=0.00025,
-            nesterov=True
+            momentum=momentum,
+            weight_decay=wd,
+            amsgrad=amsgrad,
+            nesterov=nesterov
         )
+
         LOGGER.info(
             '[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__,
             batch_size
