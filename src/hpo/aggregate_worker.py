@@ -83,6 +83,9 @@ def get_configspace():
     nesterov = CSH.CategoricalHyperparameter('nesterov', ['True', 'False'])
     amsgrad = CSH.CategoricalHyperparameter('amsgrad', ['True', 'False'])
     scheduler = CSH.CategoricalHyperparameter('scheduler', ['plateau', 'cosine'])
+    freeze_portion = CSH.CategoricalHyperparameter('freeze_portion', list(np.arange(0, 0.6, 0.1)))
+    warmup_multiplier = CSH.CategoricalHyperparameter('warmup_multiplier', [1.0, 1.5, 2.0, 2.5, 3.0])
+    warm_up_epoch = CSH.UniformIntegerHyperparameter('warm_up_epoch', lower=3, upper=6, log=False)
 
     # Architecture
     architecture = CSH.CategoricalHyperparameter(
@@ -106,7 +109,7 @@ def get_configspace():
             test_after_at_least_seconds_max, test_after_at_least_seconds_step,
             threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
             min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
-            scheduler
+            scheduler, freeze_portion, warmup_multiplier, warm_up_epoch
         ]
     )
 

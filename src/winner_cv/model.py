@@ -129,6 +129,15 @@ class Model(LogicModel):
             if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6] or '_fc' == n[:3]
         ]
 
+        feature_extractor_len = len([
+            p for n, p in self.model.named_parameters()
+            if p.requires_grad and 'fc' != n[:2] and 'conv1d' != n[:6] and '_fc' != n[:3]
+        ])
+
+        for c, (n, p) in enumerate(self.model.named_parameters()):
+            if c < int(self.hyper_params['optimizer']['freeze_portion']*feature_extractor_len):
+                p.requires_grad = False
+
         opt_type = self.hyper_params['optimizer']['type']
         init_lr = self.hyper_params['optimizer']['lr']
         wd = self.hyper_params['optimizer']['wd']
@@ -136,8 +145,10 @@ class Model(LogicModel):
         nesterov = self.hyper_params['optimizer']['nesterov']
         amsgrad = self.hyper_params['optimizer']['amsgrad']
 
-        warmup_multiplier = 2.0
+        warmup_multiplier = self.hyper_params['optimizer']['warmup_multiplier']
+        warm_up_epoch = self.hyper_params['optimizer']['warm_up_epoch']
         lr_multiplier = max(0.5, batch_size / 32)
+
         if self.hyper_params['optimizer']['scheduler'] == 'plateau':
             base_scheduler = skeleton.optim.get_reduce_on_plateau_scheduler(
                 init_lr * lr_multiplier / warmup_multiplier,
@@ -154,7 +165,7 @@ class Model(LogicModel):
         scheduler_lr = skeleton.optim.get_change_scale(
             skeleton.optim.gradual_warm_up(
                 base_scheduler,
-                warm_up_epoch=5,
+                warm_up_epoch=warm_up_epoch,
                 multiplier=warmup_multiplier
             ),
             init_scale=1.0
