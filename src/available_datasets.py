@@ -33,7 +33,5 @@ def get_available_dataset_names(valid_keys, no_augmented=False):
 
 
 valid_keys = ["coil100", "kmnist", "vgg-flowers", "oxford_iiit_pet"]
-train_datasets, val_datasets = get_available_dataset_names(
-    valid_keys=valid_keys, no_augmented=False
-)
+train_datasets, val_datasets = get_available_dataset_names(valid_keys=valid_keys, no_augmented=True)
 all_datasets = train_datasets + val_datasets
