@@ -84,12 +84,12 @@ def get_configspace(use_nlp):
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='min_valid_per_class', lower=1, upper=3, log=False, default_value=1))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_attention_gru', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_bilstm_attention', lower=1e-4, upper=2e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_cnn', lower=1e-4, upper=2e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn', lower=1e-4, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_bilstm_attention', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_cnn', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_larger', lower=1e-4, upper=2e-2, log=True, default_value=1e-3))
-        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_vgg', lower=1e-4, upper=2e-2, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_larger', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
+        cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_crnn2d_vgg', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr_lstm_attention', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='beta_1', lower=0.03, upper=0.2, log=True, default_value=0.1))
@@ -427,6 +427,6 @@ if __name__ == "__main__":
             print(arg)
         res = runBohbParallel(id=sys.argv[1], run_id=sys.argv[2])
     else:
-        res = runBohbSerial(run_id='NL1P')
+        res = runBohbSerial(run_id='NLP')
 
 
