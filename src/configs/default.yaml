@@ -22,6 +22,9 @@ autocv:
     amsgrad: False
     nesterov: True
     scheduler: plateau
+    freeze_portion: 0.0
+    warmup_multiplier: 2.0
+    warm_up_epoch: 5
 
   dataset:
     train_info_sample: 256

@@ -29,6 +29,9 @@ def construct_model_config(config, default_config):
     mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]
     mc["autocv"]["optimizer"]["scheduler"] = config["scheduler"]
     mc["autocv"]["optimizer"]["wd"] = config["wd"]
+    mc["autocv"]["optimizer"]["freeze_portion"] = config["freeze_portion"]
+    mc["autocv"]["optimizer"]["warmup_multiplier"] = config["warmup_multiplier"]
+    mc["autocv"]["optimizer"]["warm_up_epoch"] = config["warm_up_epoch"]
     mc["autocv"]["optimizer"]["type"] = config["optimizer"]
     if config["optimizer"] == 'SGD':
         mc["autocv"]["optimizer"]["momentum"] = config["momentum"]
