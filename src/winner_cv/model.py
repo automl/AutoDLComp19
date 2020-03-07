@@ -51,6 +51,7 @@ class Model(LogicModel):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         in_channels = self.info['dataset']['shape'][-1]
         num_class = self.info['dataset']['num_class']
+        self.num_class = num_class
         # torch.cuda.synchronize()
 
         LOGGER.info('[init] session')
