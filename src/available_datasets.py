@@ -36,7 +36,7 @@ def get_available_dataset_names(valid_keys, selected_train_datasets=None, no_aug
     if selected_train_datasets:
         train_datasets = [
             dataset for dataset in train_datasets
-            for key in selected_train_datasets if dataset.startswith(key)
+            for key in selected_train_datasets if dataset.startswith(key) and key + "_" in dataset
         ]
 
     return train_datasets, val_datasets
@@ -61,7 +61,7 @@ train_keys = [
     "citrus_leaves",  # citrus fruits and leaves
     "cycle_gan_summer2winter_yosemite",  # landscape
     "cycle_gan_facades",  # facades
-    "dsprites",  # sprites
+    "horses_or_humans",  # sprites
     "visual_domain_decathlon_ucf101"  # youtube action
 ]
 
