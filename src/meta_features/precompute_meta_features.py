@@ -247,8 +247,7 @@ def precompute_meta_features(
     dataset_to_meta_features = {
         dataset.name:
         get_meta_features_from_dataset(dataset, compute_mean_histogram=True, sess=sess)
-        for i, dataset in enumerate(dataset_path.iterdir())
-        if dataset.name in all_datasets and i < 100
+        for dataset in dataset_path.iterdir() if dataset.name in all_datasets
     }
 
     if dump_dataframe_csv:
