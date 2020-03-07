@@ -42,7 +42,7 @@ def get_available_dataset_names(valid_keys, selected_train_datasets=None, no_aug
     return train_datasets, val_datasets
 
 
-NO_AUGMENTED = False
+NO_AUGMENTED = True
 
 train_keys = [
     "cifar100",  # objects

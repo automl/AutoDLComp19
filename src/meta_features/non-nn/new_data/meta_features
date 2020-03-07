@@ -1,0 +1,3613 @@
+binary_alpha_digits_num_classes_17_num_dev_examples_340_num_test_examples_119_resolution_32_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - &id001 !!python/name:numpy.ndarray ''
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - &id002 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - 0
+      - 1
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - false
+    - !!binary |
+      SOF6FK7fY0CamZmZmZmpP3sUrkfherQ/H4XrUbge1T8fhetRuB7VP1K4HoXrUcg/7FG4HoXrO0Ap
+      XI/C9Sj0P2ZmZmZmZhpA4XoUrkehMkBmZmZmZmbWP83MzMzMzAxAj8L1KFyP0j97FK5H4XqEP0jh
+      ehSuRxVAAAAAAAAAAAC4HoXrUbiuP4/C9Shcj/Y/uB6F61G4nj97FK5H4XqkPwAAAAAAAAAAKVyP
+      wvUozD97FK5H4XqkP5qZmZmZmak/AAAAAAAA/D+amZmZmRkiQArXo3A9Csc/uB6F61G4nj8pXI/C
+      9SjMPwAAAAAAANA/exSuR+F6lD+amZmZmZmpP4/C9Shcj9I/mpmZmZmZuT8pXI/C9Si8P65H4XoU
+      rglAexSuR+F6hD+amZmZmZmpPwrXo3A9Ctc/KVyPwvUovD89CtejcD3yP7gehetRuK4/exSuR+F6
+      pD/Xo3A9CtfjP1K4HoXrUfA/XI/C9ShcCUCamZmZmZm5P7gehetRuK4/AAAAAAAAAAAAAAAAAAAA
+      AFyPwvUoXAVAAAAAAAAAAAAAAAAAAAAAAHsUrkfhesQ/AAAAAAAAAAB7FK5H4XqEPz0K16NwPeo/
+      AAAAAAAAAAC4HoXrUbiePwAAAAAAAAAAexSuR+F6hD+amZmZmZmpPwAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB7FK5H4XqEPwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALge
+      hetRuJ4/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAexSu
+      R+F6lD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC4HoXr
+      UbiePwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADMzMzMzM8M/exSuR+F6hD+amZmZmZmpP7gehetR
+      uK4/uB6F61G4nj97FK5H4XqkP7gehetRuL4/exSuR+F6lD97FK5H4XqUP5qZmZmZmak/exSuR+F6
+      DkA=
+  num_channels: 1
+  num_classes: 36
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+caltech101_num_classes_19_num_dev_examples_1177_num_test_examples_133_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      cT0K1xMU1ED2KFyPwkSTQFK4HoXrP4pAKVyPwvVzlEBSuB6F62uKQHsUrkfh3pNAPQrXo3ADmkAz
+      MzMzM0ecQOxRuB6FxpNApHA9CtfWpUDXo3A9Ch2lQArXo3A9/Z1A9ihcj8JYlkDsUbgehaGKQAAA
+      AAAASZRAcT0K16OMi0C4HoXrUSSUQB+F61G45JRA4XoUrkdqlEApXI/C9TGQQNejcD0KUpZAmpmZ
+      mZlclkDhehSuR4+OQBSuR+F6fZdAmpmZmSnq10BSuB6F64WUQOF6FK5HB5FA4XoUrkfVk0AAAAAA
+      AJqKQK5H4XoUw5VAUrgehev3k0DD9Shcj3SOQKRwPQrX2JdASOF6FK4ZjkAAAAAAAD2XQGZmZmZm
+      tI9AZmZmZmbkmkDhehSuR7GOQOF6FK5HyJNAexSuR+GUikApXI/C9UmUQLgehetR+JNAH4XrUbi8
+      i0BI4XoUrqSVQFK4HoXrDY5AAAAAAACZlUCF61G4HmqbQArXo3A9RphApHA9CteJjkApXI/C9U2c
+      QHE9CtejB5VAH4XrUbgWi0DXo3A9CuaUQLgehetRVotAH4XrUbiElECPwvUoXMOLQLgehetRQphA
+      XI/C9Sg0kkCF61G4Hm6bQJqZmZmZ149AUrgehevqmEDNzMzMzDCeQB+F61G4cJFAj8L1KFzGlEDN
+      zMzMzBiNQArXo3A9zpVAXI/C9SjUjEBI4XoUrhGVQFK4HoXrp4xAZmZmZmaUmUCamZmZmemYQJqZ
+      mZmZB5FApHA9Ctc4mkCF61G4HqaRQFK4HoVrOaBAj8L1KFwKk0BxPQrXoxueQFyPwvUodJNAw/Uo
+      XI+QnEDsUbgehWOSQHsUrkfhlpxAw/UoXI+QokBxPQrXo7+bQGZmZmbm9KNASOF6FK5amUAzMzMz
+      M3ajQOxRuB6FtZpArkfhelSnt0BmZmZm5nygQM3MzMxMIqdAexSuR2EBq0CkcD0K1+CeQM3MzMxM
+      bKVA9ihcj0JyrUApXI/CdTOqQMP1KFyPXIxAexSuR+FCmkBxPQrXo0COQEjhehSu5ZZAuB6F61HW
+      nEA=
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+caltech101_num_classes_3_num_dev_examples_60_num_test_examples_15_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      SOF6FN6e2UCPwvUoXJqSQHE9CtejtolA16NwPQpck0AzMzMzM8WJQB+F61G4JpNAAAAAAAAtlEDh
+      ehSux+SmQOxRuB6F0pRAXI/C9SicpEAfhetRuD6bQFyPwvUoBpVAH4XrUbhAnEDD9Shcj3iJQBSu
+      R+F6aZNA4XoUrkcHiUA9CtejcOCSQHsUrkfhdolApHA9Ctd8okDNzMzMzByLQArXo3A925RAH4Xr
+      Ubh7lkDsUbgehcGNQKRwPQrXQ5VAexSuR8Ek2EBmZmZmZpKTQArXo3A9EolAMzMzMzPckkCkcD0K
+      11uJQK5H4XoUK5NAKVyPwvUTk0C4HoXrUU6SQB+F61G4LplApHA9CtcOk0DsUbgehQaYQFK4HoXr
+      rJBACtejcD1tmkDXo3A9Ct+QQEjhehSuKJNAmpmZmZmdiUBxPQrXo0eTQLgehetREZNAPQrXo3B/
+      ikBxPQrXo1mUQEjhehSuf4tAH4XrUbg+lUDsUbgehceMQB+F61G4p5VA7FG4HoXlikD2KFyPwtCY
+      QAAAAAAAa5NA4XoUrkcfikDD9Shcj0STQClcj8L1QIpAXI/C9SiIk0AzMzMzM0OJQHsUrkfhupdA
+      7FG4HoXkkEC4HoXrUayeQOF6FK5HcpNAXI/C9SjCnEDsUbgehUOcQFyPwvUo9pNAj8L1KFwDlEB7
+      FK5H4fyKQFK4HoXrzZRApHA9Ctdni0CuR+F6FEOUQArXo3A9rItAKVyPwvXgmECkcD0K1yScQDMz
+      MzMzkJRAFK5H4XqPmkCF61G4HuuOQI/C9ShczZ1AcT0K16OLk0Bcj8L1KBicQArXo3A9RpJArkfh
+      ehQAm0BxPQrXo9KQQFK4HoXrIZtA9ihcj8I6oECPwvUoXBmbQJqZmZmZs6ZAXI/C9Sh9mkAK16Nw
+      vQClQD0K16NwJpxArkfhetSOsEDhehSuR8eeQOxRuB4FF6hAmpmZmRkyrEB7FK5H4RmdQK5H4XoU
+      6p9A7FG4HoU3pECamZmZGWKxQArXo3A9SoxA7FG4HoULmEB7FK5H4U6PQB+F61G48pRA16NwPQpW
+      lkA=
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+caltech_birds2010_num_classes_16_num_dev_examples_319_num_test_examples_96_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      rkfhepQwuUCPwvUoXIKXQB+F61G4FJBASOF6FK7YmEBmZmZmZoKQQOxRuB6FxZdAuB6F61G4l0CP
+      wvUoXFifQAAAAAAASphAPQrXo/CCoEBxPQrXo3efQI/C9ShcepRAMzMzMzM9mkC4HoXrUS2QQD0K
+      16Nw5phAAAAAAAAqkEAK16NwPYCXQB+F61G45I9A7FG4HoUFmUAUrkfhenKRQArXo3A9AJtAAAAA
+      AACXmkAzMzMzM6SRQOxRuB6FY5lAH4XrUQip2EB7FK5H4XOYQI/C9ShcK5BArkfhehSml0AzMzMz
+      MzGQQLgehetRiJhAXI/C9Sisl0CkcD0K11OTQOxRuB6Fu51Aw/UoXI94l0DD9Shcj1+cQAAAAAAA
+      WpJAhetRuB5jm0CamZmZmTyRQGZmZmZmz5dA16NwPQqlj0DhehSuR96YQGZmZmZm5JdAFK5H4Xr0
+      j0DNzMzMzHWZQHsUrkfhipNA16NwPQrcm0CuR+F6FPaSQB+F61G4sJtAXI/C9SgdkUBmZmZmZlGY
+      QOxRuB6FmphAZmZmZmYVkEDD9Shcj5eXQFyPwvUo7I9AXI/C9ShtmEDNzMzMzEWQQEjhehSuNptA
+      pHA9CtdZlEDXo3A9CpSfQDMzMzMzi5RAKVyPwvXdnEBxPQrXo0edQFK4HoXrepNA9ihcj8KdmECP
+      wvUoXIGQQGZmZmZm6ZhAzczMzMx+kEDNzMzMzIiYQM3MzMzMsZBAmpmZmZkMnUCkcD0K1xydQFyP
+      wvUoN5NAH4XrUbiAnUA9CtejcLuSQBSuR+H6PaBAXI/C9SjqlEBmZmZmZkOeQOxRuB6F9JRAj8L1
+      KFzPnkBmZmZmZnyUQDMzMzMzWJ9AKVyPwvUDo0AAAAAAAKyfQFK4HoVrQKlAFK5H4Xr+nkCamZmZ
+      Ga2pQArXo3A9dqNA16NwPQpAsUC4HoXrUV+pQLgehetROrJAuB6F69ELrUBI4XoULjKkQNejcD2K
+      eqdAmpmZmZnWnUB7FK5H4XWfQM3MzMzMU5NArkfhehS8mUAzMzMzM8mQQD0K16NwvZtAH4XrUbhp
+      lkA=
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+caltech_birds2011_num_classes_74_num_dev_examples_3448_num_test_examples_518_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      XI/C9SgsoUAzMzMzM1SXQGZmZmZmxo9ArkfhehQ8mEDD9ShcjweQQClcj8L1m5dAZmZmZmbOlkBc
+      j8L1KLWgQHsUrkfhupZAcT0K1yM9okC4HoXr0USjQClcj8L1mJlArkfhehTemkDsUbgehR6QQEjh
+      ehSuUZhAPQrXo3ACkEAK16NwPaiXQHE9CtejJZBAAAAAAABvmUDXo3A9CqOSQI/C9ShcSZtAzczM
+      zMz8mkCkcD0K11WRQEjhehSuzZxAj8L1KEwo2UAUrkfhekSYQFK4HoXriY9A4XoUrkd+l0BxPQrX
+      o/iPQI/C9ShcFphAPQrXo3B0l0Bcj8L1KKeUQHsUrkfhJp1Aw/UoXI91lEDsUbgehaSgQBSuR+F6
+      7ZZASOF6FK5soUAzMzMzMwCSQM3MzMzMaZdA4XoUrkcRkECkcD0K1zaYQIXrUbgetJdAuB6F61Hm
+      j0DNzMzMzAOaQIXrUbgeUZJAXI/C9SjVm0AfhetRuLiRQK5H4XoUl5tAZmZmZmY6kkAfhetRuEKc
+      QHE9CtejFZhAKVyPwvUbkECamZmZmWaXQClcj8L12I9AuB6F61EGmEBI4XoUrtGPQBSuR+F6jZxA
+      w/UoXI9zlECuR+F6FJ+fQK5H4XoUdpdASOF6FC6XoUCkcD0K19mgQOF6FK5HQ5NAXI/C9ShYmEDD
+      9Shcj32QQDMzMzMzK5lAPQrXo3B0kEAUrkfheoWYQHE9Ctej2JBAZmZmZmbcnUAzMzMzMxmdQNej
+      cD0KuJJAKVyPwvW2n0BmZmZmZv+SQD0K16NwJ51A16NwPQoMlEDXo3A9CrKeQBSuR+F6UJRASOF6
+      FK5kn0DhehSuR4OVQD0K16NwRKBA16NwPQospUDNzMzMzA2gQHsUrkfhq6pAKVyPwvVEpUDhehSu
+      x8OtQMP1KFwPwaNASOF6FC5uskDhehSux0yrQHsUrkfh6bFAFK5H4Xrgq0CkcD0K15ygQBSuR+H6
+      yaJAmpmZmZkzmEBcj8L1KDWcQClcj8L1Z5JAw/UoXI/rmUDsUbgehT6SQPYoXI/CG5tAH4XrUbii
+      l0A=
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+caltech_birds2011_num_classes_85_num_dev_examples_1700_num_test_examples_510_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F6xFWtUCamZmZmfKWQHE9CtejWo9ACtejcD2dl0CamZmZmVePQLgehetR4ZZAhetRuB47nEBS
+      uB6F696gQFyPwvUoO5ZAKVyPwnXrpUA9CtejcGigQNejcD0K2ZhAzczMzMylmEB7FK5H4byOQHE9
+      CtejjphAuB6F61FSj0CPwvUoXAKXQArXo3A9nI5AMzMzMzOam0C4HoXrUSWRQClcj8L1tppAPQrX
+      o3DjnECuR+F6FL6RQD0K16NwOpdAPQrXo8DD2EBxPQrXo2aXQKRwPQrXBY9ArkfhehQWl0CamZmZ
+      ma2OQOF6FK5Hy5dAPQrXo3DvlkAAAAAAANeSQM3MzMxMhaBAPQrXo3AUlUB7FK5HYRegQMP1KFyP
+      mJFAMzMzMzOVnUBcj8L1KNSQQGZmZmZmF5dACtejcD1Yj0A9CtejcJWXQFyPwvUoAZdAPQrXo3AL
+      j0CF61G4HqiYQGZmZmZm3pBAexSuR+EqnkBSuB6F69WSQB+F61G4BJpA16NwPQpZj0BI4XoUroiX
+      QArXo3A9ypdAKVyPwvUgj0CamZmZmReXQD0K16NwYJBAhetRuB6ml0DNzMzMzAyPQFK4HoXrv5pA
+      hetRuB7ZkkDhehSuR62gQFK4HoXrnZhAzczMzMwhnECamZmZmbidQK5H4XoUmZJAexSuR+HHl0Af
+      hetRuJOQQEjhehSuJ5lA7FG4HoV3kECPwvUoXNSXQOxRuB6FRJBAj8L1KFyLm0AfhetRuEWcQOxR
+      uB6Fp5RAMzMzMzO+n0DXo3A9CuWRQArXo3A9dptA7FG4HoVjk0BmZmZmZjWeQIXrUbgeg5RAZmZm
+      ZmbRn0DXo3A9CjWUQMP1KFwPDaBASOF6FC7+pUAK16NwPQGgQDMzMzOzpatA4XoUrsfqpUDhehSu
+      xzirQEjhehQuHqRAPQrXozA6s0A9CtejcFSnQJqZmZkZmrJAmpmZmRnLr0CkcD0K1+meQHsUrkfh
+      eKBA7FG4HoXrmEDXo3A9ikqhQOxRuB6FCJJAFK5H4Xo0m0BI4XoUrvqSQD0K16NwnZlAmpmZmZm+
+      lUA=
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cassava_num_classes_2_num_dev_examples_1695_num_test_examples_148_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F6zGSyEAUrkfhulK6QIXrUbjeyLFAhetRuF7zukBI4XoUrr2xQHsUrkdhZbpAKVyPwvWUs0Ca
+      mZmZWRu9QIXrUbgeXLNArkfhetQBvUBcj8L1aB+9QHsUrkehp7JAKVyPwnWIukAfhetRuLyxQD0K
+      16Mw/7pApHA9ClfQsUCkcD0Kl1S6QK5H4XqU1LFA7FG4HkUCu0DXo3A9ytKxQClcj8K1XbpAzczM
+      zEwEu0A9CtejsLmxQD0K16MwU7pAKVyPwiXu+ECamZmZ2fW6QClcj8I1u7FAzczMzMw+ukCF61G4
+      nrqxQMP1KFxPGLtAPQrXozA+ukA9CtejcBKyQK5H4XrUbrtA4XoUrkcIskC4HoXrkYO6QGZmZmam
+      ArJArkfhelRIu0ApXI/C9dixQOF6FK6HZbpAFK5H4TrUsUAfhetROCe7QDMzMzMzR7pAw/UoXI/e
+      sUAAAAAAwCW7QI/C9Shc9LFAw/UoXE+EukDXo3A9SuaxQIXrUbheUrtAexSuR6HnsUD2KFyPAku6
+      QD0K16NwNrtAPQrXozDpsUBSuB6F65y6QNejcD2KBLJAFK5H4To9u0CuR+F6FOmxQHE9CtdjWLtA
+      SOF6FG7CskBxPQrX46K8QMP1KFyPu7JAexSuRyGRu0C4HoXrUWy8QHsUrkfh4LJAexSuR+ELvEAA
+      AAAAwOmyQPYoXI+CEr1AmpmZmZn7skBcj8L16CS8QIXrUbgeDLNAzczMzIw3v0DhehSux76+QIXr
+      Ubie+rRAzczMzIwXwEApXI/CtUC1QB+F61H42r9A9ihcjwLKuUB7FK5HgeTDQM3MzMzMd7pAUrge
+      heuiw0AK16NwvVG6QGZmZmZmEcRAw/UoXI8zyEAzMzMzs7vBQArXo3CdsMpAKVyPwjWAwUDXo3A9
+      SkTKQAAAAAAga8FAuB6F63FBz0AfhetR+DvHQNejcD0qkM5APQrXo3B+yUAAAAAAAKG7QKRwPQo3
+      KcFAXI/C9ShWtkD2KFyPwji7QHsUrkfhtbFAuB6F65EtukDXo3A9CrCxQD0K16Mw5bpAuB6F69GG
+      uEA=
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - 512
+  - 512
+  sequence_size: 1
+cats_vs_dogs_num_classes_2_num_dev_examples_10325_num_test_examples_1498_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F65FRtED2KFyPwnOXQGZmZmZmB5BAXI/C9Sg1mEBcj8L1KLCPQDMzMzMzfZdAXI/C9SjDn0B7
+      FK5HYZujQArXo3A9ypdAcT0K16MNokApXI/C9SGkQAAAAAAA7JZA7FG4HoUem0Bcj8L1KB2QQPYo
+      XI/CSphAhetRuB49kECkcD0K19WXQOxRuB6FIJBAKVyPwvXzmEAAAAAAAA6RQM3MzMzM75hAcT0K
+      16OQmUDNzMzMzPSQQD0K16Nwm5lAFK5H4Qrw2EAUrkfheiOYQClcj8L1so9AXI/C9SjDl0BmZmZm
+      Zp6PQOxRuB6FRJhAKVyPwvVSl0ApXI/C9SOSQHsUrkfhd5tAMzMzMzOdkUCamZmZmVqaQAAAAAAA
+      VJJAj8L1KFy8nEC4HoXrUUKSQM3MzMzMsJdAKVyPwvXUj0A9CtejcEOYQGZmZmZmp5dACtejcD3Y
+      j0AzMzMzM1uZQFyPwvUoGJFASOF6FK7TmECF61G4HrqQQJqZmZmZM5pAFK5H4XoXkUCamZmZmVCa
+      QFK4HoXrLplAuB6F61H+j0CF61G4HriXQNejcD0K0ZBAzczMzMyPmECPwvUoXDOQQM3MzMzMc5xA
+      MzMzMzOnlEDXo3A9irqgQOF6FK5Hq5RAKVyPwvXynUBSuB6F6/qeQPYoXI/CqZRASOF6FK6zmUC4
+      HoXrUZqRQClcj8L1z5pAKVyPwvVfkUAfhetRuIeZQPYoXI/CO5FAFK5H4XrznUAAAAAAAAedQArX
+      o3A9jZNAPQrXo3ChnkCkcD0K1zyUQEjhehSuI6JAMzMzMzOpmEApXI/C9U+iQB+F61G4aJhAKVyP
+      wnWmoUCuR+F6FPmXQNejcD0KAKJAAAAAAID6pUBSuB6Fay+gQClcj8L10ahAj8L1KNwxoUCuR+F6
+      lK6pQFyPwvUoEZ9APQrXo7DQsEA9Ctej8ImjQD0K16PwwqlAzczMzMxMqUAAAAAAgHWgQDMzMzOz
+      X6dAexSuR+FQpEAfhetROBegQMP1KFyP7ZBAZmZmZmbVmEAUrkfhejORQGZmZmZmW5pAexSuR+F6
+      l0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cats_vs_dogs_num_classes_2_num_dev_examples_7385_num_test_examples_1854_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      UrgehasevkA9CtejcH6XQJqZmZmZ/Y9AFK5H4XpnmEAK16NwPY6PQFK4HoXr3JdA16NwPQpKoUAK
+      16NwvUCjQOxRuB6FdJdASOF6FK4ZoUAzMzMzM8agQHE9Ctejo5RAmpmZmZkomkCF61G4HtuPQHsU
+      rkfhIJhAXI/C9SgEkEBmZmZmZp2XQBSuR+F6vI9A9ihcj8LGmEAUrkfheniRQOxRuB6FoJpAUrge
+      hevhmUCPwvUoXN6QQClcj8L1T5hArkfheiTn2EDNzMzMzCCYQIXrUbgew49AUrgeheusl0CkcD0K
+      172PQBSuR+F6VJhAmpmZmZlwl0A9CtejcAyTQArXo3A9opxAZmZmZmbBkkD2KFyPwpGaQDMzMzMz
+      HJFA16NwPQrNmUBI4XoUrtORQHE9CtejkZdAFK5H4Xr0j0B7FK5H4WeYQHsUrkfh1ZdAcT0K16Py
+      j0A9CtejcPmZQHE9CtejCZFAAAAAAACkmkAK16NwPVGRQKRwPQrX85lAMzMzMzMzkEBmZmZmZiWZ
+      QGZmZmZm2phAzczMzMwdkEA9CtejcCiYQClcj8L1pZBAzczMzMyqmEAAAAAAACyQQFK4HoXrEZxA
+      16NwPQoBlEBxPQrXo1ueQB+F61G4QJNAj8L1KFwtm0AfhetRuDWcQB+F61G4IJNAmpmZmZlFmkCk
+      cD0K1+GRQClcj8L1TptArkfhehT5kUDsUbgehaSaQB+F61G4H5JAcT0K16MaoEBcj8L1qDSgQIXr
+      UbgeUpVAw/UoXI8mn0CPwvUoXPyTQMP1KFwPJ6BAzczMzMxyl0AzMzMzMxShQI/C9ShcVJZA7FG4
+      HgWVoEB7FK5H4eGVQB+F61G4bqBApHA9Ctd+pEApXI/C9eKdQBSuR+F6N6dArkfhehQAn0AfhetR
+      OBemQPYoXI/Csp5ArkfhetRisUCamZmZmW6mQLgehetRhK5AXI/C9ajgqEAUrkfhesedQK5H4XqU
+      qaNAFK5H4Xr4oUAUrkfheuKjQHsUrkfh/ZFA7FG4HoWLmkCPwvUoXM6QQFyPwvUovphAPQrXo3BT
+      lkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cats_vs_dogs_num_classes_2_num_dev_examples_9735_num_test_examples_2254_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      mpmZmZkqqECkcD0K1++XQPYoXI/CWJBAKVyPwvUQmUBSuB6F61mQQM3MzMzMRphAcT0K16PioEAA
+      AAAAAMiiQArXo3A9nJZACtejcD2vo0DsUbgehdGhQPYoXI/Cn5VAH4XrUbi1mUBSuB6F66mQQArX
+      o3A9B5lAj8L1KFyJkECF61G4HiyYQBSuR+F6YJBArkfhehSzmUC4HoXrUTaSQGZmZmZmfptAmpmZ
+      mZnJmkAUrkfheiyRQClcj8L1AJtACtejcF3v2EBmZmZmZgOZQOF6FK5HbpBAZmZmZmZwmECPwvUo
+      XFuQQB+F61G4CZlAZmZmZmYEmEAAAAAAAMOSQGZmZmZmlp1A4XoUrkfqkkCkcD0K1zebQHsUrkfh
+      YJJAzczMzMxonUBcj8L1KDuRQI/C9ShcUZhA4XoUrkdqkEDsUbgehWKZQGZmZmZmLJhA7FG4HoVF
+      kECPwvUoXDyaQOF6FK5H3JFASOF6FK65mkCuR+F6FCSSQFyPwvUoyJpApHA9CtffkUBSuB6F6/KZ
+      QLgehetRU5pAzczMzMzBkEDhehSuR7qYQKRwPQrXt5FA16NwPQo5mUAfhetRuG6QQMP1KFyPuZtA
+      AAAAAAA/lUBxPQrXo0+eQAAAAAAAzZNArkfhehSbnECamZmZmVieQKRwPQrXCJNAcT0K16MOmkCF
+      61G4HsqRQEjhehSuE5tAKVyPwvXakUB7FK5H4VyaQNejcD0KC5JAXI/C9SiLn0DD9ShcjzqgQFyP
+      wvUod5RAMzMzMzOinkDNzMzMzAuUQMP1KFyPK55A9ihcj8IvlkDNzMzMzOugQMP1KFyP4JZAuB6F
+      61FZoUAzMzMzM+WXQM3MzMzM3aFAhetRuB5NpkA9CtejcJmhQMP1KFyPnKlAKVyPwnX8oED2KFyP
+      QnuoQIXrUbgepaFAAAAAAEDoskBSuB6F61SoQDMzMzPzKbBA4XoUrse4qkDD9Shcj6ScQOxRuB4F
+      WqRAMzMzMzOum0B7FK5H4XidQPYoXI/CK5JA16NwPQromUDsUbgehSqRQBSuR+F6fJpAexSuR+GD
+      lkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cifar100_num_classes_37_num_dev_examples_7770_num_test_examples_4514_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      hetRuB5lXECkcD0K16M0QKRwPQrXIzBAZmZmZmYmO0DhehSuR8FAQD0K16NwHUdAexSuR+EaXEDX
+      o3A9CodUQKRwPQrX40xAPQrXo3CdUECamZmZmblIQMP1KFyPQkRAZmZmZmZmNkDNzMzMzMwVQM3M
+      zMzMzCxAMzMzMzPzMkCPwvUoXA8zQNejcD0KFzhAMzMzMzMzMUBSuB6F6zFFQK5H4XoUTkNArkfh
+      ehRuOkDXo3A9CndOQOF6FK5HAUFA16NwPQo3aUCkcD0K1+M3QPYoXI/C9fQ/9ihcj8J1JEDhehSu
+      R+EtQAAAAAAAQDZA4XoUrkehNkDXo3A9CvdCQNejcD0Kt0VAAAAAAABARUB7FK5H4Xo/QGZmZmZm
+      JjdAhetRuB7FNkApXI/C9SgyQM3MzMzMzAZAZmZmZmZm8j/NzMzMzMz8PxSuR+F6FBpAzczMzMxM
+      L0BI4XoUrocyQKRwPQrXYz1AzczMzMwMMkCkcD0K1yMoQLgehetRuCZAUrgehetRG0CamZmZmZk3
+      QOxRuB6FS0FAFK5H4XoU3j8zMzMzMzPrP8P1KFyPwgFAPQrXo3A9E0CF61G4HoUpQPYoXI/CFUJA
+      H4XrUbheSEDXo3A9CpdMQGZmZmZmBkhAcT0K16MQSkD2KFyPwjVMQHsUrkfh+kNAw/UoXI9CJkD2
+      KFyPwvUgQHsUrkfheh9AhetRuB6FMEDsUbgeheslQDMzMzMzMyRAH4XrUbheNEBI4XoUrkc+QHE9
+      CtejkEFAzczMzMyMOEDhehSuR+ErQPYoXI/ClUFAzczMzMxMJEC4HoXrUbgRQDMzMzMzMxFACtej
+      cD0KFUC4HoXrUbgWQD0K16NwPRdA7FG4HoWrNEDXo3A9Cpc8QGZmZmZmRkVArkfhehQOSkC4HoXr
+      URhQQNejcD0Kd0hAUrgehesBUkDhehSuR6FGQFyPwvUo3EFAhetRuB5lQkCPwvUoXA9FQM3MzMzM
+      DEtA7FG4HoVrQ0CkcD0K1yM/QMP1KFyPwi5Aj8L1KFwPNEA9CtejcD0+QDMzMzMzE0JArkfhehQu
+      SEA=
+  num_channels: 3
+  num_classes: 100
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cifar10_num_classes_3_num_dev_examples_6432_num_test_examples_2274_resolution_16_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzMzMzTEApXI/C9agvQBSuR+F61EJAzczMzMxsRUDD9Shcj4I9QKRwPQrX40JAexSuR+GaUUAU
+      rkfhepRRQFK4HoXr8UpAFK5H4Xo0TEAK16NwPUpHQJqZmZmZ2UhAZmZmZmbmOEB7FK5H4XoSQNej
+      cD0K1ztAzczMzMzMMkDhehSuR2E6QD0K16NwvT1APQrXo3A9QkDNzMzMzMw0QOF6FK5HAUlAzczM
+      zMwMRECPwvUoXO9HQOF6FK5HAU5Aw/UoXI+iY0Bcj8L1KFw0QDMzMzMzsyhAKVyPwvUoK0AfhetR
+      uB44QMP1KFyPwjpA16NwPQq3QEBI4XoUrsc+QD0K16NwvUBApHA9CtdjO0CuR+F6FM5AQOxRuB6F
+      qz9AcT0K16MwPkAzMzMzM7MxQOxRuB6F6/k/H4XrUbge7T8UrkfhehT6Pylcj8L1KB1AZmZmZmbm
+      MkDsUbgehSs5QOF6FK5HYTpAj8L1KFyPMkDsUbgehWslQI/C9ShcDypAFK5H4XoUI0CkcD0K12M7
+      QIXrUbgehQNApHA9Ctej4D9cj8L1KFzfP3sUrkfhevw/w/UoXI/CEECPwvUoXA8tQEjhehSuZ0VA
+      w/UoXI+CSUDhehSuR8FIQFyPwvUovEFAmpmZmZnZSEB7FK5H4dpJQGZmZmZmJkdA16NwPQpXNUCP
+      wvUoXI8jQD0K16NwvSBASOF6FK5HLEBcj8L1KFwnQK5H4XoUriRAhetRuB5FOUAK16NwPSpCQPYo
+      XI/ClUNA4XoUrkchO0CPwvUoXI8sQHsUrkfhOkVAUrgehetRGkBcj8L1KFwBQFyPwvUoXAdAhetR
+      uB6FD0AzMzMzMzMQQNejcD0K1xhApHA9CtcjM0CF61G4HsU2QOF6FK5HIURAH4XrUbi+SkAzMzMz
+      MyNQQMP1KFyPYklAhetRuB6VVUD2KFyPwjVCQKRwPQrX40JACtejcD0qSEApXI/C9ahIQLgehetR
+      +FBAuB6F61F4SEBI4XoUrsczQD0K16NwfTBAcT0K16PwNUDXo3A9CrdAQAAAAAAAgERArkfhehQO
+      UUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cifar10_num_classes_6_num_dev_examples_11076_num_test_examples_1686_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      UrgehesxUkBxPQrXo3A4QM3MzMzM7EFA16NwPQq3QUBI4XoUrsdCQD0K16NwPUpAmpmZmZnZUkDD
+      9Shcj4JSQBSuR+F61ElAKVyPwvVoSEC4HoXrUfhCQClcj8L1yEBAAAAAAAAAKUA9CtejcD0aQOF6
+      FK5HITdAhetRuB4FOECuR+F6FK47QHE9Ctej8C5Aw/UoXI8CPEBI4XoUrgdEQI/C9Shcj0dAj8L1
+      KFxPUECF61G4HmVPQIXrUbgeBUJAj8L1KFxfYkDhehSuR+ETQLgehetRuBFAuB6F61G4JED2KFyP
+      wrU8QM3MzMzMzEBA4XoUrkfhQkDXo3A9CndDQIXrUbgehUFAuB6F61FYQEBmZmZmZkZAQOxRuB6F
+      qzhApHA9CtcjNUCF61G4HgUwQPYoXI/C9QxAuB6F61G4AkBSuB6F61H0P9ejcD0K1yJAKVyPwvVo
+      PEAAAAAAAAA9QD0K16NwPThA7FG4HoVrLkCPwvUoXI8gQMP1KFyPwh9AMzMzMzMzIEBSuB6F69Ex
+      QJqZmZmZmQdAH4XrUbge1T+uR+F6FK7XPwrXo3A9Cvc/SOF6FK5HEEDXo3A9CpcyQClcj8L1qERA
+      pHA9CtejTkCuR+F6FI5PQOF6FK5HAUdAPQrXo3BdSkCkcD0K1+NKQM3MzMzMLElA7FG4HoVrM0DD
+      9Shcj0IjQGZmZmZmZhlApHA9CtejH0CuR+F6FK4WQPYoXI/C9SZAZmZmZmYmOUCamZmZmdlDQB+F
+      61G43j9A7FG4HoWrNECkcD0K16MjQM3MzMzMrEBAMzMzMzMzHECkcD0K16MkQOF6FK5H4RNAj8L1
+      KFyPEED2KFyPwvURQKRwPQrXoxlAH4XrUbgeK0DD9Shcj0I7QPYoXI/ClUVA4XoUrkcBS0DsUbge
+      hbtRQHsUrkfhek9AKVyPwvWYVEDhehSuR4FCQJqZmZmZWUlAmpmZmZnZTUC4HoXrUdhKQOxRuB6F
+      C0tAuB6F61EYQ0CkcD0K16MyQMP1KFyPQitAMzMzMzMzOUDD9Shcj0JBQGZmZmZmZkBAPQrXo3Bd
+      SkA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+citrus_leaves_num_classes_3_num_dev_examples_186_num_test_examples_48_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZmYikkAfhetRuOJyQNejcD0KLZ1AFK5H4Xo8g0AzMzMzM1NzQBSuR+F6eHFACtejcD1si0DX
+      o3A9Cs+bQArXo3A9RaJAAAAAAIA+tED2KFyPwoOuQLgehetRvZlACtejcD1GcEApXI/C9agvQGZm
+      ZmZmRlJAzczMzMxFkEAzMzMzMzWWQIXrUbgeqYJAuB6F61HNmkDhehSuRzucQBSuR+H6E6RAXI/C
+      9SgstEDNzMzMjC60QM3MzMxMeqlAH4XrUYgN00DD9Shcj0I1QD0K16NwPRJAKVyPwvVoN0CuR+F6
+      FH5/QDMzMzMzjZlA7FG4HoVdjkAUrkfhejKKQAAAAAAA0J1AhetRuB7CoUBSuB6F62+1QB+F61E4
+      6qVAH4XrUTi3oUA9CtejcCVmQFyPwvUoHDRA4XoUrkfhF0B7FK5H4XoiQLgehetRKGRAFK5H4Xqd
+      lUBmZmZmZiyVQMP1KFyPCZdAXI/C9SgroUCF61G4HtemQHsUrkdhAbZAhetRuB6xl0DsUbgehdWR
+      QM3MzMzMDDNAXI/C9ShcD0AAAAAAAAAbQI/C9ShcjxdAXI/C9SicOkCkcD0K19mLQM3MzMzM9Z5A
+      cT0K16NQnEAUrkfhegurQMP1KFwPk61AmpmZmRn9sUApXI/C9SOfQPYoXI/CiXdA7FG4HoUrQECa
+      mZmZmRkuQI/C9ShcjyhAzczMzMxMIEBI4XoUrscqQNejcD0KL2RApHA9ClemokCF61G4nrOrQI/C
+      9ShcDapAj8L1KNwVtkDXo3A9CiCXQBSuR+F6fo9AcT0K16NQTUDXo3A9Ctc+QHsUrkfhejdAj8L1
+      KFyvQkDhehSuR8FAQKRwPQrXg0lApHA9CteNgUCamZmZmdyfQJqZmZlZrrNAZmZmZqbvsEBI4XoU
+      rjWxQEjhehSu2JZAhetRuB51j0DD9Shcj/mYQFyPwvVoLbNArkfhepSUwECkcD0KV6q1QJqZmZmZ
+      mKRArkfhehT8g0B7FK5H4baPQFK4HoXrI59AMzMzM3M1t0DsUbgehVezQB+F61G4raVArkfhehT+
+      iEA=
+  num_channels: 3
+  num_classes: 4
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+citrus_leaves_num_classes_4_num_dev_examples_429_num_test_examples_48_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzMzOjckBxPQrXo3qIQPYoXI9CDqFAj8L1KFxBhEApXI/C9RR3QGZmZmZmFmZArkfhehSahkBc
+      j8L1KCCRQIXrUbge35pA7FG4HgXHtkCF61G4HpauQAAAAAAAAJZArkfhehS2dUAK16NwPQoxQFK4
+      HoXroVtAw/UoXI/OnUD2KFyPwtSWQFyPwvUoLoJApHA9CtezmkDsUbgehX6cQClcj8J1CKBAXI/C
+      9agntkCF61G43ki0QMP1KFwPdaNAH4XrUdgc00BxPQrXozA1QAAAAAAAABFAZmZmZmYmN0B7FK5H
+      4WyMQEjhehSu1Z1APQrXo3Bbj0BI4XoUrrOKQBSuR+F6QZBACtejcD0Jn0CuR+F6VF22QHE9Ctcj
+      oKlAXI/C9ShvokBxPQrXo7RyQIXrUbgeRT1ACtejcD2KIkCPwvUoXI8kQEjhehSur2dA9ihcj8KR
+      nED2KFyPwnCaQDMzMzMz9pFApHA9CtfhjUAfhetROMmqQClcj8I1SLZAhetRuB4doEDsUbgehaON
+      QGZmZmZmZjJAZmZmZmZmCkAAAAAAAAAWQHsUrkfhehhACtejcD1KPkDXo3A9Cj2OQFK4HoVrDqNA
+      9ihcj8J5mECF61G4HiuhQGZmZmZmc7BA7FG4HkU5s0AK16NwPUWgQFyPwvUoqIJAmpmZmZnZRUB7
+      FK5H4boxQB+F61G4ni5AMzMzMzMzHUAAAAAAAAAqQJqZmZmZoWpAhetRuJ5zo0DNzMzMzJSkQAAA
+      AACAe6pAH4XrUXirt0BmZmZmZjGdQClcj8L12IVAexSuR+FaRUCF61G4HkU3QHE9CtejcCpAH4Xr
+      UbjeMUBxPQrXo/ApQB+F61G4XjxA7FG4HoXxgEBmZmZmZg2ZQDMzMzMzuLBAexSuRyEOs0CamZmZ
+      mfazQHE9Ctejd5hAZmZmZmb8mECamZmZmdaWQGZmZmbme6hA7FG4HkW+wUAAAAAAQI25QNejcD2K
+      xKZAcT0K16P0gUCamZmZmfuGQFK4HoXrD4pAKVyPwnWltkBxPQrXY/q2QLgehetRualAexSuR+GS
+      g0A=
+  num_channels: 3
+  num_classes: 4
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cmaterdb_bangla_num_classes_10_num_dev_examples_3540_num_test_examples_460_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvXfoUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAD2KFyPwvUSQNejcD0KlzlAw/UoXI+ucEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASOF6FK5H4T8K16NwPQq3PwAAAAAAAAAAUrge
+      hetR4D8AAAAAAAAAAAAAAAAAAAAAw/UoXI/C8T8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAexSuR+G6NEAfhetRuB7lP/YoXI/C9eg/H4XrUbgeEkAAAAAAAAAAAMP1KFyP
+      wvE/pHA9CtdjOEBI4XoUrp9wQLgehetRuPI/4XoUrkfh+j/hehSuR+H6P7gehetRuPI/zczMzMwU
+      ZEA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cmaterdb_bangla_num_classes_7_num_dev_examples_3584_num_test_examples_315_resolution_16_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzMzPaoUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAK16NwPQoXQB+F61G4HjtAexSuR+E6cEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4XoUrkfh2j+4HoXrUbi+PwAAAAAAAAAAFK5H
+      4XoU5j8AAAAAAAAAAAAAAAAAAAAAMzMzMzMz8z8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAFK5H4XrUNkC4HoXrUbjOPylcj8L1KOQ/zczMzMzME0AAAAAAAAAAAB+F61G4
+      HvU/CtejcD3KOkCF61G4HilwQKRwPQrXo/Q/pHA9Ctej9D+kcD0K16P0P6RwPQrXo/Q/PQrXo3Bt
+      ZUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cmaterdb_bangla_num_classes_8_num_dev_examples_2800_num_test_examples_120_resolution_16_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvXioUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAADXo3A9CtcVQB+F61G4XjpAFK5H4Xqkb0DhehSuR+HKP0jhehSuRyRAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtejcD0K5z8K16NwPQq3PwAAAAAAAAAAMzMz
+      MzMz4z8AAAAAAAAAAAAAAAAAAAAAuB6F61G47j8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAA4XoUrkehNUC4HoXrUbjePzMzMzMzM9M/7FG4HoXrD0AAAAAAAAAAAI/C9Shc
+      j/Y/H4XrUbjeOEBmZmZmZqZvQK5H4XoUrvM/16NwPQrX+z/Xo3A9Ctf7P65H4XoUrvM/uB6F61Gg
+      ZUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cmaterdb_telugu_num_classes_10_num_dev_examples_1350_num_test_examples_200_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcD0ToUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAACF61G4HoUaQK5H4XoU7j5ArkfhehTWbkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw/UoXI/C/T8zMzMzMzPDPwAAAAAAAAAAH4Xr
+      Ubge5T8AAAAAAAAAAAAAAAAAAAAAUrgehetR/D8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAFK5H4Xr0REAfhetRuB7VPzMzMzMzM9M/XI/C9ShcC0AAAAAAAAAAALgehetR
+      uO4/XI/C9SgcRkDhehSuR9lsQGZmZmZmZvo/MzMzMzMz/z8zMzMzMzP/P2ZmZmZmZvo/KVyPwvXI
+      cEA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+coil100_num_classes_24_num_dev_examples_1032_num_test_examples_408_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcD3KOkBcj8L1KFw6QI/C9ShcTzZA7FG4HoULRUCuR+F6FI5DQDMzMzNzDMpAcT0K16OwfEA9
+      CtejcDmGQD0K16NwO4hApHA9ChcwvUDD9Shczwa3QClcj8L1jZBAuB6F61EQe0BxPQrXo5BRQB+F
+      61G4PlBA7FG4HoULQECkcD0K18NDQEjhehSuhzJAexSuR+GaTEApXI/C9dhTQFyPwvUolGdACtej
+      cD2Wf0BxPQrXowBTQFK4HoXrYVhAAAAAAEDmsEAUrkfhejmWQOF6FK5H4RJACtejcD0KGkCPwvUo
+      XI8TQI/C9ShcjyBAUrgehevRJ0A9CtejcH1fQPYoXI/CLWdACtejcD06XkCuR+F6FKZnQOxRuB6F
+      E2BA4XoUrkdpYkD2KFyPwtVFQBSuR+F6FCNAFK5H4XoUFUAfhetRuB4ZQJqZmZmZmRhAmpmZmZmZ
+      EUDsUbgehYtEQFyPwvUobFFAFK5H4XoEXUCuR+F6FK5XQFK4HoXrQVtApHA9CtezUEB7FK5H4dpG
+      QJqZmZmZGSdAZmZmZmZmHkApXI/C9agpQFyPwvUoXCBAZmZmZmamMEA9CtejcD0pQM3MzMzMSHVA
+      FK5H4XoocUDD9Shcjy6BQD0K16NwRWtAcT0K16MUc0CPwvUoXBduQFK4HoXrQVRAUrgehetRLUAz
+      MzMzMzMjQB+F61G4nihA7FG4HoXrGUCamZmZmRkhQOF6FK5HYSBAmpmZmZkZXEApXI/C9QhlQPYo
+      XI/CzWxAhetRuB4LmEApXI/C9RiHQHE9CtejSHVAw/UoXI9CWECamZmZmRlYQFyPwvUo7HtAKVyP
+      wvXISUDsUbgehas/QHsUrkfh2kZAcT0K16PQZUBxPQrXo9BjQClcj8L1YG1AmpmZmZkJZEAzMzMz
+      M5NuQNejcD0KoYNAH4XrUbj2ZECF61G4HjVaQDMzMzMzvJZA7FG4HoVjZkBI4XoUrpdZQDMzMzMz
+      A1tASOF6FK4HQUB7FK5H4RpcQEjhehSu91JAKVyPwvVQYEDsUbgehVtTQI/C9Shcf1dAw/UoXI9C
+      RUA=
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+coil100_num_classes_44_num_dev_examples_2728_num_test_examples_660_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      UrgehevROEBmZmZmZmY+QAAAAAAAwDdAKVyPwvUISECamZmZmZlFQClcj8IVdsZArkfhehTqikBx
+      PQrXo6aHQLgehetRFIVA16NwPYoTu0DsUbgeBRi7QOF6FK5HzZFAAAAAAAB4gkBxPQrXo5BQQM3M
+      zMzMXFJApHA9CtcDQUDhehSuR2FHQOF6FK5HITdACtejcD3KTUBSuB6F6yFXQJqZmZmZuWNAZmZm
+      Zmbea0AzMzMzM094QD0K16NwjVhAUrgehasiskA9CtejcGSSQArXo3A9ChNAH4XrUbgeHEA9Ctej
+      cD0UQD0K16NwPSFA4XoUrkdhKkDNzMzMzPRhQD0K16NwHW1AhetRuB69YUC4HoXrUQhsQK5H4XoU
+      VmBAAAAAAAAYZECF61G4HoVHQK5H4XoULiVA7FG4HoXrFUAzMzMzMzMbQD0K16NwPRtAFK5H4XoU
+      FUDsUbgehWtIQHsUrkfhWlZAAAAAAABIYkCuR+F6FF5WQJqZmZmZkWBAPQrXo3D9TkAzMzMzM3NP
+      QPYoXI/C9SdAj8L1KFyPHEDhehSuR+EoQClcj8L1qCBAPQrXo3C9L0CF61G4HoUpQGZmZmZmMnhA
+      uB6F61F8c0AfhetRuG53QB+F61G4lm5AKVyPwvVEdECPwvUoXKNwQK5H4XoUrlVAUrgehetRLkDX
+      o3A9ClciQJqZmZmZmSZASOF6FK5HHEApXI/C9agjQM3MzMzMzCBAw/UoXI+aY0AzMzMzM4toQArX
+      o3A9UmtA4XoUrkeenEBcj8L1KICBQFK4HoXrSXZApHA9CtdzZUCF61G4HuVVQLgehetRaFlA7FG4
+      HoWrSEDsUbgehes+QJqZmZmZmUZAXI/C9SgWgEAK16NwPXJoQPYoXI/CNXFACtejcD0KaECuR+F6
+      FOpwQHE9CtejeIBA9ihcj8IVaEA9CtejcHVgQNejcD0KcpVAj8L1KFw3akBmZmZmZsZaQJqZmZmZ
+      SV1AZmZmZmbmSEAAAAAAALBgQEjhehSu91lA9ihcj8IFY0AUrkfhejRUQJqZmZmZeVpApHA9Ctej
+      TEA=
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+coil100_num_classes_45_num_dev_examples_3150_num_test_examples_315_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      FK5H4XoUOUD2KFyPwnU8QNejcD0KVzhA7FG4HoWLSEAUrkfhejRFQOF6FK7nnMhA4XoUrkdngEAU
+      rkfhegqIQClcj8L1WIxA9ihcjwJSu0CPwvUoXKq2QGZmZmZm4pJA4XoUrkffgUDXo3A9CndRQHsU
+      rkfh6lBAFK5H4XoUQUDhehSuR0FGQI/C9ShcDzNAXI/C9Sj8SUBmZmZmZtZRQFyPwvUohGhAw/Uo
+      XI+mdECF61G4Hl15QDMzMzMzI1pApHA9CpdcsUCPwvUoXGWSQFK4HoXrURVArkfhehQuIEBmZmZm
+      ZmYXQGZmZmZmZiNAcT0K16PwKUDsUbgehbtfQEjhehSuv2tArkfhehSOYUAAAAAAAIhsQDMzMzMz
+      U2VAhetRuB5tY0D2KFyPwlVDQHsUrkfheiRAhetRuB6FFkD2KFyPwvUaQI/C9ShcjxtAj8L1KFyP
+      EkDD9Shcj0JBQK5H4XoU7k9Aw/UoXI8qYEC4HoXrUVhXQFyPwvUo1GJAzczMzMxcU0CamZmZmdlG
+      QDMzMzMzsypAw/UoXI9CIUCF61G4HgUuQDMzMzMzsyRA4XoUrkchM0CPwvUoXI8rQGZmZmZmTnpA
+      w/UoXI9ic0CPwvUoXD2CQFyPwvUoJHFAXI/C9SisdkCkcD0K13tvQJqZmZmZiVNAKVyPwvUoMEA9
+      CtejcD0iQDMzMzMzMytA16NwPQrXH0BSuB6F69EiQKRwPQrXIyFA7FG4HoUbWkBSuB6F67lkQBSu
+      R+F6fGtAw/UoXI+UmED2KFyPwp+EQKRwPQrXV3dA9ihcj8K1XUAAAAAAAKBaQD0K16NwEXNAmpmZ
+      mZm5S0BxPQrXo1BBQPYoXI/CtUhAXI/C9Sj8fkDsUbgehdNnQAAAAAAABHFAzczMzMysakBcj8L1
+      KEBzQLgehetRJIBAmpmZmZmJY0DsUbgehRtYQJqZmZmZA5VAexSuR+GaaUAAAAAAAIhgQDMzMzMz
+      o11AzczMzMwMPEAAAAAAAJBYQHE9CtejEFRAZmZmZmaWYUC4HoXrUVhVQOxRuB6FK11Aw/UoXI+i
+      Q0A=
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+coil100_num_classes_47_num_dev_examples_1128_num_test_examples_611_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      FK5H4XoUO0D2KFyPwvU+QEjhehSuhzlAAAAAAAAgSkAzMzMzM3NFQKRwPQq3EMpAAAAAAAB6jUCa
+      mZmZmQOJQOxRuB6FKYlAcT0K1+PCu0BxPQrXI6C1QFK4HoXr0pBASOF6FK4zgkCuR+F6FA5QQB+F
+      61G4flFA16NwPQqXQUCuR+F6FM5GQAAAAAAAQDRAZmZmZmamS0DXo3A9CpdLQPYoXI/CVV5APQrX
+      o3D1c0BI4XoUru9zQClcj8L1OFdAcT0K1+PisEDsUbgehTmWQHE9CtejcBJAKVyPwvUoG0AAAAAA
+      AAAUQNejcD0KVyBASOF6FK5HJkBxPQrXo6BcQBSuR+F6vGhAZmZmZmZGXUCF61G4Hm1pQAAAAAAA
+      WGBAcT0K16OAX0BI4XoUridCQMP1KFyPQiNAUrgehetRE0DsUbgehesYQJqZmZmZmRVAXI/C9Shc
+      EEAzMzMzM7NCQDMzMzMzM0tASOF6FK53XEAK16NwPfpSQBSuR+F6lF9AUrgehevxS0CamZmZmZlH
+      QI/C9ShcjydAUrgehetRHUCPwvUoXA8tQHE9Ctej8CFAuB6F61G4MEDXo3A9ClcoQK5H4XoU5oBA
+      Urgehev9cUAAAAAAAJx1QFyPwvUo1GxACtejcD3qckAK16NwPYpqQFK4HoXrEVFAH4XrUbieK0Cu
+      R+F6FC4hQFK4HoXr0SVACtejcD0KGUDXo3A9ClchQAAAAAAAAB5A7FG4HoU7V0CuR+F6FE5oQEjh
+      ehSuh29ASOF6FK6vl0DsUbgehZ+EQD0K16NwFXdACtejcD2ya0AK16NwPQpXQB+F61G4JmxAPQrX
+      o3DdSEDsUbgehSs+QPYoXI/CVUVA7FG4HoXPeUBmZmZmZrZmQMP1KFyPEm5AXI/C9ShUZkD2KFyP
+      wv1uQLgehetR8H1AAAAAAADwYEBI4XoUrkdTQOF6FK5Hm5hAcT0K16PQZkDD9Shcj7JaQDMzMzMz
+      Q1lAj8L1KFxPRUBSuB6F63FUQFK4HoXrcVJAKVyPwvWQYED2KFyPwuVRQI/C9Shcv1pArkfhehRO
+      REA=
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+colorectal_histology_num_classes_2_num_dev_examples_814_num_test_examples_190_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      9ihcj8LddkCuR+F6FA54QJqZmZmZyW9AKVyPwvUoeUCuR+F6FG5wQDMzMzMzr3dAPQrXo3D9b0Dh
+      ehSuR+l4QM3MzMzMgHBA7FG4HoXTd0BxPQrXo4x4QLgehetRCoFAUrgehevdeEBI4XoUrrNwQI/C
+      9Shc23hAXI/C9SgQcEDXo3A9CpN4QFK4HoXrDXBArkfhehSmeEAAAAAAACRwQOxRuB6FK3hAAAAA
+      AADYeEAfhetRuAJwQDMzMzMzw3dAuB6F61EOu0CuR+F6FNZ4QB+F61G4PnBAKVyPwvXQd0DD9Shc
+      j1ZwQClcj8L1QHlACtejcD0OeEA9CtejcJ1wQD0K16NwHXlA9ihcj8KhcEAzMzMzMxN4QOxRuB6F
+      T3BAzczMzMzCk0DhehSuR51wQFyPwvUoBHhAmpmZmZlpcEBI4XoUrid5QHE9CtejUHhAhetRuB4R
+      cEAK16NwPfZ4QLgehetReHBA9ihcj8L1d0CamZmZmXFwQClcj8L1wHhA9ihcj8JlcEAK16NwPTuS
+      QLgehetRiHhA7FG4HoWrcED2KFyPwml4QHsUrkfhknBAUrgeheuleEAfhetRuEJwQClcj8L1DHhA
+      H4XrUbhycEC4HoXrUbR4QClcj8L1WHBACtejcD2CeEAzMzMzM72PQM3MzMzMUHBAXI/C9ShceECu
+      R+F6FOZwQEjhehSup3lAFK5H4XpMcEDsUbgehT94QKRwPQrX33BAj8L1KFy3e0A9CtejcDl6QB+F
+      61G40nFAFK5H4XqMe0A9CtejcEVyQNejcD0KD4VAXI/C9Sh4dUBmZmZmZs5/QClcj8L1aHVAexSu
+      R+EmgEDXo3A9Cr91QBSuR+F6yoBAcT0K16MuhECF61G4HmF9QDMzMzMzd4VAH4XrUbjWe0B7FK5H
+      4aCEQJqZmZmZCX5AH4XrUbiMiUBxPQrXo4yCQClcj8L1lIpAKVyPwvXMiUAzMzMzMzeAQOF6FK5H
+      gY1ApHA9Ctd9mUCkcD0K1694QB+F61G4SnBApHA9Ctd7d0BxPQrXo9hvQIXrUbgezXhAFK5H4Xp6
+      gEA=
+  num_channels: 3
+  num_classes: 8
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+colorectal_histology_num_classes_8_num_dev_examples_3752_num_test_examples_120_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      SOF6FK4rd0AAAAAAAPh3QOF6FK5HSXBArkfhehRmeUA9CtejcK1wQFK4HoXrMXhA16NwPQo/cEAA
+      AAAAAIh5QOxRuB6Fy3BA4XoUrkdleEDD9Shcj555QB+F61G4Xn5Aj8L1KFzzeECamZmZmcFwQGZm
+      ZmZmInlA4XoUrkdxcEB7FK5H4Zp4QAAAAAAAqHBAcT0K16MoeUCamZmZmW1wQOxRuB6Fh3hAj8L1
+      KFxneUCkcD0K15twQClcj8L1WHhAKVyPwjXQukBI4XoUrlN5QB+F61G4tnBAUrgehetFeEApXI/C
+      9dRwQBSuR+F6iHlAexSuR+HyeECkcD0K17dwQI/C9ShcR3lAexSuR+F6cEDD9ShcjwJ5QM3MzMzM
+      pHBACtejcD0XkUApXI/C9aBwQDMzMzMzn3hArkfhehRycECamZmZmbF5QBSuR+F60HhAcT0K16Pw
+      cECamZmZmS15QMP1KFyP9nBAAAAAAABIeEBxPQrXo2xwQD0K16NwhXlAH4XrUbjWcEAUrkfhesOQ
+      QM3MzMzMkHhA7FG4HoWDcECkcD0K1+d4QBSuR+F67HBAXI/C9SggeUD2KFyPwoVwQAAAAAAAWHlA
+      zczMzMwIcUBcj8L1KCB5QI/C9Shct3BAUrgehesleUCF61G4HquKQKRwPQrXz3BAuB6F61EMeUBS
+      uB6F60FxQK5H4XoUtnpAzczMzMzgcEAAAAAAADh5QI/C9ShcR3FASOF6FK4DfEA9CtejcJl6QOF6
+      FK5HQXJApHA9CtczfEDNzMzMzCBzQIXrUbgehYVASOF6FK4XdkCamZmZmXOAQHE9CtejqHZAzczM
+      zMyygEDNzMzMzFx2QI/C9ShcN4FA9ihcj8KvhEDhehSuRxl+QMP1KFyP7oVA16NwPQpLfEBmZmZm
+      ZpKEQClcj8L15H5AZmZmZmbQiUAfhetRuGyCQB+F61G4rItAzczMzMzki0DD9Shcj+KBQHsUrkfh
+      yIxApHA9CtftlUCuR+F6FIJ5QHsUrkfhbnBArkfhehQGeEAUrkfhekBwQPYoXI/CAXlAAAAAAACs
+      fkA=
+  num_channels: 3
+  num_classes: 8
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+cycle_gan_apple2orange_num_classes_2_num_dev_examples_1897_num_test_examples_166_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      PQrXo7D30kAzMzMzM9tzQIXrUbgenWtACtejcD1ab0B7FK5H4UJrQIXrUbgeSYNAUrgehavGvEAU
+      rkfh2lHAQJqZmZmZt7FAcT0K1+N3wEBxPQrXo/O8QFyPwvVofbBAMzMzM7P3oED2KFyPwuVlQNej
+      cD0K/25AuB6F61FgdEDNzMzMzFxtQM3MzMzMfGhAzczMzMx8fkCPwvUoXH2DQClcj8L1iItAexSu
+      R+H/l0C4HoXrUWSPQKRwPQrXLJdAcT0K18Nl2EApXI/C9SBoQKRwPQrXg1dA4XoUrkfxYEApXI/C
+      9aBjQHE9CtejSHlA9ihcj8INa0DXo3A9CgCVQHE9Ctej3p9AKVyPwvWRlUApXI/CdQShQDMzMzMz
+      B5VAzczMzMy4oUAAAAAAAFScQAAAAAAAwGVAZmZmZmaGVkB7FK5H4cpfQDMzMzMzA15AuB6F61Hw
+      ZUAUrkfheuaIQMP1KFyPvoNAZmZmZmZYi0CkcD0K1w2EQFK4HoXr6YxAhetRuB4RhUBxPQrXo7ee
+      QOF6FK5HWXZApHA9CtfDWECamZmZmWFiQJqZmZmZ0W1A7FG4HoUrZkAUrkfherxlQIXrUbgefadA
+      16NwPQqlp0C4HoXr0Z+vQIXrUbievaRA16NwPUrJsUCamZmZGbisQDMzMzOziqBAFK5H4XqQekCP
+      wvUoXBNwQOF6FK5HkXlAMzMzMzOTaUBxPQrXo3BvQIXrUbgeRWtAPQrXo3DVk0AzMzMzM4KUQOF6
+      FK5HDJFAPQrXo3DlmUBcj8L1KGiLQFyPwvUokqlAUrgehevPi0CPwvUoXCGOQM3MzMzMJoFAKVyP
+      wvXKhkApXI/C9VB7QKRwPQrXVYNAcT0K1yM9oEDXo3A9CpqfQEjhehQuD6dArkfhehRSoEBcj8L1
+      KMyoQHE9CtejFp9AexSuR2FZuUCuR+F6FGeQQHsUrkfhGJVAw/UoXI9RmUAK16NwPRaRQIXrUbge
+      cZlAj8L1KNyCqEBI4XoULseqQJqZmZmZ64NAexSuR+HmkEC4HoXrUQaIQMP1KFyPGZFAPQrXo3BI
+      pUA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_apple2orange_num_classes_2_num_dev_examples_2424_num_test_examples_24_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzM/PSykAAAAAAADhlQLgehetRKFxAuB6F61HYaEDsUbgehXtqQClcj8L13IJAcT0K16Niu0Ds
+      UbgexTW5QHsUrkdhN6xAmpmZmdkJukDhehSuB9S5QK5H4XrUGrFA16NwPQofoUBxPQrXo1hjQFyP
+      wvUoRGhAAAAAAADwXECuR+F6FK5lQHsUrkfhQmZAKVyPwvWkgUAK16NwPWiFQOF6FK5HL5FAuB6F
+      61FVkkCamZmZmXORQArXo3A9SJ5Aj8L1KFzZ2ECkcD0K1yNnQFK4HoXr4VVACtejcD2qXkDsUbge
+      hbtWQJqZmZmZCWdArkfhehTua0CamZmZmbWYQBSuR+F6+aBA7FG4HoXIl0BmZmZm5u6gQNejcD0K
+      yphAzczMzEwjpUC4HoXrUeWZQNejcD0K72VAZmZmZmamV0C4HoXrUQhdQI/C9Shcf1pA7FG4HoXb
+      XUDhehSuR02EQOF6FK5HK4ZAcT0K16MukECF61G4HuOIQPYoXI/CFJJA7FG4HoVDjUBcj8L1qG6j
+      QGZmZmZm2n1AuB6F61F4WEBxPQrXo7BfQJqZmZmZIWtACtejcD2aYkAAAAAAAMBlQClcj8L186RA
+      H4XrUTiQokDXo3A9CjasQAAAAAAATqRAFK5H4frZrEBcj8L1KESxQDMzMzMzqqJAzczMzMwgeUD2
+      KFyPwu1vQD0K16Nw8XRAH4XrUbjuZEApXI/C9ZBpQArXo3A9CmxAmpmZmZl1lEDD9Shcj26TQM3M
+      zMzMdpBACtejcD0lmkAzMzMzM4SSQI/C9Shc7KpAj8L1KFyJhEDNzMzMzBaHQD0K16Nw9XhAAAAA
+      AABGgkAAAAAAAPh4QD0K16NwNYRAXI/C9agrokDsUbgehRGfQEjhehQuFqZA16NwPYoUoEAAAAAA
+      gMipQB+F61E4S6RAMzMzMzOmyEC4HoXrUSOTQB+F61G4L5dAMzMzMzNZnUCamZmZmfqUQKRwPQrX
+      jKFAj8L1KNwUsUA9Ctej8OCnQOF6FK5Hu4ZAKVyPwvXGk0AAAAAAAD6MQD0K16NwUZhAH4XrUbjG
+      qkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_apple2orange_num_classes_2_num_dev_examples_562_num_test_examples_240_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      pHA9Cofz0kBI4XoUrodmQClcj8L1CGBAmpmZmZk5a0D2KFyPwtVkQEjhehSuJ4NA4XoUrgcIv0Ck
+      cD0KF4m7QB+F61G4qq9AKVyPwnUMvEDD9ShcDyG8QLgehetRwq9AMzMzMzMmoECkcD0K11NmQB+F
+      61G4bmxApHA9Ctfbd0DhehSuR0lmQPYoXI/CpV9AUrgeheu1fkDXo3A9CruDQAAAAAAAT5BA4XoU
+      rkdNkUDsUbgehSiQQFyPwvWo36JAcT0K1/PJ10CF61G4HrVnQFK4HoXraXVAj8L1KFwfYUAzMzMz
+      M9NZQJqZmZmZGWNA7FG4HoWzZUB7FK5H4T6VQI/C9SjcTKBAXI/C9SgalkCamZmZmQahQD0K16Nw
+      +5pAZmZmZmbqokBI4XoUrkiZQArXo3A9km1AH4XrUbgOWECkcD0K17NgQBSuR+F6JF5A9ihcj8Jl
+      VUCkcD0K16ODQAAAAAAA+oNAAAAAAACEkEBmZmZmZk6FQPYoXI/CO5ZAuB6F61FBkkDhehSuR8il
+      QPYoXI/Cy4JA9ihcj8LlWEDhehSuRzliQFK4HoXrSW5ArkfhehRmZEAzMzMzM4NfQFyPwvUo56NA
+      rkfhepRIokBmZmZm5tyrQIXrUbie2KJAAAAAAIARrUDhehSux0etQM3MzMxMYKBAhetRuB7FeEBI
+      4XoUrv9xQI/C9Shcs31A7FG4HoXzb0AUrkfhegxwQEjhehSuj2pAH4XrUbiNk0BI4XoUruiUQKRw
+      PQrXW4xArkfhehQGnUAzMzMzM06VQKRwPQrXIKdA16NwPQqNhkD2KFyPwh2HQK5H4XoUEntACtej
+      cD1og0C4HoXrUWB5QEjhehSuy4JAKVyPwvXDn0A9CtejcMCdQPYoXI9CFqZASOF6FK74nUDD9Shc
+      DwepQClcj8L1yJ1AhetRuJ4XwEC4HoXrUVmQQHsUrkfhjZdAFK5H4XpamkD2KFyPwgmXQAAAAACA
+      VaNAZmZmZub2qkDhehSuRyioQI/C9ShczYVAzczMzMw5kUAK16NwPVuQQArXo3A9f5pAmpmZmRlh
+      p0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_apple2orange_num_classes_2_num_dev_examples_682_num_test_examples_42_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F6xEF0kBmZmZmZn5nQArXo3A9SmBA4XoUrkf5aUDsUbgehUNiQAAAAAAAkIFAUrgehetou0A9
+      CtejMEy8QIXrUbgeHbBAw/UoXM8GvkCamZmZmVy6QJqZmZmZoqxAzczMzMxqn0DNzMzMzGxkQPYo
+      XI/CxWpAcT0K16MgYEA9CtejcCVlQB+F61G4Dl5ASOF6FK7jf0C4HoXrUcKEQBSuR+F6oZFAMzMz
+      MzMtkEB7FK5H4RaMQNejcD0KtJVAUrgehVs02ECkcD0K1xNnQKRwPQrXS3VAPQrXo3B1YECF61G4
+      HoVYQJqZmZmZAWJAzczMzMxMZUAfhetRuOOVQOF6FK7HL6BAAAAAAAA/lUApXI/CdRmgQFyPwvUo
+      GJlA16NwPQomoECamZmZmSSUQD0K16Nw/WVAMzMzMzPzVkApXI/C9ZhfQB+F61G4Hl1ASOF6FK7n
+      VEBxPQrXo0aDQAAAAAAASIRAcT0K16MzkUBmZmZmZtiDQHsUrkfh0pNA7FG4HoWFhkAfhetRuHug
+      QJqZmZmZPXpAw/UoXI9iWECamZmZmVFhQK5H4XoUFnBACtejcD0qZEDNzMzMzDxfQArXo3C9WKNA
+      AAAAAIAaokAAAAAAgDSrQIXrUbieBaJAj8L1KNzZq0CamZmZmRCrQLgehevReqVAMzMzMzOHekDs
+      UbgehXNtQKRwPQrXR3ZAMzMzMzN7Z0CkcD0K18tsQI/C9Shch2hAmpmZmZmRlEApXI/C9fyVQM3M
+      zMzMBoxAw/UoXI81nkBcj8L1KAqOQKRwPQoXJbFAXI/C9ShcjEApXI/C9RSHQD0K16NwLXpA9ihc
+      j8Jrg0BxPQrXozx4QI/C9ShcKYJAexSuR+FkoEAUrkfheqidQHE9CtejCKZApHA9CtdMn0DhehSu
+      R6yoQAAAAAAAwZ1AzczMzEwAyUBSuB6F626RQMP1KFyPE5lApHA9Ctccl0DD9Shcj8yVQHsUrkfh
+      g5hAcT0K1+NWsUBcj8L1KG+pQPYoXI/CYYdAUrgehes0kUB7FK5H4eaJQPYoXI/CVZVAw/UoXI92
+      qUA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_facades_num_classes_2_num_dev_examples_132_num_test_examples_90_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      w/UoXB8U4kB7FK5H4VJhQJqZmZmZOVhA9ihcj8LNYUApXI/C9ShYQHE9CtejDoFAuB6F6xFytkBc
+      j8L1CMLAQAAAAACAR61AKVyPwhWMwEBI4XoUrj+uQNejcD2KUKpAexSuR+H0l0C4HoXrUchdQPYo
+      XI/ChWJAcT0K16PwV0CF61G4Hq1gQEjhehSuJ1hAUrgehevTnEBmZmZmZlSFQOF6FK5HwYtAAAAA
+      AACMi0D2KFyPwnWEQD0K16NwM5JA7FG4HuUD1EA9CtejcOWGQMP1KFyP0lRAj8L1KFzPXUDNzMzM
+      zAxVQI/C9Shcr15AuB6F61EoY0AUrkfheqixQBSuR+F6MqFAexSuR+H6k0BxPQrXo3OcQArXo3A9
+      iZJApHA9CteSm0DD9Shcj9qMQJqZmZmZsWNACtejcD1qVUCamZmZmXlcQClcj8L1OF1ASOF6FK63
+      UkBI4XoUrr6eQLgehetRhIRASOF6FK4NjEAzMzMzMzmDQHsUrkfhfI1AhetRuB4xgkCkcD0K1yua
+      QAAAAAAAWHNAexSuR+EqVkDsUbgehQNhQB+F61G4RmhAhetRuB5NYED2KFyPwsVYQOxRuB6FQ5tA
+      MzMzMzPbmUCF61G4HuCnQD0K16NwUKdAAAAAAIBHpEAAAAAAADWpQAAAAAAADp9AmpmZmZmFhUCF
+      61G4HgVvQEjhehSuH3xA9ihcj8IlXkD2KFyPwiVkQHsUrkfhMm1AKVyPwvWgkkBmZmZmZjiQQArX
+      o3A9JIZAZmZmZmYAj0BxPQrXo6CGQB+F61E4lqlAAAAAAAD0dUCPwvUoXE98QD0K16Nw9XRAFK5H
+      4XrCk0BI4XoUrkduQDMzMzMzs3hAcT0K16PbmUC4HoXrUdWeQJqZmZkZradApHA9CtfnmUA9Ctej
+      MKSzQI/C9Sjca6BAcT0K1+PnwUDD9Shcj/WQQI/C9Shcu5NA16NwPQrnk0AAAAAAAFyKQAAAAAAA
+      V5tAj8L1KFyHqUA9CtejcEydQKRwPQrXI4NAzczMzMyGi0AUrkfhetqBQArXo3A9AIxAcT0K1yOS
+      qEA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_facades_num_classes_2_num_dev_examples_700_num_test_examples_48_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      w/UoXE/Y40B7FK5H4XphQIXrUbgeFVVAexSuR+GqYEAfhetRuH5ZQOxRuB6FNYFAUrgehetUtUC4
+      HoXrEe+3QM3MzMzMR6lAzczMzGwHxEAfhetRuF+vQPYoXI/CJqNAcT0K16OtlkDNzMzMzOxdQKRw
+      PQrXM2RAZmZmZmYWWUBxPQrXo/BgQFK4HoXrAVpAhetRuJ5Hs0CPwvUoXCGDQLgehetR0IxAzczM
+      zMxQikCkcD0K16GCQJqZmZmZGZRA7FG4HgVs00AUrkfhegyMQI/C9Shc71NAFK5H4XoUXEDD9Shc
+      j5JUQBSuR+F6NF5AH4XrUbjOYkBI4XoUrreUQK5H4XoU8aBAw/UoXI/BkkBmZmZmZtWaQFK4HoXr
+      lJFAhetRuB5PnEDsUbgehX+IQGZmZmZmfmJAUrgehevxU0CPwvUoXM9cQJqZmZmZWVtAMzMzMzND
+      U0B7FK5H4fKHQEjhehSu94JAcT0K16MCjEDXo3A9Cn2AQAAAAAAASItAuB6F61GEh0CPwvUoXAeX
+      QClcj8L1BHFApHA9CtfDVUApXI/C9bheQLgehetR4GZAuB6F61FYYUB7FK5H4fpYQDMzMzOzsaZA
+      SOF6FK5Wm0AfhetROA+oQM3MzMxM8aZAuB6F69Eqp0AUrkfh+n6qQI/C9ShcJJ1A4XoUrkfReUAK
+      16NwPeJoQIXrUbgeWYZA16NwPQqXWkAUrkfhesRiQClcj8L1CF9AH4XrUbjKkEDhehSuR72PQOxR
+      uB6F54NA7FG4HoXTjUC4HoXrURCNQHE9CtejtaZAuB6F61HMdEDsUbgehTN8QHsUrkfhLndAw/Uo
+      XI/Qk0C4HoXrUdByQI/C9ShcT3xAZmZmZmZvnEBI4XoUrt+eQI/C9Shcp6ZASOF6FK7BmkBcj8L1
+      aEizQI/C9SjcR6RAcT0K16M3wkApXI/C9QuQQOxRuB6F7JRAw/UoXI+GkkApXI/C9VCIQArXo3C9
+      SaBA7FG4HoVzpkCuR+F6FDCeQJqZmZmZHYRAUrgehevbiUBmZmZmZkCBQOF6FK5HBY9AKVyPwvXm
+      o0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_horse2zebra_num_classes_2_num_dev_examples_2015_num_test_examples_92_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      exSuRyE9uEBI4XoUruN0QBSuR+F6RHxAcT0K16M8cUAzMzMzM0dxQKRwPQrX639Aj8L1KNx+skCP
+      wvUoXI64QDMzMzMzga5APQrXo3ApuUCamZmZ2XW6QOF6FK7HibBAexSuR2EboUCkcD0K10NkQD0K
+      16NwvW9AMzMzMzMHdEDXo3A9Cod2QHE9CtejSGlAexSuR+EojEDD9Shcj5yRQJqZmZmZhJdA16Nw
+      PQo7m0CamZmZmXiQQFK4HoXrp6BAcT0K1yNL10CPwvUoXF98QOxRuB6Fn3ZACtejcD3iaEAK16Nw
+      PZ5zQB+F61G4OnpAzczMzMzgdEAAAAAAAAuhQK5H4XqU0qhAj8L1KFysn0CF61G4nsOnQFyPwvUo
+      dp5AXI/C9ag5qUCuR+F6FP+SQNejcD0KN2lApHA9CteDXUBSuB6F67FmQHsUrkfhWmtAMzMzMzOv
+      ekCamZmZmZuIQD0K16NwLY5AMzMzMzPFkkCF61G4HgCQQClcj8L1pZhA4XoUrkeRkEDsUbgehRGa
+      QJqZmZmZVXFAUrgehesBXkBSuB6F6wlmQBSuR+F6dGVAMzMzMzNDa0BI4XoUro9wQIXrUbgeCapA
+      w/UoXI8OqUD2KFyPwj+yQFyPwvUoRqpAhetRuJ4Ps0DNzMzMDDWzQOxRuB6FratAhetRuB4pdECa
+      mZmZmRlnQK5H4XoUHnJAXI/C9Sj8ZEBmZmZmZm5vQIXrUbgeBW9ArkfhehQnmkBcj8L1KNeYQHsU
+      rkfhOJVAZmZmZmZinUCF61G4HvWRQEjhehSuzKJAZmZmZmZIg0D2KFyPwuOIQArXo3A9XoBA7FG4
+      HoW3iUDNzMzMzLKBQOF6FK5Hv4tAhetRuB4dqUB7FK5HYe6nQOxRuB5Fi7FA4XoUrkdlp0AzMzMz
+      s5+wQI/C9SjcmKVAAAAAAABnskApXI/C9QKYQPYoXI/Cyp5Aj8L1KFx3o0AUrkfhem6aQJqZmZmZ
+      VaBAw/UoXI+UoUBmZmZmZuidQLgehetRnoxAexSuR+EbmEA9CtejcMSVQArXo3A9WJtAuB6F61GI
+      oEA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_iphone2dslr_flower_num_classes_2_num_dev_examples_1072_num_test_examples_56_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      FK5H4Rrdw0ApXI/C9aWWQOF6FK5Hm45AZmZmZmZ3l0DNzMzMzLqOQHE9CtejFpdA4XoUrsfeoEA9
+      Ctej8B+lQPYoXI/CyJhAexSuR2GepEAK16NwvSSmQHsUrkfhC5dAmpmZmZkWmkDhehSuR+eOQFyP
+      wvUoh5dAzczMzMwwj0AfhetRuPCWQEjhehSua49ASOF6FK7ul0B7FK5H4dqQQD0K16NwFZhAZmZm
+      ZmYbmUApXI/C9Z6QQFyPwvUobphAPQrXo6AH2EAK16NwPZiXQLgehetRjI5A16NwPQoEl0BI4XoU
+      rg2PQDMzMzMzoZdAXI/C9ShGl0BxPQrXo1ySQD0K16NwBJtAmpmZmZmakUDD9Shcj/iZQJqZmZmZ
+      NZFAcT0K16Mjm0DNzMzMzGyRQJqZmZmZu5ZAw/UoXI/wjkBI4XoUrqqXQHE9CtejFZdAH4XrUbgg
+      j0BSuB6F66CYQI/C9ShcrJBAFK5H4Xr/l0B7FK5H4ZiQQBSuR+F6vZlA9ihcj8LukECuR+F6FIiZ
+      QD0K16NwWphAFK5H4XoOj0DNzMzMzBiXQPYoXI/CD5BA16NwPQr9l0CPwvUoXEePQGZmZmZmX5xA
+      4XoUrkdTmkAK16NwPRajQEjhehSu6pZA9ihcj8LunkBSuB6Fax+gQB+F61G4MZRAUrgehesimUAA
+      AAAAADuRQEjhehSuZppA4XoUrkdPkUC4HoXrUaOZQClcj8L1PJFAuB6F61GZnkDhehSuR6aeQGZm
+      ZmZm0JRA9ihcj8J1n0A9CtejcJeUQNejcD2KC6BAexSuR+EtmEAzMzMzs0+jQKRwPQrXLJlAexSu
+      R2FMokBI4XoUrlqYQLgehevRrKJAH4XrUbj8pkCPwvUo3DKgQJqZmZmZ+qdAhetRuB4Qn0BI4XoU
+      rtalQD0K16NwtZxAXI/C9SjGqUAUrkfh+oShQNejcD2KTahAuB6F69ESqUCPwvUoXG+dQFK4HoVr
+      HqRArkfhehSYnEBSuB6F69OZQKRwPQrXDpBAUrgehetAmEBI4XoUro2QQArXo3A9qZlA7FG4HoVj
+      lkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_iphone2dslr_flower_num_classes_2_num_dev_examples_5000_num_test_examples_552_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      exSuR+GKuUCPwvUoXPKWQFK4HoXr/45AAAAAAACpl0DhehSuR0ePQBSuR+F6RZdA7FG4HoVYnUDD
+      9ShcD6OgQB+F61G4JpRA9ihcj0JUoUAfhetRuHChQKRwPQrXj5dA7FG4HoUGm0D2KFyPwkmPQNej
+      cD0KvJdAH4XrUbhAj0DD9ShcjxmXQGZmZmZmUI9AmpmZmZmpmEDhehSuRyaRQOF6FK5H5pdAPQrX
+      o3BSmUBxPQrXoxeRQFyPwvUolphAcT0K1yMR2ECamZmZma2XQKRwPQrX6Y5ApHA9CtfelkA9Ctej
+      cBuPQBSuR+F6wJdAKVyPwvXslkC4HoXrUZWTQIXrUbgeG5tArkfhehSDkUBcj8L1KFWaQNejcD0K
+      i5FAhetRuB73m0BI4XoUrs2SQFyPwvUoOZdAcT0K16M2j0CamZmZmZyXQNejcD0KIJdAUrgehest
+      j0DhehSuR/2YQK5H4XoUyJBArkfhehQbmED2KFyPwoyQQK5H4XoUF5pAhetRuB5hkEAUrkfhetuc
+      QAAAAADAgbVAmpmZmZljj0C4HoXrUUiXQHE9Ctej9I9AFK5H4XpPmECF61G4HtGPQB+F61G415tA
+      SOF6FK5vk0Bcj8L1KAaeQFK4HoXrIZRApHA9CtcqnUAAAAAAgNigQMP1KFyPhpdA9ihcj8KXmEA9
+      CtejcLeQQDMzMzMzh5lAhetRuB6+kEC4HoXrUY6YQHE9CtejlZBAXI/C9Si+nEApXI/C9WebQClc
+      j8L1BpNAAAAAAACvnUAfhetRuFuTQLgehevRZqFAzczMzMy6lkDhehSuR6igQArXo3A9lJZACtej
+      cL08oUDhehSuRyaXQBSuR+H6/6FAPQrXo3CspkBmZmZmZsyfQLgehevRY6dArkfhehSNnkC4HoXr
+      0cqmQJqZmZmZ/6BAj8L1KNyAs0AUrkfh+nmjQI/C9SjcCKlACtejcL0pqECamZmZmUqgQClcj8J1
+      QqZAPQrXo/C7pEBI4XoUrlCbQKRwPQrXDpBAPQrXo3DWl0C4HoXrUWGQQFyPwvUoGJlAMzMzMzOx
+      lkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_summer2winter_yosemite_num_classes_2_num_dev_examples_1167_num_test_examples_70_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcP3GtkDD9Shcj2JhQClcj8L1CFdA4XoUrkehYUAzMzMzM/NZQOxRuB6Fo3RAhetRuB7yrUBx
+      PQrXoxa0QLgehevR86xAXI/C9ShhuEAfhetROC26QFyPwvXoWrBAcT0K16PGn0CPwvUoXH9jQMP1
+      KFyPimdApHA9CtezWkBxPQrXo0hiQFyPwvUojFhAH4XrUbgAgkBSuB6F6/WPQB+F61G4Tp5AmpmZ
+      mRm4oEAfhetRuA2bQPYoXI/CYKNACtejcJ2R2EDsUbgehcNnQDMzMzMzY1dAFK5H4XrUXkCPwvUo
+      XK9WQFyPwvUojGBAKVyPwvUQZUDsUbgehdaZQLgehevRLKZAuB6F69HloUDXo3A9CkusQArXo3A9
+      k6RASOF6FC5erECuR+F6FJmUQD0K16NwLWlAMzMzMzOTWEBSuB6F6wFgQMP1KFyPAl9APQrXo3Bd
+      VUAK16NwPTqEQFK4HoXrV49A4XoUrkdAn0CkcD0K10mWQBSuR+H6s6JAKVyPwvUFl0CuR+F6FPyi
+      QD0K16NwCXBArkfhehSOVkAzMzMzM5tiQFyPwvUovF5AZmZmZmYOYUB7FK5H4dpaQOF6FK5Hg6NA
+      uB6F69Fao0DD9ShcT3SxQFyPwvUo1KhAXI/C9ajMskB7FK5HYSazQBSuR+F6251AUrgeheutcUDh
+      ehSuR3FiQNejcD0KP2tAFK5H4XrkXkCamZmZmVllQM3MzMzMDGJAFK5H4Xq+mUD2KFyPQrKgQK5H
+      4XoU1pdA9ihcj0Jso0CuR+F6FBOZQB+F61E4q6VAuB6F61EKgEBxPQrXo1CBQD0K16NwFXZAmpmZ
+      mZl1gEAK16NwPZZ1QM3MzMzMxoBAMzMzM7P8okAAAAAAgOOiQBSuR+F6dLBAzczMzMzJp0AUrkfh
+      +tyyQD0K16Nw3qhAKVyPwjVVsEDD9Shcj2GYQFK4HoVrAaZAexSuR2ERp0AUrkfhesuhQM3MzMzM
+      GalAFK5H4fpBoUCuR+F6FDqYQI/C9Shc9ZNA7FG4HgVfoECkcD0K11mYQLgehevRhqJA9ihcj0Iy
+      oUA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_summer2winter_yosemite_num_classes_2_num_dev_examples_522_num_test_examples_198_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      PQrXo3DhnEBcj8L1KKRgQM3MzMzMVGRASOF6FK6fZ0DNzMzMzJxhQFyPwvUoCH9ACtejcD0gtkBS
+      uB6FKyK7QLgehesRhrBA16NwPYqYvED2KFyPgom5QHsUrkfhda9Aj8L1KFyqoUDhehSuR/llQMP1
+      KFyPwmhArkfhehQeXkDNzMzMzKRmQGZmZmZmxlpA16NwPQp1h0D2KFyPwviVQArXo3A9nJ9Arkfh
+      ehTsokApXI/C9UmUQI/C9SjcwqBAexSuRzF02EAAAAAAAMBnQK5H4XoULlVA4XoUrkeRW0CkcD0K
+      1wNVQB+F61G4rmhArkfhehROa0BSuB6F6y6gQOxRuB6F4qhAUrgehWvmoUDhehSux6iqQGZmZmZm
+      rp5AAAAAAIDVpkCPwvUoXOeZQOxRuB6FO2lAzczMzMzMVkCF61G4HpVdQEjhehSuB1xArkfhehTe
+      V0B7FK5H4UCMQBSuR+F63JVA9ihcj8IXoEAUrkfheqSXQClcj8L1U59A4XoUrke9kkCuR+F6FBqh
+      QArXo3A9fnJACtejcD36VECkcD0K1xNdQOxRuB6FW2RAZmZmZma2YEDNzMzMzExdQHsUrkfh7ahA
+      uB6F69EHqEDNzMzMTKmxQAAAAAAAH6pA4XoUrocOsEBI4XoU7n6xQMP1KFyPIaJA4XoUrkf9dEDs
+      UbgehatoQIXrUbgeoXJA9ihcj8LlY0BxPQrXoxhpQB+F61G4lmZAexSuR2HuoEB7FK5H4QmiQB+F
+      61G4JZtACtejcD2soUCuR+F6FGaWQJqZmZmZQKFAuB6F61FUgUA9CtejcMmCQD0K16NwBXlAH4Xr
+      Ubh2gUBmZmZmZnp2QPYoXI/CiYJA9ihcj8ITpUCPwvUoXEOkQBSuR+E6XrBAMzMzM7Pip0AK16Nw
+      PZCuQArXo3A9X6RAw/UoXE8QsUBmZmZmZqqfQIXrUbieNadAPQrXo3CRqEDhehSuR76bQHE9Ctej
+      FaJA7FG4HoWvn0DhehSuR+KdQClcj8L10pRApHA9CteIoUCkcD0K1+6UQD0K16NwoptAAAAAAAC0
+      mkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_summer2winter_yosemite_num_classes_2_num_dev_examples_853_num_test_examples_146_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      hetRuJ6CrkD2KFyPwhVnQI/C9Shcx2lA16NwPQrzcUAzMzMzM1dyQLgehetRUoJAPQrXozBlt0Az
+      MzMz8169QClcj8K1IbJA16NwPUr5u0BI4XoU7ni7QFyPwvVoA7BAj8L1KFx4nkDD9ShcjzpnQIXr
+      Ubge/WpAzczMzMwcakApXI/C9VRwQFK4HoXrwXBAZmZmZmbIi0BmZmZmZjeUQBSuR+F6zaBA7FG4
+      HoVzokDNzMzMzGOYQMP1KFyPD55ArkfheiTx1kAfhetRuG5kQHE9CtejAFZAuB6F61GoYUCPwvUo
+      XEdlQIXrUbgeXW5APQrXo3ANd0BI4XoUrmijQAAAAACACqpAKVyPwnWEokDsUbgehXupQOxRuB4F
+      LaBA9ihcj8KnpkD2KFyPwpqUQDMzMzMzM2lA7FG4HoU7WUBI4XoUrt9hQNejcD0Kl2RA9ihcj8IV
+      ZkAfhetRuJqOQDMzMzMzgpZACtejcD2PnkA9CtejcNuWQFK4HoXrTJ1Aw/UoXI+ejECkcD0K1wiQ
+      QClcj8L1sG5AKVyPwvXoVUCF61G4HkVgQFyPwvUorGRA7FG4HoXDY0DhehSuR4FsQOF6FK7H1qpA
+      exSuR2G5qEAzMzMzs3+zQEjhehQuC6lAw/UoXE9lsUDsUbgehWyuQHE9CtejSZ1AFK5H4XpYdUCF
+      61G4HtVqQD0K16Nw1XRApHA9CtdDZkCF61G4HpVuQM3MzMzMTG1A4XoUrkeloUAUrkfheqeiQNej
+      cD0KvptAZmZmZuazoEBxPQrXo6SQQEjhehSuv5VA9ihcj8Khf0DD9Shcj5aEQClcj8L1THpAUrge
+      hetrg0DsUbgehfd7QM3MzMzMooRAmpmZmRkhqkAAAAAAANSmQBSuR+G64bFAKVyPwvXhp0B7FK5H
+      IUuwQD0K16NwC6RAAAAAAACTrUDsUbgehXifQMP1KFyPv6ZA16NwPQquqEBmZmZmZpicQFK4HoXr
+      jp1AKVyPwvUajEBcj8L1KCCeQMP1KFyPuZVAXI/C9aiGoUCamZmZmcyXQLgehetR8JdAj8L1KFzV
+      jEA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_ukiyoe2photo_num_classes_2_num_dev_examples_4070_num_test_examples_630_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      PQrXo/BZpECamZmZmRlgQGZmZmZmrmRACtejcD0ScED2KFyPwqF2QK5H4XoUUIBAPQrXo3DEsUD2
+      KFyPApi4QLgehevRp7BAFK5H4brPuUD2KFyPQlq5QLgehetRu65Aj8L1KFwDoECPwvUoXI9mQJqZ
+      mZmZAWpAMzMzMzPzZUBSuB6F62lsQBSuR+F6RHNAw/UoXI+6iUAfhetRuHeVQMP1KFwPdKJASOF6
+      FC5soEBcj8L1KKOeQJqZmZkZqaBAH4XrUQjl1kBmZmZmZtJ9QD0K16NwjVJAexSuR+HqWUC4HoXr
+      UWhbQI/C9Shch2tAj8L1KFw/e0AK16NwPXSiQClcj8L1natAUrgehWvJpEBxPQrXo0usQHsUrkfh
+      v6JAKVyPwvUzp0CPwvUoXJ2NQFyPwvUojGlApHA9CtczVkBmZmZmZmZcQJqZmZmZIWBAcT0K16Mw
+      Y0DD9Shcj/SLQGZmZmZmTJhAmpmZmZlboEAUrkfhejKWQLgehevRdqBAj8L1KFw8k0CkcD0K1+SR
+      QFyPwvUovGZAUrgehevxUUB7FK5H4UpaQArXo3A96lpAFK5H4XqcYUDhehSuR5FoQLgehetROqhA
+      mpmZmZldqkBmZmZm5lOzQFyPwvWoc6pApHA9ClfeskBI4XoU7j2xQEjhehSuM5xAH4XrUbjCfUCk
+      cD0K15toQD0K16NwVW5A9ihcj8IFYUC4HoXrUQBnQHE9CtejqGtA9ihcj8I/oUBcj8L1qKGjQFK4
+      HoXrYJlA4XoUrkd4oUApXI/C9WuUQDMzMzMz3ZRA16NwPQqzeUCuR+F6FMyBQLgehetRaHVACtej
+      cD1IgkD2KFyPwhl5QD0K16Nw24RA16NwPQpaqEBxPQrXo7GoQClcj8K157NAKVyPwnXNqUCF61G4
+      HvqxQOF6FK7HnaVA9ihcj0LsqkCPwvUoXJKhQI/C9ShcFatAj8L1KFynqEBxPQrXo/6fQIXrUbie
+      XKFArkfhehT+jEAK16NwPZidQClcj8L1FplA9ihcj8LkoUAzMzMzM+yYQK5H4XoUSJxAFK5H4Xqc
+      jUA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_ukiyoe2photo_num_classes_2_num_dev_examples_6230_num_test_examples_660_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      AAAAAICWskDhehSuRyFkQFyPwvUosHhAPQrXo3BxdUAK16NwPRpxQD0K16NwT4hAzczMzIzEtkDh
+      ehSuR7S5QB+F61F4TLBACtejcH0OvEC4HoXr0XS6QI/C9SjcRq9AuB6F61FMnkBmZmZmZi5mQArX
+      o3A9KmlAFK5H4XrEakDsUbgehbt3QK5H4XoUDmNA16NwPQr/i0DXo3A9CoOPQGZmZmZmz5xA16Nw
+      PQqupEAfhetRuKqWQK5H4XoUiqBAPQrXoyCT1kCF61G4HsF3QAAAAAAAgE9ACtejcD3aVkBI4XoU
+      rvdeQDMzMzMzu3NAuB6F61H4eUBxPQrXI5mgQKRwPQrXA6lAMzMzMzM9o0BxPQrXo/GsQOF6FK7H
+      QaNAuB6F61GypkAUrkfhegeRQPYoXI/CLWZAj8L1KFwvVEBxPQrXo5BYQI/C9Shc71ZAexSuR+GK
+      ZUAUrkfhepqNQOxRuB6FepBAzczMzMyqm0B7FK5H4YmSQMP1KFwPWKFACtejcD3gkED2KFyPwiaV
+      QGZmZmZmlm9AMzMzMzNTTUBI4XoUrrdVQAAAAAAAGGNAMzMzMzNDXEB7FK5H4RpmQOF6FK5H+KVA
+      MzMzM7MEqUCkcD0KVw2zQI/C9ShcMa1ASOF6FK6Fs0Bcj8L1qIyxQOF6FK5HAaBAcT0K16OAekBm
+      ZmZmZh5pQFyPwvUohHFAw/UoXI86YkCkcD0K17tlQIXrUbgetWpAFK5H4XoPm0C4HoXr0QChQFyP
+      wvUoEpVAzczMzMxlokBSuB6F6+GRQOF6FK5HtJZAPQrXo3DdeECkcD0K11mBQI/C9Shcy3lAcT0K
+      16NKgkAzMzMzM4d6QOxRuB6FJ4NACtejcL1lpEBI4XoULh6mQArXo3A9HLJAAAAAAIATq0AfhetR
+      OEOzQI/C9SjcYqhAAAAAAMB7sEApXI/C9Q6cQD0K16Nw7KVA16NwPQpsp0ApXI/C9XKgQArXo3C9
+      XaBAMzMzMzMIlEA9CtejcOGWQMP1KFyP1ZNASOF6FK6cnUApXI/C9XuZQKRwPQrXAJtAPQrXo3BL
+      kUA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_ukiyoe2photo_num_classes_2_num_dev_examples_6768_num_test_examples_330_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      H4XrUbiKsUBxPQrXoyhmQLgehetRpHpA7FG4HoVbeUDD9Shcj/J2QFyPwvUoNItA9ihcj4Jmt0AK
+      16Nwfay8QI/C9SgcibJAcT0K12OZukCF61G4nlG5QMP1KFyPXq5Aj8L1KFyynUAAAAAAAOhlQKRw
+      PQrXw2tAhetRuB4pcUB7FK5H4S5/QEjhehSuA3VA4XoUrkcPj0CuR+F6FBmVQD0K16PwGaRAAAAA
+      AAB4nUDNzMzMzFudQD0K16Nwz5hArkfheoTl1UDNzMzMzAB4QFyPwvUozFJAKVyPwvWYW0AzMzMz
+      MwNpQHsUrkfhCn5Aw/UoXI+2fUAAAAAAgGOjQKRwPQpXC6xAXI/C9SjJpEAUrkfh+jSoQFyPwvUo
+      eJ5AH4XrUTh+pEBmZmZmZqGQQFyPwvUovGlAFK5H4XoEVkD2KFyPwgVdQOxRuB6Fu2NArkfhehRS
+      ckBI4XoUrtSSQNejcD0KDZlAMzMzMzPXnkAUrkfhel+TQMP1KFyPxJRACtejcD0ijECkcD0K11+T
+      QNejcD0K529AuB6F61EIU0BmZmZmZuZcQJqZmZmZCWRAUrgehevZY0D2KFyPwm1yQB+F61E4+KpA
+      XI/C9ag7rUA9CtejcCK0QClcj8J1VKlAuB6F6xFJsEDXo3A9CsWvQI/C9ShcAaBAmpmZmZnJeUC4
+      HoXrUTBsQM3MzMzMPHNA4XoUrkeZZEBSuB6F69lpQI/C9Shc63RAFK5H4XrxoUDNzMzMzKCkQAAA
+      AAAATZhASOF6FK64mEAK16NwPaiQQAAAAAAAN5RASOF6FK6HfUBmZmZmZsiEQM3MzMzM1HpA7FG4
+      HoXBgkDXo3A9Ckd6QFK4HoXrKYRAXI/C9ShmpkApXI/CdVGqQPYoXI8Cj7RAH4XrUbjNqECkcD0K
+      FyOwQBSuR+F6JqVAFK5H4frhq0DsUbgehRmiQDMzMzMzs6lAmpmZmRknpkDNzMzMzG6WQMP1KFyP
+      CppAcT0K16Psj0DhehSuRyKdQNejcD0KPZlA16NwPQoAoECuR+F6FIKTQOF6FK5HYZZAuB6F61Ha
+      ikA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_vangogh2photo_num_classes_2_num_dev_examples_5368_num_test_examples_722_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwnU1pUDXo3A9Cm9kQKRwPQrXG3ZAUrgehesNdEAzMzMzM5N3QAAAAAAA3oRAzczMzEwnuEDs
+      UbgeRYO8QLgehevRgbFAuB6F69GJvUBmZmZmJgi8QOxRuB7FXbFAj8L1KNxIoEBI4XoUrtdnQAAA
+      AAAAoG1AKVyPwvVAZUAzMzMzM+t/QAAAAAAA8HdA16NwPQpJi0BSuB6F646ZQOxRuB4Fw6BAZmZm
+      ZuZjoEAAAAAAAOaUQDMzMzMzfJtA4XoUrifk1kAUrkfhesRkQDMzMzMzc1dArkfhehTeYECPwvUo
+      XB9cQFyPwvUoNHdAZmZmZmZKgUBI4XoULuShQDMzMzOzb6tA4XoUrsdYokDNzMzMTNypQHE9Ctcj
+      HqBArkfhehQQp0CPwvUoXMeMQM3MzMzMHGpAzczMzMy8WkCkcD0K1xNiQM3MzMzMFGJAMzMzMzPD
+      bED2KFyPwkmTQArXo3A9UpdA16NwPQp0nkCkcD0K1+ySQArXo3A9Y5hApHA9Cteni0C4HoXrUUKN
+      QMP1KFyPanBAuB6F61H4VkDXo3A9Ct9gQArXo3A9GmdAMzMzMzMbZUAzMzMzM9ttQLgehetRw61A
+      XI/C9aitq0ApXI/CNTO0QKRwPQpXeKpAmpmZmRn5sUAzMzMzMzSxQD0K16NwZZhA16NwPQpPdUAp
+      XI/C9eBqQM3MzMzM2HNAAAAAAACQZEA9CtejcIVrQI/C9Shcy3BAFK5H4frgoUAUrkfh+qGiQLge
+      hetRUZdAw/UoXI/AmkDNzMzMzAiQQM3MzMzMM5JAhetRuB4lgkBxPQrXo/KGQPYoXI/CyX5AZmZm
+      ZmamhkAAAAAAAPx+QFK4HoXrw4RAUrgehevBp0D2KFyPQoOoQJqZmZmZE7NAw/UoXA+MqEDhehSu
+      B6CwQFyPwvUoiKZAw/UoXI+erUApXI/CdbagQLgehetRcqZAFK5H4fqZp0AfhetRuICXQAAAAAAA
+      6plArkfhehSyi0BxPQrXo96dQMP1KFyPgZZApHA9CtcNnkDNzMzMzC+WQGZmZmZmUZRAH4XrUbhG
+      j0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_vangogh2photo_num_classes_2_num_dev_examples_7056_num_test_examples_782_resolution_256_num_channels_3_original:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      pHA9ChegskBcj8L1KFxlQFyPwvUo/HNArkfhehSCekBxPQrXo1SAQLgehetReINA16NwPQpDtkBc
+      j8L16CK7QB+F61G4cbBAzczMzIwyukC4HoXr0Uq5QI/C9ShcDa1ArkfhehR/mkA9CtejcL1jQFK4
+      HoXrwWhACtejcD0+cEDhehSuR2F2QOF6FK5HQX9A9ihcj8INiED2KFyPwnmSQOxRuB4FXqVA16Nw
+      PQoMoEAUrkfhevSXQJqZmZmZ/55AZmZmZsaW1kDhehSuRyFiQOxRuB6FN3RAuB6F61EIXECuR+F6
+      FO5nQAAAAAAAfHRA9ihcj8JlgUCkcD0K11iiQArXo3C9OatAhetRuB5ookBmZmZm5q6oQB+F61E4
+      MaJAcT0K1yNPpkCuR+F6FIKKQI/C9ShcR2VArkfhehROVUDhehSuR7FcQOF6FK5HaWRAcT0K16Ok
+      cEApXI/C9YCQQClcj8L135VASOF6FK6Nn0BI4XoUrnyTQDMzMzMz7ZxAH4XrUbhDkkCF61G4HsGT
+      QFK4HoXrMXJAAAAAAADAUkAzMzMzMzNdQFyPwvUopGlACtejcD2iZEAzMzMzMytwQD0K16PwValA
+      mpmZmRlsq0AfhetReJSzQJqZmZkZy6hAexSuR2EbskCamZmZWdSwQBSuR+F6FptAH4XrUbhmckCu
+      R+F6FOZlQJqZmZmZiXBAAAAAAAB4YUC4HoXrUVhnQDMzMzMzy3BAH4XrUbjan0A9Ctej8DikQAAA
+      AAAAcJZAexSuR+E0oEA9CtejcAKUQK5H4XoUIZZAcT0K16MkeECamZmZmfWDQI/C9Shct3pAw/Uo
+      XI+6gkAfhetRuNp5QBSuR+F6zIRAmpmZmZkYqEAUrkfhelqpQM3MzMxMebJAuB6F69HJqEAK16Nw
+      PeqwQBSuR+H6o6VA16NwPYqFqEBxPQrXo46fQKRwPQpX9adA9ihcj8LPp0ApXI/C9VGdQOxRuB6F
+      4qFApHA9CtejjECPwvUoXMSaQIXrUbgeFJhASOF6FK5Jn0ApXI/C9aeZQDMzMzMzpJtAmpmZmZln
+      k0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+cycle_gan_vangogh2photo_num_classes_2_num_dev_examples_961_num_test_examples_10_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      7FG4HgWqrkCamZmZmQleQMP1KFyPMmpAcT0K16PobUCamZmZmV11QGZmZmZmKodAcT0K16MqtkBS
+      uB6Fazy4QM3MzMzMda5AH4XrUfgWuUAK16NwPcS1QFK4HoXr46pASOF6FK6QnECPwvUoXB9lQHE9
+      CtejOGdAuB6F61GoX0DNzMzMzOxwQClcj8L1AGdAcT0K16OKi0DD9Shcj0CYQFyPwvWod6FAj8L1
+      KFxKoEAK16NwPbKeQK5H4XoUSZlAH4XrUUhn1kAzMzMzM2uLQGZmZmZm5lFAcT0K16MgWUAK16Nw
+      PepTQKRwPQrX225ASOF6FK43dkBmZmZm5hyiQPYoXI/CeK1AmpmZmZlHpUBI4XoULoytQHsUrkfh
+      tqNAmpmZmRmGpkC4HoXrUaOSQKRwPQrX62hAUrgehetRV0CkcD0K15NcQOxRuB6Fe1tAZmZmZmYm
+      WUBSuB6F6wOSQGZmZmZmjphApHA9CtcgokB7FK5H4ZeWQAAAAAAAGJxAuB6F61GyiEAUrkfhegGR
+      QHsUrkfhcmxAzczMzMw8UUDD9ShcjwJZQClcj8L1YGVAZmZmZmamX0CuR+F6FFZgQD0K16NwfKdA
+      j8L1KFx0qED2KFyPwieyQNejcD0KPalA9ihcj8IZsUAK16Nw/SmxQK5H4XqU4aFA16NwPQrTfUAz
+      MzMzMwtzQOxRuB6Fn3JArkfhehRWbEAUrkfhepRsQIXrUbgeDW5Aw/UoXA85okBI4XoULl+jQKRw
+      PQrXc5pAFK5H4XrcnEBxPQrXo0CKQBSuR+F6T5VAexSuR+FedUDNzMzMzCx6QB+F61G4UnFAj8L1
+      KFxLfUBcj8L1KPB1QOxRuB6Fu4JAKVyPwnUjp0A9CtejcPaoQHsUrkeh8rJACtejcL2vqkAK16Nw
+      /XqxQHE9CtcjuqdAcT0K1yNVs0CamZmZmRalQFyPwvUo0axA4XoUrkfzqkBI4XoUrhKdQM3MzMzM
+      BZtASOF6FK7pk0C4HoXrUWuhQOxRuB6FlJlAPQrXo3CDoUAAAAAAACCUQBSuR+F6WpRA9ihcj8L1
+      kEA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_2_num_dev_examples_960_num_test_examples_358_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      SOF6FK6jgkC4HoXrUSByQOF6FK5HgWhAXI/C9Sh0ckCF61G4Hg1pQBSuR+F6AHtA4XoUroditEAA
+      AAAAgMm+QB+F61H4YrRA4XoUrofivUBI4XoULna+QOxRuB6FsbNAKVyPwvUVpEB7FK5H4QJsQHsU
+      rkfhQnNAexSuR+HKaEA9CtejcGFyQHsUrkfhsmhApHA9CtdhjkApXI/C9cGTQDMzMzMzgZZAKVyP
+      wvUVkEAAAAAAAGKAQB+F61G45IRAKVyPwnVq2ECF61G4HslxQAAAAAAAIGhAzczMzMz0cUDNzMzM
+      zDxoQEjhehSuy3FAexSuR+FGc0AAAAAAACGoQPYoXI9CZ7BAFK5H4frqo0AfhetRuGerQJqZmZkZ
+      f6BAhetRuJ5spkCF61G4HjGPQB+F61G47nFAXI/C9Sh8Z0AK16NwPcpxQHsUrkfhfnFAH4XrUbgm
+      Z0DXo3A9CnWMQHsUrkfhMpNAUrgeheu7lUCamZmZmemFQGZmZmZmdIlAZmZmZmZGe0CuR+F6FCqF
+      QEjhehSu83FA9ihcj8LtZ0AUrkfhepBxQHE9Ctej8GdA7FG4HoXLcUCamZmZmaFnQIXrUbgeD7FA
+      9ihcj4JKsED2KFyPgpe3QDMzMzOzKq5AexSuR+GstUB7FK5H4cy0QHsUrkfhBZ5AAAAAAACMdEBS
+      uB6F62FrQNejcD0Kh3ZASOF6FK7vbUBcj8L1KDx1QFyPwvUohG9ArkfhehTJoEDsUbgehYaZQEjh
+      ehSug4tAzczMzMyTkUApXI/C9dSEQOF6FK5Hh5BAhetRuB65hUDXo3A9CiWRQDMzMzMzrYdApHA9
+      CtdgkkAUrkfhelqJQPYoXI/Ck5NASOF6FO6DskDsUbgehWawQLgehesRV7dArkfhehQMrUAfhetR
+      eCu0QPYoXI/CbqhArkfhepQfsEAK16NwPeycQGZmZmZm9p9AuB6F61FIlkA9CtejcDeGQNejcD0K
+      aYtAexSuR+Gmh0DNzMzMzEqdQKRwPQrXW41AKVyPwvWkkECuR+F6FDiBQClcj8L1WIVASOF6FK5S
+      lEA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_3_num_dev_examples_1001_num_test_examples_525_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      cT0K16NmgEDsUbgehSdyQFyPwvUo9GhAAAAAAACYckAAAAAAAFBpQAAAAAAA3HtAZmZmZuaytUDh
+      ehSux6zAQHE9Ctcjw7VAAAAAAMCNv0CkcD0KNxzAQGZmZmYmsbRAuB6F69H4pEApXI/C9QhtQDMz
+      MzMze3NAhetRuB71aEB7FK5H4Y5yQHE9CtejuGhA16NwPQrPjUCuR+F6FBiUQM3MzMzMi5ZA16Nw
+      PQrpjkDsUbgehX9/QNejcD0Ko4NAcT0K11Nm2EA9CtejcAFyQNejcD0Kp2dAUrgeheu9cUA9Ctej
+      cM1nQNejcD0K13FA4XoUrkdJc0CuR+F6FEGnQIXrUbietq9ACtejcD27okBcj8L1KICpQOF6FK5H
+      e55ASOF6FK5TpUBmZmZmZgqOQEjhehSux3FAj8L1KFy3Z0DD9Shcj7ZxQEjhehSuf3FAcT0K16Mo
+      Z0CuR+F6FDyMQPYoXI/Ce5NArkfhehT3lUApXI/C9f6EQPYoXI/C1YdA4XoUrkdJekCamZmZmemD
+      QHE9CtejwHFASOF6FK5fZ0DNzMzMzIhxQHsUrkfh6mdAFK5H4XoAckD2KFyPwv1nQHE9Ctcju7FA
+      CtejcL0KsUBI4XoUbty3QGZmZmbmt61AhetRuF4otUBxPQrXYye0QEjhehSuH51AUrgehetBdUBx
+      PQrXozhtQI/C9ShcX3lAcT0K16N4b0CkcD0K1+d1QHsUrkfhcnBAAAAAAAAcoUAUrkfheoGaQB+F
+      61G42ItAH4XrUbglkkDhehSuR9eFQNejcD0KHJFA7FG4HoVtiUCamZmZmZqTQM3MzMzMFopACtej
+      cD2Bk0CamZmZmemJQB+F61G4epNA4XoUrkffsUCkcD0KV2OvQD0K16MwqLVA7FG4HgW9qkA9Ctej
+      cL+yQI/C9SjcDKdArkfhepQFr0Bcj8L1KFKdQEjhehSuL6BAMzMzMzMilUBmZmZmZgCFQDMzMzMz
+      mYlAuB6F61G0hUAfhetRuFydQOF6FK5Hq41ArkfhehQukEB7FK5H4XyAQHE9CtejoIRAuB6F61GZ
+      kkA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_3_num_dev_examples_3433_num_test_examples_513_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      mpmZmZlbhEAUrkfhenxyQAAAAAAA+GhAuB6F61G4ckApXI/C9VhpQB+F61G4mnxASOF6FK4gtkAf
+      hetRON3AQKRwPQpXHbZAMzMzMxNHwEBxPQrXo27AQHE9CtfjNbVAexSuR+GWpUDD9Shcj0ptQOF6
+      FK5HbXNAmpmZmZkxaUC4HoXrUZxyQOxRuB6FY2hAcT0K16O6i0D2KFyPwuSRQHsUrkfhWZRA7FG4
+      HoUljkCkcD0K18d/QM3MzMzMyoRAPQrXozBz2EAfhetRuIZxQD0K16Nw1WdAH4XrUbiqcUBI4XoU
+      rp9nQDMzMzMzB3JAMzMzMzNzc0D2KFyPwvymQD0K16NwBa9AXI/C9SiNokAfhetRuOuoQBSuR+F6
+      yJ1AUrgehWsqpEAK16NwPeyMQIXrUbgehXFAAAAAAABwZ0D2KFyPwk1xQOxRuB6FS3FAZmZmZmaO
+      ZkCamZmZmR2KQNejcD0KNZFAmpmZmZn+k0ApXI/C9XqEQB+F61G4dohASOF6FK5Te0AK16NwPUSH
+      QBSuR+F6qHFArkfhehR2Z0CF61G4HqFxQFK4HoXriWdAexSuR+HqcUCkcD0K1ytoQNejcD0KI7JA
+      AAAAAIBFsUD2KFyPQmq4QLgehevRRK5AhetRuF4dtUAfhetR+P+zQI/C9ShcvJ1AFK5H4XrYdEBS
+      uB6F68lrQGZmZmZmAndAw/UoXI/qbUB7FK5H4V51QOxRuB6FO3BAZmZmZmbgnkBSuB6F6x6ZQM3M
+      zMzMdoxASOF6FK4Sk0CuR+F6FL6HQFK4HoXrIZRAexSuR+F+i0B7FK5H4eKUQM3MzMzMMotAPQrX
+      o3AjlEAUrkfheqKKQI/C9ShcG5RAmpmZmdn+sUAK16NwvRWvQGZmZmbmxLVAMzMzMzNcqkBmZmZm
+      ZuWxQMP1KFwPrqVA9ihcj0JQrUBxPQrXo+GZQFK4HoXr/pxAw/UoXI/BlECPwvUoXHWFQD0K16Nw
+      j4tApHA9Cteli0C4HoXrUZSaQD0K16Nw1YpA7FG4HoXTj0A9CtejcPeAQLgehetRqoVA7FG4HoUt
+      mEA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_4_num_dev_examples_6526_num_test_examples_656_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvUygUBI4XoUrk9yQFK4HoXrwWhAKVyPwvWYckAzMzMzM0NpQHE9CtejYHxAw/UoXE+DtkBI
+      4XoUzhbBQLgehesR/rVAhetRuD4OwECkcD0KN5HAQGZmZmZmErVAw/UoXA+upEDXo3A9Cr9tQFK4
+      HoXr1XNA4XoUrkcJaUAfhetRuJJyQDMzMzMzo2hAFK5H4XoIjUDhehSuR7yTQOxRuB6FYZZA16Nw
+      PQrlj0BmZmZmZryAQHsUrkfhLIVAcT0K13Ns2EBmZmZmZgZyQAAAAAAA4GdAMzMzMzP/cUBSuB6F
+      66lnQMP1KFyP7nFA7FG4HoV7c0AK16NwvcqmQD0K16Pw+q5AcT0K1yPSokAzMzMzMyipQK5H4XoU
+      DZ9AFK5H4fo7pUDhehSuR42NQOF6FK5HrXFA9ihcj8KFZ0DD9Shcj6pxQGZmZmZmcnFAw/UoXI9K
+      Z0CuR+F6FACMQNejcD0KM5NAuB6F61GUlUBxPQrXo0KFQHsUrkfhnolAKVyPwvWgfEDXo3A9Cm+F
+      QFyPwvUo0HFAPQrXo3CtZ0BmZmZmZo5xQEjhehSu52dAuB6F61GIcUDXo3A9CodnQD0K16OwKLFA
+      XI/C9WgqsECamZmZGf62QLgehetRqKxAj8L1KNxttEAzMzMzM46zQD0K16NwyJxAuB6F61FodUBc
+      j8L1KGRtQD0K16NwaXpA9ihcj8JhcUDsUbgeha93QI/C9ShcV3JAw/UoXA9coUDsUbgehWKbQJqZ
+      mZmZzY1ASOF6FK5nk0DD9Shcj7aHQKRwPQrX1pFAXI/C9SiqiECuR+F6FCqSQLgehetRMIhAPQrX
+      o3AKkkAfhetRuIqIQLgehetRs5JAH4XrUThesUCkcD0KV/euQOxRuB6Fo7VAmpmZmRniqkA9Ctej
+      MKeyQJqZmZmZv6ZAAAAAAIBMrkAfhetRuKCcQD0K16Nwn59Aj8L1KFzJlUDNzMzMzJCGQK5H4XoU
+      ToxAmpmZmZkTiEAAAAAAAMqcQOxRuB6F14xAmpmZmZlRkEB7FK5H4VqBQIXrUbgeLYZASOF6FK6H
+      lUA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_4_num_dev_examples_7438_num_test_examples_1528_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvUmgkDhehSuR01yQB+F61G4vmhAMzMzMzN3ckDhehSuR8FoQMP1KFyPtntAcT0K16OztUBx
+      PQrX44HAQOF6FK6HaLVAH4XrUfi9v0BmZmZmBjPAQLgeheuR27RAMzMzMzPmpECamZmZmYlsQClc
+      j8L1SHNA9ihcj8LVaECuR+F6FH5yQK5H4XoUDmhAmpmZmZlRjUAfhetRuIeTQBSuR+F6xpVAj8L1
+      KFzzjkAzMzMzMzmAQNejcD0K04RA7FG4HqVv2EBSuB6F6wFyQHsUrkfhymdASOF6FK77cUBI4XoU
+      rl9oQOxRuB6FB3JAzczMzMygc0DXo3A9CvmmQLgehevRHK9Aw/UoXA+WokAUrkfh+rGpQHE9Ctej
+      W59APQrXo3CxpUAK16NwPViOQOF6FK5H3XFAexSuR+HSZ0CF61G4HsFxQLgehetRfHFAhetRuB41
+      Z0CamZmZmSmMQNejcD0KEZNAMzMzMzPxlEDNzMzMzAqFQClcj8L1wIhASOF6FK6ne0BxPQrXo+6F
+      QOxRuB6Fq3FAMzMzMzNzZ0ApXI/C9ZBxQPYoXI/C/WdACtejcD2acUBxPQrXo6BnQFyPwvVogbFA
+      4XoUrgeNsEB7FK5H4Va3QJqZmZkZhq1Aw/UoXE8WtUC4HoXr0fmzQEjhehSuep1APQrXo3DBdEBm
+      ZmZmZkZsQBSuR+F64HdAhetRuB5Vb0BxPQrXoxh2QD0K16NwvXBA4XoUrsffoEAfhetRuFaaQAAA
+      AAAAxoxAXI/C9Si4kkCPwvUoXMmGQK5H4XoUcZJAKVyPwvVSiUCF61G4Hg6TQJqZmZmZV4lAj8L1
+      KFzgkkCPwvUoXG2JQMP1KFyPD5NA9ihcj8KksUCuR+F6FOeuQFK4HoVrprVArkfhehQUq0CamZmZ
+      2ROzQArXo3A9T6dAUrgehWuWr0CamZmZmZqcQHsUrkfh6J5AFK5H4XoylUCF61G4HtWFQM3MzMzM
+      5otAj8L1KFyniUC4HoXrUeCcQI/C9Shcl4xAMzMzMzPJj0AUrkfhevKAQPYoXI/CnYVA4XoUrkdS
+      lkA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_7_num_dev_examples_4392_num_test_examples_588_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      j8L1KFwFhUDsUbgehQNyQOF6FK5HIWlA4XoUrkeRckDD9Shcj8poQPYoXI/C+XtAw/UoXI+4tUBm
+      ZmZmJq3AQFK4HoUr+rVAXI/C9cgawEDXo3A9yi3AQFyPwvWoz7RAMzMzMzMKpUAfhetRuCZtQFK4
+      HoXrYXNAKVyPwvU4aUAfhetRuIpyQHE9CtejOGhACtejcD0CjEA9CtejcIuSQM3MzMzMJpZAcT0K
+      16PKj0AUrkfheqx/QBSuR+F6JoRAMzMzM5Nv2EAK16NwPeZxQFyPwvUo7GdAj8L1KFz3cUAUrkfh
+      euxnQOxRuB6Fy3FAUrgehesxc0DD9Shcjw2nQM3MzMxMeK9AmpmZmZnBokBmZmZm5vWoQFyPwvUo
+      Q51AhetRuJ4hpEAUrkfhekiNQM3MzMzMkHFAZmZmZmZ2Z0CuR+F6FL5xQK5H4XoUNnFAH4XrUbgm
+      Z0D2KFyPwn2KQClcj8L1JJJAPQrXo3B3lUAUrkfheoiFQGZmZmZmiIhASOF6FK7LekBI4XoUrq2G
+      QFK4HoXr+XFAH4XrUbheZ0DXo3A9CqdxQFK4HoXr4WdAhetRuB71cUCF61G4Hh1oQClcj8L1w7FA
+      ZmZmZiYssUDhehSux1y4QB+F61G4ga5A16NwPQpFtUAfhetR+AG0QOxRuB6Fp51AhetRuB4tdUBI
+      4XoUrrdrQEjhehSuL3dAexSuR+FCbkBxPQrXo3R1QBSuR+F6XHBAhetRuJ4JoECPwvUoXEGaQBSu
+      R+F6Ho1AKVyPwvW2kkDXo3A9ComGQLgehetRX5NAFK5H4XpIikB7FK5H4UmUQHsUrkfhSotAcT0K
+      16OnlEBxPQrXo1aLQPYoXI/CWJRArkfhehTYsUBcj8L1qISvQClcj8K1sLVAmpmZmRljqkApXI/C
+      9bexQM3MzMxMgqVA7FG4HgV2rUB7FK5H4SmbQPYoXI/CnZ9ArkfhehTBlUBSuB6F6yOFQI/C9Shc
+      ZYpAPQrXo3BrikA9CtejcL+bQMP1KFyPLI1Aj8L1KFxNkEB7FK5H4a6AQEjhehSuoYRAuB6F61ES
+      lkA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+deep_weeds_num_classes_9_num_dev_examples_7269_num_test_examples_1044_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      AAAAAACqgECkcD0K12NyQHE9Ctej+GhAexSuR+G+ckDNzMzMzERpQI/C9ShcW3xAcT0K16NttkDD
+      9ShcTyDBQI/C9SgcFrZAKVyPwtULwED2KFyPYnjAQLgehesRJrVA4XoUrscXpUAUrkfhehxtQNej
+      cD0Kp3NAMzMzMzNDaUCF61G4HrlyQKRwPQrXQ2hASOF6FK4vjUD2KFyPwo6TQAAAAAAAOZZAhetR
+      uB5zj0A9CtejcBGAQHE9Ctej/oRA16NwPfpu2EBmZmZmZtpxQHE9Ctej0GdAXI/C9SjEcUCamZmZ
+      mQloQHE9CtejuHFA4XoUrkdxc0CamZmZGcKmQNejcD0KpK5AH4XrUbhKokAK16NwvaqoQOF6FK5H
+      ip1AFK5H4XrFpEDhehSuR+uNQM3MzMzMlHFApHA9Cte7Z0AzMzMzM7NxQDMzMzMzm3FAFK5H4Xoc
+      Z0BmZmZmZsyLQEjhehSu9JJA16NwPQqilUA9CtejcGuFQI/C9Shc94hAmpmZmZlJe0AUrkfhemaF
+      QGZmZmZm3nFAUrgeheuRZ0DXo3A9CpNxQD0K16NwVWhAAAAAAADQcUAAAAAAAABoQKRwPQrXorFA
+      XI/C9WjysEDXo3A9io+3QJqZmZmZfK1AzczMzAzHtECPwvUoHM+zQBSuR+F6hJxA16NwPQobdUD2
+      KFyPwpVtQPYoXI/ChXlAXI/C9Si4cEBmZmZmZhZ3QI/C9Shcw3FAexSuR2ExoUBI4XoUrjebQM3M
+      zMzMno1AMzMzMzMIk0CamZmZmfOGQHsUrkfhVJJApHA9CtcbikBmZmZmZhGUQI/C9ShcZYpAUrge
+      heuLk0CuR+F6FBKKQNejcD0KUJNAhetRuF5nsUCuR+F6FFuuQClcj8I1+bRAXI/C9ajrqUCkcD0K
+      FwayQAAAAACAZ6ZArkfhehRfrkDsUbgehY+cQFK4HoXrqZ9AXI/C9SirlUDNzMzMzMCFQIXrUbge
+      g4tAw/UoXI+4iECkcD0K16ecQHE9CtejmoxAhetRuB54kECamZmZmd2AQK5H4XoUpIVAKVyPwvWf
+      lUA=
+  num_channels: 3
+  num_classes: 9
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+devanagari_num_classes_9_num_dev_examples_936_num_test_examples_99_resolution_16_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvUloUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAD2KFyPwvUYQOxRuB6F6z9APQrXo3BdcEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA16NwPQrX+z8AAAAAAAAAAAAAAAAAAAAA4XoU
+      rkfh2j8AAAAAAAAAAAAAAAAAAAAArkfhehSu8z8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAmpmZmZmZQkC4HoXrUbieP+F6FK5H4co/UrgehetRBkAAAAAAAAAAALgehetR
+      uN4/pHA9CtcjQ0AzMzMzM5NvQFK4HoXrUfA/exSuR+F6CEB7FK5H4XoIQFK4HoXrUfA/XI/C9Sg8
+      bUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+emnist_balanced_num_classes_42_num_dev_examples_88368_num_test_examples_5712_resolution_16_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      XI/C9SjMWUC4HoXrUbiuP8P1KFyPwsU/AAAAAAAA0D97FK5H4Xq0P5qZmZmZmak/KVyPwvUo3D/s
+      UbgehevhPzMzMzMzM+s/MzMzMzMz6z9xPQrXo3DxP/YoXI/C9fA/4XoUrkfh2j/hehSuR+HaP3sU
+      rkfherQ/exSuR+F6xD8pXI/C9Si8P8P1KFyPwsU/4XoUrkfhyj97FK5H4XrEP5qZmZmZmbk/mpmZ
+      mZmZqT/sUbgehevBP3sUrkfhesQ/7FG4HoXr4T8zMzMzMzP3PwrXo3A9Cuc/mpmZmZmZ2T9I4XoU
+      rkfRP6RwPQrXo9A/KVyPwvUozD97FK5H4XrEPwrXo3A9Csc/7FG4HoXrwT8K16NwPQrHPwAAAAAA
+      ANA/pHA9Ctej0D9xPQrXo3DNPzMzMzMzM8M/mpmZmZmZyT/sUbgehevBPylcj8L1KLw/exSuR+F6
+      1D8zMzMzMzPTP3sUrkfhesQ/mpmZmZmZuT+amZmZmZnJP6RwPQrXo9A/7FG4HoXrwT+4HoXrUbi+
+      P+xRuB6FA2BAexSuR+F6pD9SuB6F61HIP+xRuB6F67E/mpmZmZmZuT/hehSuR+HKP3sUrkfherQ/
+      mpmZmZmZyT+kcD0K16PQP8P1KFyPwsU/pHA9CtejwD/hehSuR+HKP4/C9Shcj9I/w/UoXI/CxT9S
+      uB6F61HYP0jhehSuR9E/MzMzMzMzwz8K16NwPQrHP7gehetRuM4/cT0K16NwzT8K16NwPQq3P6Rw
+      PQrXo8A/mpmZmZmZyT8zMzMzMzPDP3sUrkfhesQ/uB6F61G4rj+kcD0K16PAP6RwPQrXo9A/exSu
+      R+F6tD97FK5H4XrEP+xRuB6F68E/4XoUrkfhyj/sUbgeheuxPzMzMzMzM8M/exSuR+F6xD/sUbge
+      hevBP5qZmZmZmck/KVyPwvUozD8K16NwPQq3P+F6FK5H4co/exSuR+F6xD/sUbgehevRP83MzMzM
+      zNw/UrgehetRyD+4HoXrUbi+PwrXo3A9Crc/CtejcD0Kxz+amZmZmZnJP1K4HoXrUcg/PQrXo3A9
+      8j8=
+  num_channels: 1
+  num_classes: 47
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+emnist_byclass_num_classes_9_num_dev_examples_80451_num_test_examples_6696_resolution_32_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcD26WUAK16NwPQrHP7gehetRuJ4/uB6F61G4rj97FK5H4XqUP3sUrkfhesQ/PQrXo3A92j9x
+      PQrXo3DlP83MzMzMzNw/cT0K16Nw5T8fhetRuB7lP0jhehSuR/E/KVyPwvUo3D+PwvUoXI/iP5qZ
+      mZmZmck/exSuR+F6tD+4HoXrUbiuP8P1KFyPwsU/7FG4HoXrwT/sUbgehevBP7gehetRuL4/exSu
+      R+F6tD8K16NwPQq3PwrXo3A9Crc/exSuR+F65D/2KFyPwvXwP1K4HoXrUdg/w/UoXI/C1T/D9Shc
+      j8LVP65H4XoUrtc/uB6F61G4zj8pXI/C9SjMP7gehetRuM4/mpmZmZmZuT8zMzMzMzPDP+F6FK5H
+      4co/UrgehetRyD+PwvUoXI/SPwAAAAAAANA/CtejcD0Ktz/sUbgehevBP7gehetRuM4/w/UoXI/C
+      xT+amZmZmZnJP9ejcD0K19M/uB6F61G4rj+4HoXrUbi+P5qZmZmZmbk/mpmZmZmZuT+amZmZmZmp
+      P6RwPQrXU2BAcT0K16NwzT+amZmZmZm5P5qZmZmZmck/w/UoXI/CxT+4HoXrUbiuPx+F61G4HtU/
+      16NwPQrX0z/D9Shcj8LFP5qZmZmZmdk/4XoUrkfhyj/2KFyPwvXYPwAAAAAAANA/w/UoXI/CxT+k
+      cD0K16PAP+F6FK5H4co/KVyPwvUozD8K16NwPQrHP8P1KFyPwsU/7FG4HoXrwT/sUbgehevRP8P1
+      KFyPwsU/uB6F61G4vj8K16NwPQq3Pylcj8L1KLw/7FG4HoXrwT+4HoXrUbi+P8P1KFyPwsU/7FG4
+      HoXrwT+amZmZmZm5P6RwPQrXo8A/MzMzMzMzwz8K16NwPQq3P5qZmZmZmck/KVyPwvUovD/D9Shc
+      j8LFP3sUrkfhepQ/MzMzMzMzwz+4HoXrUbi+P+F6FK5H4co/KVyPwvUovD+4HoXrUbieP1K4HoXr
+      Ucg/CtejcD0Kxz9SuB6F61HIPwrXo3A9Crc/mpmZmZmZyT+kcD0K16PAP6RwPQrXo8A/XI/C9Shc
+      8z8=
+  num_channels: 1
+  num_classes: 62
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+emnist_mnist_num_classes_10_num_dev_examples_11010_num_test_examples_6770_resolution_16_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvVIV0B7FK5H4XqUP3sUrkfheoQ/mpmZmZmZuT+4HoXrUbieP3sUrkfherQ/PQrXo3A92j9x
+      PQrXo3DdPxSuR+F6FO4/mpmZmZmZ4T9cj8L1KFzfPylcj8L1KNw/w/UoXI/C1T9I4XoUrkfRP6Rw
+      PQrXo8A/CtejcD0Ktz97FK5H4XqUP8P1KFyPwsU/uB6F61G4rj97FK5H4XqkP5qZmZmZmak/MzMz
+      MzMzwz97FK5H4XqEP7gehetRuK4/9ihcj8L12D9cj8L1KFznP6RwPQrXo+A/j8L1KFyP0j9SuB6F
+      61HYP3E9CtejcM0/w/UoXI/CxT8pXI/C9Si8P3sUrkfherQ/4XoUrkfhyj/D9Shcj8LFP3sUrkfh
+      esQ/exSuR+F6tD+kcD0K16PAP7gehetRuL4/UrgehetRyD/Xo3A9CtfTPylcj8L1KLw/CtejcD0K
+      tz+amZmZmZm5P1K4HoXrUcg/mpmZmZmZqT/sUbgehevBP7gehetRuJ4/exSuR+F6pD+4HoXrUbi+
+      Pylcj8L1QGJAUrgehetRyD/sUbgehevBP+xRuB6F67E/mpmZmZmZqT+4HoXrUbieP3sUrkfheoQ/
+      KVyPwvUovD+4HoXrUbiuPzMzMzMzM8M/7FG4HoXrwT8K16NwPQrHP1K4HoXrUcg/MzMzMzMzwz+4
+      HoXrUbjOPwrXo3A9Crc/KVyPwvUovD8K16NwPQq3PwrXo3A9Crc/CtejcD0Ktz9xPQrXo3DNP1K4
+      HoXrUcg/CtejcD0Ktz/sUbgeheuxP+xRuB6F68E/KVyPwvUovD/hehSuR+HKP6RwPQrXo8A/Ctej
+      cD0Ktz+4HoXrUbi+P3sUrkfheoQ/MzMzMzMzwz8zMzMzMzPTPwrXo3A9Crc/KVyPwvUovD+4HoXr
+      UbjOP8P1KFyPwsU/exSuR+F6pD97FK5H4Xq0P6RwPQrXo8A/uB6F61G4nj+4HoXrUbiuPzMzMzMz
+      M8M/pHA9CtejwD+amZmZmZnJP7gehetRuL4/uB6F61G4vj97FK5H4Xq0P7gehetRuK4/FK5H4XoU
+      7j8=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+eurosat_rgb_num_classes_2_num_dev_examples_2382_num_test_examples_1476_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      mpmZmZkZRUAAAAAAAPBUQHE9CtejQGBAj8L1KFyXZ0CkcD0K1ytuQAAAAAAA7HVA16NwPQrzekBx
+      PQrXo5h1QLgehetR2G9ACtejcD0qbUCkcD0K1/NnQBSuR+F6tGBAmpmZmZk5SkCuR+F6FK4yQArX
+      o3A9ijRApHA9CtfjMkCkcD0K16MuQLgehetRuChAPQrXo3D9N0BmZmZmZmZAQFK4HoXrUUtApHA9
+      CtdzXkCF61G4HvVjQArXo3A9kmVAZmZmZmbKg0DhehSuR/FsQFyPwvUoRGVAKVyPwvWIQEBcj8L1
+      KJw+QNejcD0KlzZAUrgehetRRUAfhetRuMZgQIXrUbgeTWxA4XoUrkeJckBcj8L1KLhzQOxRuB6F
+      /3RAFK5H4Xp8a0BI4XoUridSQIXrUbgeBTZAPQrXo3A9EkCF61G4HoUNQLgehetRuBZAAAAAAABA
+      MEBxPQrXozA/QM3MzMzMjEJAH4XrUbiePEAUrkfhehQsQOxRuB6F6x1AmpmZmZmZBUBI4XoUrkca
+      QHE9CtejcO0/FK5H4XoU5j8AAAAAAAD4P0jhehSuR/0/XI/C9ShcEUDsUbgehWsuQAAAAAAA0FxA
+      9ihcj8J1YUAUrkfhenxkQPYoXI/CbWVAmpmZmZnhaECuR+F6FO5pQPYoXI/CLWZAj8L1KFynYkC4
+      HoXrUQhlQI/C9Shc32tApHA9CtdTc0CuR+F6FK5jQFyPwvUoLFlAw/UoXI+CXUC4HoXrUWhVQPYo
+      XI/CJVJArkfhehSOQ0AfhetRuB4iQM3MzMzMTChA4XoUrkfhJUBI4XoUrkcjQBSuR+F6lCFAZmZm
+      ZmbmIkCkcD0K16MoQEjhehSuxzJAAAAAAABQVkDXo3A9CpdhQBSuR+F6ZGdA16NwPQrvZkDNzMzM
+      zJxqQEjhehSuB2tA9ihcj8LVbECamZmZmSFqQJqZmZmZ4WdAUrgehethakDD9ShcjyJiQPYoXI/C
+      xVtAKVyPwvU4XECF61G4Ho1pQOxRuB6FE2ZAcT0K16M4bEDNzMzMzARtQOF6FK5HMWZACtejcD0q
+      RUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+eurosat_rgb_num_classes_8_num_dev_examples_8236_num_test_examples_1320_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      SOF6FK6nSEAfhetRuL5SQIXrUbgeJWBA7FG4HoVjaEDsUbgehTNxQNejcD0Kh3RAhetRuB5JdEDs
+      Ubgeha9yQArXo3A9vnBAPQrXo3AhcUBcj8L1KMxsQIXrUbgeTWBA9ihcj8I1T0DsUbgehWssQNej
+      cD0K1yxAw/UoXI+CM0DhehSuRyE+QBSuR+F6VD9A7FG4HoVrQUB7FK5H4To/QNejcD0Kh1NAPQrX
+      o3AFYEDhehSuR1loQFyPwvUozHJAzczMzMwYfkApXI/C9ThnQD0K16NwRWVApHA9CtfDVED2KFyP
+      wjUwQD0K16NwfUNAAAAAAAAAVEBmZmZmZm5iQFK4HoXrYW1AFK5H4XoUbEAUrkfheixzQLgehetR
+      MGxAexSuR+GaZ0ApXI/C9QhUQPYoXI/ClUZAhetRuB4FI0CPwvUoXI8TQArXo3A9iiBAw/UoXI+C
+      OUCuR+F6FM5FQHsUrkfhukZAFK5H4Xp0REAK16NwPUowQI/C9ShcDzFAmpmZmZmZHkBcj8L1KNwj
+      QEjhehSuR/E/9ihcj8L16D/Xo3A9Ctf3P6RwPQrXo/w/uB6F61G4FkBI4XoUrsc/QK5H4XoU7mFA
+      CtejcD3yY0CPwvUoXJdpQFyPwvUodGVAPQrXo3B1bEAAAAAAAFhqQEjhehSuF2RAZmZmZmY2XUC4
+      HoXrUXhfQIXrUbgeTWVAUrgehevBc0AzMzMzMytjQMP1KFyPglVAuB6F61HIWkAK16NwPapWQOxR
+      uB6FS1lAUrgehevBUEAfhetRuN49QClcj8L1qC9AexSuR+F6KUApXI/C9agjQFK4HoXr0SBAXI/C
+      9SjcJUBcj8L1KFwsQLgehetROD5AH4XrUbiuWEAUrkfhekRkQIXrUbgexWxAZmZmZmZ2ZkC4HoXr
+      UdBrQHsUrkfhmmtA16NwPQrfakBI4XoUrudrQArXo3A9AmpAUrgehet5ZkCPwvUoXPdgQNejcD0K
+      V2BAmpmZmZlZYECuR+F6FGZhQIXrUbgeTWJAH4XrUbiuYkCamZmZmWlkQB+F61G4RnBAcT0K16OQ
+      R0A=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+eurosat_rgb_num_classes_9_num_dev_examples_22361_num_test_examples_549_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      4XoUrkfhQEDXo3A9CjdLQPYoXI/ClVpAFK5H4Xp8YUBcj8L1KERnQI/C9Shc921ACtejcD36dUDN
+      zMzMzDx4QArXo3A9xnFAMzMzMzNjcUA9CtejcFVtQLgehetR0GJAw/UoXI9CTkAzMzMzM7MrQNej
+      cD0KVyNAmpmZmZkZOUCamZmZmdkyQMP1KFyPQjVAMzMzMzOTQEA9CtejcB1DQKRwPQrXA0JA4XoU
+      rkexXEAfhetRuPZgQHE9CtejBHFAexSuR+HUhUBI4XoUrkdnQOxRuB6FW1dAKVyPwvWoV0AK16Nw
+      PQopQIXrUbgeRTpASOF6FK6HTED2KFyPwrVhQPYoXI/CJW5AKVyPwvU4a0CkcD0K14t0QNejcD0K
+      K3JAuB6F61HobUAK16NwPYpdQI/C9ShcTzlAzczMzMxMJ0DXo3A9CtcVQEjhehSuRxZApHA9Ctdj
+      MUB7FK5H4bpCQD0K16NwXUdAmpmZmZk5REDhehSuR6EyQM3MzMzMjDJAKVyPwvWoIED2KFyPwnUn
+      QI/C9Shcj/o/hetRuB6F6z9cj8L1KFz7P5qZmZmZmQFAKVyPwvUoGUAfhetRuB44QFK4HoXr8VpA
+      PQrXo3CtY0Bcj8L1KBxrQClcj8L1aGZAFK5H4Xp0cECamZmZmUFtQHsUrkfh2mhApHA9CtdjYEAK
+      16NwPQJgQJqZmZmZKWNAUrgehespbkAzMzMzM5NjQI/C9Shcv1ZAw/UoXI+yV0Bcj8L1KCxUQB+F
+      61G47lBAKVyPwvUITECkcD0K12M1QB+F61G4HjJASOF6FK5HIUBSuB6F61EeQFK4HoXrUSFA16Nw
+      PQrXKkAUrkfhehQsQIXrUbgeRTdAFK5H4Xo0XEAK16NwPUplQLgehetR3HBACtejcD1qa0BmZmZm
+      Zv5vQMP1KFyPamtAuB6F61Hwb0DsUbgehatqQOxRuB6FA2tAZmZmZmY+bEDD9Shcj3JfQArXo3A9
+      +l5AmpmZmZmJVUDsUbgeheNhQClcj8L1mGRAUrgehetxaECPwvUoXL9iQMP1KFyPqmJAzczMzMws
+      TkA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+fashion_mnist_num_classes_2_num_dev_examples_3522_num_test_examples_4388_resolution_32_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzMzOjVEC4HoXrUbjmP83MzMzMzOQ/KVyPwvUo5D+kcD0K16PgP+F6FK5H4eI/cT0K16Nw9T9c
+      j8L1KFz/P8P1KFyPwvk/pHA9Ctej/D8pXI/C9Sj8P9ejcD0K1wFASOF6FK5H8T/NzMzMzMzkP4/C
+      9Shcj+I/cT0K16Nw3T+PwvUoXI/iP7gehetRuOY/cT0K16Nw7T+PwvUoXI/iP7gehetRuO4/FK5H
+      4XoU7j/2KFyPwvXgP0jhehSuR+k/9ihcj8L1EkDD9Shcj8IZQHsUrkfhegRASOF6FK5H8T89Ctej
+      cD3qP4XrUbgehds/pHA9Ctej4D9I4XoUrkfpP3sUrkfheuw/FK5H4XoU7j/D9Shcj8LlP+F6FK5H
+      4eo/uB6F61G45j/2KFyPwvXoPzMzMzMzM+M/KVyPwvUo5D8pXI/C9SjcPwAAAAAAAOA/KVyPwvUo
+      5D8UrkfhehTmP1K4HoXrUeg/cT0K16Nw3T8UrkfhehTuPwAAAAAAAOg/H4XrUbge5T/sUbgehevp
+      P0jhehSup1JAw/UoXI/C5T9cj8L1KFzvPxSuR+F6FN4/H4XrUbge5T97FK5H4XrkP5qZmZmZmek/
+      MzMzMzMz6z+kcD0K16PwP1yPwvUoXO8/AAAAAAAA8D/D9Shcj8LtP2ZmZmZmZu4/pHA9Ctej6D9m
+      ZmZmZmbuPwrXo3A9Cuc/pHA9Ctej6D/NzMzMzMzkP4/C9Shcj/I/rkfhehSu5z+kcD0K16PwP/Yo
+      XI/C9eg/ZmZmZmZm5j8UrkfhehTeP83MzMzMzOQ/zczMzMzM8D8AAAAAAADoP+F6FK5H4eo/rkfh
+      ehSu7z89CtejcD3qP1K4HoXrUeg/XI/C9Shc5z9SuB6F61HoP3sUrkfhevA/7FG4HoXr6T/Xo3A9
+      CtfzPzMzMzMzM/M/UrgehetR8D9mZmZmZmbyP3sUrkfhevA/zczMzMzM+D8zMzMzMzPzP/YoXI/C
+      9fg/FK5H4XoU9j8zMzMzMzPrP/YoXI/C9fA/7FG4HoXr6T9mZmZmZmbuP4XrUbgehes/H4XrUbge
+      A0A=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+fashion_mnist_num_classes_5_num_dev_examples_11630_num_test_examples_2555_resolution_16_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F61GYWEAzMzMzMzPrPwrXo3A9Cuc/hetRuB6F4z+4HoXrUbjmPz0K16NwPeo/zczMzMzM/D9c
+      j8L1KFwFQGZmZmZmZgBAAAAAAAAAAEBxPQrXo3D5P1K4HoXrUQRACtejcD0K8z+4HoXrUbjmP1yP
+      wvUoXN8/hetRuB6F4z/2KFyPwvXoP/YoXI/C9eA/XI/C9Shc5z89CtejcD3qP65H4XoUruc/7FG4
+      HoXr6T/hehSuR+HaP1K4HoXrUfA/w/UoXI/CF0DXo3A9CtcdQI/C9ShcjwBAKVyPwvUo8D+F61G4
+      HoXjP3sUrkfheuQ/XI/C9Shc5z89CtejcD3iPwrXo3A9CvM/7FG4HoXr8T89CtejcD3qP6RwPQrX
+      o+A/SOF6FK5H6T+F61G4HoXrP83MzMzMzOw/UrgehetR2D8K16NwPQrnP3sUrkfhevA/CtejcD0K
+      5z8fhetRuB7tP65H4XoUruc/w/UoXI/C5T8UrkfhehTmP3sUrkfheuw/zczMzMzM7D+kcD0K16Po
+      P83MzMzMrEhApHA9Ctej8D+kcD0K16PoP1K4HoXrUeA/pHA9Ctej4D9cj8L1KFznP7gehetRuPY/
+      PQrXo3A98j97FK5H4Xr0P7gehetRuPI/ZmZmZmZm8j+4HoXrUbjyP+xRuB6F6+k/cT0K16Nw8T9c
+      j8L1KFznP83MzMzMzPQ/mpmZmZmZ6T/D9Shcj8LlPwAAAAAAAOA/ZmZmZmZm7j/sUbgehevpP1K4
+      HoXrUeA/CtejcD0K5z9I4XoUrkfpPzMzMzMzM/M/pHA9Ctej6D8fhetRuB7tP3E9CtejcOU/cT0K
+      16Nw5T89CtejcD3qPylcj8L1KOw/FK5H4XoU5j89CtejcD3qP3E9CtejcO0/7FG4HoXr9T+F61G4
+      HoX3P9ejcD0K1/M/FK5H4XoU8j9cj8L1KFzzP3sUrkfhevw/mpmZmZmZ9T+kcD0K16P0P3E9Ctej
+      cPk/4XoUrkfh8j8fhetRuB7tP8P1KFyPwu0/16NwPQrX6z8K16NwPQrnP5qZmZmZmek/9ihcj8L1
+      BEA=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+fashion_mnist_num_classes_7_num_dev_examples_24549_num_test_examples_6657_resolution_16_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      j8L1KFz/VkCuR+F6FK7XP83MzMzMzNw/MzMzMzMz4z+F61G4HoXjP4XrUbgehds/j8L1KFyP9j8p
+      XI/C9SgCQArXo3A9Cvc/rkfhehSu/z/2KFyPwvX0P83MzMzMzAJAhetRuB6F9z/Xo3A9CtfrP1K4
+      HoXrUeA/MzMzMzMz4z/2KFyPwvXgP5qZmZmZmdk/AAAAAAAA4D9I4XoUrkfpP6RwPQrXo+g/exSu
+      R+F68D97FK5H4XrsP+xRuB6F6+E/H4XrUbgeEkApXI/C9SgdQI/C9Shcj/o/pHA9Ctej6D9I4XoU
+      rkfpP+F6FK5H4fI/9ihcj8L14D/2KFyPwvXYPx+F61G4Hu0/exSuR+F67D+amZmZmZnhP7gehetR
+      uOY/KVyPwvUo7D9cj8L1KFznP83MzMzMzOQ/j8L1KFyP4j9SuB6F61HwP+xRuB6F6+E/KVyPwvUo
+      5D+F61G4HoXbPwrXo3A9Cuc/rkfhehSu1z+4HoXrUbjmP8P1KFyPwuU/KVyPwvUo7D/Xo3A9Ctfj
+      P+xRuB6Fe1FA9ihcj8L16D+F61G4HoXjP+xRuB6F6+E/cT0K16Nw5T9cj8L1KFzfP4/C9Shcj+I/
+      H4XrUbge7T9mZmZmZmbyPylcj8L1KPA/H4XrUbge7T9cj8L1KFzvP4/C9Shcj+o/uB6F61G43j9x
+      PQrXo3DlP6RwPQrXo+g/w/UoXI/C1T8zMzMzMzPrP4/C9Shcj+o/7FG4HoXr6T8pXI/C9SjkP1yP
+      wvUoXOc/MzMzMzMz4z8AAAAAAADgP3E9CtejcO0/rkfhehSu5z97FK5H4XrsP2ZmZmZmZuY/ZmZm
+      ZmZm5j/hehSuR+HqP2ZmZmZmZu4/j8L1KFyP6j89CtejcD3qP+xRuB6F6+k/7FG4HoXr8T9SuB6F
+      61HoPz0K16NwPfY/FK5H4XoU7j/Xo3A9CtfzPx+F61G4Hu0/16NwPQrX8z9mZmZmZmbuP65H4XoU
+      rvc/mpmZmZmZ8T/NzMzMzMzwP5qZmZmZmdk/16NwPQrX6z+F61G4HoXrP0jhehSuR+E/UrgehetR
+      BEA=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+horses_or_humans_num_classes_2_num_dev_examples_561_num_test_examples_122_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      7FG4HjWl1UC4HoXrUbWTQOxRuB6FyYpA4XoUrkdPlEDhehSuR+GKQHE9Ctej75NAPQrXo3A2lEC4
+      HoXrUWqeQK5H4XoUoJRAuB6F61HroEBcj8L1qBShQOxRuB6FCplACtejcD1nmkAUrkfheiSLQAAA
+      AAAAS5RAKVyPwvXmikDsUbgeheeTQEjhehSu7YpAzczMzMz0lUBI4XoUroWQQClcj8L1+JhAhetR
+      uB6NmEC4HoXrURuQQI/C9ShcKpdA9ihcjwJD2ECamZmZmXCUQEjhehSu7phAFK5H4XoElEC4HoXr
+      Ue6KQKRwPQrXVpRAhetRuB7bk0B7FK5H4VmQQKRwPQrXlppAw/UoXI9tkEDsUbgehfyZQOxRuB6F
+      qZFAKVyPwvWvnEAAAAAAALyPQKRwPQrXupNAzczMzMyoikBSuB6F66eUQAAAAAAAzpNAuB6F61Go
+      ikDXo3A9CuiVQHE9Ctejh5BAFK5H4Xp8mUBmZmZmZhSQQClcj8L1m5lAMzMzMzPXjkApXI/C9a2W
+      QDMzMzMzhpRACtejcD3OikCPwvUoXCCUQOxRuB6F44pAKVyPwvWBlEDD9Shcj5SKQK5H4XoU2phA
+      PQrXo3DvkkAAAAAAANGaQFK4HoXrFZFAAAAAAAArnECamZmZmcecQGZmZmZmt5BA9ihcj8IKlUC4
+      HoXrUbiMQBSuR+F6/JVAPQrXo3CtjEAzMzMzM/yUQKRwPQrXvYxAXI/C9ShZm0DXo3A9CkabQGZm
+      ZmZmg5JAUrgeheujnEDNzMzMzNWRQClcj8L195pA9ihcj8LSkkCamZmZmRmcQPYoXI/CepJA7FG4
+      HoXTm0BSuB6F6+OSQPYoXI/CE51Aj8L1KFwGokAfhetRuPWZQDMzMzMzaqFAuB6F61EwmUBSuB6F
+      a5qlQB+F61G4BZ9AzczMzMzMqUBmZmZmZrelQEjhehSuv69AuB6F69HNq0A9CtejcEuhQK5H4XqU
+      lKVA16NwPQpem0AUrkfhujixQOF6FK5H2pBA9ihcj8KUl0BxPQrXo4KQQMP1KFyPB5hAhetRuB77
+      n0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+horses_or_humans_num_classes_2_num_dev_examples_712_num_test_examples_94_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      w/UoXA/l2EB7FK5H4TiTQDMzMzMzYYpAw/UoXI8ElEBSuB6F6xWKQNejcD0KsZNAH4XrUbjQlUBI
+      4XoUrjCfQB+F61G4/ZVA7FG4HoVWo0DNzMzMzAihQBSuR+F6x5dAexSuR+GomUCamZmZma2KQBSu
+      R+F6HZRAmpmZmZmfikBmZmZmZraTQKRwPQrXn4pAexSuR+HNlEBI4XoUrvWOQOxRuB6F/pZAPQrX
+      o3AxmEA9CtejcJOPQOF6FK5H7JRA7FG4HrWA2EDNzMzMzBuUQK5H4XoU/ZRAXI/C9Siek0BmZmZm
+      ZkCKQB+F61G4BpRA4XoUrkd3k0DD9Shcj+KOQArXo3A9AZhAzczMzMzUjkDsUbgehS2bQK5H4XoU
+      NpBA7FG4HoXVl0AzMzMzM3uPQFyPwvUoRZNASOF6FK6PikCkcD0K1y6UQM3MzMzMeZNAj8L1KFx5
+      ikCF61G4HkCVQClcj8L1iI5A16NwPQrdlkCamZmZmXWPQIXrUbgeYZpASOF6FK49jEAfhetRuFSW
+      QIXrUbgeRZRASOF6FK5rikAUrkfhes2TQHsUrkfhZopA7FG4HoUGlEAfhetRuLiKQFK4HoXrNZpA
+      uB6F61HNk0BSuB6F60mbQGZmZmZmD5JAcT0K16MxmkCF61G4Hi+ZQM3MzMzMZZBAcT0K16N4lEAU
+      rkfheuiLQJqZmZmZcpVAzczMzMyqi0CF61G4HtGUQFyPwvUoXIxAw/UoXI+1mUB7FK5H4UaZQFyP
+      wvUo5pJAj8L1KFwqnkBmZmZmZm6RQArXo3A9QpxA16NwPQq0lEAAAAAAABKeQFK4HoXrcZNA4XoU
+      rkcnnUAAAAAAAIyTQClcj8L13ZxAUrgehWvCoEApXI/C9ZeXQFK4HoXrk59AXI/C9Sh6l0BSuB6F
+      a8OhQK5H4XoUUJdASOF6FK4rpkA9CtejcPWkQClcj8J1ZK5AFK5H4Xp1rkDsUbgehZGhQFyPwvWo
+      XqJAcT0K16Ocn0AUrkfhOvKzQPYoXI/CVY5A9ihcj8LOlkDhehSuR8mRQK5H4XoU2JVAw/UoXI+w
+      m0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+horses_or_humans_num_classes_2_num_dev_examples_790_num_test_examples_74_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      16NwPQpn1kCPwvUoXGGUQLgehetRvotArkfhehTqlECF61G4HoOLQHsUrkfhqZRA4XoUrkfBkkCa
+      mZmZmV+cQKRwPQrXJJJAexSuR+Fyn0A9CtejcMGdQI/C9ShcnpNAuB6F61H9l0AAAAAAABCMQM3M
+      zMzMOpVAcT0K16PSi0D2KFyPwnaUQD0K16NwhYtAAAAAAADalUCamZmZmVSQQFK4HoXrU5dAPQrX
+      o3AVmEBxPQrXo9GQQPYoXI/CKpZAcT0K1zOH2EApXI/C9fGUQAAAAAAAkpVA16NwPQqElEAfhetR
+      uJyLQLgehetRCJVACtejcD06lEAUrkfhemWRQB+F61G4p5lA16NwPQqPj0BxPQrXo4+cQKRwPQrX
+      6ZBAH4XrUbh9mECF61G4HnWPQM3MzMzMdpRAw/UoXI96i0DsUbgehQ6VQHsUrkfhn5RAw/UoXI/k
+      i0CkcD0K1/SVQPYoXI/C9ZBAH4XrUbgRl0DsUbgehV2PQOxRuB6FIpxApHA9CtfljUCkcD0K16OW
+      QGZmZmZm9ZRAmpmZmZnBi0AK16NwPZiUQFyPwvUocotA9ihcj8LrlECuR+F6FFSLQEjhehSu25hA
+      mpmZmZntkUAfhetRuGqZQOF6FK5HOZJAzczMzMwxnEAK16NwPR6bQIXrUbgeGpFArkfhehSAlUAA
+      AAAAAK6NQOF6FK5HjZZAj8L1KFyLjUCkcD0K1xaWQFK4HoXr941AKVyPwvXqm0BmZmZmZnqaQHE9
+      Cteji5JAmpmZmZk7nkCF61G4Ho+RQM3MzMzMa5tAcT0K16Pfk0CPwvUoXESdQIXrUbge0pJAMzMz
+      MzMhnEDhehSuR6OTQEjhehSuQJ5A7FG4HgXjokC4HoXrURScQBSuR+H6iKJA4XoUrkcAnEAAAAAA
+      gCilQB+F61G4ZplAMzMzMzOjpkBI4XoUrg2lQArXo3A9Aq1A16NwPQpZrUB7FK5HYXOiQM3MzMxM
+      gKNAUrgeheuTnkBcj8L16HqyQFyPwvUono9AXI/C9SjzlkB7FK5H4R6RQM3MzMzM6JZAAAAAAAA8
+      nEA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+horses_or_humans_num_classes_2_num_dev_examples_859_num_test_examples_60_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      hetRuA6q2kDhehSuR3GTQFK4HoXrX4pAKVyPwvXTk0CPwvUoXOuJQOxRuB6FXpNAj8L1KFzskkAf
+      hetRuHicQB+F61G4g5JArkfhepSYoEDNzMzMzI6eQArXo3A9sZRAMzMzMzPimUCkcD0K11WKQDMz
+      MzMz2JNAAAAAAACOikCkcD0K15GTQGZmZmZmjopAzczMzMx0lEDNzMzMzAWQQNejcD0Kj5ZAAAAA
+      AABSmEBSuB6F652QQEjhehSuPJVAzczMzNw92EB7FK5H4fSTQGZmZmZmj5hAPQrXo3B/k0DhehSu
+      Ry2KQFK4HoXr+5NAexSuR+FVk0DXo3A9ChGPQIXrUbgeqJdA16NwPQq1jkA9CtejcBGcQIXrUbge
+      E5FA9ihcj8KZl0AzMzMzM2+PQB+F61G4RpNAAAAAAADkiUBxPQrXoxGUQM3MzMzMiZNAXI/C9SgQ
+      ikCF61G4HrOUQIXrUbgeRY9AFK5H4XrhlUCPwvUoXCuPQOF6FK5HsZpAAAAAAADui0AfhetRuNKV
+      QJqZmZmZ3JNAhetRuB4vikC4HoXrUZ6TQJqZmZmZSYpAPQrXo3Dkk0BI4XoUrl2KQAAAAAAAL5hA
+      exSuR+EFkUBxPQrXo3GYQClcj8L1KZJA7FG4HoUAnUDsUbgeheCZQFK4HoXrb5BAzczMzMwxlEAU
+      rkfhepaLQHE9Ctej8ZRACtejcD1Qi0CPwvUoXE+UQGZmZmZmuItAPQrXo3BXmUBSuB6F61GYQKRw
+      PQrX+ZFAUrgehes7nEDNzMzMzA+QQLgehetR8ZlAuB6F61FakkApXI/C9YmaQArXo3A9B5FAhetR
+      uB4KmUDXo3A9CimRQM3MzMzMlJpAj8L1KFwjoEB7FK5H4UqWQMP1KFyPQKBAXI/C9SgymEBSuB6F
+      686jQOxRuB6FWJdAmpmZmRnEpUCamZmZGcKkQGZmZmZmxq1A9ihcjwJpsUAAAAAAAAmlQClcj8L1
+      NKVAZmZmZmbOn0DsUbgexSq0QPYoXI/C141A7FG4HoWflkApXI/C9cSRQDMzMzMzSZZAPQrXo3BH
+      n0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+imagenet_resized_32x32_num_classes_74_num_dev_examples_85448_num_test_examples_8140_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcD26WkBmZmZmZmYnQEjhehSuxzlAmpmZmZkZQEBSuB6F6zFKQM3MzMzMjEdArkfhehQuWkCa
+      mZmZmYlXQNejcD0KN1FAmpmZmZlpVkAfhetRuB5NQClcj8L1iENAPQrXo3B9MEC4HoXrUbgIQAAA
+      AAAAACRAAAAAAAAALEDXo3A9Clc5QHsUrkfhOjNAj8L1KFxPNkBcj8L1KBw6QHsUrkfh2kdAZmZm
+      ZmYGUUDNzMzMzIxGQOxRuB6Fi05ApHA9CtfzYkAUrkfhelQ4QDMzMzMzM/s/CtejcD0KDUBcj8L1
+      KJwwQIXrUbgehTZA9ihcj8J1OkDsUbgehQtGQDMzMzMzk0VAzczMzMwMRkDNzMzMzExEQLgehetR
+      uDlAuB6F61F4PEDNzMzMzMwnQPYoXI/C9fw/ZmZmZmZm7j+kcD0K16P4P9ejcD0K1xpAMzMzMzMz
+      L0AAAAAAAEA0QOxRuB6F6zhAuB6F61E4MkB7FK5H4foqQHE9Ctej8CNACtejcD0KEkB7FK5H4Xoh
+      QEjhehSuRwVA7FG4HoXr4T8fhetRuB7xPx+F61G4HhBAw/UoXI/CGUBI4XoUrgc3QIXrUbge5URA
+      XI/C9Sh8TUB7FK5H4SpQQB+F61G4fklA4XoUrkdhSkA9CtejcD1LQOF6FK5HYUdAFK5H4XoUK0C4
+      HoXrUbgbQMP1KFyPwg9Aw/UoXI/CE0AzMzMzMzMbQK5H4XoUritA9ihcj8L1OECuR+F6FG48QJqZ
+      mZmZGTtApHA9CtdjOUAUrkfhepQtQMP1KFyPwi9AXI/C9ShcG0D2KFyPwvUcQNejcD0K1xpAFK5H
+      4XoUG0D2KFyPwvUZQEjhehSuRyVAFK5H4XqUOUAUrkfhenREQD0K16NwXUpAAAAAAAAATkCuR+F6
+      FA5NQIXrUbgexUdA9ihcj8IVSkB7FK5H4RpIQB+F61G4nkVAhetRuB5FRkCkcD0K1wNCQIXrUbge
+      BUVAPQrXo3B9PED2KFyPwvU3QHsUrkfhOjJAAAAAAABANkAzMzMzMzM4QNejcD0KFzlA4XoUrkch
+      Q0A=
+  num_channels: 3
+  num_classes: 1000
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+imagenette_num_classes_3_num_dev_examples_930_num_test_examples_1257_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F6xFHykDNzMzMzEWVQHE9CtejhoxApHA9CteClUCF61G4HpuMQM3MzMzMYpVACtejcL0goEAf
+      hetRuOCbQD0K16Nw3JJACtejcD1knUBSuB6F6zSfQOF6FK5HVpRAFK5H4XpxmEB7FK5H4caMQEjh
+      ehSu75VAuB6F61FyjEDsUbgehRKVQIXrUbgeaYxAj8L1KFxOlkAAAAAAAA6PQFK4HoXrc5dAcT0K
+      16Ngl0DXo3A9Ci6QQKRwPQrXi5pA9ihcj7Lj10D2KFyPwuuVQNejcD0KJJJAuB6F61EblUB7FK5H
+      4aqMQJqZmZmZopVAXI/C9SjolEBxPQrXozKQQHsUrkfh8ZhACtejcD2sj0C4HoXrUVaYQMP1KFyP
+      SpJAmpmZmZnwmkAUrkfheviRQFK4HoXrZ5VAH4XrUbisjECamZmZmaiVQArXo3A9dZVApHA9Ctd3
+      jEDsUbgehXmXQBSuR+F6ko9AFK5H4XpxmEBSuB6F62WPQM3MzMzMFphAPQrXo3CdkED2KFyPws2h
+      QFK4HoVrRKtA16NwPQodjUCkcD0K16WVQFK4HoXrQY1Aw/UoXI8UlkCPwvUoXCmNQD0K16Nw55dA
+      4XoUrkflkECF61G4HiibQK5H4XoUn5FApHA9CtdOm0AK16NwPYSeQKRwPQrXPpVAPQrXo3B/l0AK
+      16NwPUiPQHE9CtejlpdACtejcD12j0DsUbgehT2XQFK4HoXr4Y5AmpmZmZnemkA9CtejcMScQHE9
+      CtejepNACtejcD0LnUAzMzMzM3KTQOF6FK5HRKNAFK5H4Xq0lUCuR+F6FHWdQDMzMzMzwZNA16Nw
+      PQpinEB7FK5H4SCTQOxRuB6FfpxASOF6FK5RoUDhehSuR4maQM3MzMzMOKRAuB6F61EgnEApXI/C
+      dc2mQArXo3A9Op5A9ihcjwKavUDXo3A9CmyiQK5H4XoUAapAKVyPwvUjqEAfhetRuLifQBSuR+F6
+      OqdAPQrXo/BfrkDNzMzMzFWiQOxRuB6FQpBAcT0K16Nvl0BxPQrXo0CPQM3MzMzMFZpA16NwPQra
+      mkA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+imagenette_num_classes_3_num_dev_examples_967_num_test_examples_435_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      FK5H4TptvECF61G4Hg+WQOxRuB6FO45A16NwPQprl0B7FK5H4cKNQJqZmZmZSpZAXI/C9Sj6mEAU
+      rkfheoybQOF6FK5HT5RAw/UoXA9BpEB7FK5H4VacQHsUrkfh5JNAzczMzMxdnEBI4XoUrtuOQLge
+      hetR/ZZAKVyPwvXAjUA9CtejcHyWQLgehetRzo5AKVyPwvWLl0AUrkfhemyPQHsUrkfhYJlASOF6
+      FK5ymkDsUbgehWqQQAAAAAAAw5ZAUrgehbtc2EC4HoXrUdeWQMP1KFyPuJJA9ihcj8JHlkCuR+F6
+      FPqNQArXo3A9z5ZAAAAAAAAOlkB7FK5H4eSQQMP1KFyP7JlAhetRuB5WkkApXI/C9RWZQOxRuB6F
+      OpBA16NwPQq1mkCPwvUoXO6SQBSuR+F6TJZAPQrXo3D9jUA9CtejcP6WQJqZmZmZrZZA7FG4HoUt
+      jkBI4XoUrvaYQDMzMzMzSJBAAAAAAAAxmUBI4XoUrvGQQFyPwvUoqplAMzMzMzPFj0BxPQrXo9qa
+      QNejcD2KY6tAcT0K16MqjkCamZmZmYuWQPYoXI/CFJBAXI/C9SiLl0AfhetRuCiPQBSuR+F6V5pA
+      SOF6FK7OkUCuR+F6FOucQD0K16NwrZRAUrgeheu3mkAAAAAAAAKdQI/C9ShcG5pAPQrXo3BgmEAp
+      XI/C9b2QQGZmZmZmKplAAAAAAADLkEBI4XoUrg2ZQHsUrkfhhJBAmpmZmZmHnEApXI/C9audQK5H
+      4XoU75JAUrgehetqnUBSuB6F66eSQLgehevR3KhAH4XrUbgZmUBSuB6F636fQNejcD0Kv5RAw/Uo
+      XI8kn0AfhetRuGuUQOxRuB6FD59AMzMzM7OWokD2KFyPwkKcQHsUrkdhjqdAmpmZmZn0nEDNzMzM
+      TIGkQPYoXI/CYJ9AUrgehWsmwECamZmZmeCiQM3MzMzMK6pAexSuR2GXqEBxPQrXozydQB+F61G4
+      6qRAFK5H4fq5rkCPwvUoXDGeQKRwPQrXnpBApHA9CtcbmkAK16NwPU6PQGZmZmZmophAj8L1KFza
+      mkA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+imagenette_num_classes_4_num_dev_examples_2520_num_test_examples_544_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZmbIwUCF61G4HnqVQIXrUbgeT41AH4XrUbhWlkCamZmZmeWMQGZmZmZmypVAhetRuB5Nm0Af
+      hetRuKmhQEjhehSuvJtASOF6FK5EokCF61G4ngChQGZmZmZmX5ZAcT0K16NQmUDD9ShcjxKNQArX
+      o3A9a5ZA4XoUrkdRjUDD9Shcj2+VQFK4HoXrg41AzczMzMwal0C4HoXrUXqOQPYoXI/C05hA9ihc
+      j8KUmkCamZmZmeuQQHE9CtejaZlA16NwPQqF2EBSuB6F6yOWQJqZmZmZY5JAFK5H4XrelUBxPQrX
+      o/SMQHE9CtejMZZACtejcD2WlUA9CtejcKqQQNejcD0KT5tAH4XrUbhAkkA9CtejcB+bQEjhehSu
+      w5JAcT0K16MJnUBmZmZmZoiRQOF6FK5Hg5VAhetRuB4fjUCuR+F6FCSWQGZmZmZmrpVAUrgeheth
+      jUA9CtejcKyXQM3MzMzMwo5A9ihcj8IJmkAK16NwPSyRQAAAAAAAPplAKVyPwvWJkUAK16NwPaCb
+      QBSuR+F69JZAuB6F61GKjUDsUbgehQSWQOxRuB6Ff45AFK5H4XrrlkC4HoXrUWqNQBSuR+F6dppA
+      FK5H4XrmlEAUrkfheiSfQHE9CtejhpNAhetRuB75nUBI4XoULgWgQGZmZmZmuZZACtejcD1Xl0BI
+      4XoUruGPQOF6FK5HQ5hAj8L1KFyHj0BI4XoUrnCXQBSuR+F6dI9AH4XrUbiGm0DsUbgehQyeQK5H
+      4XoUxZVAuB6F61GVnkDD9Shcj9aVQBSuR+H6jqNAexSuR+EDl0D2KFyPwiCgQHE9CtejEJRAuB6F
+      61FynUAAAAAAAGiTQFyPwvUoh51Aj8L1KNyhoUApXI/C9ZGcQClcj8J1z6VAj8L1KFxlm0BxPQrX
+      o5WmQJqZmZmZ1pxAuB6F65HXvEA9Ctej8EChQJqZmZkZsK1ACtejcD1yq0DhehSuxyehQFyPwvWo
+      OKpAFK5H4Xo3qEDNzMzMzBmfQBSuR+F6GJJApHA9CtdLmUCuR+F6FN6QQLgehetRdplAMzMzMzMm
+      nEA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+kmnist_num_classes_10_num_dev_examples_63000_num_test_examples_7000_resolution_16_num_channels_1_original:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      16NwPQoHYkA9CtejcD3aP5qZmZmZmck/mpmZmZmZ2T+PwvUoXI/iPwAAAAAAAOA/KVyPwvUo9D8p
+      XI/C9SgAQNejcD0K1/8/MzMzMzMz+z/Xo3A9CtfzP83MzMzMzABAhetRuB6F8z8zMzMzMzPjP7ge
+      hetRuOY/j8L1KFyP4j+PwvUoXI/SP5qZmZmZmdk/j8L1KFyP6j8zMzMzMzPjP1yPwvUoXN8/KVyP
+      wvUo5D89CtejcD3iP5qZmZmZmdk/j8L1KFyPAkAUrkfhehQXQB+F61G4HgNAUrgehetR8D+amZmZ
+      mZnhPwAAAAAAAOA/mpmZmZmZ4T+PwvUoXI/iP2ZmZmZmZuY/7FG4HoXr4T9I4XoUrkfpP1K4HoXr
+      UeA/hetRuB6F4z+amZmZmZnZP3E9CtejcN0/pHA9Ctej4D+kcD0K16PgPylcj8L1KNw/uB6F61G4
+      3j89CtejcD3iP9ejcD0K1+M/AAAAAAAA6D/2KFyPwvXgPx+F61G4HuU/exSuR+F65D+F61G4HoXb
+      Px+F61G43kBAzczMzMzM3D8pXI/C9SjkPxSuR+F6FOY/UrgehetR4D9I4XoUrkfpP83MzMzMzOw/
+      ZmZmZmZm8j+amZmZmZnpP1yPwvUoXOc/7FG4HoXr4T+uR+F6FK7nP8P1KFyPwu0/H4XrUbge5T89
+      CtejcD3iP3E9CtejcOU/cT0K16Nw5T+uR+F6FK7XP65H4XoUrtc/cT0K16Nw5T89CtejcD3iPylc
+      j8L1KOQ/cT0K16Nw5T8K16NwPQrnP+F6FK5H4eI/4XoUrkfh2j/hehSuR+HqPylcj8L1KOQ/w/Uo
+      XI/C5T+PwvUoXI/SP5qZmZmZmdk/FK5H4XoU3j+amZmZmZnpP4/C9Shcj+I/pHA9Ctej6D8pXI/C
+      9SjsPxSuR+F6FOY/pHA9Ctej6D+4HoXrUbjmP7gehetRuOY/pHA9Ctej6D89CtejcD3iP3E9Ctej
+      cO0/zczMzMzM7D9I4XoUrkfpP9ejcD0K1+M/UrgehetR4D/2KFyPwvXgPz0K16NwPdo/AAAAAAAA
+      BkA=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+kmnist_num_classes_4_num_dev_examples_17800_num_test_examples_2064_resolution_32_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      cT0K16MQYUDD9Shcj8LVP4/C9Shcj+I/FK5H4XoU3j9mZmZmZmbWPylcj8L1KNw/rkfhehSu8z8U
+      rkfhehT6P7gehetRuPo/ZmZmZmZm8j9mZmZmZmb6P1K4HoXrUfw/mpmZmZmZ9T/hehSuR+HiP9ej
+      cD0K19M/rkfhehSu1z8pXI/C9SjkPx+F61G4HtU/9ihcj8L12D+4HoXrUbjeP65H4XoUrtc/H4Xr
+      Ubge5T/sUbgehevRPx+F61G4HuU/j8L1KFyPCkCkcD0K16MUQEjhehSuRwdAexSuR+F67D9SuB6F
+      61HgP65H4XoUrtc/H4XrUbge1T8zMzMzMzPjP4XrUbgehds/AAAAAAAA4D8pXI/C9SjkPxSuR+F6
+      FOY/16NwPQrX4z8UrkfhehTmP+xRuB6F6+E/PQrXo3A94j9SuB6F61HgP/YoXI/C9dg/AAAAAAAA
+      4D/D9Shcj8LtP0jhehSuR+E/XI/C9Shc5z+PwvUoXI/iP83MzMzMzOQ/KVyPwvUo3D/Xo3A9CtfT
+      P8P1KFyPokRAw/UoXI/C1T/Xo3A9CtfjPwAAAAAAAOA/w/UoXI/C5T8fhetRuB7VP/YoXI/C9eA/
+      j8L1KFyP6j97FK5H4XrsPxSuR+F6FO4/KVyPwvUo8D/D9Shcj8LtP1K4HoXrUfA/exSuR+F67D/N
+      zMzMzMzkP1yPwvUoXOc/cT0K16Nw5T89CtejcD3iPz0K16NwPdo/PQrXo3A94j9cj8L1KFzfP7ge
+      hetRuN4/mpmZmZmZ6T9SuB6F61HYP3sUrkfhetQ/zczMzMzM3D8fhetRuB7lP+F6FK5H4eI/FK5H
+      4XoU5j/NzMzMzMzsP4XrUbgehes/KVyPwvUo5D+F61G4HoXjPwAAAAAAAOA/zczMzMzM7D97FK5H
+      4XrsPwAAAAAAAOg/zczMzMzM7D8fhetRuB7lP+F6FK5H4eo/cT0K16Nw7T9SuB6F61HwP1yPwvUo
+      XO8/j8L1KFyP4j8fhetRuB7xP8P1KFyPwu0/AAAAAAAA4D8fhetRuB7lP4XrUbgehds/MzMzMzMz
+      BUA=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+kmnist_num_classes_8_num_dev_examples_28504_num_test_examples_3000_resolution_16_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      uB6F61FIYkC4HoXrUbjOP6RwPQrXo+A/w/UoXI/C1T8pXI/C9SjcP/YoXI/C9eA/uB6F61G49j8f
+      hetRuB79P+xRuB6F6wFAuB6F61G49j9xPQrXo3D9P65H4XoUrv8/UrgehetR9D8AAAAAAADoP7ge
+      hetRuN4/zczMzMzM3D8pXI/C9SjcP7gehetRuN4/9ihcj8L12D8pXI/C9SjcP7gehetRuM4/zczM
+      zMzM3D97FK5H4XrUP2ZmZmZmZuY/PQrXo3A9+j9I4XoUrkcYQEjhehSuRwVAMzMzMzMz6z8fhetR
+      uB7lP6RwPQrXo9A/MzMzMzMz4z/2KFyPwvXYP4/C9Shcj+I/cT0K16Nw5T8pXI/C9SjwP7gehetR
+      uN4/KVyPwvUo5D+kcD0K16PoP/YoXI/C9eg/SOF6FK5H4T+kcD0K16PoP0jhehSuR+E/j8L1KFyP
+      0j/sUbgehevhP5qZmZmZmdk/pHA9Ctej4D9mZmZmZmbmP83MzMzMzOw/j8L1KFyP6j+4HoXrUbjO
+      P4/C9Shcz0BAzczMzMzM5D8pXI/C9SjMPxSuR+F6FN4/UrgehetR4D/2KFyPwvXYP8P1KFyPwtU/
+      FK5H4XoU3j/NzMzMzMzsP/YoXI/C9eg/j8L1KFyP9j89CtejcD3iP1K4HoXrUeA/w/UoXI/C7T/s
+      UbgehevpP83MzMzMzNw/exSuR+F65D89CtejcD3aP2ZmZmZmZtY/FK5H4XoU3j+kcD0K16PgP5qZ
+      mZmZmdk/pHA9Ctej6D+uR+F6FK7nP2ZmZmZmZuY/pHA9Ctej4D9SuB6F61HoP83MzMzMzNw/hetR
+      uB6F4z/Xo3A9CtfTP3E9CtejcOU/w/UoXI/C5T/hehSuR+HaPxSuR+F6FOY/PQrXo3A96j9mZmZm
+      ZmbmPx+F61G4HuU/7FG4HoXr4T/NzMzMzMzsP7gehetRuOY/UrgehetR6D/sUbgehevhP2ZmZmZm
+      ZuY/9ihcj8L16D9SuB6F61HwPxSuR+F6FOY/UrgehetR4D9xPQrXo3DlP1yPwvUoXN8/PQrXo3A9
+      BEA=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+malaria_num_classes_2_num_dev_examples_12890_num_test_examples_2346_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZtZq3EBI4XoUrj9lQD0K16NwDV1AexSuR+GCZUCF61G4HpVaQNejcD0KL2VAuB6F61GoXEAf
+      hetRuO5oQMP1KFyP0l5ApHA9CtezZkDsUbgehXtmQOxRuB6Fe11AexSuR+HaZEDD9Shcj/JcQD0K
+      16NwdWVAUrgehevBXEBSuB6F6+FjQD0K16NwTV1AZmZmZmYuZUBcj8L1KJxfQPYoXI/C5WhAZmZm
+      Zmb2ZkDsUbgehStfQB+F61G4bmZAzczMzMyepEA9CtejcC1mQK5H4XoUHlxAFK5H4XrkZEAzMzMz
+      MwNcQFyPwvUoJGZAFK5H4XqsZEA9CtejcC1eQBSuR+F6dGlAcT0K16OoYEAK16NwPVJmQMP1KFyP
+      AmBAzczMzMwMZUA9CtejcC1eQIXrUbgeZWRAZmZmZmbmXEDXo3A9ChdnQOF6FK5HgWVA4XoUrkfR
+      W0AfhetRuEZmQBSuR+F6dF9AzczMzMzkaEApXI/C9ZheQOxRuB6Fq2hAKVyPwvXYXEApXI/C9UBl
+      QPYoXI/CtWVAzczMzMyMXEAfhetRuP5lQEjhehSuh1xA16NwPQp/ZUBxPQrXo1BcQFK4HoXryWZA
+      PQrXo3AdYUA9CtejcK1oQJqZmZmZCV9AexSuR+FCaEDD9Shcj7JlQHE9CtejoF1AH4XrUbgGZUAf
+      hetRuF5eQBSuR+F6VGVAMzMzMzMjX0D2KFyPwpVkQIXrUbgexV1AXI/C9Sh8aEApXI/C9ehpQHsU
+      rkfhUmBAexSuR+GSaEB7FK5H4WpdQIXrUbgevWVA7FG4HoVLXkDXo3A9Ci9nQJqZmZmZ2V1AKVyP
+      wvUQZkBSuB6F6zFdQMP1KFyP2mdA16NwPQq3Z0DsUbgehXtjQClcj8L1WGpAj8L1KFyvYUAUrkfh
+      epRqQEjhehSuv2FApHA9CtfncECuR+F6FOSCQB+F61G4go5APQrXo3Anh0DhehSuR713QB+F61G4
+      ZmxAZmZmZmZmXEDhehSuR/FoQFyPwvUoHF9AZmZmZmZWZkAfhetRuM5eQClcj8L1MGZAAAAAAABA
+      Y0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+malaria_num_classes_2_num_dev_examples_17904_num_test_examples_88_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      j8L1KLyv3ECF61G4Hv1kQClcj8L1mFxA9ihcj8IFZkD2KFyPwkVdQIXrUbgenWVAw/UoXI9CXEAp
+      XI/C9VBnQNejcD0KJ15AzczMzMyMZkAAAAAAANhlQK5H4XoU7l1AmpmZmZlZZEDD9Shcj7JbQD0K
+      16Nw5WRA16NwPQpXXUCamZmZmaFkQJqZmZmZuV1A4XoUrkfJZECPwvUoXA9fQIXrUbgevWdAXI/C
+      9ShUZ0BxPQrXo8BcQM3MzMzMvGVAH4XrUbhapEBcj8L1KHRlQMP1KFyPElxAKVyPwvXAZECPwvUo
+      XG9bQLgehetRwGZASOF6FK7XZEAK16NwPQpdQBSuR+F6NGhAmpmZmZl5YEDNzMzMzJRlQDMzMzMz
+      E2BAhetRuB6lZUCkcD0K11NdQNejcD0KX2RA4XoUrkfxW0AzMzMzM7tmQOxRuB6F62VA4XoUrkex
+      XEC4HoXrUehlQHE9CtejIF5AhetRuB7dZkBcj8L1KNxdQKRwPQrXs2dAMzMzMzOTW0Bcj8L1KCxl
+      QArXo3A9EmZASOF6FK5XW0CamZmZmTlmQHsUrkfh6ltAzczMzMwsZkAzMzMzM/NcQOxRuB6Fm2VA
+      pHA9CtfjX0AUrkfhemRoQD0K16NwzV1A7FG4HoWjZ0DD9Shcj2JlQArXo3A9GlxAXI/C9Si8ZEAf
+      hetRuP5dQIXrUbgetWVAexSuR+GaXkBcj8L1KFxlQMP1KFyPMl1Aw/UoXI8CZ0CamZmZmQloQI/C
+      9Shcj19AH4XrUbiOZ0B7FK5H4TpdQFyPwvUoHGZAj8L1KFwPXkDNzMzMzDxnQPYoXI/C5V5AUrge
+      hetBZkDNzMzMzCxdQAAAAAAAWGhASOF6FK7/ZkDNzMzMzLxiQHE9CtejuGlAexSuR+GaYUB7FK5H
+      4bJqQArXo3A9UmNAmpmZmZlVc0D2KFyPwtGAQFK4HoXrKY1AH4XrUbgiiUBSuB6F6+l0QFK4HoXr
+      IWxAj8L1KFxvW0DXo3A9Cq9nQOxRuB6F+11ApHA9CtdjZkAK16NwPUpeQIXrUbge/WVArkfhehR2
+      Y0A=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+mnist_num_classes_7_num_dev_examples_11612_num_test_examples_2660_resolution_32_num_channels_1:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      4XoUrkcRXEB7FK5H4XqUP3sUrkfhepQ/exSuR+F6lD8AAAAAAAAAAJqZmZmZmbk/j8L1KFyP0j+a
+      mZmZmZnhP4/C9Shcj/I/H4XrUbge5T8UrkfhehTePylcj8L1KOQ/pHA9Ctej4D9cj8L1KFzfP1K4
+      HoXrUcg/UrgehetRyD/sUbgehevRP5qZmZmZmak/KVyPwvUovD+kcD0K16PAP8P1KFyPwsU/uB6F
+      61G4vj+kcD0K16PAP7gehetRuJ4/mpmZmZmZ2T+amZmZmZnZP+F6FK5H4do/cT0K16Nw3T/sUbge
+      hevRP5qZmZmZmck/w/UoXI/CxT+4HoXrUbiuP7gehetRuJ4/mpmZmZmZuT+kcD0K16PAP1K4HoXr
+      Ucg/CtejcD0Kxz+kcD0K16PAP7gehetRuL4/mpmZmZmZqT/sUbgehevBP3sUrkfheqQ/mpmZmZmZ
+      uT+4HoXrUbi+PwAAAAAAAAAAuB6F61G4nj+amZmZmZmpP+xRuB6F68E/MzMzMzMzwz+4HoXrUbie
+      Pz0K16NwBWBAexSuR+F6hD/sUbgehevBP3sUrkfheqQ/exSuR+F6lD97FK5H4XqUPylcj8L1KLw/
+      CtejcD0Kxz+4HoXrUbiuPylcj8L1KMw/mpmZmZmZuT/sUbgehevBPwrXo3A9Crc/7FG4HoXrsT/s
+      UbgehevBP3sUrkfheqQ/exSuR+F6hD97FK5H4Xq0P5qZmZmZmck/KVyPwvUovD+amZmZmZm5P7ge
+      hetRuL4/uB6F61G4rj8pXI/C9SjMPwrXo3A9Crc/pHA9CtejwD8K16NwPQq3P5qZmZmZmak/mpmZ
+      mZmZuT/sUbgeheuxP5qZmZmZmak/CtejcD0Ktz97FK5H4XqEPwrXo3A9Crc/cT0K16NwzT/sUbge
+      heuxP3sUrkfheqQ/KVyPwvUovD/sUbgeheuxP5qZmZmZmak/exSuR+F6hD+kcD0K16PAP+xRuB6F
+      67E/uB6F61G4rj+amZmZmZnJP3sUrkfheqQ/KVyPwvUovD+4HoXrUbieP3sUrkfheqQ/mpmZmZmZ
+      6T8=
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 16
+  - 16
+  sequence_size: 1
+omniglot_num_classes_15_num_dev_examples_216_num_test_examples_90_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      exSuRwHLwUDhehSuR+HqP+F6FK5H4co/H4XrUbge1T8fhetRuB7VP1K4HoXrUeA/PQrXo3A94j/D
+      9Shcj8LxP0jhehSuR/E/zczMzMzM/D8zMzMzMzPzP65H4XoUrv8/7FG4HoXr6T/D9Shcj8LtP1K4
+      HoXrUeA/PQrXo3A94j8AAAAAAADoPx+F61G4HuU/SOF6FK5H4T+4HoXrUbjeP6RwPQrXoxRAw/Uo
+      XI/C7T8fhetRuB7VP83MzMzMzOw/mpmZmZl5akCkcD0K11NTQB+F61G4dJNAj8L1KFyPDEAUrkfh
+      ehQAQB+F61G4HgVAKVyPwvUo9D+amZmZmZn1Pz0K16NwPeI/exSuR+F6+D8AAAAAAAASQNejcD0K
+      1+s/XI/C9Shc+z9SuB6F61H8P1K4HoXrUfA/MzMzMzMz8z9xPQrXo3D5P1K4HoXrUQBAzczMzMzM
+      8D+4HoXrUbjyP4/C9Shcj/Y/PQrXo3A9AkApXI/C9SgXQArXo3A9Cuc/mpmZmZmZ9T8zMzMzMzPz
+      P7gehetRuN4/MzMzMzMz0z+4HoXrUbjuP1K4HoXrUeA/H4XrUbge5T8zMzMzMzPjP1yPwvUoXPs/
+      zczMzMzM7D+amZmZmZn1P83MzMzMzOw/zczMzMzM7D/sUbgehevpP3sUrkfhehJAH4XrUbge5T+4
+      HoXrUbjuP4/C9Shcj/Y/w/UoXI/C8T8K16NwPQrnP0jhehSuR9E/rkfhehSu7z8K16NwPQrnPx+F
+      61G4HtU/PQrXo3A98j8fhetRuB7VP+F6FK5H4fo/KVyPwvUo9D9I4XoUrkfhP65H4XoUru8/w/Uo
+      XI/C8T9SuB6F61H8P83MzMzMzPA/UrgehetR8D89CtejcD3yP83MzMzMzPA/H4XrUbge1T9mZmZm
+      ZmYRQD0K16NwPeI/w/UoXI/C/T/NzMzMzMzwP2ZmZmZmZvo/cT0K16Nw+T/NzMzMzMzcP2ZmZmZm
+      Zvo/CtejcD0KEUAzMzMzMxtpQFyPwvUoHD9ACtejcD1KP0DD9Shcj0IwQMP1KFyPwvE/KVyPwvV0
+      k0A=
+  num_channels: 3
+  num_classes: 1623
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+oxford_iiit_pet_num_classes_35_num_dev_examples_5384_num_test_examples_315_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      KVyPwvU/sEBI4XoUrl6XQBSuR+F6xI9A4XoUrkcnmEDXo3A9CqGPQHE9CtejapdAcT0K16Pkm0Bm
+      ZmZmZsOgQKRwPQrX9JVAuB6F69GDoECPwvUo3CKiQMP1KFyPj5VApHA9Cte/m0BSuB6F68GPQGZm
+      ZmZmKphA9ihcj8K9j0BI4XoUrn2XQAAAAAAAmo9AAAAAAAB5mEB7FK5H4T2RQB+F61G4jZhAAAAA
+      AADQmUBmZmZmZkCRQLgehetROppAmpmZmXnQ2EAfhetRuC2YQGZmZmZmvI9APQrXo3CHl0AfhetR
+      uNKPQAAAAAAAJZhAMzMzMzOGl0CPwvUoXAeSQI/C9Shc4plAFK5H4XrakUD2KFyPwpSZQMP1KFyP
+      GZJAcT0K16Mtn0BxPQrXo6iTQIXrUbgefpdAhetRuB4NkEDXo3A9CkyYQEjhehSunJdAmpmZmZnN
+      j0A9CtejcDiZQNejcD0KkJFAFK5H4XojmUDsUbgehTuRQHE9CtejOppAexSuR+EpkkB7FK5H4Ruf
+      QOF6FK5H8phA4XoUrkdEkECPwvUoXBaYQBSuR+F6XpBAXI/C9SjCmEBcj8L1KCaQQD0K16NwlZtA
+      FK5H4XrpkkBxPQrXo3aeQBSuR+F6TpNASOF6FK78nEAzMzMzs/6gQPYoXI/C55dA16NwPQoImkC4
+      HoXrUY6RQIXrUbgeeppAXI/C9ShbkUA9CtejcGqZQFK4HoXrkpFAZmZmZmZvnkAzMzMzM/qdQFyP
+      wvUorpRAexSuR+Egn0DNzMzMzJmVQEjhehSuz6dAH4XrUbi7mkBmZmZm5mChQM3MzMzM7JZAPQrX
+      o/CYoEBxPQrXo06WQLgehetROqFAKVyPwvXopEAzMzMzM8CcQK5H4XqUQaZAXI/C9SjZnEBxPQrX
+      IxumQFK4HoXrRZxAmpmZmRnKuUAAAAAAgM6jQDMzMzMzWatAhetRuJ4WrEBmZmZm5oOgQB+F61E4
+      dahAXI/C9SiFp0AUrkfhemibQK5H4XoUaJBAj8L1KFxdmUA9CtejcFWRQAAAAAAAbZtArkfhehQw
+      lkA=
+  num_channels: 3
+  num_classes: 37
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+plant_village_num_classes_23_num_dev_examples_26184_num_test_examples_1357_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      SOF6FK6wo0CuR+F6FE5oQIXrUbgeLWFAhetRuB4tbEA9CtejcL1lQFyPwvUo3HZA9ihcj8IbrkDX
+      o3A9Stm1QD0K16PwUqlAw/UoXI/+r0B7FK5HYSSwQEjhehSuBaVAcT0K16NAmUA9CtejcLVkQDMz
+      MzMzO21AUrgehevRYkAK16NwPVJtQAAAAAAAIGVAFK5H4Xp8mEDsUbgehcCnQNejcD0KgKtASOF6
+      FK6TokCuR+F6FKCIQLgehetRbIJAuB6F63HV10BxPQrXo3hoQFK4HoXrAWBAZmZmZmbmaEBSuB6F
+      6/lhQK5H4XoUTm5A7FG4HoUbdEAUrkfh+hWrQFyPwvUoHbNAZmZmZub/pUAUrkfheuSpQArXo3C9
+      kKFAKVyPwnWpqUBmZmZmZruUQMP1KFyP2m5AAAAAAADQYkAAAAAAADhrQJqZmZmZgWxA4XoUrkfp
+      ZEC4HoXrUV+ZQB+F61E4eqZAMzMzM7Nwq0AfhetRuLCaQFyPwvUoEJRAzczMzMzceEA9CtejcIVu
+      QI/C9Shc72hAUrgeheshX0B7FK5H4WpoQHsUrkfhSmJAXI/C9SgMbkBxPQrXowhoQKRwPQrXZK1A
+      j8L1KFwGq0CF61G4ngKyQB+F61G4OqNAH4XrUbiyrEApXI/CdUOtQMP1KFyPQ5hAzczMzMy8b0Af
+      hetRuFZkQIXrUbge3W1A7FG4HoWTY0CuR+F6FB5uQIXrUbgezWdAUrgehSvWsEDXo3A9ikqrQI/C
+      9Shcp5lAexSuR+HZk0AAAAAAABR5QDMzMzMzZ3JAw/UoXI8iaUBcj8L1KIRyQOxRuB6Fq2lAj8L1
+      KFyfdEApXI/C9YBuQAAAAAAADHtAj8L1KNx5r0AfhetROA2tQNejcD3KzrNAmpmZmRncpkBcj8L1
+      qM+zQIXrUbgeYqxASOF6FO4euUB7FK5HofawQI/C9SgckLRAZmZmZmbPqUAK16NwPS+QQIXrUbge
+      YYRAPQrXo3BVakB7FK5H4T6wQPYoXI/ChKJA9ihcj8JkpEAAAAAAAO6KQLgehetRBoNA7FG4HoUn
+      cEA=
+  num_channels: 3
+  num_classes: 38
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+plant_village_num_classes_36_num_dev_examples_37526_num_test_examples_2700_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      zczMzMxEc0BmZmZmZu5pQMP1KFyP0mFASOF6FK5/bUDsUbgehfNlQNejcD0KR3dAKVyPwnXTsEDs
+      UbgexcizQOF6FK7Hw6lAcT0K16PDsUAUrkfhemKvQClcj8L1+6RAexSuR+HLmUCamZmZmYFlQB+F
+      61G4dm5AUrgehesRZECamZmZmcFuQM3MzMzMTGZAcT0K16P0mkD2KFyPwlCmQKRwPQpXp6pAPQrX
+      o3CapUAUrkfhevSNQGZmZmZmNIJA9ihcjzIg2EBcj8L1KBRqQNejcD0Kt2BAmpmZmZkZakCamZmZ
+      mbFiQB+F61G4Vm9AUrgehevZc0DD9ShcD6apQEjhehSu+rBAj8L1KFxGpkAUrkfhei+tQAAAAAAA
+      YqFAj8L1KFz5qUAfhetRuOmVQOxRuB6Fu29AKVyPwvXgY0B7FK5H4RJtQNejcD0K/21A9ihcj8Id
+      ZkCamZmZmYedQHE9CtcjwaVAw/UoXI86qkDsUbgehXOeQMP1KFyP/5dApHA9CtdXeUC4HoXrUQhw
+      QIXrUbgeDWpAH4XrUbi2YEDNzMzMzHxpQHsUrkfh6mJAZmZmZmbGbkCPwvUoXB9oQFK4HoVr+atA
+      j8L1KFzsp0Bcj8L16LixQMP1KFyPP6VA7FG4HoX2rEAAAAAAgDqtQOF6FK5H+ZhAH4XrUbhScECu
+      R+F6FPZkQIXrUbgejW9AUrgeheuZZEDhehSuR8FvQHsUrkfh0mhAPQrXo3C4sEAfhetRuISqQEjh
+      ehSuwJ1AAAAAAAAyl0D2KFyPwrV5QEjhehSu53JAPQrXo3BlaUC4HoXrUchyQDMzMzMzo2lACtej
+      cD1adEDsUbgehcttQDMzMzMz33hAw/UoXI8lrECF61G4ntmoQHsUrkchWLNA16NwPQpiqUC4HoXr
+      Ud6zQPYoXI9CnKxAmpmZmZkou0AzMzMzs3iwQPYoXI/Cw7NAPQrXo/A0rkAzMzMzM5eTQMP1KFyP
+      AIVAw/UoXI+SakA9CtejcL2vQArXo3A9LqFAZmZmZmawpkC4HoXrUWeQQClcj8L1BoRAFK5H4XoE
+      cEA=
+  num_channels: 3
+  num_classes: 38
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+rock_paper_scissors_num_classes_2_num_dev_examples_198_num_test_examples_96_resolution_256_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      AAAAANhh5kAK16NwPSKLQFyPwvUo8INAzczMzMxIjkDD9Shcj0yEQAAAAAAA4IpA16NwPQoJg0CP
+      wvUoXN2MQLgehetR4IZAj8L1KFw/i0DsUbgehdeNQFyPwvUoiIRAAAAAAACgjEDNzMzMzKyAQIXr
+      UbgeN41AMzMzMzP5gkDhehSuRx2MQBSuR+F66IJAexSuR+HWjEA9CtejcNmAQDMzMzMzyYpA4XoU
+      rkewkEA9CtejcFWDQLgehetRgoxAXI/C9cir2EApXI/C9S6MQM3MzMzMTIJAH4XrUbhGj0BI4XoU
+      rq+CQM3MzMzMPo9ASOF6FK7FiUC4HoXrUdCCQClcj8L1SotAexSuR+G2g0AK16NwPYKMQIXrUbge
+      LYNApHA9CtdviUDD9Shcj4CHQHE9CtejwI5AcT0K16Oyh0AfhetRuKORQB+F61G4e5JA7FG4HoUT
+      hUAK16NwPXORQArXo3A9qIZAj8L1KFxakUCuR+F6FKyEQClcj8L1m5BASOF6FK73iEBI4XoUrvyU
+      QI/C9Shcy45AUrgehevbhEApXI/C9faKQJqZmZmZA4RAZmZmZmbbkEBcj8L1KLyEQAAAAAAA/I1A
+      mpmZmZmPh0CamZmZme2PQJqZmZmZbYRAj8L1KFzxjkDhehSuR9iQQLgehevRUaVAPQrXo3DClECP
+      wvUoXCWLQArXo3A9EpRACtejcD2ujUDD9ShcjxiVQK5H4XoUVJBAzczMzMy3l0B7FK5H4aiWQD0K
+      16Nw1Y1ASOF6FK5+l0CPwvUoXEOQQGZmZmamIb1ACtejcL1EoEAzMzMzM5iWQB+F61G4hIpA9ihc
+      j8KOkkAK16NwPbaIQB+F61G4upRAw/UoXI+4kkBSuB6F6yeJQGZmZmZmv5BAcT0K16MIh0BmZmZm
+      ZpiQQHE9CtejdodASOF6FK6YmkAzMzMzM6mLQArXo3A9aJJAw/UoXI8Sk0AfhetRuCSLQIXrUbge
+      gZVArkfhehRy0EApXI/CVSDBQFyPwvUozolAZmZmZmaPk0BmZmZmZmiLQAAAAAAApZVAmpmZmZmG
+      lUA=
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+rock_paper_scissors_num_classes_2_num_dev_examples_308_num_test_examples_242_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      XI/C9YD340AUrkfheqqMQI/C9ShcmYRAH4XrUbiij0DsUbgehXeGQClcj8L1SoxArkfhehTYg0DD
+      9Shcj7SOQLgehetR2ohAzczMzMzEjEA9CtejcBuQQMP1KFyP+oVAj8L1KFwfjkBSuB6F69GAQGZm
+      ZmZmWI5AhetRuB5Lg0BI4XoUrtOMQArXo3A9wIJAexSuR+EsjUDXo3A9CmmBQDMzMzMzWYtA7FG4
+      HoUNkUCamZmZmVuDQMP1KFyP5oxAMzMzMwOz2EDXo3A9CmmNQI/C9ShcqYJAAAAAAAD4j0A9Ctej
+      cGWDQBSuR+F6GpBASOF6FK5likD2KFyPwlGDQFK4HoXr74tA7FG4HoV1hEDhehSuR4+MQGZmZmZm
+      LINACtejcD3EiUDsUbgehc+HQB+F61G48o5A16NwPQoxiEC4HoXrUS2SQD0K16NwKZNAj8L1KFxz
+      hUCamZmZme6RQM3MzMzMeodA4XoUrkfmkUBxPQrXo0aFQDMzMzMz65BAUrgehev5iUBmZmZmZuGV
+      QKRwPQrX349Aj8L1KFxnhkCuR+F6FISMQLgehetROoVACtejcD0YkkDXo3A9Ck+FQM3MzMzMao9A
+      7FG4HoWJiUCF61G4HuKQQM3MzMzMcIVA4XoUrkcqkEBcj8L1KBqSQArXo3A9baVAw/UoXI9ClUA9
+      CtejcEuLQFyPwvUoY5RAzczMzMzOjUDXo3A9CoOVQEjhehSufZBA4XoUrkfYmED2KFyPwkKXQOxR
+      uB6FB49Aj8L1KFygmECkcD0K1/6QQEjhehSO6MBAzczMzEy/okAfhetRuCmYQIXrUbge8YxAw/Uo
+      XI/uk0A9CtejcDeKQI/C9ShcLJZAuB6F61EUlEC4HoXrUSKKQHE9Ctejs5FAZmZmZmZMiECuR+F6
+      FFuRQOxRuB6Fi4lArkfhehQvnkDXo3A9Cj+LQLgehetRYJJA7FG4HoUHk0DXo3A9CuuKQAAAAAAA
+      MZZAj8L1KDxy0UCuR+F6lAu/QFK4HoXrMYpArkfhehSIk0CamZmZmW+LQPYoXI/CaJVA7FG4HoVj
+      lEA=
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+rock_paper_scissors_num_classes_2_num_dev_examples_418_num_test_examples_14_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcJ0V50DD9Shcj26LQI/C9ShcX4NAhetRuB5PjUApXI/C9YSEQAAAAAAAVopAMzMzMzM3g0D2
+      KFyPwp+MQNejcD0KYYdAAAAAAADOikBxPQrXo+6NQBSuR+F6sIRAw/UoXI9mi0BSuB6F61WAQJqZ
+      mZmZc4xAFK5H4XoKgkApXI/C9T6LQOF6FK5Hc4JAMzMzMzPLi0BSuB6F6yuAQFyPwvUoUIpAMzMz
+      MzMVkEAK16NwPTCCQHE9CtejootAAAAAAJCn2EApXI/C9WqLQAAAAAAAMIFA4XoUrkdNjkDsUbge
+      hRGCQD0K16NwoY1AMzMzMzPRiEAzMzMzM9mBQPYoXI/CB4pArkfhehT6g0DsUbgehcOKQHsUrkfh
+      yoFAPQrXo3BZiECamZmZmdWFQOxRuB6F34xAXI/C9ShUhkDXo3A9CjmRQFyPwvUo0JFAw/UoXI8s
+      hEApXI/C9ZKQQArXo3A98IVAPQrXo3C4kECuR+F6FKaDQD0K16NwGZBAMzMzMzOxh0CkcD0K1z+T
+      QHsUrkfhEI5AH4XrUbjUhEAAAAAAAPyKQK5H4XoUooNAw/UoXI+gkEBSuB6F62OEQOF6FK5HYY1A
+      9ihcj8IBh0AfhetRuJyPQFK4HoXrc4NA7FG4HoUJjkBxPQrXo52QQAAAAAAATKJArkfhehSck0AU
+      rkfhegqKQDMzMzMz6JJAzczMzMxmjEDD9Shcj+uTQMP1KFyPHI9AmpmZmZnjlkAAAAAAAP2VQClc
+      j8L1eIxAcT0K16MWl0DXo3A9ChSQQLgehesxGMBAAAAAAIDUoUCF61G4HraWQBSuR+F6LotAw/Uo
+      XI/6kkDNzMzMzJaIQClcj8L1v5RA7FG4HoXkkkDsUbgehemIQLgehetR0ZBAj8L1KFx5hkBmZmZm
+      ZhOQQHE9CtejoodAcT0K16NfnkC4HoXrUVCKQI/C9ShcUJFAH4XrUbgLkkCPwvUoXOWJQFyPwvUo
+      5JRAXI/C9ehd0EBxPQrXY4vBQFK4HoXrY4lAFK5H4Xr3kkDsUbgehZOKQEjhehSuZ5VAcT0K16OH
+      lUA=
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+rock_paper_scissors_num_classes_2_num_dev_examples_600_num_test_examples_104_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZiY040AzMzMzM4uNQK5H4XoU7oRA9ihcj8IrkECPwvUoXIGGQGZmZmZmvIxAUrgeheuFhECP
+      wvUoXJ+OQClcj8L1NIlAcT0K16NIjUB7FK5H4SuQQClcj8L1ToVASOF6FK4BjkC4HoXrUeKAQDMz
+      MzMzI45AAAAAAAC8g0AUrkfhelaNQEjhehSuUYNAUrgehesxjkAAAAAAAMCBQHsUrkfhXoxA9ihc
+      j8JekUCuR+F6FDCEQGZmZmZmpo1A9ihcj0K12EDNzMzMzKKNQD0K16NwB4NAw/UoXI9UkEApXI/C
+      9a6DQIXrUbgeKJBArkfhehQOi0Bcj8L1KJCDQI/C9Shc24tAUrgehesbhUCF61G4HvGMQArXo3A9
+      VoNAj8L1KFxdikCuR+F6FE6IQHsUrkfhgI9AhetRuB4FiUAAAAAAAKWSQIXrUbgeJZNAUrgehesH
+      hkD2KFyPwnySQPYoXI/CMYhAzczMzMxfkkBxPQrXo8iFQIXrUbgeZJFAw/UoXI+UiUDNzMzMzEuV
+      QGZmZmZmoJBAw/UoXI+AhkBcj8L1KCqNQKRwPQrXr4VAuB6F61HzkUBxPQrXo+KFQB+F61G4bo9A
+      CtejcD18iUC4HoXrURyRQD0K16Nwl4VAj8L1KFxKkECkcD0K1/WRQOxRuB6FJqVAw/UoXI+zlUC4
+      HoXrUZCLQKRwPQrX8ZRAexSuR+GajkCF61G4HuGVQClcj8L1NZFAXI/C9ShHmUBI4XoUrryXQBSu
+      R+F6Io9ApHA9Ctc8mUBxPQrXo5ORQD0K16NQM8FAPQrXo3Aso0BI4XoUroSYQB+F61G4Co1AH4Xr
+      UbgKlEDXo3A9Cr2KQDMzMzMzsJZA16NwPQrNk0CPwvUoXIeKQLgehetR15FA7FG4HoUJiEBmZmZm
+      Zj6RQB+F61G4rIlASOF6FK4Gn0CamZmZmRWMQHsUrkfhmJJAMzMzMzM1k0AUrkfhejaLQK5H4XoU
+      T5ZAw/UoXB+s0UA9CtejMB++QClcj8L1lopAexSuR+Hok0DsUbgehQ+MQJqZmZmZGpZAUrgehesz
+      lUA=
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+rock_paper_scissors_num_classes_3_num_dev_examples_1773_num_test_examples_60_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      pHA9CveU4UB7FK5H4W6OQD0K16Nw1YVAPQrXo3B+kEBSuB6F60WHQBSuR+F6Qo1AFK5H4XpMhUBm
+      ZmZmZieQQIXrUbgeN4pAhetRuB49jkBmZmZmZumQQOF6FK5HLYZArkfhehQej0B7FK5H4XaBQB+F
+      61G43I9APQrXo3Dxg0DNzMzMzNKNQK5H4XoUEINApHA9CtfTjkBcj8L1KNiBQKRwPQrX4YxAFK5H
+      4Xq/kUD2KFyPwk+EQK5H4XoUjI1AXI/C9Zi92EC4HoXrUWqOQHE9CtejcINAAAAAAADAkEBmZmZm
+      ZviDQNejcD0KlZBAAAAAAABUi0ApXI/C9TSEQFyPwvUoKo1Aj8L1KFyjhEDXo3A9CpuOQM3MzMzM
+      +oNAPQrXo3B5i0CamZmZmQWJQPYoXI/CUpBAKVyPwvWoiUAUrkfhesGSQBSuR+F6MZRA4XoUrkfL
+      hkCkcD0K1+eSQHE9Ctej8ohAFK5H4XoCk0D2KFyPwgmGQD0K16NwlZFA9ihcj8KZikBI4XoUruiW
+      QFK4HoXrR5FA7FG4HoWBh0ApXI/C9XSNQI/C9ShcKYZAUrgehevLkkCF61G4HseGQLgehetRL5BA
+      SOF6FK5DikAfhetRuLKRQGZmZmZmooZAPQrXo3DhkED2KFyPwqGSQGZmZmZmaqVAXI/C9Sj7lUBI
+      4XoUruuLQB+F61G4UJVA9ihcj8IFj0AzMzMzM5CWQJqZmZmZi5FAZmZmZmYrmkDhehSuR5aYQAAA
+      AAAAfZBAFK5H4XovmkAUrkfhesCRQD0K16PQscJArkfhepR+pEBxPQrXo6GZQMP1KFyPjo1AFK5H
+      4XrolEAfhetRuEqMQClcj8L1IZdApHA9CtcalUCamZmZmUuLQArXo3A9qpJApHA9CtdViUAzMzMz
+      M9SRQClcj8L1HIpAZmZmZmaSn0AfhetRuNqMQM3MzMzMpZNApHA9CteGk0D2KFyPwhmMQK5H4XoU
+      l5ZAexSuR+EJ0kAzMzMz8/y7QOxRuB6FpYpAzczMzMxok0AUrkfhes6LQI/C9Shc5JVAXI/C9SiS
+      k0A=
+  num_channels: 3
+  num_classes: 3
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+stanford_dogs_num_classes_98_num_dev_examples_13203_num_test_examples_1568_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      w/UoXE9bskA9CtejcGSYQDMzMzMzeZBAAAAAAAAhmUC4HoXrUX+QQEjhehSue5hAUrgehetXoEBx
+      PQrXo7yiQM3MzMzMNZVAuB6F69E1oUBI4XoUrsugQD0K16NwXZRAAAAAAABNmkCkcD0K16qQQI/C
+      9ShcDZlArkfhehSCkEAAAAAAAF+YQNejcD0KpJBACtejcD0OmkApXI/C9daRQM3MzMzMaJpAMzMz
+      MzP5mUBI4XoUrguRQD0K16NwF5lAcT0K14Pk2EA9CtejcBOZQIXrUbgemJBAPQrXo3B4mEB7FK5H
+      4XCQQGZmZmZma5lAzczMzMximEC4HoXrUc2SQPYoXI/COp9ACtejcD2wkkDhehSuR2ubQNejcD0K
+      eJJAexSuR+FAnEAzMzMzMxySQHsUrkfhnZhA7FG4HoWpkECF61G4HlqZQClcj8L1iphAPQrXo3B8
+      kECuR+F6FNWaQArXo3A9eZJA7FG4HoVYnUBcj8L1KGiRQHsUrkfhS5pAzczMzMwUkUBmZmZmZlqZ
+      QHsUrkfhhJpAXI/C9Sj2kEA9CtejcCqZQBSuR+F6VZFAzczMzMyMmUCuR+F6FMKQQI/C9ShcPZxA
+      pHA9Cte3lEBSuB6F61SeQB+F61G4kJRApHA9CteTnECuR+F6FNqdQJqZmZmZypNAj8L1KFwFm0BI
+      4XoUrkKSQI/C9Shc7ZtA9ihcj8JBkkAUrkfheruaQKRwPQrXYJJAj8L1KFyQoEDNzMzMzF+gQEjh
+      ehSuUpVA4XoUrkdbn0DXo3A9CnWUQNejcD0KV59AKVyPwvWjl0CkcD0K1/ShQEjhehSu6JdAexSu
+      R2HxoUDD9ShcjzqYQGZmZmZmbaJAmpmZmRkip0AzMzMzM/mhQArXo3A9PKtAMzMzM7MxoUC4HoXr
+      0SypQK5H4XqUeqBAcT0K1yMVrkCF61G4nm6lQHE9CtcjKq1ACtejcL2GqUAfhetRuJCaQHsUrkfh
+      GKJAhetRuB5pl0B7FK5H4UugQM3MzMzMU5JA7FG4HoUrmUCamZmZmcmQQNejcD0KkZlAH4XrUbis
+      lkA=
+  num_channels: 3
+  num_classes: 120
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+svhn_cropped_num_classes_10_num_dev_examples_340336_num_test_examples_24890_resolution_16_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      9ihcj8L1R0AzMzMzM9NPQI/C9Shcr1FAZmZmZmZmU0BxPQrXo1BSQOxRuB6Fe1RAUrgehevhVUCP
+      wvUoXJ9SQBSuR+F69EdAmpmZmZmZNEDXo3A9CtcjQIXrUbgehRpAmpmZmZmZFUB7FK5H4XoQQBSu
+      R+F61DhAexSuR+G6PkB7FK5H4To4QI/C9ShcjyNAMzMzMzMz/z+4HoXrUbgrQJqZmZmZ6VFA4XoU
+      rkdhVUCuR+F6FE5SQNejcD0K105AmpmZmZm5TUDXo3A9ClczQArXo3A9ChBAAAAAAAAAAEAUrkfh
+      elQ+QMP1KFyPQkVAzczMzMysQUCPwvUoXG9AQB+F61G4nkVAuB6F61FYTUApXI/C9YhKQK5H4XoU
+      Lj9AAAAAAAAAMEAzMzMzMzMmQFyPwvUoXBlAFK5H4XoU7j8AAAAAAADQP6RwPQrXoxFAXI/C9Sgc
+      PECF61G4HiVAQGZmZmZm5jBAmpmZmZmZCUCF61G4HoX/P5qZmZmZmQVAKVyPwvUozD89CtejcD0A
+      QLgehetRuM4/exSuR+F6lD/sUbgeheuxP5qZmZmZmbk/XI/C9Shc5z8pXI/C9SggQAAAAAAAgD9A
+      hetRuB7FSUAAAAAAAIA/QArXo3A9ijpAFK5H4XoUQUB7FK5H4RpEQK5H4XoUTkZA4XoUrkdBRUB7
+      FK5H4RpDQKRwPQrXI0JAPQrXo3AdSUCkcD0K14NDQAAAAAAAQD5ASOF6FK7HOkDNzMzMzExFQArX
+      o3A9iktA16NwPQoXMEApXI/C9SgdQEjhehSuRxRAexSuR+F69D+amZmZmZn9P1K4HoXrUfw/cT0K
+      16Nw/T+kcD0K16MCQD0K16NwPQhAcT0K16NwEUDhehSuR+EkQArXo3A9SjRA4XoUrkehRUAUrkfh
+      enRPQM3MzMzMTD9APQrXo3B9REBmZmZmZoZCQOF6FK5HgUZAFK5H4Xr0SUBmZmZmZuZOQOF6FK5H
+      cVRAj8L1KFwPP0AK16NwPQo9QGZmZmZmZj1Aw/UoXI8iRECF61G4HkVJQIXrUbgeZU9A7FG4HoWr
+      TUA=
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+tf_flowers_num_classes_5_num_dev_examples_1268_num_test_examples_185_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      7FG4HgXYzUAAAAAAABKWQDMzMzMz941AXI/C9Sh1l0AAAAAAAFyOQHE9Ctej35ZAUrgeheufnEAA
+      AAAAgAOkQHsUrkfhbZdA7FG4HoUhpEDD9ShcD1uiQFyPwvUoiJZAcT0K16OvmUCamZmZmYWOQClc
+      j8L1YZdAuB6F61HijkD2KFyPwoiWQM3MzMzM1I5ArkfhehSSl0DhehSuR4uQQBSuR+F6m5dAH4Xr
+      UbiCmEDD9Shcj+aQQPYoXI/CmZhAZmZmZpZw10DNzMzMzB6XQJqZmZmZ541AAAAAAABklkBcj8L1
+      KJKOQClcj8L1b5dAAAAAAACNlkB7FK5H4QiSQGZmZmZmtptAFK5H4XofkUDNzMzMzOiZQOF6FK5H
+      kZFAH4XrUbgbmkDsUbgehTGQQDMzMzMz95ZAKVyPwvXujkAzMzMzM4mXQPYoXI/C3JZAH4XrUbgc
+      j0CPwvUoXHyYQEjhehSuR5FA4XoUrkfBmEDhehSuR16QQB+F61G45ZpAmpmZmZkzkUCPwvUoXDSY
+      QK5H4XoUd5hACtejcD3aj0B7FK5H4QqYQPYoXI/CI5BA9ihcj8I/mEBxPQrXo8CPQFK4HoXrdJtA
+      FK5H4XqzlEA9CtejcB+eQClcj8L1b5NA4XoUrkfdnEAfhetRuDedQLgehetRFJNAhetRuB4TmkB7
+      FK5H4eaRQHE9Ctej5JpAMzMzMzNmkUBSuB6F61KZQGZmZmZmWpFAAAAAAABhn0CF61G4Hj2eQClc
+      j8L1tJRAUrgehWtXoEDhehSuR3mVQDMzMzMzoZ5AUrgehesImEC4HoXrUUOhQEjhehSuWJZAw/Uo
+      XA9XoEBxPQrXo46VQFK4HoVrtaBAFK5H4frRpEDhehSuR+SeQFyPwvWoL6ZAKVyPwvVNnEAzMzMz
+      s8ukQOxRuB6FEpxAhetRuB4hrkAK16NwPVyjQDMzMzOzb6dASOF6FK40pkCF61G4Hm+fQHE9Ctcj
+      OaRAZmZmZmaCmEAzMzMzM96fQMP1KFyPRo9Aj8L1KFyVl0AzMzMzM/6QQAAAAAAASZlAhetRuB6N
+      lUA=
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+tf_flowers_num_classes_5_num_dev_examples_2216_num_test_examples_295_resolution_512_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      H4XrUXh70UDXo3A9CsWVQLgehetREo5AmpmZmZkxl0CkcD0K16mNQD0K16NwRJZAZmZmZma+nEDD
+      9Shcj5yhQDMzMzMzkpVAZmZmZmYmokDXo3A9CmyhQDMzMzMzN5VAMzMzMzOSmUD2KFyPwtuNQI/C
+      9ShcjpZApHA9Ctd3jkDXo3A9CuSVQFyPwvUoHI5ACtejcD3blkBmZmZmZjWQQDMzMzMz5JZASOF6
+      FK5nmECamZmZmVWQQOxRuB6FzJdAcT0K1zNW10AK16NwPbSWQAAAAAAAspJArkfhehQmlkA9Ctej
+      cBWOQD0K16Nw3JZA4XoUrkcflkBSuB6F646RQI/C9Shc05tAFK5H4XojkUA9CtejcG+ZQHsUrkfh
+      85BAMzMzMzMgmUBcj8L1KIiQQHsUrkfhPZZAmpmZmZn/jUAUrkfhehmXQK5H4XoUUJZA4XoUrkdT
+      jkAAAAAAAOqXQNejcD0K35BA4XoUrkdSl0BmZmZmZpiPQKRwPQrXSZlAhetRuB4GkEDXo3A9CmGZ
+      QM3MzMzM15dApHA9CtdpjkAzMzMzM9mWQJqZmZmZ149AhetRuB5pl0CamZmZmQePQBSuR+F6+5pA
+      cT0K16MllEBSuB6F63GeQIXrUbgeZZRApHA9CtfMm0DhehSuR42cQMP1KFyPL5ZAhetRuB4ZmUAz
+      MzMzM+aQQLgehetRxZlAPQrXo3CnkEC4HoXrUbCYQOxRuB6FwZBAMzMzMzOAnUBSuB6F61qcQFK4
+      HoXr85JAhetRuB4wn0C4HoXrUaCTQMP1KFwPwaBAhetRuB4el0DNzMzMzF6gQDMzMzMzrZVAZmZm
+      ZmbBn0DsUbgehdCUQOxRuB4FEaBAmpmZmZnlpEDhehSuR/2fQClcj8J1wqZAFK5H4XornEDsUbge
+      hcOkQOF6FK5H05tAcT0K16MEqECamZmZmdehQLgehevRWqlAhetRuB6op0C4HoXrUamdQGZmZmbm
+      T6RA7FG4HoUEokAzMzMzs4GgQBSuR+F6lI9AexSuR+Gtl0AfhetRuOyRQM3MzMzMrZhAUrgehesm
+      mUA=
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+? visual_domain_decathlon_daimlerpedcls_num_classes_2_num_dev_examples_15697_num_test_examples_3486_resolution_128_num_channels_3
+: mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      XI/C9ShcVUDsUbgehQtYQIXrUbgepVJASOF6FK6nWkBSuB6F64FQQNejcD0KJ1pAj8L1KFwvVkBS
+      uB6F67FfQIXrUbgeRVJAexSuR+FqX0B7FK5H4bpdQK5H4XoUrlNAuB6F61FYW0AAAAAAAOBPQPYo
+      XI/CZVhAH4XrUbj+T0AK16NwPRpZQBSuR+F6VFJArkfhehR+WUD2KFyPwrVQQHsUrkfhOllAj8L1
+      KFxfWUAUrkfhekRTQPYoXI/C9VhAzczMzMwSmUB7FK5H4ZpZQMP1KFyPklFAAAAAAADQWkAAAAAA
+      ABBRQJqZmZmZSVpAuB6F61HIV0CPwvUoXC9TQJqZmZmZWVxAXI/C9SgsUkBcj8L1KIxYQHE9Ctej
+      AFFAFK5H4XrkWEB7FK5H4QpQQPYoXI/CtVZAw/UoXI/CTUDD9Shcj1JYQD0K16NwfVdASOF6FK7n
+      UEBxPQrXo7BYQI/C9Shc31FASOF6FK73W0Bcj8L1KHxQQAAAAAAAsFlAj8L1KFyPUEDXo3A9CidX
+      QB+F61G4flhAj8L1KFzfUUDhehSuR1FXQHsUrkfhylBAj8L1KFz/WEDD9ShcjyJSQLgehetRCF1A
+      UrgehevRVEAUrkfhegRdQD0K16NwzVJAAAAAAAAQXUC4HoXrUchdQFyPwvUo7FJA16NwPQpHWECP
+      wvUoXB9RQBSuR+F6FFZAw/UoXI8SUEApXI/C9bhXQHE9CtejQFBArkfhehTeWUCamZmZmYlcQNej
+      cD0Kt1FA16NwPQqXXED2KFyPwkVRQDMzMzMzA19AKVyPwvWoWEBxPQrXoyhgQPYoXI/CdVdAzczM
+      zMysYkCF61G4HpVcQMP1KFyPqmRAUrgehetha0AzMzMzM6tjQClcj8L1oGpApHA9CtcTYUBcj8L1
+      KPRpQFyPwvUorF9AexSuR+HagkA9CtejcI1jQNejcD0Kl2lACtejcD0yaUApXI/C9ShhQArXo3A9
+      8mZASOF6FK5Pa0BmZmZmZiZYQD0K16NwrVFA9ihcj8JlWEBI4XoUrkdRQLgehetR2FlAexSuR+E6
+      VkA=
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_dtd_num_classes_28_num_dev_examples_560_num_test_examples_140_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      zczMzMzMZkDhehSuR6FZQGZmZmZm1lFAexSuR+HqWkAfhetRuK5RQK5H4XoU7lpApHA9CtcjU0Ap
+      XI/C9ehcQBSuR+F61FJAmpmZmZmJW0DsUbgehctcQM3MzMzMvFNAcT0K16MwW0BmZmZmZiZRQHE9
+      CtejEFtAcT0K16PwUUCPwvUoXH9ZQBSuR+F6dFFAuB6F61GoWkAfhetRuP5QQDMzMzMzs1lApHA9
+      CtcTW0C4HoXrUXhRQGZmZmZmtlpAFK5H4XoCmUApXI/C9ehaQMP1KFyPolFArkfhehTuWkBI4XoU
+      rvdRQGZmZmZm1ltAZmZmZmYmWkAAAAAAAOBRQArXo3A9WltAuB6F61G4UkAzMzMzM3NbQBSuR+F6
+      ZFNAMzMzMzODW0DXo3A9CudRQB+F61G4jlpA4XoUrkeBUUApXI/C9ThcQJqZmZmZCVpASOF6FK7n
+      UUAAAAAAAGBaQLgehetRSFJAj8L1KFwfWkDD9Shcj9JRQJqZmZmZ2VxArkfhehQeUkCF61G4HgVb
+      QJqZmZmZSVtAZmZmZmb2UED2KFyPwjVbQFyPwvUozFFArkfhehTOWkAK16NwPUpSQIXrUbgeFVtA
+      UrgeheshUkDNzMzMzGxdQArXo3A9WlJAj8L1KFy/W0ApXI/C9YhbQNejcD0K51JAexSuR+HaW0AK
+      16NwPUpTQOF6FK5HcVxAFK5H4XrEU0Bcj8L1KJxbQGZmZmZmhlFArkfhehT+XUDD9Shcj8JdQD0K
+      16NwPVVA4XoUrkexXkBcj8L1KLxUQMP1KFyPmmBA4XoUrkfRWEAAAAAAABBiQD0K16NwXVdAKVyP
+      wvVwYUBSuB6F60FXQDMzMzMzg2FAAAAAAADgY0DD9ShcjyJdQArXo3A9UmZAUrgehevBX0ApXI/C
+      9bBnQFyPwvUotGBAPQrXo3BVbUCkcD0K10NoQI/C9Shcp3FAcT0K16MIcUAAAAAAAHhiQHE9Ctej
+      wGZA16NwPQpvYUDhehSuR/FcQKRwPQrXc1FAcT0K16OgW0AUrkfherRRQPYoXI/CJVtA7FG4HoWb
+      V0A=
+  num_channels: 3
+  num_classes: 47
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_dtd_num_classes_45_num_dev_examples_2727_num_test_examples_495_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      9ihcj8K1XUBSuB6F6zFZQClcj8L16FFAH4XrUbheW0DXo3A9CtdRQFK4HoXrQVtAXI/C9Sh8UkCa
+      mZmZmflbQHsUrkfh2lJAZmZmZmZGXEBmZmZmZmZcQPYoXI/CBVNA4XoUrkdxWkDNzMzMzNxRQM3M
+      zMzM/FpAKVyPwvU4UUD2KFyPwsVaQMP1KFyPElJArkfhehS+WkDD9Shcj3JRQMP1KFyP8lpAexSu
+      R+HKW0BxPQrXo7BRQHE9CtejEFtA16NwPQoQmUBSuB6F61FbQClcj8L16FFAMzMzMzMzWkDXo3A9
+      CkdRQI/C9Shc31tAXI/C9SgMWkCuR+F6FB5SQClcj8L1KFtAPQrXo3DtUkAfhetRuH5aQHsUrkfh
+      6lFAj8L1KFyvW0AzMzMzMyNSQBSuR+F6JFtACtejcD1qUUCkcD0K16NbQKRwPQrXU1tAmpmZmZlZ
+      UkAzMzMzM+NbQOF6FK5H8VFAzczMzMysWUDhehSuR6FSQBSuR+F6ZFxAKVyPwvWYUkAzMzMzM1Nb
+      QB+F61G4DltAuB6F61HYUkCF61G4HtVZQEjhehSud1FACtejcD36W0DNzMzMzHxRQMP1KFyPYlpA
+      pHA9CtdTUkAK16NwPWpdQFK4HoXrkVJAUrgehevRW0DhehSuR4FcQClcj8L1GFNAmpmZmZlpW0Bx
+      PQrXozBSQHsUrkfh2ltAAAAAAABQU0CF61G4HhVcQD0K16NwTVJApHA9CtfjXUBcj8L1KOxdQEjh
+      ehSud1VASOF6FK5HYEC4HoXrUQhVQI/C9Shcr15AhetRuB61V0CF61G4HtVhQIXrUbgeJVhAFK5H
+      4Xr0YUAzMzMzM9NXQK5H4XoU5mJAw/UoXI9iZkCamZmZmRFhQClcj8L1KGlA16NwPQpXYEDD9Shc
+      j0poQK5H4XoULmFAAAAAAAC4bkAfhetRuH5pQKRwPQrXf3FAAAAAAABAbUAzMzMzM6NiQIXrUbge
+      VWdAj8L1KFwPXkCuR+F6FF5bQM3MzMzMbFFAXI/C9Sh8WkDD9Shcj0JSQI/C9ShcD1tASOF6FK5X
+      V0A=
+  num_channels: 3
+  num_classes: 47
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_gtsrb_num_classes_15_num_dev_examples_3250_num_test_examples_1305_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      AAAAAAA0fUCamZmZmflYQClcj8L1iFBASOF6FK5HWUDD9Shcj8JPQK5H4XoUfldAPQrXo3AVa0Ap
+      XI/C9RBtQK5H4XoUxmJAzczMzMwMaUApXI/C9ThuQD0K16NwDWBACtejcD26WUDXo3A9CrdRQK5H
+      4XoUjlhA9ihcj8IVUECamZmZmRlYQI/C9ShcP1BAAAAAAAAwV0DD9ShcjzJQQAAAAAAAYFlAMzMz
+      MzMTWUAzMzMzMwNRQOF6FK5HQVlAKVyPwvUTmUCuR+F6FK5YQI/C9Shcb09AXI/C9Sh8V0AAAAAA
+      AKBQQPYoXI/CZVhA16NwPQqXVUC4HoXrUdhOQFyPwvUoXFdAUrgehetRT0AzMzMzM3NVQNejcD0K
+      V09ApHA9CtcTWEAUrkfhesRQQMP1KFyPclhAH4XrUbg+UEAzMzMzM5NYQEjhehSuZ1ZApHA9Ctdj
+      T0DsUbgehStXQFyPwvUoXE5ArkfhehS+V0ApXI/C9YhPQClcj8L1iFlAUrgeheuBUEAUrkfhenRZ
+      QLgehetRmFhA9ihcj8KVUECPwvUoXH9XQK5H4XoUDlBAj8L1KFyfV0A9CtejcJ1NQOxRuB6FG1dA
+      KVyPwvUIT0BxPQrXo8BZQArXo3A9yk9A7FG4HoU7V0AK16NwPQpYQBSuR+F6NFFAUrgehesBWkBm
+      ZmZmZmZSQOF6FK5HcV9ACtejcD2qVEAzMzMzMyNeQGZmZmZmRlVAH4XrUbheaEAUrkfhelxmQAAA
+      AAAAcFtAhetRuB5tZEAAAAAAANBZQLgehetRyGJAexSuR+ECYEDNzMzMzNxmQOF6FK5HkVxAH4Xr
+      UbjmYkC4HoXrURhYQOF6FK5HiWFAzczMzMxcYkDNzMzMzExYQJqZmZmZyWJAKVyPwvX4VkC4HoXr
+      UVhgQGZmZmZmRlVAcT0K16OgYkDD9Shcj1JbQK5H4XoUXmVAj8L1KFwfY0AzMzMzM2NYQFK4HoXr
+      AV9A16NwPQqXX0DD9ShcjxpkQClcj8L1yE5AmpmZmZnJV0ApXI/C9bhQQIXrUbgepVhASOF6FK4H
+      VkA=
+  num_channels: 3
+  num_classes: 43
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_gtsrb_num_classes_27_num_dev_examples_11286_num_test_examples_1404_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      CtejcD32gECamZmZmblXQOxRuB6Fa01AKVyPwvVIVUDXo3A9CtdNQOF6FK5HkVZA4XoUrkfha0Dh
+      ehSuRylwQMP1KFyPomFAzczMzMwcaUBI4XoUrgNwQHsUrkfhGmBAH4XrUbiuWEAAAAAAAGBQQFK4
+      HoXrcVdA7FG4HoVrT0DXo3A9CldWQM3MzMzMrE5Aw/UoXI+SVkBSuB6F6/FOQJqZmZmZ+VdAcT0K
+      16PAWECF61G4HrVQQOxRuB6FG1lASOF6FK4ImUC4HoXrUbhYQOxRuB6FW1BAFK5H4XpUVkDhehSu
+      R2FOQArXo3A9WldApHA9CtczVUBmZmZmZuZNQM3MzMzMTFZAj8L1KFyvTUCuR+F6FL5WQJqZmZmZ
+      OVBAzczMzMwsWEDD9ShcjwJPQFyPwvUoXFdAcT0K16MwT0CamZmZmUlWQI/C9Shcz1RASOF6FK5n
+      TkBmZmZmZtZWQB+F61G4nk5AuB6F61F4VkAK16NwPUpOQFyPwvUozFhAXI/C9Sg8T0BmZmZmZgZZ
+      QM3MzMzMjFhAcT0K16NQTkAAAAAAAMBWQDMzMzMzc05A16NwPQqHV0CuR+F6FM5NQDMzMzMzk1ZA
+      CtejcD1qUkBI4XoUrgdaQNejcD0KV09AhetRuB7FV0BI4XoUrndXQDMzMzMzA1FA4XoUrkehWUDh
+      ehSuR8FRQOF6FK5HYV9ACtejcD2KVECuR+F6FK5eQI/C9Shc/1RAcT0K16MoZkBxPQrXo3hjQK5H
+      4XoUbldAUrgeheuxYEBmZmZmZlZWQK5H4XoUvmFA16NwPQq3XEBI4XoUridnQJqZmZmZeV1APQrX
+      o3DdZEDsUbgehVtbQAAAAAAAWGNApHA9CtfTZEDNzMzMzIxcQArXo3A9omRAH4XrUbiOWEAK16Nw
+      PQphQM3MzMzMfFRASOF6FK4XY0CkcD0K19NZQD0K16NwTWJAw/UoXI8aYECkcD0K15NZQIXrUbge
+      zWFA4XoUrkfBZEB7FK5H4eJlQMP1KFyPIlBAexSuR+F6WUDsUbgehXtRQClcj8L1uFlAFK5H4Xqk
+      VkA=
+  num_channels: 3
+  num_classes: 43
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_gtsrb_num_classes_35_num_dev_examples_31411_num_test_examples_2380_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      j8L1KFyXhECkcD0K16NWQM3MzMzMbExAH4XrUbiOV0CuR+F6FM5MQMP1KFyPclhAKVyPwvXQaEDX
+      o3A9Co9uQKRwPQrXW2NAKVyPwvUQZkDhehSuR6FwQHE9CtejIGNAuB6F61HoVkDsUbgehetOQPYo
+      XI/CNVdAMzMzMzPTTUB7FK5H4XpVQM3MzMzMjE1Aw/UoXI8iVkCamZmZmXlNQPYoXI/CpVdAUrge
+      hevBV0C4HoXrUThQQD0K16NwLVhA7FG4HoULmUDXo3A9CrdWQOF6FK5HYU9AhetRuB6VVkCPwvUo
+      XA9OQM3MzMzMnFdAPQrXo3A9VUDNzMzMzGxQQB+F61G43lZAAAAAAAAATUDXo3A9CudVQIXrUbge
+      pU9AFK5H4XpkV0DXo3A9CrdOQHE9CtejkFVAAAAAAACgTUDXo3A9CpdWQArXo3A9qlVAMzMzMzMT
+      TUCPwvUoXJ9WQBSuR+F69E5AuB6F61GoVkDD9ShcjwJPQGZmZmZmFllArkfhehQOT0DsUbgehatZ
+      QJqZmZmZeVZAH4XrUbj+TkCPwvUoXF9VQI/C9Shc70xA7FG4HoWbV0BxPQrXo7BLQDMzMzMzw1dA
+      w/UoXI+CT0DD9Shcj1JXQDMzMzMzU09AexSuR+G6V0C4HoXrUchZQI/C9Shc/1FA7FG4HoV7WUCF
+      61G4HvVTQLgehetRiF1AAAAAAADQVEA9CtejcE1eQFyPwvUoPFVAMzMzMzNzZEDXo3A9CodjQNej
+      cD0KB1lAhetRuB4FY0AAAAAAAJBZQD0K16NwzWJAcT0K16MgXkB7FK5H4aplQI/C9ShcH1xAuB6F
+      61HIYkCF61G4HlVaQArXo3A90mFAmpmZmZl5Y0DXo3A9CudZQClcj8L1+GNAPQrXo3B9V0A9Ctej
+      cE1iQB+F61G47lZApHA9CteTY0AK16NwPfpZQEjhehSuf2JA4XoUrkdhX0A9CtejcP1UQFyPwvUo
+      5GBAmpmZmZmxZEBI4XoUrk9oQB+F61G4DlBAw/UoXI8SWkDhehSuR0FQQOF6FK5HsVhA16NwPQqH
+      VUA=
+  num_channels: 3
+  num_classes: 43
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_gtsrb_num_classes_41_num_dev_examples_12008_num_test_examples_3608_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZmbqf0B7FK5H4cpWQClcj8L1aE9AUrgeheuhV0BI4XoUrqdPQHE9Ctej0FhAw/UoXI86Z0Ds
+      UbgehaNuQEjhehSu92FAXI/C9ShsZUD2KFyPwlVtQDMzMzMz02JArkfhehR+WEApXI/C9WhNQIXr
+      Ubge5VZAZmZmZmamTECamZmZmalXQNejcD0Kl05AhetRuB7FV0DsUbgehctPQArXo3A9OldAZmZm
+      Zma2WECkcD0K14NQQEjhehSuh1dASOF6FK4AmUBSuB6F61FXQClcj8L1iE1AzczMzMxcVkCkcD0K
+      12NOQMP1KFyPMldArkfhehQuV0CuR+F6FG5PQNejcD0Kx1dAXI/C9SjcUEAUrkfhejRYQHE9Ctej
+      sFBAFK5H4XrkWUDNzMzMzKxPQLgehetR6FVAPQrXo3AdUEDhehSuR0FYQClcj8L1eFZAPQrXo3A9
+      T0CkcD0K1wNYQFK4HoXrUU1AUrgehesRV0AzMzMzM9NPQClcj8L1CFlAzczMzMwsUEA9CtejcE1Y
+      QOxRuB6F61dAMzMzMzMTTkCuR+F6FO5XQB+F61G4fk1AUrgehevBVkBI4XoUrqdPQD0K16NwHVxA
+      rkfhehR+UkCkcD0K19NbQHsUrkfhWlBASOF6FK6XV0CPwvUoXF9YQMP1KFyPAlFAKVyPwvUYWEAf
+      hetRuF5TQFyPwvUonFxAAAAAAAAQVEB7FK5H4apdQI/C9ShcH1VAexSuR+FiZEB7FK5H4apiQOF6
+      FK5HgVlAuB6F61EoY0BSuB6F63FaQJqZmZmZqWNAzczMzMyUYUDsUbgehTNoQDMzMzMz01xA4XoU
+      rkdpY0CPwvUoXE9YQJqZmZmZ8WJA7FG4HoUjZUBmZmZmZnZfQArXo3A9qmRAmpmZmZk5WEApXI/C
+      9ehhQKRwPQrXE1hASOF6FK7HZkBSuB6F6xFXQOxRuB6Fe2FAcT0K16OoYEC4HoXrUfhWQK5H4XoU
+      zl9A4XoUrkc5ZEAfhetRuMZkQD0K16Nw/U9A4XoUrkfxVkCamZmZmYlQQB+F61G47lhAj8L1KFzP
+      VUA=
+  num_channels: 3
+  num_classes: 43
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_gtsrb_num_classes_8_num_dev_examples_7781_num_test_examples_640_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      MzMzMzOZhkAfhetRuD5WQFyPwvUonE5Aw/UoXI9yV0CPwvUoXC9MQM3MzMzMrFZAw/UoXI+6a0DN
+      zMzMzMxvQI/C9ShcD2BAexSuR+FKaUApXI/C9QBqQB+F61G4nmFAexSuR+FqV0DhehSuRyFNQKRw
+      PQrXY1ZACtejcD0qTUCkcD0K1+NVQEjhehSuR09ASOF6FK73VUC4HoXrUThPQM3MzMzM7FZA7FG4
+      HoUrWUDsUbgehYtNQK5H4XoUPlZAMzMzMzP8mEBcj8L1KGxWQAAAAAAAAE1AKVyPwvUoVkBcj8L1
+      KHxMQI/C9Shcz1ZAexSuR+GqVEC4HoXrUZhNQJqZmZmZiVZAmpmZmZm5UED2KFyPwlVWQMP1KFyP
+      Qk5AcT0K16OwV0BSuB6F61FNQJqZmZmZ6VVA16NwPQr3TUAAAAAAAEBXQDMzMzMzA1ZAMzMzMzMT
+      T0Bcj8L1KKxWQDMzMzMzs05AexSuR+FqVkCPwvUoXE9OQOxRuB6FK1dAuB6F61F4T0BSuB6F63FX
+      QB+F61G4jlhAUrgehesRTkDhehSuRwFWQD0K16NwXU5A9ihcj8JFV0CF61G4HuVNQAAAAAAAQFdA
+      exSuR+EKUECPwvUoXM9aQAAAAAAAIFBAXI/C9ShsVkAfhetRuC5XQHsUrkfhSlJAzczMzMyMWkA9
+      CtejcL1UQHsUrkfhKl5Aj8L1KFwPVED2KFyPwiVcQOxRuB6Fa1RApHA9CtdTZECPwvUoXE9hQFyP
+      wvUozFhA4XoUrkfpYkApXI/C9UhXQLgehetR8GJA7FG4HoVbXkDsUbgehaNlQLgehetRaF5APQrX
+      o3DtZEAUrkfhenRZQOF6FK5HsWFASOF6FK6nZEB7FK5H4XpaQFK4HoXr+WVAmpmZmZm5WUApXI/C
+      9ThhQJqZmZmZ+VRAAAAAAACoZkBcj8L1KDxXQFyPwvUoFGBAw/UoXI/qYUC4HoXrUShVQBSuR+F6
+      pF1A7FG4HoW7ZECuR+F6FOZpQK5H4XoUzk5A16NwPQrHV0AfhetRuL5QQNejcD0KR1dAPQrXo3B9
+      VUA=
+  num_channels: 3
+  num_classes: 43
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_ucf101_num_classes_64_num_dev_examples_2229_num_test_examples_1216_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      AAAAAABAWEDNzMzMzHxXQHE9CtejIFBAUrgehetBWkCF61G4HhVRQLgehetRKFhAUrgeheuxVUCu
+      R+F6FJ5bQOxRuB6Fy1BAFK5H4Xr0WkAfhetRuO5eQK5H4XoU7llA9ihcj8KVWkCF61G4HnVQQM3M
+      zMzMPFhAXI/C9SicUEBcj8L1KPxYQD0K16NwDVBA7FG4HoXbXECamZmZmelYQM3MzMzM/FtAzczM
+      zMxsWEAAAAAAAABRQD0K16NwDVhAAAAAAAD8mEA9CtejcE1ZQFyPwvUorFBAH4XrUbj+WEApXI/C
+      9VhQQGZmZmZmRllAXI/C9Si8WEDNzMzMzMxbQPYoXI/CVWBAuB6F61EoUUBmZmZmZkZdQB+F61G4
+      /lJApHA9CteTYEDXo3A9CidTQFK4HoXrgVhAw/UoXI/yUEAUrkfhekRaQIXrUbgeZVdAzczMzMws
+      UEBSuB6F65lhQArXo3A9Sl5AFK5H4XpkWUB7FK5H4bpRQClcj8L1uFhACtejcD06UUAzMzMzMxNZ
+      QLgehetRqFlA7FG4HoWrUUDD9ShcjxJXQK5H4XoUDlFAAAAAAAAQWkCkcD0K17NQQNejcD0Kd11A
+      9ihcj8KVYUCkcD0K1+NaQLgehetRGFFAXI/C9Sj8WkDXo3A9Cj9hQEjhehSud1ZApHA9CtfjV0BS
+      uB6F60FQQFyPwvUoHFpACtejcD0KUkBcj8L1KNxYQDMzMzMzk1BA4XoUrkcJYUCkcD0K1yNaQLge
+      hetRSFBAj8L1KFw/WUBmZmZmZoZRQPYoXI/CBVhAcT0K16PwTUDXo3A9CidYQGZmZmZmpk9AXI/C
+      9SjsV0AfhetRuE5RQK5H4XoU7lhAH4XrUbhWYkB7FK5H4bpXQLgehetRgGBA7FG4HoWLYEB7FK5H
+      4eJxQD0K16Nw3XBAH4XrUbgagkDXo3A9Cpd7QKRwPQrXX3BAzczMzMycYkDsUbgehctSQClcj8L1
+      +FhAXI/C9SjMUEBxPQrXowBdQClcj8L1CFFA7FG4HoVLWEBxPQrXozBOQIXrUbge9VhAXI/C9SgM
+      VUA=
+  num_channels: 3
+  num_classes: 101
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_ucf101_num_classes_71_num_dev_examples_4841_num_test_examples_781_resolution_128_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      j8L1KFz/VUDNzMzMzGxYQLgehetRuFBAXI/C9Sh8V0ApXI/C9ThQQK5H4XoU7lZApHA9CtcTVUCa
+      mZmZmdlZQNejcD0KV1BA9ihcj8LFWUB7FK5H4TJhQK5H4XoUDlhAUrgehesRXUAfhetRuA5SQJqZ
+      mZmZiVhAmpmZmZnZT0AAAAAAAHBaQPYoXI/CNU9A16NwPQo3WkDXo3A9CsdUQD0K16NwxWJASOF6
+      FK7XWEDD9Shcj0JOQNejcD0KR1tA16NwPQq9mEBxPQrXo4BXQAAAAAAAEFFA16NwPQoHWUAUrkfh
+      etROQFK4HoXrsVhAexSuR+H6V0BSuB6F65FWQM3MzMzMPF5AhetRuB5FT0BxPQrXo+BZQHsUrkfh
+      +lFAcT0K16MQX0DsUbgehctdQK5H4XoUnlhAAAAAAABwUEAzMzMzMzNZQFyPwvUoTFhAzczMzMys
+      T0B7FK5H4cpeQGZmZmZmllpAw/UoXI8yWEBxPQrXo7BRQK5H4XoUTldACtejcD0aUECPwvUoXJ9X
+      QNejcD0Kd1hAj8L1KFzvUEAK16NwPapXQNejcD0K10xAAAAAAAAgWUDXo3A9CmdQQClcj8L1KGNA
+      UrgehethWEAAAAAAAOBYQFK4HoXr8VNApHA9CtcDXECuR+F6FIZkQK5H4XoUnl5Aj8L1KFw/WEDN
+      zMzMzNxQQLgehetRGFhAhetRuB5FUUBSuB6F62FYQOxRuB6Fm1FA4XoUrkchZECkcD0K10NfQHsU
+      rkfhqlBAZmZmZmamWEApXI/C9ehPQKRwPQrXc1dAMzMzMzNzTkAAAAAAAMBYQBSuR+F6tE5A16Nw
+      PQp3V0C4HoXrUbhQQOxRuB6FG1lACtejcD2aYED2KFyPwuVaQOxRuB6Fw2FACtejcD1iYEDhehSu
+      R7FzQArXo3A9LnRASOF6FK4zhEApXI/C9eB3QK5H4XoUlm1AMzMzMzNzX0AUrkfheoRSQLgehetR
+      KFlA16NwPQp3UEBmZmZmZg5gQPYoXI/CtU9AzczMzMz8VkCamZmZmXlNQIXrUbgedVhA7FG4HoV7
+      UkA=
+  num_channels: 3
+  num_classes: 101
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_ucf101_num_classes_89_num_dev_examples_10692_num_test_examples_623_resolution_64_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      w/UoXI/iV0DNzMzMzLxXQOF6FK5HEVBAuB6F61EoWkBI4XoUrgdRQHsUrkfhGlhAhetRuB7VWUDD
+      9Shcj6JaQPYoXI/CJVFAexSuR+F6XEB7FK5H4epdQHE9CtejUFdA4XoUrkeRWkBxPQrXo7BRQIXr
+      UbgeJVhAw/UoXI/iUEAzMzMzM6NZQAAAAAAAEFBAzczMzMzsXUCkcD0K18NYQHE9CtejMFlAXI/C
+      9SgcWkCPwvUoXE9PQFK4HoXr8VdAPQrXo3APmUAK16NwPdpYQClcj8L1yFFAUrgehevBV0DXo3A9
+      CrdPQNejcD0KZ1lAH4XrUbieWEBI4XoUrhdZQClcj8L1aFxAuB6F61FoU0C4HoXrUThcQDMzMzMz
+      g1lACtejcD1qXkDD9ShcjzJWQLgehetROFlAH4XrUbguUEDXo3A9ChdaQHsUrkfhKlhAZmZmZmam
+      T0C4HoXrUUhfQB+F61G4rltAuB6F61EYWEAzMzMzMyNRQK5H4XoUDllAXI/C9Sj8UEAAAAAAAMBV
+      QK5H4XoUnlhA16NwPQr3T0AfhetRuI5YQClcj8L1aE9AhetRuB6lWkBI4XoUrodQQBSuR+F6XGNA
+      PQrXo3B9U0CuR+F6FB5cQD0K16NwLVZA16NwPQonZEC4HoXrUQhfQOxRuB6Fq1xAMzMzMzODWEDX
+      o3A9CtdPQAAAAAAA8FlA16NwPQpHUkBxPQrXo+BYQD0K16NwjVFApHA9CtcDY0C4HoXrUchXQOF6
+      FK5HwVBACtejcD3qWECamZmZmSlQQI/C9Shcr1dA7FG4HoULT0AUrkfheqRYQDMzMzMz009AhetR
+      uB51V0AAAAAAACBRQOF6FK5HEVlAPQrXo3C9YUDsUbgehStbQBSuR+F6VGVAZmZmZmbeZEDXo3A9
+      CmNxQClcj8L1IHFACtejcD2ogkApXI/C9Zh3QKRwPQrXC21A7FG4HoWbX0C4HoXrUUhQQKRwPQrX
+      01dASOF6FK4HUEAzMzMzM4tgQAAAAAAAAFJAAAAAAABAWED2KFyPwtVOQD0K16NwfVhAPQrXo3Cd
+      UkA=
+  num_channels: 3
+  num_classes: 101
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+? visual_domain_decathlon_vgg-flowers_num_classes_27_num_dev_examples_3477_num_test_examples_135_resolution_128_num_channels_3
+: mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      FK5H4XrAeEAAAAAAAMBYQOF6FK5H4VBAZmZmZmZGWkCuR+F6FF5RQKRwPQrXo1lAzczMzMy8YkBx
+      PQrXo9BfQBSuR+F6ZFJAzczMzMx8XEDhehSuRzFeQDMzMzMzQ1RAexSuR+FqWUAzMzMzMwNRQClc
+      j8L1eFlApHA9CtfjUUDsUbgehQtZQNejcD0Kd1FA9ihcj8KlWUBSuB6F61FRQNejcD0KJ1pAexSu
+      R+HqWUCamZmZmalRQLgehetR+FlA9ihcj8KEmEDXo3A9CpdZQOF6FK5HQVFA16NwPQoXWUCPwvUo
+      XA9RQOxRuB6Fq1lAAAAAAADgWEDXo3A9CrdRQPYoXI/C5VlArkfhehQOUUAfhetRuK5YQAAAAAAA
+      4FFA4XoUrkdxWkCF61G4HiVSQAAAAAAAMFpArkfhehQuUUBI4XoUrndaQHsUrkfhmlpApHA9CteD
+      UUA9CtejcH1dQK5H4XoUTlFACtejcD2qWkBxPQrXo3BRQGZmZmZmxlpASOF6FK4nUkCkcD0K19Nc
+      QD0K16Nw7VtAuB6F61F4UkApXI/C9ShaQNejcD0KB1JAmpmZmZmZWkA9CtejcB1RQClcj8L1CFxA
+      UrgehesRU0DhehSuR5FdQGZmZmZmllJApHA9CtdzXEDsUbgehUteQBSuR+F6FFRAzczMzMysXUCF
+      61G4HuVTQHsUrkfhml1ApHA9CtejVEBI4XoUrsddQJqZmZmZOVNAXI/C9SgkYUCPwvUoXJ9gQArX
+      o3A9ClZAZmZmZmbOYEDsUbgehTtWQClcj8L10GFAFK5H4XoEXEDNzMzMzAxlQNejcD0K91lASOF6
+      FK4vZEBI4XoUridaQFK4HoXrYWNACtejcD16ZkDXo3A9CudgQFK4HoXriWlAj8L1KFx3YEAfhetR
+      uG5nQClcj8L1yF1AhetRuB4taUCF61G4Hn1iQK5H4XoUfmlAFK5H4XqMZECF61G4HsVWQOxRuB6F
+      O19A16NwPQrnVUDD9Shcj0JaQAAAAAAAoFVAZmZmZmZGWkBcj8L1KLxQQMP1KFyPUlpAMzMzMzOj
+      VkA=
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+visual_domain_decathlon_vgg-flowers_num_classes_2_num_dev_examples_28_num_test_examples_12_resolution_32_num_channels_3:
+  mean_histogram: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id001
+    - !!python/tuple
+      - 0
+    - !!binary |
+      Yg==
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 100
+    - *id002
+    - false
+    - !!binary |
+      ZmZmZmZeZUCF61G4HjVZQK5H4XoUPlFAexSuR+EqWkApXI/C9dhQQM3MzMzMDFlA4XoUrkdBWkBc
+      j8L1KBxhQBSuR+F6lFVAXI/C9ShcY0CuR+F6FDZjQDMzMzMzU1RAuB6F61E4WkCkcD0K14NRQK5H
+      4XoUPlpAj8L1KFz/UUBSuB6F6+FYQBSuR+F6hFFAhetRuB71W0CamZmZmclRQPYoXI/ClVlAKVyP
+      wvWIW0BSuB6F63FRQK5H4XoUrllApHA9Ctf4mEAAAAAAADBbQOxRuB6Fa1FAmpmZmZnpWUBI4XoU
+      rjdRQEjhehSuh1lACtejcD16WUC4HoXrUfhRQNejcD0K11pAFK5H4Xq0UUC4HoXrUbhaQM3MzMzM
+      nFFAuB6F61EYXEC4HoXrUZhSQDMzMzMzc1lAuB6F61H4UEDXo3A9CodbQK5H4XoUflpA9ihcj8Kl
+      UUC4HoXrUbhaQM3MzMzMbFFAMzMzMzODWUAzMzMzM+NRQFyPwvUoTFtA7FG4HoWrUUCuR+F6FJ5b
+      QIXrUbgehVtAXI/C9SjMUUBSuB6F62FaQHE9CtejIFJAUrgeheshW0BxPQrXo1BRQB+F61G4DlxA
+      AAAAAAAAU0DXo3A9ChddQEjhehSu51NAKVyPwvVYXUDhehSuRyFeQHE9CtejIFRAZmZmZmamXUA9
+      CtejcO1TQEjhehSuB19Aj8L1KFzPVEB7FK5H4WpdQGZmZmZmplNAexSuR+H6YEBcj8L1KDxhQPYo
+      XI/C5VZAMzMzMzObYUB7FK5H4epWQAAAAAAAmGFAzczMzMz8W0DXo3A9Co9kQAAAAAAAcFtAhetR
+      uB41ZECPwvUoXO9aQHsUrkfhMmRASOF6FK7vZ0AAAAAAABBhQI/C9Shcn2lAXI/C9SikYEAAAAAA
+      AFhpQLgehetRSGBAUrgehevhakDsUbgehZtjQDMzMzMz82dA16NwPQqXZEDsUbgehatYQArXo3A9
+      KmFAzczMzMzMVkC4HoXrUThbQOxRuB6Fi1BAuB6F61EYWkAAAAAAALBRQFK4HoXrYVpAMzMzMzPj
+      V0A=
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1

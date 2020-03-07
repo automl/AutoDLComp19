@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -p bosch_cpu-cascadelake
-#SBATCH -a 1-47
+#SBATCH -a 1-28
 
 #SBATCH --mem 32000
 #SBATCH --cpus-per-task 1

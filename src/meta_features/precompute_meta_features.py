@@ -1,12 +1,17 @@
-import yaml
 import random
-import pandas as pd
-import numpy as np
-
-from src.available_datasets import all_datasets, train_datasets, val_datasets
+import traceback
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import yaml
+from src.available_datasets import all_datasets, train_datasets, val_datasets
 from src.competition.ingestion_program.dataset import AutoDLDataset
 from src.utils import load_datasets_processed
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 
 def convert_metadata_to_df(metadata):
     k, v = list(metadata.items())[0]
@@ -25,13 +30,15 @@ def convert_metadata_to_df(metadata):
         for i, element in enumerate(feature_list):
             if type(element) is tuple:
                 # convert tuple to single list elements
-                slce = slice(i, i+len(element)-1)
+                slce = slice(i, i + len(element) - 1)
 
                 feature_list[slce] = list(element)
 
                 if not columns_edited:
                     columns_that_are_tuples = columns[i]
-                    new_columns = [columns_that_are_tuples + "_" + str(i) for i in range(len(element))]
+                    new_columns = [
+                        columns_that_are_tuples + "_" + str(i) for i in range(len(element))
+                    ]
                     columns[slce] = new_columns
                     columns_edited = True
 
@@ -57,14 +64,15 @@ def load_processed_datasets(dataset_path):
     return processed_datasets
 
 
-def precompute_nn_meta_features(processed_datasets_path,
-                                output_path,
-                                dataset_path,
-                                dump_dataframe_csv=True,
-                                split_df=True,
-                                n_samples_to_use=100,
-                                file_name="meta_features",
-                                samples_along_rows=True):
+def precompute_nn_meta_features(
+    processed_datasets_path,
+    output_path,
+    dataset_path,
+    dump_dataframe_csv=True,
+    n_samples_to_use=100,
+    file_name="meta_features",
+    samples_along_rows=True
+):
 
     processed_datasets = load_processed_datasets(dataset_path=str(processed_datasets_path))
 
@@ -72,9 +80,10 @@ def precompute_nn_meta_features(processed_datasets_path,
     print("using data: {}".format(processed_datasets_path))
 
     # we need to get num_channels and num_classes from the original datasets
-    dataset_to_meta_features = {dataset.name: get_meta_features_from_dataset(dataset)
-                                for dataset in dataset_path.iterdir()
-                                if dataset.name in all_datasets}
+    dataset_to_meta_features = {
+        dataset.name: get_meta_features_from_dataset(dataset)
+        for dataset in dataset_path.iterdir() if dataset.name in all_datasets
+    }
 
     # as before, we're for now only using the train ([0]) data
     dataset_to_nn_meta_features = {}
@@ -98,8 +107,10 @@ def precompute_nn_meta_features(processed_datasets_path,
             simple_meta_data = np.append(simple_meta_data, num_classes)
 
         else:
-            print("Could not get num_channels and num_classes from dataset due to dataset mismatch "
-                  "between datasets here {} and here{}".format(dataset_path, processed_datasets_path))
+            print(
+                "Could not get num_channels and num_classes from dataset due to dataset mismatch "
+                "between datasets here {} and here{}".format(dataset_path, processed_datasets_path)
+            )
 
         resnet_data = data[:, 6:]
         resnet_data = np.concatenate(resnet_data, axis=0)
@@ -114,12 +125,10 @@ def precompute_nn_meta_features(processed_datasets_path,
     if samples_along_rows:
         df = transform_to_long_matrix(df, len(simple_meta_data), n_samples=n_samples_to_use)
 
-
     if dump_dataframe_csv:
         dump_meta_features_df_and_csv(
             meta_features=df,
             output_path=output_path,
-            split_df=split_df,
             file_name=file_name,
             samples_along_rows=samples_along_rows,
             n_samples=n_samples_to_use
@@ -135,7 +144,7 @@ def transform_to_long_matrix(df, length_simple_meta_data, n_samples):
      (n_datasets*n_samples, length_simple_meta_data+length_nn_meta_data)
     """
     len_nn_features = (len(df.columns) - length_simple_meta_data) // n_samples
-    new_df = pd.DataFrame(columns=[np.arange(length_simple_meta_data+len_nn_features)])
+    new_df = pd.DataFrame(columns=[np.arange(length_simple_meta_data + len_nn_features)])
 
     for index, row in df.iterrows():
         simple_meta_data = np.asarray(row[:length_simple_meta_data])
@@ -147,55 +156,74 @@ def transform_to_long_matrix(df, length_simple_meta_data, n_samples):
 
     return new_df
 
-def dump_meta_features_df_and_csv(meta_features,
-                                  output_path,
-                                  split_df=True,
-                                  file_name="meta_features",
-                                  samples_along_rows=False,
-                                  n_samples=None):
+
+def dump_meta_features_df_and_csv(
+    meta_features, output_path, file_name="meta_features", samples_along_rows=False, n_samples=None
+):
 
     if not isinstance(meta_features, pd.DataFrame):
         df = convert_metadata_to_df(meta_features)
     else:
         df = meta_features
 
-    if split_df:
-        if samples_along_rows and n_samples:
-            train_dataset_names = [d + "_{}".format(i) for d in train_datasets
-                                   for i in range(n_samples)]
-            valid_dataset_names = [d + "_{}".format(i) for d in val_datasets
-                                   for i in range(n_samples)]
-            file_name = "meta_features_samples_along_rows"
-        else:
-            train_dataset_names = train_datasets
-            valid_dataset_names = val_datasets
-
-        df_train = df.loc[df.index.isin(train_dataset_names)]
-        df_valid = df.loc[df.index.isin(valid_dataset_names)]
-
-        df_train.to_csv(output_path / Path(file_name + "_train.csv"))
-        df_train.to_pickle(output_path / Path(file_name + "_train.pkl"))
-
-        df_valid.to_csv(output_path / Path(file_name + "_valid.csv"))
-        df_valid.to_pickle(output_path / Path(file_name + "_valid.pkl"))
-
+    if samples_along_rows and n_samples:
+        train_dataset_names = [
+            d + "_{}".format(i) for d in train_datasets for i in range(n_samples)
+        ]
+        valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
+        file_name = "meta_features_samples_along_rows"
     else:
-        df.to_csv((output_path / file_name).with_suffix(".csv"))
-        df.to_pickle((output_path / file_name).with_suffix(".pkl"))
+        train_dataset_names = train_datasets
+        valid_dataset_names = val_datasets
 
+    df_train = df.loc[df.index.isin(train_dataset_names)]
+    df_valid = df.loc[df.index.isin(valid_dataset_names)]
 
+    df_train.to_csv(output_path / Path(file_name + "_train.csv"))
+    df_train.to_pickle(output_path / Path(file_name + "_train.pkl"))
+
+    df_valid.to_csv(output_path / Path(file_name + "_valid.csv"))
+    df_valid.to_pickle(output_path / Path(file_name + "_valid.pkl"))
+
+    df.to_csv((output_path / file_name).with_suffix(".csv"))
+    df.to_pickle((output_path / file_name).with_suffix(".pkl"))
 
     print("meta features data dumped to: {}".format(output_path))
 
 
-def get_meta_features_from_dataset(dataset_path):
+def get_meta_features_from_dataset(dataset_path, compute_mean_histogram=True, sess=None):
     full_dataset_path = dataset_path / "{}.data/train".format(dataset_path.name)
     if not full_dataset_path.exists():
         full_dataset_path = dataset_path / "{}.data/train".format((dataset_path.name).lower())
 
     train_dataset = AutoDLDataset(str(full_dataset_path))
     meta_data = train_dataset.get_metadata()
-    return parse_meta_features(meta_data)
+    parsed_meta_data = parse_meta_features(meta_data)
+
+    if compute_mean_histogram:
+        try:
+            sample_count = meta_data.size()
+            # shuffle the first 2000 (or sample_count) elements and get 100 samples from this buffer
+            buffer = 2000 if 2000 < sample_count else sample_count
+            iterator = train_dataset.get_dataset().shuffle(buffer).make_one_shot_iterator()
+            next_element = iterator.get_next()
+
+            #meta_sample = sess.run(next_element[0])
+            #min, max = meta_sample.min(), meta_sample.max()
+            histograms = []
+            for _ in range(100):
+                sample = sess.run(next_element[0])
+                hist = np.histogram(sample, bins=100)[0]
+                #hist = sess.run(tf.compat.v1.histogram_fixed_width(next_element[0], [min, max]))
+                histograms.append(hist)
+
+            parsed_meta_data["mean_histogram"] = np.mean(histograms, axis=0)
+
+        except Exception as e:
+            print("dataset causes issue: {}".format(dataset_path))
+            print(traceback.format_exc())
+
+    return parsed_meta_data
 
 
 def get_nn_meta_features_from_dataset(dataset_path):
@@ -211,24 +239,21 @@ def get_nn_meta_features_from_dataset(dataset_path):
     return train_feature_data
 
 
-
-def precompute_meta_features(dataset_path,
-                             output_path,
-                             dump_dataframe_csv=True,
-                             split_df=True,
-                             file_name="meta_features"):
+def precompute_meta_features(
+    dataset_path, output_path, dump_dataframe_csv=True, file_name="meta_features"
+):
+    sess = tf.Session()
 
     dataset_to_meta_features = {
-        dataset.name: get_meta_features_from_dataset(dataset)
-        for dataset in dataset_path.iterdir() if dataset.name in all_datasets
+        dataset.name:
+        get_meta_features_from_dataset(dataset, compute_mean_histogram=True, sess=sess)
+        for i, dataset in enumerate(dataset_path.iterdir())
+        if dataset.name in all_datasets and i < 100
     }
 
     if dump_dataframe_csv:
         dump_meta_features_df_and_csv(
-            meta_features=dataset_to_meta_features,
-            output_path=output_path,
-            split_df=split_df,
-            file_name=file_name
+            meta_features=dataset_to_meta_features, output_path=output_path, file_name=file_name
         )
 
     output_path_yaml = output_path / file_name
@@ -252,13 +277,27 @@ if __name__ == '__main__':
 
     parser.add_argument(
         "--dataset_path",
-        default="/data/aad/image_datasets/all_symlinks/",
+        default="/data/aad/image_datasets/augmented_datasets/",
         type=Path,
         help=" "
     )
 
+    # parser.add_argument(
+    #     "--output_path", default="src/meta_features/nn", type=Path, help=" "
+    # )
+
+    # args = parser.parse_args()
+
+    # precompute_nn_meta_features(
+    #         args.processed_datasets_path,
+    #         args.output_path,
+    #         args.dataset_path,
+    #         dump_dataframe_csv=True,
+    #         samples_along_rows=True
+    # )
+    """ example (non-nn) meta features """
     parser.add_argument(
-        "--output_path", default="src/meta_features/nn", type=Path, help=" "
+        "--output_path", default="src/meta_features/non-nn/new_data", type=Path, help=" "
     )
 
     args = parser.parse_args()
@@ -266,26 +305,4 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    precompute_nn_meta_features(
-            args.processed_datasets_path,
-            args.output_path,
-            args.dataset_path,
-            dump_dataframe_csv=True,
-            split_df=True,
-            samples_along_rows=True
-    )
-
-
-    """ example (non-nn) meta features """
-    # parser.add_argument(
-    #     "--output_path", default="src/meta_features/non-nn", type=Path, help=" "
-    # )
-
-    # args = parser.parse_args()
-
-    # precompute_meta_features(
-    #      args.dataset_path,
-    #      args.output_path,
-    #      dump_dataframe_csv=True,
-    #      split_df=False
-    # )
+    precompute_meta_features(args.dataset_path, args.output_path, dump_dataframe_csv=True)
