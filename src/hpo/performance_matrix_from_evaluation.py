@@ -2,7 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from src.available_datasets import train_datasets, val_datasets
+# import
+from src.available_datasets import train_datasets_all, val_datasets_all
 
 
 def get_scores_dataset_x_configs(dataset_dir):
@@ -14,7 +15,8 @@ def get_scores_dataset_x_configs(dataset_dir):
     config_names = []
     [
         config_names.append(config_path.name.rsplit("_", maxsplit=1)[0])
-        for config_path in all_config_paths if config_path.name.rsplit("_", maxsplit=1)[0] not in config_names
+        for config_path in all_config_paths
+        if config_path.name.rsplit("_", maxsplit=1)[0] not in config_names
     ]
 
     # splits all config paths [Chuck_0, Chuck_1, ..., Hammer_0, Hammer_1]
@@ -33,7 +35,10 @@ def get_scores_dataset_x_configs(dataset_dir):
                 score = float(score_path.read_text().split(" ")[1].split("\n")[0])
                 config_scores.append(score)
             except:
-                print("following config has an issue: {}".format(config_path.parent.name + "/" + config_path.name))
+                print(
+                    "following config has an issue: {}".
+                    format(config_path.parent.name + "/" + config_path.name)
+                )
 
         if not config_scores:
             avg_config_scores.append(0)
@@ -73,8 +78,8 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
         df = pd.concat([existing_df, df], axis=1)
 
     if split_df:
-        df_train = df.loc[df.index.isin(train_datasets)]
-        df_valid = df.loc[df.index.isin(val_datasets)]
+        df_train = df.loc[df.index.isin(train_datasets_all)]
+        df_valid = df.loc[df.index.isin(val_datasets_all)]
         return df, df_train, df_valid
     else:
         return df
@@ -92,15 +97,24 @@ def transform_to_long_matrix(df, n_samples):
             new_index = index + "_{}".format(i)
             new_df.loc[new_index] = row
 
-    train_dataset_names = [d + "_{}".format(i) for d in train_datasets for i in range(n_samples)]
-    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
+    train_dataset_names = [
+        d + "_{}".format(i) for d in train_datasets_all for i in range(n_samples)
+    ]
+    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets_all for i in range(n_samples)]
     new_df_train = new_df.loc[new_df.index.isin(train_dataset_names)]
     new_df_valid = new_df.loc[new_df.index.isin(valid_dataset_names)]
 
     return new_df, new_df_train, new_df_valid
 
 
-def export_df(df, experiment_group_dir, df_train=None, df_valid=None, file_name="perf_matrix", export_path=None):
+def export_df(
+    df,
+    experiment_group_dir,
+    df_train=None,
+    df_valid=None,
+    file_name="perf_matrix",
+    export_path=None
+):
     train_file_name = file_name + "_train.pkl"
     valid_file_name = file_name + "_valid.pkl"
     file_name = file_name + ".pkl"
@@ -137,7 +151,9 @@ if __name__ == '__main__':
     #)
 
     df, df_train, df_valid = create_df_perf_matrix(
-        args.experiment_group_dir, split_df=True, existing_df=None  # df_to_merge
+        args.experiment_group_dir,
+        split_df=True,
+        existing_df=None  # df_to_merge
     )
     export_df(
         df=df,
@@ -145,7 +161,7 @@ if __name__ == '__main__':
         df_train=df_train,
         df_valid=df_valid,
         file_name="perf_matrix",
-        # export_path=args.experiment_group_dir.parent / "perf_matrix"
+        export_path=args.experiment_group_dir.parent / "perf_matrix"
     )
 
     #df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)

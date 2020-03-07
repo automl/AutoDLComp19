@@ -42,6 +42,8 @@ def get_available_dataset_names(valid_keys, selected_train_datasets=None, no_aug
     return train_datasets, val_datasets
 
 
+NO_AUGMENTED = False
+
 train_keys = [
     "cifar100",  # objects
     "cifar10",  # objects
@@ -49,10 +51,11 @@ train_keys = [
     "colorectal_histology",  # colorectal cancer
     "caltech_birds2010",  # birds
     "eurosat",  # satellite images
-    "cars196",  # replacement for Hammer
-    "visual_domain_decathlon_dtd",  # textures
+    "cars196",  # cars
+    "visual_domain_decathlon_dtd",  # textures, # replacement for Hammer
     "imagenette",  # subset of imagenet
-    "malaria",  # cell images
+    "imagenet_resized",  # imagenet resized to 32x32
+    "malaria",  # cell images, # replacement for Hammer
     "svhn_cropped",  # house numbers
     "uc_merced",  # urban area imagery
     "visual_domain_decathlon_daimlerpedcls",  # pedestrians
@@ -61,12 +64,19 @@ train_keys = [
     "citrus_leaves",  # citrus fruits and leaves
     "cycle_gan_summer2winter_yosemite",  # landscape
     "cycle_gan_facades",  # facades
-    "horses_or_humans",  # sprites
     "visual_domain_decathlon_ucf101"  # youtube action
 ]
 
 valid_keys = ["coil100", "kmnist", "vgg-flowers", "oxford_iiit_pet", "cmaterdb_telugu"]
+# lists ending without _all contain subset of available datasets (not filtered by keys)
 train_datasets, val_datasets = get_available_dataset_names(
-    valid_keys=valid_keys, selected_train_datasets=train_keys, no_augmented=True
+    valid_keys=valid_keys, selected_train_datasets=train_keys, no_augmented=NO_AUGMENTED
 )
-all_datasets = train_datasets + val_datasets
+
+# lists ending with _all contain all datasets (with augmented and not filtered by keys), e.g.
+# useful for evaluation in src/hpo/performance_matrix_from_evaluation.py
+train_datasets_all, val_datasets_all = get_available_dataset_names(
+    valid_keys=valid_keys, no_augmented=False
+)
+
+all_datasets = train_datasets_all + val_datasets_all
