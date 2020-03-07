@@ -13,7 +13,7 @@
 
 source activate autodl
 
-ARGS_FILE=submission/hpo_args_individualists_v3_new_datasets
+ARGS_FILE=submission/hpo_args_individualists_v3_new_datasets.args
 TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
 PYTHONPATH=$PWD python src/hpo/optimize.py \

@@ -36,7 +36,7 @@ def get_available_dataset_names(valid_keys, selected_train_datasets=None, no_aug
     if selected_train_datasets:
         train_datasets = [
             dataset for dataset in train_datasets
-            for key in selected_train_datasets if dataset.startswith(key) and key + "_" in dataset
+            for key in selected_train_datasets if dataset.startswith(key + "_")
         ]
 
     return train_datasets, val_datasets
