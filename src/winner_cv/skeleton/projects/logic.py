@@ -8,6 +8,7 @@ import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
+from copy import deepcopy
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
 
@@ -16,6 +17,7 @@ from .others import *
 
 LOGGER = get_logger(__name__)
 
+from IPython import embed
 
 class LogicModel(Model):
     def __init__(self, metadata, session=None, model_config=None):
@@ -104,6 +106,20 @@ class LogicModel(Model):
 
     def is_video(self):
         return self.info['dataset']['sample']['is_video']
+
+    @staticmethod
+    def get_majority_class(dataloader):
+        for x, y in dataloader:
+            targets = y.cpu().numpy()
+            break
+        classes = np.where(targets)[1]
+        counts = {k: len(np.where(classes==k)[0]) for k in range(len(targets[0]))}
+        return np.argmax(list(counts.values()))
+
+    def predict_majority(self):
+        prediction = np.zeros((self.num_test, self.num_class))
+        prediction[:, self.majority_class] = 1
+        return prediction
 
     def build_or_get_train_dataloader(self, dataset):
         if not self.info['condition']['first']['train']:
@@ -478,6 +494,15 @@ class LogicModel(Model):
         self.timers['train']('build_dataset')
 
         inner_epoch = 0
+
+        if self.hyper_params['conditions']['output_majority_first']:
+            self.majority_class = LogicModel.get_majority_class(
+                self.build_or_get_dataloader('valid',
+                                             self.datasets['valid'],
+                                             self.datasets['num_valids'])
+            )
+            return
+
         while True:
             inner_epoch += 1
             remaining_time_budget -= self.timers['train'].step_time
@@ -536,17 +561,6 @@ class LogicModel(Model):
 
             self.timers['train']('end')
 
-        # if 'test' in self.dataloaders and self.dataloaders['test'] is not None and \
-        #     not is_skip_valid:
-        #     self.prediction(self.dataloaders['test'])
-        #     for step in range(3):
-        #         test_metric = self.epoch_train(self.info['loop']['epoch'], self.dataloaders['test'])
-        #         LOGGER.info(
-        #             '[train] [%02d] [%02d/%02d] [finetune] loss:%.3f score:%.3f',
-        #             self.info['loop']['epoch'], step, 3, test_metric['loss'], test_metric['score'],
-        #         )
-        # self.timers['train']('finetune')
-
         remaining_time_budget -= self.timers['train'].step_time
         self.terminate_train_loop_condition(remaining_time_budget, inner_epoch)
 
@@ -563,15 +577,19 @@ class LogicModel(Model):
         # LOGGER.info('[train] [%02d] Timer:%s', self.info['loop']['epoch'], self.timers['train'])
 
     def test(self, dataset, remaining_time_budget=None):
-        self.timers['test']('start', exclude_total=True, reset_step=True)
-        is_first = self.info['condition']['first']['test']
-        self.info['loop']['test'] += 1
+        if self.hyper_params['conditions']['output_majority_first']:
+            rv = self.predict_majority()
+            self.hyper_params['conditions']['output_majority_first'] = False
+        else:
+            self.timers['test']('start', exclude_total=True, reset_step=True)
+            is_first = self.info['condition']['first']['test']
+            self.info['loop']['test'] += 1
 
-        dataloader = self.build_or_get_dataloader('test', dataset, self.num_test)
-        self.timers['test']('build_dataset', reset_step=is_first)
+            dataloader = self.build_or_get_dataloader('test', dataset, self.num_test)
+            self.timers['test']('build_dataset', reset_step=is_first)
 
-        rv = self.prediction(dataloader)
-        self.timers['test']('end')
+            rv = self.prediction(dataloader)
+            self.timers['test']('end')
 
         LOGGER.info(
             '[test ] [%02d] test:%02d time(budge:%.2f, total:%.2f, step:%.2f)',
