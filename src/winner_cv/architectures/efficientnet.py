@@ -263,9 +263,10 @@ class EfficientNet(nn.Module):
         #    x = self.conv1d_post(x)
 
         x = x.view(bs, -1)
-        x = self._dropout(x)
+        x_f = x.view(x.size(0), -1)
+        x = self._dropout(x_f)
         x = self._fc(x)
-        return x
+        return x, x_f
 
 
     def forward(self, inputs, targets=None, tau=8.0, reduction='avg'):
@@ -277,11 +278,11 @@ class EfficientNet(nn.Module):
         #    inputs = inputs.view(batch * times, channels, height, width)
 
         #inputs = self.stem(inputs)
-        logits = self.forward_origin(inputs)
+        logits, features = self.forward_origin(inputs)
         logits /= tau
 
         if targets is None:
-            return logits
+            return logits, features
         if targets.device != logits.device:
             targets = targets.to(device=logits.device)
 
@@ -314,7 +315,7 @@ class EfficientNet(nn.Module):
         elif reduction == 'min':
             loss = loss.min()
 
-        return logits, loss
+        return logits, loss, features
 
 
     def half(self):

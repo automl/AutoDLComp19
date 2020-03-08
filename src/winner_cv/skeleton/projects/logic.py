@@ -17,7 +17,6 @@ from .others import *
 
 LOGGER = get_logger(__name__)
 
-from IPython import embed
 
 class LogicModel(Model):
     def __init__(self, metadata, session=None, model_config=None):
@@ -106,6 +105,15 @@ class LogicModel(Model):
 
     def is_video(self):
         return self.info['dataset']['sample']['is_video']
+
+    @staticmethod
+    def get_class_array(one_hot_y):
+        for x, y in dataloader:
+            targets = y.cpu().numpy()
+            break
+        classes = np.where(targets)[1]
+        counts = {k: len(np.where(classes==k)[0]) for k in range(len(targets[0]))}
+        return np.argmax(list(counts.values()))
 
     @staticmethod
     def get_majority_class(dataloader):
@@ -500,6 +508,26 @@ class LogicModel(Model):
                 self.build_or_get_dataloader('valid',
                                              self.datasets['valid'],
                                              self.datasets['num_valids'])
+            )
+            return
+
+        if self.hyper_params['conditions']['first_svc']:
+            inner_epoch += 1
+            remaining_time_budget -= self.timers['train'].step_time
+
+            self.timers['train']('start', reset_step=True)
+            self.fit_classifier(self.info['loop']['epoch'], train_dataloader)
+            self.timers['train']('train')
+            self.timers['train']('end')
+
+            remaining_time_budget -= self.timers['train'].step_time
+
+            if not self.done_training:
+                self.adapt(remaining_time_budget)
+
+            LOGGER.info(
+                '[SVC] [%02d] time(budge:%.2f, total:%.2f)',
+                self.info['loop']['epoch'], remaining_time_budget, self.get_total_time()
             )
             return
 

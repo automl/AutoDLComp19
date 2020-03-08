@@ -17,6 +17,8 @@ efficientnetb5, efficientnetb6, efficientnetb7
 from skeleton.projects import LogicModel, get_logger
 from skeleton.projects.others import AUC, NBAC
 
+from sklearn.svm import SVC, NuSVC
+
 torch.backends.cudnn.benchmark = True
 threads = [
     threading.Thread(target=lambda: torch.cuda.synchronize()),
@@ -321,6 +323,37 @@ class Model(LogicModel):
                                      device=logits.device).scatter_(-1, k.view(-1, 1), 1.0)
         return logits, prediction
 
+    def fit_classifier(self, epoch, train, model=None, classifier=SVC):
+        model = model if model is not None else self.model_pred
+        model.eval()
+
+        # used for simple classifier
+        X = []
+        y = []
+        with torch.no_grad():
+            for step, (examples, labels) in enumerate(train):
+                if examples.shape[0] == 1:
+                    examples = examples[0]
+                    labels = labels[0]
+                original_labels = labels
+                if not self.is_multiclass():
+                    labels = labels.argmax(dim=-1)
+
+                skeleton.nn.MoveToHook.to((examples, labels), self.device, self.is_half)
+                logits, loss, features = model(examples, labels, tau=self.tau, reduction='avg')
+
+                X.append(features.cpu().numpy())
+                y.append(labels.cpu().numpy())
+
+        LOGGER.info('[SVC] [Fit] nr. examples: %d', len(y))
+        self.clf = classifier(gamma='auto', probability=True)
+        X = np.concatenate(np.array(X), axis=0).astype(np.float)
+        y = np.concatenate(np.array(y), axis=0).astype(np.float)
+        self.clf.fit(X, y)
+        del X
+        del y
+        return
+
     def epoch_train(self, epoch, train, model=None, optimizer=None):
         model = model if model is not None else self.model
         if epoch < 0:
@@ -344,7 +377,7 @@ class Model(LogicModel):
                 labels = labels.argmax(dim=-1)
 
             skeleton.nn.MoveToHook.to((examples, labels), self.device, self.is_half)
-            logits, loss = model(examples, labels, tau=self.tau, reduction='avg')
+            logits, loss, features = model(examples, labels, tau=self.tau, reduction='avg')
             loss = loss.sum()
             loss.backward()
 
@@ -400,7 +433,7 @@ class Model(LogicModel):
                     labels = torch.cat([labels, labels], dim=0)
 
                 # skeleton.nn.MoveToHook.to((examples, labels), self.device, self.is_half)
-                logits, loss = self.model(examples, labels, tau=tau, reduction=reduction)
+                logits, loss, _ = self.model(examples, labels, tau=tau, reduction=reduction)
 
                 # avergae
                 if self.use_test_time_augmentation and test_time_augmentation:
@@ -460,17 +493,17 @@ class Model(LogicModel):
         tau = self.tau
         if model is None:
             model = self.model_pred
+            if not self.hyper_params['conditions']['first_svc']:
+                best_idx = np.argmax(np.array([c['valid']['score'] for c in self.checkpoints]))
+                best_loss = self.checkpoints[best_idx]['valid']['loss']
+                best_score = self.checkpoints[best_idx]['valid']['score']
 
-            best_idx = np.argmax(np.array([c['valid']['score'] for c in self.checkpoints]))
-            best_loss = self.checkpoints[best_idx]['valid']['loss']
-            best_score = self.checkpoints[best_idx]['valid']['score']
-
-            states = self.checkpoints[best_idx]['model']
-            model.load_state_dict(states)
-            LOGGER.info(
-                'best checkpoints at %d/%d (valid loss:%f score:%f) tau:%f', best_idx + 1,
-                len(self.checkpoints), best_loss, best_score, tau
-            )
+                states = self.checkpoints[best_idx]['model']
+                model.load_state_dict(states)
+                LOGGER.info(
+                    'best checkpoints at %d/%d (valid loss:%f score:%f) tau:%f', best_idx + 1,
+                    len(self.checkpoints), best_loss, best_score, tau
+                )
 
         num_step = len(dataloader) if num_step is None else num_step
 
@@ -484,8 +517,15 @@ class Model(LogicModel):
                 if self.use_test_time_augmentation and test_time_augmentation:
                     examples = torch.cat([examples, torch.flip(examples, dims=[-1])], dim=0)
 
+                # predict using simple classifier
+                if self.hyper_params['conditions']['first_svc']:
+                    _, features = model(examples, tau=tau)
+                    prediction = self.clf.predict_proba(features.detach().float().cpu().numpy())
+                    predictions.append(prediction)
+                    continue
+
                 # skeleton.nn.MoveToHook.to((examples, labels), self.device, self.is_half)
-                logits = model(examples, tau=tau)
+                logits, _ = model(examples, tau=tau)
 
                 # avergae
                 if self.use_test_time_augmentation and test_time_augmentation:
@@ -499,8 +539,10 @@ class Model(LogicModel):
                 else:
                     predictions.append(logits)
 
-            if detach:
+            if detach or self.hyper_params['conditions']['first_svc']:
                 predictions = np.concatenate(predictions, axis=0).astype(np.float)
             else:
                 predictions = torch.cat(predictions, dim=0)
+
+            self.hyper_params['conditions']['first_svc'] = False
         return predictions
