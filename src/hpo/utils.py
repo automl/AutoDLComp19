@@ -24,6 +24,9 @@ def construct_model_config(config, default_config):
         "test_after_at_least_seconds_step"]
     # mc["autocv"]["conditions"]["threshold_valid_score_diff"] = config["threshold_valid_score_diff"]
     mc["autocv"]["conditions"]["max_inner_loop_ratio"] = config["max_inner_loop_ratio"]
+    mc["autocv"]["conditions"]["first_simple_model"] = eval(config["first_simple_model"])
+    if config["first_simple_model"] == 'True':
+        mc["autocv"]["conditions"]["simple_model"] = config["simple_model"]
 
     mc["autocv"]["optimizer"]["lr"] = config["lr"]
     mc["autocv"]["optimizer"]["min_lr"] = config["min_lr"]

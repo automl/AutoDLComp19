@@ -87,6 +87,10 @@ def get_configspace():
     warmup_multiplier = CSH.CategoricalHyperparameter('warmup_multiplier', [1.0, 1.5, 2.0, 2.5, 3.0])
     warm_up_epoch = CSH.UniformIntegerHyperparameter('warm_up_epoch', lower=3, upper=6, log=False)
 
+    # simple classifier
+    first_simple_model = CSH.CategoricalHyperparameter('first_simple_model', ['True', 'False'])
+    simple_model = CSH.CategoricalHyperparameter('simple_model', ['SVC', 'NuSVC', 'RF'])
+
     # Architecture
     architecture = CSH.CategoricalHyperparameter(
         "architecture", ['ResNet18', 'efficientnetb0', 'efficientnetb1', 'efficientnetb2']
@@ -107,7 +111,8 @@ def get_configspace():
             early_epoch, skip_valid_score_threshold, test_after_at_least_seconds,
             test_after_at_least_seconds_max, test_after_at_least_seconds_step, max_inner_loop_ratio,
             batch_size, lr, min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
-            scheduler, freeze_portion, warmup_multiplier, warm_up_epoch
+            scheduler, freeze_portion, warmup_multiplier, warm_up_epoch,
+            first_simple_model, simple_model
         ]
     )
 
@@ -117,7 +122,8 @@ def get_configspace():
         CS.EqualsCondition(amsgrad, optimizer, 'Adam'),
         CS.EqualsCondition(amsgrad, optimizer, 'AdamW')
     )
-    cs.add_conditions([condition_1, condition_2, condition_3])
+    condition_4 = CS.EqualsCondition(simple_model, first_simple_model, 'True')
+    cs.add_conditions([condition_1, condition_2, condition_3, condition_4])
     return cs
 
 
