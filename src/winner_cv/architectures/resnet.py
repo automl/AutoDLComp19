@@ -160,9 +160,9 @@ class ResNet18(models.ResNet):
             x = self.conv1d(x)
             x = self.conv1d_post(x)
 
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
+        x_f = x.view(x.size(0), -1)
+        x = self.fc(x_f)
+        return x, x_f
 
     def forward(self, inputs, targets=None, tau=8.0, reduction='avg'):  # pylint: disable=arguments-differ
         dims = len(inputs.shape)
@@ -172,11 +172,11 @@ class ResNet18(models.ResNet):
             inputs = inputs.view(batch * times, channels, height, width)
 
         inputs = self.stem(inputs)
-        logits = self.forward_origin(inputs)
+        logits, features = self.forward_origin(inputs)
         logits /= tau
 
         if targets is None:
-            return logits
+            return logits, features
         if targets.device != logits.device:
             targets = targets.to(device=logits.device)
 
@@ -208,7 +208,7 @@ class ResNet18(models.ResNet):
             loss = loss.max()
         elif reduction == 'min':
             loss = loss.min()
-        return logits, loss
+        return logits, loss, features
 
     def half(self):
         # super(BasicNet, self).half()
