@@ -48,13 +48,13 @@ def get_configspace():
     max_valid_count = CSH.UniformIntegerHyperparameter("max_valid_count", lower=128, upper=512,
                                                        log=True)
     max_size = CSH.UniformIntegerHyperparameter("log2_max_size", lower=5, upper=7)
-    max_times = CSH.UniformIntegerHyperparameter("max_times", lower=4, upper=10)
+    # max_times = CSH.UniformIntegerHyperparameter("max_times", lower=4, upper=10)
     train_info_sample = CSH.UniformIntegerHyperparameter("train_info_sample", lower=128, upper=512,
                                                          log=True)
-    enough_count_video = CSH.UniformIntegerHyperparameter("enough_count_video", lower=100,
-                                                          upper=10000, log=True)
-    enough_count_image = CSH.UniformIntegerHyperparameter("enough_count_image", lower=1000,
-                                                          upper=100000, log=True)
+    # enough_count_video = CSH.UniformIntegerHyperparameter("enough_count_video", lower=100,
+    #                                                       upper=10000, log=True)
+    # enough_count_image = CSH.UniformIntegerHyperparameter("enough_count_image", lower=1000,
+    #                                                       upper=100000, log=True)
 
     # Report intervalls
     steps_per_epoch = CSH.UniformIntegerHyperparameter("steps_per_epoch", lower=5, upper=250,
@@ -68,8 +68,8 @@ def get_configspace():
         "test_after_at_least_seconds_max", lower=60, upper=120)
     test_after_at_least_seconds_step = CSH.UniformIntegerHyperparameter(
         "test_after_at_least_seconds_step", lower=2, upper=10)
-    threshold_valid_score_diff = CSH.UniformFloatHyperparameter("threshold_valid_score_diff",
-                                                                lower=0.0001, upper=0.01, log=True)
+    # threshold_valid_score_diff = CSH.UniformFloatHyperparameter("threshold_valid_score_diff",
+    #                                                             lower=0.0001, upper=0.01, log=True)
     max_inner_loop_ratio = CSH.UniformFloatHyperparameter("max_inner_loop_ratio", lower=0.1,
                                                           upper=0.3)
 
@@ -103,12 +103,10 @@ def get_configspace():
 
     cs.add_hyperparameters(
         [
-            cv_valid_ratio, max_valid_count, max_size, max_times, train_info_sample,
-            enough_count_video, enough_count_image, steps_per_epoch, early_epoch,
-            skip_valid_score_threshold, test_after_at_least_seconds,
-            test_after_at_least_seconds_max, test_after_at_least_seconds_step,
-            threshold_valid_score_diff, max_inner_loop_ratio, batch_size, lr,
-            min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
+            cv_valid_ratio, max_valid_count, max_size, train_info_sample, steps_per_epoch,
+            early_epoch, skip_valid_score_threshold, test_after_at_least_seconds,
+            test_after_at_least_seconds_max, test_after_at_least_seconds_step, max_inner_loop_ratio,
+            batch_size, lr, min_lr, architecture, wd, momentum, optimizer, nesterov, amsgrad,
             scheduler, freeze_portion, warmup_multiplier, warm_up_epoch
         ]
     )
@@ -248,22 +246,23 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(2)
     tf.set_random_seed(2)
 
-    worker = AggregateWorker(
+    # worker = AggregateWorker(
+    #     working_directory='experiments/test/test_aggregate_worker',
+    #     n_repeat=1,
+    #     has_repeats_as_budget=False,
+    #     run_id='0',
+    #     time_budget=1200,
+    #     time_budget_approx=60,
+    # )
+
+    worker = SingleWorker(
         working_directory='experiments/test/test_aggregate_worker',
         n_repeat=1,
         run_id='0',
+        dataset="mnist",
         time_budget=1200,
-        time_budget_approx=60,
+        time_budget_approx=60
     )
-
-    # worker = SingleWorker(
-    #     working_directory='experiments/test/test_aggregate_worker',
-    #     n_repeat=1,
-    #     run_id='0',
-    #     dataset="emnist",
-    #     time_budget=1200,
-    #     time_budget_approx=60
-    # )
     cs = get_configspace()
 
     config = cs.sample_configuration().get_dictionary()
