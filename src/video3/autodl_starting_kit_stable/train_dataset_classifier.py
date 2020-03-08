@@ -7,6 +7,9 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 import matplotlib.pyplot as plt
 import pickle
 import xgboost as xgb
+import sklearn.cluster as cluster
+import sklearn.neighbors as neighbors
+from sklearn.metrics import accuracy_score
 import tensorflow as tf
 import random
 import numpy as np
@@ -52,10 +55,10 @@ def get_data_type(dataset_dir):
 def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [32]))
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-3, log=True))
 
     # xgb classifier
     # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
@@ -64,16 +67,36 @@ def get_configspace():
     # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
     # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [64]))
 
+    # kmeans classifier
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_n_clusters', lower=5, upper=40, ))  # default=8
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_n_init', lower=10, upper=30, ))  #  default=10
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_max_iter', lower=100, upper=500, ))  # default=300
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_random_state', lower=1, upper=20000))
+
+    # nearest centroid
+    # has no hyperparameters
+
+    # DBSCAN Classifier
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dbscan_eps', lower=0.1, upper=5))  # , default=0.5
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='dbscan_min_samples', lower=3, upper=20))  # , default=5
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='dbscan_algo', choices=['auto', 'ball_tree', 'kd_tree', 'brute']))  # , default='auto')
+
+    # Optics classifier
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='optics_min_samples', lower=3, upper=20, ))  # default=5
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='optics_maxeps', lower=0.1, upper=1e16, ))  # default=0.5
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='optics_algo', choices=['auto', 'ball_tree', 'kd_tree', 'brute'],))  #  default='auto'
+
+
     # common parameters
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_ratio', lower=0.3, upper=1, log=False))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_med', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_mean', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_var', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_std', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_med', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_mean', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_var', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_std', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
 
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_data', choices=[True, False]))
 
@@ -110,6 +133,9 @@ def get_configuration(log_subfolder=None):
 
     if cfg["use_model"] == 'dl':
         cfg["bohb_min_budget"] = 100
+        cfg["bohb_max_budget"] = 1000
+    elif cfg["use_model"] == 'cluster':
+        cfg["bohb_min_budget"] = 1000
         cfg["bohb_max_budget"] = 1000
     else:
         cfg["bohb_min_budget"] = 100
@@ -454,6 +480,50 @@ class WrapperModel_xgb(torch.nn.Module):
     def save(self):
         torch.save(self.state_dict(), self.filename)
 
+class WrapperModel_cluster(torch.nn.Module):
+    def __init__(self, config_id, cfg, algorithm='kmeans'):
+        super().__init__()
+        self.cfg = cfg
+        self.filename = self.cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
+
+        if os.path.isfile(self.filename):
+            self.load_state_dict(torch.load(self.filename))
+
+    def forward(self, x):
+        nb_samples = x.shape[0]
+        nb_cut = int(self.cfg['cut_perc'] * nb_samples)
+        x = x.sort(dim=0)[0]
+        x = x[nb_cut:nb_samples-nb_cut]
+
+        med  = x.median(dim=0)[0]
+        mean = torch.mean(x, dim=0)
+        var  = torch.var(x, dim=0)
+        std  = torch.pow(var, 0.5)
+        diff = x - mean
+        tmp  = diff/(std+0.1)
+        skew = torch.mean(torch.pow(tmp, 3.0), dim=0)
+        kurt = torch.mean(torch.pow(tmp, 4.0), dim=0)
+
+        x = None
+        if self.cfg['use_med']:
+            x = med if x is None else torch.cat((x, med), 0)
+        if self.cfg['use_mean']:
+            x = mean if x is None else torch.cat((x, mean), 0)
+        if self.cfg['use_std']:
+            x = std if x is None else torch.cat((x, std), 0)
+        if self.cfg['use_var']:
+            x = var if x is None else torch.cat((x, var), 0)
+        if self.cfg['use_skew']:
+            x = skew if x is None else torch.cat((x, skew), 0)
+        if self.cfg['use_kurt']:
+            x = kurt if x is None else torch.cat((x, kurt), 0)
+
+        x = x.unsqueeze(0)
+
+        return x
+
+    def save(self):
+        torch.save(self.state_dict(), self.filename)
 
 class WrapperOptimizer(object):
     def __init__(self, config_id, model, cfg):
@@ -482,6 +552,146 @@ def calc_accuracy(prediction, class_index):
     acc = float(torch.sum(max_idx == int(class_index))) / float(len(prediction))
     return acc
 
+def execute_run_cluster(config_id, cfg, budget, dataset_list, session):
+    num_classes = len(dataset_list)
+    m = Model_cluster(config_id = config_id,
+                 num_classes = num_classes,
+                 cfg = cfg,
+                 session = session,)
+                 #algorithm='kmeans')
+
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_train = dataset_list[selected_class][0]
+        dataset_name  = dataset_list[selected_class][2]
+        class_index   = dataset_list[selected_class][3]
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+        m.collect_samples_train(dataset = dataset_train.get_dataset(),
+                                class_index = class_index,
+                                desired_batches = budget)
+
+    m.train()
+
+    acc_list = []
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_test = dataset_list[selected_class][1]
+        dataset_name = dataset_list[selected_class][2]
+        class_index  = dataset_list[selected_class][3]
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        acc = m.test(dataset=dataset_test.get_dataset(),
+                     dataset_name=dataset_name,
+                     class_index=class_index)
+        acc_list.append(acc)
+
+    avg_acc = sum(acc_list) / len(acc_list)
+
+    return avg_acc, 0
+
+class Model_cluster(object):
+    def __init__(self, config_id, num_classes, cfg, session, algorithm='nc'):
+        super().__init__()
+        self.cfg = cfg
+        self.train_dataloader_dict = {}
+        self.session = session
+        self.algorithm = algorithm
+        if algorithm == 'kmeans':
+            self.model = cluster.KMeans(n_clusters=cfg['kmeans_n_clusters'],
+                                        init='k-means++',
+                                        n_init=cfg['kmeans_n_init'],
+                                        max_iter=cfg['kmeans_max_iter'],
+                                        tol=0.0001, precompute_distances='auto',
+                                        verbose=0,
+                                        random_state=cfg['kmeans_random_state'],
+                                        copy_x=True, n_jobs=-1,
+                                        algorithm='auto')
+        elif algorithm == 'nc':
+            self.model = neighbors.NearestCentroid(metric='manhattan')
+        elif algorithm == 'dbscan':
+            self.model = cluster.DBSCAN(eps=cfg['dbscan_eps'],
+                                        min_samples=cfg['dbscan_min_samples'],
+                                        metric='euclidean',
+                                        metric_params=None,
+                                        algorithm=cfg['dbscan_algo'],
+                                        leaf_size=30,
+                                        p=None,
+                                        n_jobs=-1)
+        elif algorithm == 'optics':
+            self.model = cluster.OPTICS(min_samples=cfg['optics_min_samples'],
+                                        max_eps=cfg['optics_maxeps'],
+                                        metric='minkowski', p=2,
+                                        metric_params=None,
+                                        cluster_method='xi',
+                                        eps=None,
+                                        xi=0.05,
+                                        predecessor_correction=True,
+                                        min_cluster_size=None,
+                                        algorithm=cfg['optics_algo'],
+                                        leaf_size=30,
+                                        n_jobs=-1)
+
+        self.X = []
+        self.y = []
+        self.num_classes = num_classes
+
+    def collect_samples_train(self, dataset, class_index, desired_batches):
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=cfg['shuffle_data'],
+            drop_last=False
+        )
+        finish_loop = False
+        train_batches = 0
+
+        while not finish_loop:
+            # Set train mode before we go into the train loop over an epoch
+            for data, _ in dataloader:
+                self.X.append(np.squeeze(data.cpu().numpy()))
+                self.y.append(np.array([class_index]))
+                train_batches += 1
+                if train_batches > desired_batches:
+                    finish_loop = True
+                    break
+
+    def train(self):
+        X = np.asarray(self.X)
+        y = np.asarray(self.y)
+
+        param = {
+            'eta': self.cfg['xgb_eta'],
+            'max_depth': self.cfg['xgb_max_depth'],
+            'objective': 'multi:softprob',
+            'num_class': self.num_classes}
+        #print('x shape: ', X.shape)
+        #print('y shape: ', y.shape)
+        self.model.fit(X, y)
+        # D_train = xgb.DMatrix(X, y)
+        # self.xgb = xgb.train(param, D_train, self.cfg['xgb_train_steps'])
+        self.X = None
+        self.y = None
+
+    def test(self, dataset, dataset_name, class_index):
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=False,
+            drop_last=False
+        )
+        X = []
+        y = []
+        for data, _ in dataloader:
+            X.append(np.squeeze(data.cpu().numpy()))
+            y.append(np.array([class_index]))
+        prediction = self.model.predict(X)
+        acc = accuracy_score(prediction, y)
+        print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))  # + ' ' + str(time.time() - t1))
+        return acc
 
 def execute_run_xgb(config_id, cfg, budget, dataset_list, session):
     num_classes = len(dataset_list)
@@ -793,6 +1003,12 @@ class BOHBWorker(Worker):
                                               session=self.session)
         elif cfg['use_model'] == 'dl':
             score, avg_loss = execute_run_dl(config_id = config_id,
+                                             cfg=cfg,
+                                             budget=budget,
+                                             dataset_list=self.dataset_list,
+                                             session=self.session)
+        elif cfg['use_model'] == 'cluster':
+            score, avg_loss = execute_run_cluster(config_id = config_id,
                                              cfg=cfg,
                                              budget=budget,
                                              dataset_list=self.dataset_list,
