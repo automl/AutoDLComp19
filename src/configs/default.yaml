@@ -58,6 +58,7 @@ autocv:
     min_lr: 0.000001  # = 1e-6, need explicit version to be parsed by yaml
     use_fast_auto_aug: True
     output_majority_first: False
-    first_svc: False
+    first_simple_model: False
+    simple_model: RF
     # In src/winner_cv/skeleton/projects/logic:
     # skip_valid_after_test: min(10 max(3 int(self.info["dataset"]["size"] // 1000)))

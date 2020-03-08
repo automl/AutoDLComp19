@@ -511,7 +511,7 @@ class LogicModel(Model):
             )
             return
 
-        if self.hyper_params['conditions']['first_svc']:
+        if self.hyper_params['conditions']['first_simple_model']:
             inner_epoch += 1
             remaining_time_budget -= self.timers['train'].step_time
 
@@ -526,8 +526,10 @@ class LogicModel(Model):
                 self.adapt(remaining_time_budget)
 
             LOGGER.info(
-                '[SVC] [%02d] time(budge:%.2f, total:%.2f)',
-                self.info['loop']['epoch'], remaining_time_budget, self.get_total_time()
+                '[%s] [%02d] time(budge:%.2f, total:%.2f)',
+                self.hyper_params['conditions']['simple_model'],
+                self.info['loop']['epoch'], remaining_time_budget,
+                self.get_total_time()
             )
             return
 
