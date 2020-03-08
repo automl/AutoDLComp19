@@ -89,7 +89,10 @@ def get_configspace():
 
     # simple classifier
     first_simple_model = CSH.CategoricalHyperparameter('first_simple_model', ['True', 'False'])
-    simple_model = CSH.CategoricalHyperparameter('simple_model', ['SVC', 'NuSVC', 'RF'])
+    simple_model = CSH.CategoricalHyperparameter('simple_model', ['SVC',
+                                                                  'NuSVC',
+                                                                  'RF',
+                                                                  'LR'])
 
     # Architecture
     architecture = CSH.CategoricalHyperparameter(

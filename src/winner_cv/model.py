@@ -19,6 +19,7 @@ from skeleton.projects.others import AUC, NBAC
 
 from sklearn.svm import SVC, NuSVC
 from sklearn.ensemble import RandomForestClassifier as RF
+from sklearn.linear_model import LogisticRegression as LR
 
 torch.backends.cudnn.benchmark = True
 threads = [
@@ -352,10 +353,12 @@ class Model(LogicModel):
 
         LOGGER.info('[%s] [Fit] nr. examples: %d',
                     self.hyper_params['conditions']['simple_model'], len(y))
-        if classifier is not RF:
-            self.clf = classifier(gamma='auto', probability=True)
-        else:
+        if classifier is LR:
+            self.clf = classifier(random_state=0)
+        elif classifier is RF:
             self.clf = classifier(n_estimators=10, max_depth=None)
+        else:
+            self.clf = classifier(gamma='auto', probability=True)
         X = np.concatenate(np.array(X), axis=0).astype(np.float)
         y = np.concatenate(np.array(y), axis=0).astype(np.float)
         self.clf.fit(X, y)
