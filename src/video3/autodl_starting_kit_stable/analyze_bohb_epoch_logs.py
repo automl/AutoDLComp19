@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
 #def load_log_names
-LOG_FOLDER = '/home/dingsda/logs_new'
+LOG_FOLDER = '/home/dingsda/logs/bohb_logs_new'
 SAVE_FOLDER = os.path.join(os.getcwd(), 'common', 'files')
 EXCLUDE_DATASETS = {'Chucky', 'Decal', 'Munster', 'Pedro', 'Hammer', 'Katze', 'Kreatur', 'Kraut'}
 OPTIM_PORTFOLIO_SIZE = 3
@@ -120,6 +120,19 @@ def find_best_results(complete_dataset_set):
 
     return result_dict
 
+def find_best_configs(result_dict):
+    best_config_dict = {}
+
+    for k,v in result_dict.items():
+        v.sort(key=lambda tup: tup[1], reverse=True)
+        best_config_dict[k] = v[0]
+
+        print(v[0])
+        for elem in v:
+            print(elem[1])
+
+    return best_config_dict
+
 def rank_result(result_dict):
     _, all_model_set = get_all_datasets_and_models()
 
@@ -223,9 +236,14 @@ def calculate_portfolio_performance(pf, data, optim_mode=None):
         print('unknown optimization option')
 
 
+def save_dict(dct, name):
+    json.dump(dct, open(os.path.join(SAVE_FOLDER, name), 'w'))
+
+
 def store_model_portfolio(result_dict, best_models):
     json.dump(result_dict, open(os.path.join(SAVE_FOLDER, 'result_dict.json'), 'w'))
     json.dump(best_models, open(os.path.join(SAVE_FOLDER, 'best_models.json'), 'w'))
+
 
 def optimize_model_portfolio(result_dict):
     print(result_dict)
@@ -278,7 +296,7 @@ def optimize_model_portfolio(result_dict):
     best_models = [list(sorted(all_model_set))[i] for i in best_pf]
     print(best_models)
 
-    store_model_portfolio(result_dict, best_models)
+    return best_models
 
 
 def plot_model_portfolio_performance():
@@ -318,12 +336,18 @@ def plot_model_portfolio_performance():
 if __name__ == "__main__":
     complete_dataset_set = find_complete_datasets()
     result_dict = find_best_results(complete_dataset_set)
+    best_config_dict = find_best_configs(result_dict)
     model_rank_dict, model_loss_dict = rank_result(result_dict)
-    optimize_model_portfolio(result_dict)
-    plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
-    plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
-    plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
+    best_models = optimize_model_portfolio(result_dict)
+    #plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
+    #plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
+    #plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
     plot_model_portfolio_performance()
+
+    save_dict(result_dict, 'result_dict.json')
+    save_dict(best_models, 'best_models.json')
+    save_dict(best_config_dict, 'best_config_dict.json')
+
 
 
 

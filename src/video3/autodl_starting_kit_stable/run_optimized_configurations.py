@@ -77,7 +77,7 @@ def get_configuration(dataset, best_dataset):
     cfg["dataset"] = dataset
 
     # load
-    with open('best_config_dict.json', 'r') as f:
+    with open('./common/files/best_config_dict.json', 'r') as f:
         bc_dict = json.load(f)
 
     # dict is stored as a string...
