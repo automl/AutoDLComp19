@@ -72,8 +72,8 @@ def calculate_alc(timestamps, scores, start_time=0, time_budget=7200):
 
 def get_configuration(dataset, best_dataset):
     cfg = {}
-    #cfg["code_dir"] = '/home/nierhoff/AutoDLComp19/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
-    cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19_project/src/video3/autodl_starting_kit_stable'
+    cfg["code_dir"] = '/home/nierhoff/AutoDLComp19_project/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
+    #cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
     cfg["dataset"] = dataset
 
     # load
