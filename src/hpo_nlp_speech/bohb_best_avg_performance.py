@@ -49,20 +49,20 @@ def get_configspace(use_nlp):
     if use_nlp:
         # nlp parameters
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_vocab_size', lower=5000, upper=50000, log=True, default_value=20000))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_char_length', lower=20, upper=300, log=True, default_value=96))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_seq_length', lower=10, upper=400, log=True, default_value=301))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_char_length', lower=5, upper=300, log=True, default_value=96))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_seq_length', lower=2, upper=100, log=True, default_value=301))
 
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='num_epoch', lower=1, upper=3, log=False, default_value=1))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='total_num_call', lower=10, upper=40, log=True, default_value=20))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='total_num_call', lower=2, upper=40, log=True, default_value=20))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='valid_ratio', lower=0.02, upper=0.2, log=True, default_value=0.1))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='increase_batch_acc', lower=0.4, upper=0.9, log=False, default_value=0.65))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='early_stop_auc', lower=0.65, upper=0.95, log=False, default_value=0.8))
         cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='init_batch_size', choices=[16, 32, 64, 128, 256, 512], default_value=32))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='chi_word_length', lower=1, upper=4, log=True, default_value=2))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=200, upper=800, log=True, default_value=400))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_valid_perclass_sample', lower=20, upper=800, log=True, default_value=400))
         cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_sample_train', lower=5000, upper=36000, log=True, default_value=18000))
-        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_train_perclass_sample', lower=400, upper=1600, log=True, default_value=800))
+        cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='max_train_perclass_sample', lower=40, upper=1600, log=True, default_value=800))
 
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='lr', lower=1e-4, upper=1e-1, log=True, default_value=1e-3))
         cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='rho', lower=0.03, upper=1, log=True, default_value=0.1))

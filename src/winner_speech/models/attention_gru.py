@@ -61,8 +61,8 @@ class AttentionGru(Classifier):
         optimizer = optimizers.Adam(
             # learning_rate=1e-3,
             lr = self.model_config["optimizer"]["lr_attention_gru"],
-            beta_1 = self.model_config["optimizer"]["beta_1"],
-            beta_2 = self.model_config["optimizer"]["beta_2"],
+            beta_1 = 1-self.model_config["optimizer"]["beta_1"],
+            beta_2 = 1-self.model_config["optimizer"]["beta_2"],
             epsilon = self.model_config["optimizer"]["epsilon"],
             decay = self.model_config["optimizer"]["decay"],
             amsgrad = self.model_config["optimizer"]["amsgrad"]
