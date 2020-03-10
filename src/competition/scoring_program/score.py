@@ -351,24 +351,24 @@ def plot_learning_curve(
     X.insert(0, 0)
     Y.insert(0, 0)
     # Draw learning curve
-    if clear_figure:
-        plt.clf()
-    if fig is None or len(fig.axes) == 0:
-        fig = plt.figure(figsize=(7, 7.07))
-        ax = fig.add_subplot(111)
-        if show_title:
-            plt.title("Learning curve for task: {}".format(task_name), y=1.06)
-        ax.set_xlabel(xlabel)
-        ax.set_xlim(left=0, right=1)
-        ax.set_ylabel("score (2 * AUC - 1)")
-        ax.set_ylim(bottom=-0.01, top=1)
-        ax.grid(True, zorder=5)
-        # Show real time in seconds in a second x-axis
-        ax2 = ax.twiny()
-        ticks = [10, 60, 300, 600, 1200] + list(range(1800, int(time_budget) + 1, 1800))
-        ax2.set_xticks([transform(t) for t in ticks])
-        ax2.set_xticklabels(ticks)
-    ax = fig.axes[0]
+    # if clear_figure:
+    #     plt.clf()
+    # if fig is None or len(fig.axes) == 0:
+    #     fig = plt.figure(figsize=(7, 7.07))
+    #     ax = fig.add_subplot(111)
+    #     if show_title:
+    #         plt.title("Learning curve for task: {}".format(task_name), y=1.06)
+    #     ax.set_xlabel(xlabel)
+    #     ax.set_xlim(left=0, right=1)
+    #     ax.set_ylabel("score (2 * AUC - 1)")
+    #     ax.set_ylim(bottom=-0.01, top=1)
+    #     ax.grid(True, zorder=5)
+    #     # Show real time in seconds in a second x-axis
+    #     ax2 = ax.twiny()
+    #     ticks = [10, 60, 300, 600, 1200] + list(range(1800, int(time_budget) + 1, 1800))
+    #     ax2.set_xticks([transform(t) for t in ticks])
+    #     ax2.set_xticklabels(ticks)
+    # ax = fig.axes[0]
     if method == "step":
         drawstyle = "steps-post"
         step = "post"
@@ -384,31 +384,31 @@ def plot_learning_curve(
     Y.append(Y[-1])
     # Compute AUC using step function rule or trapezoidal rule
     alc = auc_func(X, Y)
-    if model_name:
-        label = "{}: ALC={:.4f}".format(model_name, alc)
-    else:
-        label = "ALC={:.4f}".format(alc)
-    # Plot the major part of the figure: the curve
-    if "marker" not in kwargs:
-        kwargs["marker"] = "o"
-    if "markersize" not in kwargs:
-        kwargs["markersize"] = 3
-    if "label" not in kwargs:
-        kwargs["label"] = label
-    ax.plot(X[:-1], Y[:-1], drawstyle=drawstyle, **kwargs)
-    # Fill area under the curve
-    if fill_area:
-        ax.fill_between(X, Y, color="cyan", step=step)
-    # Show the latest/final score
-    if show_final_score:
-        ax.text(X[-1], Y[-1], "{:.4f}".format(Y[-1]))
-    # Draw a dotted line from last prediction
-    kwargs["linestyle"] = "--"
-    kwargs["linewidth"] = 1
-    kwargs["marker"] = None
-    kwargs.pop("label", None)
-    ax.plot(X[-2:], Y[-2:], **kwargs)
-    ax.legend()
+    # if model_name:
+    #     label = "{}: ALC={:.4f}".format(model_name, alc)
+    # else:
+    #     label = "ALC={:.4f}".format(alc)
+    # # Plot the major part of the figure: the curve
+    # if "marker" not in kwargs:
+    #     kwargs["marker"] = "o"
+    # if "markersize" not in kwargs:
+    #     kwargs["markersize"] = 3
+    # if "label" not in kwargs:
+    #     kwargs["label"] = label
+    # ax.plot(X[:-1], Y[:-1], drawstyle=drawstyle, **kwargs)
+    # # Fill area under the curve
+    # if fill_area:
+    #     ax.fill_between(X, Y, color="cyan", step=step)
+    # # Show the latest/final score
+    # if show_final_score:
+    #     ax.text(X[-1], Y[-1], "{:.4f}".format(Y[-1]))
+    # # Draw a dotted line from last prediction
+    # kwargs["linestyle"] = "--"
+    # kwargs["linewidth"] = 1
+    # kwargs["marker"] = None
+    # kwargs.pop("label", None)
+    # ax.plot(X[-2:], Y[-2:], **kwargs)
+    # ax.legend()
     return alc, fig
 
 
@@ -993,16 +993,16 @@ class Evaluator(object):
         alc, fig = plot_learning_curve(
             X, Y, time_budget=self.time_budget, task_name=self.task_name, **kwargs
         )
-        fig_name = get_fig_name(self.task_name)
-        path_to_fig = os.path.join(self.score_dir, fig_name)
-        plt.savefig(path_to_fig)
-        plt.close()
+        # fig_name = get_fig_name(self.task_name)
+        # path_to_fig = os.path.join(self.score_dir, fig_name)
+        # plt.savefig(path_to_fig)
+        # plt.close()
         return alc, time_used
 
     def update_score_and_learning_curve(self):
         self.draw_learning_curve()
         # Update learning curve page (detailed_results.html)
-        self.write_scores_html()
+        #self.write_scores_html()
         # Write score
         score = self.write_score()["score"]
         return score
