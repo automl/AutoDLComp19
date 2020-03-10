@@ -2,8 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-# import
-from src.available_datasets import train_datasets_all, val_datasets_all
+from src.available_datasets import train_datasets, val_datasets
 
 
 def get_scores_dataset_x_configs(dataset_dir):
@@ -17,6 +16,15 @@ def get_scores_dataset_x_configs(dataset_dir):
         config_names.append(config_path.name.rsplit("_", maxsplit=1)[0])
         for config_path in all_config_paths
         if config_path.name.rsplit("_", maxsplit=1)[0] not in config_names
+    ]
+
+    def rreplace(s, old, new, occurrence):
+        li = s.rsplit(old, occurrence)
+        return new.join(li)
+
+    config_names = [
+        rreplace(config_path, "origin", "original", 1)
+        if config_path.endswith("origin") else config_path for config_path in config_names
     ]
 
     # splits all config paths [Chuck_0, Chuck_1, ..., Hammer_0, Hammer_1]
@@ -41,7 +49,7 @@ def get_scores_dataset_x_configs(dataset_dir):
                 )
 
         if not config_scores:
-            avg_config_scores.append(0)
+            avg_config_scores.append(0.0)
         else:
             avg_config_scores.append(np.mean(config_scores))
 
@@ -57,13 +65,14 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
 
             if i == 0:
                 # some datasets have been misnamed, correct here:
-                config_names = [
-                    config_name.replace("Chuck", "Chucky") for config_name in config_names
-                ]
-                config_names = [
-                    config_name.replace("colorectal_histolog", "colorectal_histology")
-                    for config_name in config_names
-                ]
+                #config_names = [
+                #    config_name.replace("Chuck", "Chucky") for config_name in config_names
+                #]
+
+                #config_names = [
+                #    config_name.replace("colorectal_histolog", "colorectal_histology")
+                #    for config_name in config_names
+                #]
 
                 # remove default from indices (i.e. datasets since there are only configs of it)
                 indices = config_names.copy()
@@ -78,8 +87,8 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
         df = pd.concat([existing_df, df], axis=1)
 
     if split_df:
-        df_train = df.loc[df.index.isin(train_datasets_all)]
-        df_valid = df.loc[df.index.isin(val_datasets_all)]
+        df_train = df.loc[df.index.isin(train_datasets)]
+        df_valid = df.loc[df.index.isin(val_datasets)]
         return df, df_train, df_valid
     else:
         return df
@@ -97,10 +106,8 @@ def transform_to_long_matrix(df, n_samples):
             new_index = index + "_{}".format(i)
             new_df.loc[new_index] = row
 
-    train_dataset_names = [
-        d + "_{}".format(i) for d in train_datasets_all for i in range(n_samples)
-    ]
-    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets_all for i in range(n_samples)]
+    train_dataset_names = [d + "_{}".format(i) for d in train_datasets for i in range(n_samples)]
+    valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
     new_df_train = new_df.loc[new_df.index.isin(train_dataset_names)]
     new_df_valid = new_df.loc[new_df.index.isin(valid_dataset_names)]
 
@@ -158,10 +165,11 @@ if __name__ == '__main__':
     export_df(
         df=df,
         experiment_group_dir=args.experiment_group_dir,
-        df_train=df_train,
-        df_valid=df_valid,
+        #df_train=df_train,
+        #df_valid=df_valid,
         file_name="perf_matrix",
-        export_path=args.experiment_group_dir.parent / "perf_matrix"
+        export_path=args.experiment_group_dir.parent /
+        (args.experiment_group_dir.name + "_perf_matrix")
     )
 
     #df, df_train, df_valid = transform_to_long_matrix(df, n_samples=100)

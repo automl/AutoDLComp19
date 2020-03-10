@@ -204,7 +204,7 @@ def get_meta_features_from_dataset(dataset_path, compute_mean_histogram=True, se
         try:
             sample_count = meta_data.size()
             # shuffle the first 2000 (or sample_count) elements and get 100 samples from this buffer
-            buffer = 2000 if 2000 < sample_count else sample_count
+            buffer = 500 if 500 < sample_count else sample_count
             iterator = train_dataset.get_dataset().shuffle(buffer).make_one_shot_iterator()
             next_element = iterator.get_next()
 

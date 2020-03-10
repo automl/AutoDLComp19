@@ -37,7 +37,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--output_dir",
-        default="src/configs/",
+        default="src/configs/effnet_optimized_per_dataset_new_cs_new_data_03_09",
         type=Path,
         help="Specifies where the incumbent configs should be stored e.g. src/configs/experiment_name"
     )

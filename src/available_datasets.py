@@ -54,7 +54,8 @@ train_keys = [
     "cars196",  # cars
     "visual_domain_decathlon_dtd",  # textures, # replacement for Hammer
     "imagenette",  # subset of imagenet
-    "imagenet_resized",  # imagenet resized to 32x32
+    #"imagenet_resized",  # imagenet resized to 32x32, yields problems
+    "caltech101",  # imagenet resized to 32x32
     "malaria",  # cell images, # replacement for Hammer
     "svhn_cropped",  # house numbers
     "uc_merced",  # urban area imagery
@@ -80,3 +81,6 @@ train_datasets_all, val_datasets_all = get_available_dataset_names(
 )
 
 all_datasets = train_datasets_all + val_datasets_all
+
+remove_datasets = ["imagenet_resized"]
+all_datasets = [i for i in all_datasets for j in remove_datasets if j not in i]
