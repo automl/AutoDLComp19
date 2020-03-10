@@ -1,0 +1,51 @@
+active_model_files: []
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 2
+    first_simple_model: false
+    max_inner_loop_ratio: 0.16321743510010317
+    min_lr: 1.0e-06
+    output_majority_first: false
+    score_type: auc
+    simple_model: RF
+    skip_valid_score_threshold: 0.9314580894446141
+    test_after_at_least_seconds: 3
+    test_after_at_least_seconds_max: 115
+    test_after_at_least_seconds_step: 10
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.001
+    use_fast_auto_aug: true
+  dataset:
+    base: 16
+    batch_size: 23
+    batch_size_test: 256
+    cv_valid_ratio: 0.1005837265076529
+    enough_count:
+      image: 10000
+      video: 1000
+    max_epoch: 1000
+    max_size: 64
+    max_times: 8
+    max_valid_count: 320
+    steps_per_epoch: 32
+    train_info_sample: 173
+  model:
+    architecture: ResNet18
+  optimizer:
+    amsgrad: false
+    freeze_portion: 0.1
+    lr: 0.0003772838230134886
+    min_lr: 1.7096010887501233e-08
+    momentum: 0.9
+    nesterov: true
+    scheduler: plateau
+    type: AdamW
+    warm_up_epoch: 5
+    warmup_multiplier: 1.5
+    wd: 4.520481849968583e-05
+cluster_datasets_dir: /data/aad/image_datasets/augmented_datasets
+cluster_model_dir: /home/ferreira/autodl_data/models
+extra_packages: []
+is_submission: false
