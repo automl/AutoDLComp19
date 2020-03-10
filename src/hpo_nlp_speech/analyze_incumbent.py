@@ -35,6 +35,8 @@ def visualizeBOHB(log_dir):
     inc_valid_score = inc_run.loss
     inc_config = id2conf[inc_id]['config']
 
+    print(inc_config)
+
     print('Best found configuration:')
     print(inc_config)
     #print('It achieved accuracies of %f (validation) and %f (test).' % (-inc_valid_score, inc_test_score))
@@ -78,10 +80,13 @@ def plot_accuracy_over_budget(result):
         x = []
         y = []
         for key2, value2 in value1.results.items():
-            x.append(key2)
-            y.append(-value2["loss"])
-            plt.semilogx(x,y,color=color)
-            plt.ylim((0.4, 1))
+            try:
+                x.append(key2)
+                y.append(-value2["loss"])
+                plt.semilogx(x,y,color=color)
+                plt.ylim((0, 1))
+            except:
+                pass
 
     ax.set_title('Classification accuracy for different configurations')
     ax.set_xlabel('epochs')
@@ -99,13 +104,16 @@ def plot_parallel_scatter(result):
     for value in result.data.values():
         for config_param, config_param_val in value.config.items():
             for epoch, epoch_result in value.results.items():
-                epoch_accuracy = -epoch_result["loss"]
-                ep_m = min(ep_m, epoch)
-                ep_M = max(ep_M, epoch)
-                if config_param in config_params.keys():
-                    config_params[config_param].append((config_param_val, epoch, epoch_accuracy))
-                else:
-                    config_params[config_param] = [(config_param_val, epoch, epoch_accuracy)]
+                try:
+                    epoch_accuracy = -epoch_result["loss"]
+                    ep_m = min(ep_m, epoch)
+                    ep_M = max(ep_M, epoch)
+                    if config_param in config_params.keys():
+                        config_params[config_param].append((config_param_val, epoch, epoch_accuracy))
+                    else:
+                        config_params[config_param] = [(config_param_val, epoch, epoch_accuracy)]
+                except:
+                    pass
 
     index = 0
     for config_param, data in (dict(sorted(config_params.items()))).items():
@@ -113,8 +121,6 @@ def plot_parallel_scatter(result):
         # get all unique possible values for each config parameter
         values = [elem[0] for elem in data]
         values = list(set(values))
-
-        print(values)
 
         x_dev = 0.3
         r_min = 0.1
@@ -235,7 +241,7 @@ def getBrightRandomColor():
 
 
 if __name__ == '__main__':
-    log_dir = '/home/dingsda/logs/SPEECH'
+    log_dir = '/home/dingsda/logs/NLP'
     visualizeBOHB(log_dir)
 
 

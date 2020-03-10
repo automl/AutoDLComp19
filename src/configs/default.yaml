@@ -62,3 +62,34 @@ autocv:
     simple_model: RF
     # In src/winner_cv/skeleton/projects/logic:
     # skip_valid_after_test: min(10 max(3 int(self.info["dataset"]["size"] // 1000)))
+
+autonlp:
+  common:
+    max_vocab_size: 34513   # maximum number of vocabulary to be embedded, must be larger than number of different words in the dataset
+    max_char_length: 153    # maximum number of characters for chinese samples
+    max_seq_length: 53      # maximum sequence length for non chinese samples
+
+  model:
+    num_epoch: 1              # number of epochs to train the classifier
+    total_call_num: 10        # how often the test function shall be called
+    valid_ratio: 0.0982       # train/validation split ratio
+    increase_batch_acc: 0.669 # batch size will be increased below this accuracy
+    early_stop_auc: 0.899     # minimum auc for an early stop
+    init_batch_size: 128      # guess what
+    ft_dir: ['/app/embedding',
+             '/home/ferreira/autodl_data/embedding',
+             '/home/dingsda/data/embedding']  # paths to look for the embedding model
+
+  data_manager:
+    chi_word_length: 2.72
+    max_valid_perclass_sample: 272
+    max_sample_train: 13276
+    max_train_perclass_sample: 738
+
+  model_manager:
+    embedding_dim: 300      # word embedding size
+
+  optimizer:
+    lr: 0.00474
+    rho: 0.606              # actually the parameter is 1-rho. But this way the config space can be described more easily
+
