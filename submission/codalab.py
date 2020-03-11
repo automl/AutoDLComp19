@@ -28,7 +28,7 @@ args = parser.parse_args()
 if os.path.isdir(args.submission_dir):
     shutil.rmtree(args.submission_dir)  # shutil does not work with pathlib
 ignore = shutil.ignore_patterns("__pycache__")
-shutil.copytree(args.code_dir, args.submission_dir, ignore=ignore)
+shutil.copytree(args.code_dir, args.submission_dir, symlinks=True, ignore=ignore)
 
 # Read settings from config in code_dir
 with Path(args.code_dir, "configs", args.config).open() as in_stream:
