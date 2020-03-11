@@ -512,27 +512,31 @@ class LogicModel(Model):
             )
             return
 
-        if self.hyper_params['conditions']['first_simple_model']:
-            inner_epoch += 1
-            remaining_time_budget -= self.timers['train'].step_time
+        if not self.is_multiclass():
+            if self.hyper_params['conditions']['first_simple_model']:
+                inner_epoch += 1
+                remaining_time_budget -= self.timers['train'].step_time
 
-            self.timers['train']('start', reset_step=True)
-            self.fit_classifier(self.info['loop']['epoch'], train_dataloader)
-            self.timers['train']('train')
-            self.timers['train']('end')
+                self.timers['train']('start', reset_step=True)
+                self.fit_classifier(self.info['loop']['epoch'], train_dataloader)
+                self.timers['train']('train')
+                self.timers['train']('end')
 
-            remaining_time_budget -= self.timers['train'].step_time
+                remaining_time_budget -= self.timers['train'].step_time
 
-            if not self.done_training:
-                self.adapt(remaining_time_budget)
+                if not self.done_training:
+                    self.adapt(remaining_time_budget)
 
-            LOGGER.info(
-                '[%s] [%02d] time(budge:%.2f, total:%.2f)',
-                self.hyper_params['conditions']['simple_model'],
-                self.info['loop']['epoch'], remaining_time_budget,
-                self.get_total_time()
-            )
-            return
+                LOGGER.info(
+                    '[%s] [%02d] time(budge:%.2f, total:%.2f)',
+                    self.hyper_params['conditions']['simple_model'],
+                    self.info['loop']['epoch'], remaining_time_budget,
+                    self.get_total_time()
+                )
+                return
+
+        else:
+            self.hyper_params['conditions']['first_simple_model'] = False
 
         while True:
             inner_epoch += 1
