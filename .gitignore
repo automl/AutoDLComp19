@@ -13,8 +13,9 @@ src/winner_cv/models/*
 datasets/*
 
 
-# Submission args
+# Submission
 submission/*.args
+codalab_submission.zip
 
 #PyCharm files
-**/.idea 
+**/.idea
