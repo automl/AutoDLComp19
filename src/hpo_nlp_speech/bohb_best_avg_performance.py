@@ -26,7 +26,7 @@ from hpbandster.optimizers.config_generators.bohb import BOHB as BOHB
 from copy import deepcopy
 from src.competition.run_local_test import run_baseline
 
-USE_NLP = True
+USE_NLP = False
 
 NLP_DATASETS = ['O1', 'O2', 'O3', 'O4', 'O5']
 SPEECH_DATASETS = ['data01', 'data02', 'data03', 'data04', 'data05']
