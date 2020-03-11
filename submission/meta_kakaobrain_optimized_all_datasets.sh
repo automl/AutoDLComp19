@@ -2,25 +2,24 @@
 
 #SBATCH -p bosch_gpu-rtx2080
 
-#SBATCH -a 1-100
-#SBATCH -x mlgpu05,mlgpu06,mlgpu07,mlgpu13,mlgpu14,mlgpu15
+#SBATCH -a 1-80
+#SBATCH -x mlgpu15
 
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task 1
+#SBATCH --cpus-per-task 3
 
-#SBATCH -o experiments/kakaobrain_optimized_all_datasets_new6%A-%a.%x.out
-#SBATCH -e experiments/kakaobrain_optimized_all_datasets_new6%A-%a.%x.err
+#SBATCH -o experiments/generalist-%A-%a.%x.out
+#SBATCH -e experiments/generalist-%A-%a.%x.err
 
-#SBATCH --job-name kb_all_video
+#SBATCH --job-name adl_generalist
 
-source ~/.miniconda/bin/activate autodl
+source ~/.conda/bin/activate autocomp
 
 ARGS_FILE=submission/hpo_args_generalist_v1.args
 TASK_SPECIFIC_ARGS=$(sed "${SLURM_ARRAY_TASK_ID}q;d" $ARGS_FILE)
 
-# TODO: add --performance_matrix PATH_TO_CSV, to perform normalization with it
 if [ $SLURM_ARRAY_TASK_ID -eq 1 ]
-   then python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 120 --n_repeat_lower_budget 1 --n_repeat_upper_budget 3 --experiment_name generalist --optimize_generalist --logger_level DEBUG
+   then python -m src.hpo.optimize --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group generalist --time_budget 1200 --time_budget_approx 120 --n_repeat 1 --experiment_name try1 --optimize_generalist --logger_level INFO --performance_matrix ~/AutoDLComp19/experiments/new_config_space_after_March_4/effnet_optimized_per_dataset_datasets_x_configs_evaluations_new_cs_new_data_20x20/perf_matrix/perf_matrix.csv
 else
-   python src/hpo/optimize.py --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group kakaobrain_optimized_all_datasets_new6 --time_budget 1200 --time_budget_approx 120 --n_repeat_lower_budget 1 --n_repeat_upper_budget 3 --experiment_name generalist --optimize_generalist --worker --logger_level DEBUG
+   python -m src.hpo.optimize --job_id $SLURM_ARRAY_JOB_ID --nic_name eth0 --experiment_group generalist --time_budget 1200 --time_budget_approx 120 --n_repeat 1 --experiment_name try1 --optimize_generalist --worker --logger_level INFO --performance_matrix ~/AutoDLComp19/experiments/new_config_space_after_March_4/effnet_optimized_per_dataset_datasets_x_configs_evaluations_new_cs_new_data_20x20/perf_matrix/perf_matrix.csv
 fi
