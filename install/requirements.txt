@@ -35,7 +35,7 @@ smac>=0.11.1
 git+https://github.com/mlindauer/ASlibScenario
 
 # Packages for NLP/speech optimization
-pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
+#pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # Packages from AutoNLP
 # More info: https://hub.docker.com/r/wahaha909/autonlp
