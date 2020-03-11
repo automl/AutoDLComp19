@@ -93,3 +93,39 @@ autonlp:
     lr: 0.00474
     rho: 0.606              # actually the parameter is 1-rho. But this way the config space can be described more easily
 
+autospeech:
+  common:
+    model_first_max_run_loop: 2
+    max_audio_duration: 2           # original comment: limited length of audio, like 20s
+    first_round_duration: 14
+    middle_duration: 8
+    second_round_duration: 57
+    audio_sample_rate: 32000
+    max_frame_num: 472
+    is_cut_audio: False
+    num_mfcc: 85                    # original comment: num of mfcc features, default value is 24
+    sr: 32000
+    fft_duration: 0.179
+    hop_duration: 0.0574
+
+  data_manager:
+    max_valid_perclass_sample: 287
+    min_valid_per_class: 2
+
+  optimizer:
+    lr_attention_gru: !!float 0.00276
+    lr_bilstm_attention: !!float 0.00179
+    lr_cnn: !!float 0.00284
+    lr_crnn: !!float 0.00263
+    lr_crnn2d: !!float 0.000166
+    lr_crnn2d_larger: !!float 0.000108
+    lr_crnn2d_vgg: !!float 0.000450
+    lr_lstm_attention: 0.000296
+
+    beta_1: 0.0341          # actually the parameter is 1-beta_1. But this way the config space can be described more easily
+    beta_2: 0.000125        # actually the parameter is 1-beta_2. But this way the config space can be described more easily
+    epsilon: !!float 1.08e-08
+    decay: !!float 1.61e-5
+    schedule_decay: 0.00302
+    amsgrad: False
+
