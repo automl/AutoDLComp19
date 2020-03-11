@@ -40,7 +40,7 @@ SEED = 41
 BOHB_MIN_BUDGET = 80
 BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-#BOHB_WORKERS = 15
+BOHB_WORKERS = 16
 BOHB_ITERATIONS = 100000
 
 def get_configspace(use_nlp):
@@ -367,9 +367,9 @@ def runBohbParallel(id, run_id):
         max_budget=BOHB_MAX_BUDGET,
         result_logger=result_logger)
 
-    # res = bohb.run(n_iterations=BOHB_ITERATIONS,
-    #                min_n_workers=BOHB_WORKERS)
-    res = bohb.run(n_iterations=BOHB_ITERATIONS)
+    res = bohb.run(n_iterations=BOHB_ITERATIONS,
+                   min_n_workers=BOHB_WORKERS)
+#    res = bohb.run(n_iterations=BOHB_ITERATIONS)
 
     bohb.shutdown(shutdown_workers=True)
     ns.shutdown()
