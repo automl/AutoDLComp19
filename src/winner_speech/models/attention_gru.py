@@ -9,7 +9,7 @@ from models.attention import Attention
 from models.my_classifier import Classifier
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (
-    Bidirectional, Concatenate, CuDNNLSTM, Dense, Dropout, GlobalAvgPool1D, GlobalMaxPool1D, Input,
+    Bidirectional, Concatenate, LSTM, Dense, Dropout, GlobalAvgPool1D, GlobalMaxPool1D, Input,
     SpatialDropout1D
 )
 from tensorflow.python.keras.models import Model as TFModel
@@ -42,7 +42,7 @@ class AttentionGru(Classifier):
     def init_model(self, input_shape, num_classes, model_config, **kwargs):
         inputs = Input(shape=input_shape)
         # bnorm_1 = BatchNormalization(axis=-1)(inputs)
-        x = Bidirectional(CuDNNLSTM(96, name='blstm1', return_sequences=True),
+        x = Bidirectional(LSTM(96, name='blstm1', return_sequences=True),
                           merge_mode='concat')(inputs)
         # activation_1 = Activation('tanh')(lstm_1)
         x = SpatialDropout1D(0.1)(x)
