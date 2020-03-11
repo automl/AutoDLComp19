@@ -27,13 +27,6 @@ class LogicModel(Model):
         LOGGER.info('size: %s', self.metadata.size())
         LOGGER.info('num_class:  %s', self.metadata.get_output_size())
 
-        test_metadata_filename = self.metadata.get_dataset_name(
-        ).replace('train', 'test') + '/metadata.textproto'
-        self.num_test = [
-            int(line.split(':')[1])
-            for line in open(test_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
-        ][0]
-        LOGGER.info('num_test:  %d', self.num_test)
 
         self.timers = {'train': skeleton.utils.Timer(), 'test': skeleton.utils.Timer()}
         self.info = {
@@ -72,6 +65,14 @@ class LogicModel(Model):
         self.dataloaders = {'train': None, 'valid': None, 'test': None}
         self.is_skip_valid = True
         LOGGER.info('[init] done')
+
+        test_metadata_filename = self.metadata.get_dataset_name(
+        ).replace('train', 'test') + '/metadata.textproto'
+        self.num_test = [
+            int(line.split(':')[1])
+            for line in open(test_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
+        ][0]
+        LOGGER.info('num_test:  %d', self.num_test)
 
     def __repr__(self):
         return '\n---------[{0}]---------\ninfo:{1}\nparams:{2}\n---------- ---------'.format(
