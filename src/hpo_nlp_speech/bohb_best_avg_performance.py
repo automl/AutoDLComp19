@@ -26,7 +26,7 @@ from hpbandster.optimizers.config_generators.bohb import BOHB as BOHB
 from copy import deepcopy
 from src.competition.run_local_test import run_baseline
 
-USE_NLP = False
+USE_NLP = True
 
 NLP_DATASETS = ['O1', 'O2', 'O3', 'O4', 'O5']
 SPEECH_DATASETS = ['data01', 'data02', 'data03', 'data04', 'data05']
@@ -40,7 +40,7 @@ SEED = 41
 BOHB_MIN_BUDGET = 80
 BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-BOHB_WORKERS = 60
+#BOHB_WORKERS = 15
 BOHB_ITERATIONS = 100000
 
 def get_configspace(use_nlp):
@@ -208,11 +208,11 @@ class BOHBWorker(Worker):
                     model_config=model_config)
                 score_list.append(score_ind)
             except Exception as e:
-                score_list.append[0]
+                score_list.append(0.01)
                 status = str(e)
                 print(status)
 
-        score = sum(score_list) / len(score_list)
+        score = sum(np.log(score_list)) / len(score_list)
 
         info['config'] = str(config)
         info['model_config'] = str(model_config)
@@ -367,8 +367,9 @@ def runBohbParallel(id, run_id):
         max_budget=BOHB_MAX_BUDGET,
         result_logger=result_logger)
 
-    res = bohb.run(n_iterations=BOHB_ITERATIONS,
-                   min_n_workers=BOHB_WORKERS)
+    # res = bohb.run(n_iterations=BOHB_ITERATIONS,
+    #                min_n_workers=BOHB_WORKERS)
+    res = bohb.run(n_iterations=BOHB_ITERATIONS)
 
     bohb.shutdown(shutdown_workers=True)
     ns.shutdown()
