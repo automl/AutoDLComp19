@@ -8,7 +8,7 @@ from models.attention import Attention
 from models.my_classifier import Classifier
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (
-    Activation, Bidirectional, LSTM, Dense, Dropout, GlobalMaxPool1D, Input, SpatialDropout1D
+    Activation, Bidirectional, CuDNNLSTM, Dense, Dropout, GlobalMaxPool1D, Input, SpatialDropout1D
 )
 from tensorflow.python.keras.models import Model as TFModel
 from tools import log
@@ -41,7 +41,7 @@ class BilstmAttention(Classifier):
         inputs = Input(shape=input_shape)
         # bnorm_1 = BatchNormalization(axis=2)(inputs)
         lstm_1 = Bidirectional(
-            LSTM(64, name='blstm_1', return_sequences=True), merge_mode='concat'
+            CuDNNLSTM(64, name='blstm_1', return_sequences=True), merge_mode='concat'
         )(inputs)
         activation_1 = Activation('tanh')(lstm_1)
         dropout1 = SpatialDropout1D(0.5)(activation_1)
