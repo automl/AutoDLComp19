@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import yaml
-from src.available_datasets import all_datasets, train_datasets, val_datasets
+from src.available_datasets import all_datasets, train_datasets_all, val_datasets_all
 from src.competition.ingestion_program.dataset import AutoDLDataset
 from src.utils import load_datasets_processed
 
@@ -47,15 +47,22 @@ def convert_metadata_to_df(metadata):
     return pd.DataFrame(features_lists, columns=columns, index=indices)
 
 
-def parse_meta_features(meta_data):
+def parse_meta_features(meta_data, type="train"):
     sequence_size, x, y, num_channels = meta_data.get_tensor_shape()
     num_classes = meta_data.get_output_size()
-    return dict(
+    meta_dict = dict(
         num_classes=num_classes,
         sequence_size=sequence_size,
         resolution=(x, y),
         num_channels=num_channels
     )
+
+    if type == "train":
+        meta_dict['num_train'] = meta_data.size()
+    else:
+        meta_dict['num_test'] = meta_data.size()
+
+    return meta_dict
 
 
 def load_processed_datasets(dataset_path):
@@ -168,13 +175,15 @@ def dump_meta_features_df_and_csv(
 
     if samples_along_rows and n_samples:
         train_dataset_names = [
-            d + "_{}".format(i) for d in train_datasets for i in range(n_samples)
+            d + "_{}".format(i) for d in train_datasets_all for i in range(n_samples)
         ]
-        valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
+        valid_dataset_names = [
+            d + "_{}".format(i) for d in val_datasets_all for i in range(n_samples)
+        ]
         file_name = "meta_features_samples_along_rows"
     else:
-        train_dataset_names = train_datasets
-        valid_dataset_names = val_datasets
+        train_dataset_names = train_datasets_all
+        valid_dataset_names = val_datasets_all
 
     df_train = df.loc[df.index.isin(train_dataset_names)]
     df_valid = df.loc[df.index.isin(valid_dataset_names)]
@@ -193,16 +202,25 @@ def dump_meta_features_df_and_csv(
 
 def get_meta_features_from_dataset(dataset_path, compute_mean_histogram=True, sess=None):
     full_dataset_path = dataset_path / "{}.data/train".format(dataset_path.name)
+    full_dataset_path_test = dataset_path / "{}.data/test".format((dataset_path.name))
+
     if not full_dataset_path.exists():
         full_dataset_path = dataset_path / "{}.data/train".format((dataset_path.name).lower())
+    if not full_dataset_path_test.exists():
+        full_dataset_path_test = dataset_path / "{}.data/test".format((dataset_path.name).lower())
 
     train_dataset = AutoDLDataset(str(full_dataset_path))
-    meta_data = train_dataset.get_metadata()
-    parsed_meta_data = parse_meta_features(meta_data)
+    test_dataset = AutoDLDataset(str(full_dataset_path_test))
+    meta_data_train = train_dataset.get_metadata()
+    meta_data_test = test_dataset.get_metadata()
+    parsed_meta_data_train = parse_meta_features(meta_data_train, "train")
+    parsed_meta_data_test = parse_meta_features(meta_data_test, "test")
+
+    parsed_meta_data = {**parsed_meta_data_train, **parsed_meta_data_test}
 
     if compute_mean_histogram:
         try:
-            sample_count = meta_data.size()
+            sample_count = meta_data_train.size()
             # shuffle the first 2000 (or sample_count) elements and get 100 samples from this buffer
             buffer = 500 if 500 < sample_count else sample_count
             iterator = train_dataset.get_dataset().shuffle(buffer).make_one_shot_iterator()
@@ -246,7 +264,7 @@ def precompute_meta_features(
 
     dataset_to_meta_features = {
         dataset.name:
-        get_meta_features_from_dataset(dataset, compute_mean_histogram=True, sess=sess)
+        get_meta_features_from_dataset(dataset, compute_mean_histogram=False, sess=sess)
         for dataset in dataset_path.iterdir() if dataset.name in all_datasets
     }
 
