@@ -82,6 +82,11 @@ def run_master(args):
     # Create an optimizer
     result_logger = hpres.json_result_logger(directory=args.bohb_root_path, overwrite=False)
 
+    if args.previous_run_dir is not None:
+        previous_result = hpres.logged_results_to_HBS_result(args.previous_run_dir)
+    else:
+        pervious_result = None
+
     logger = logging.getLogger(__file__)
     logging_level = getattr(logging, args.logger_level)
     logger.setLevel(logging_level)
@@ -95,7 +100,8 @@ def run_master(args):
         min_budget=args.n_repeat_lower_budget,
         max_budget=args.n_repeat_upper_budget,
         result_logger=result_logger,
-        logger=logger
+        logger=logger,
+        previous_result=previous_result
     )
 
     res = optimizer.run(n_iterations=args.n_iterations)
@@ -154,6 +160,9 @@ if __name__ == '__main__':
     p.add_argument("--nic_name", default="eth0", help="The network interface to use")
     p.add_argument("--worker", action="store_true", help="Make this execution a worker server")
     p.add_argument("--performance_matrix", default=None, help="Path to the performance_matrix")
+    p.add_argument(
+        "--previous_run_dir", default=None, help="Path to a previous run to warmstart from"
+    )
     p.add_argument(
         "--optimize_generalist",
         action="store_true",
