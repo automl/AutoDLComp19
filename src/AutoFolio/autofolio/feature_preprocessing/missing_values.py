@@ -2,15 +2,13 @@ import logging
 
 import numpy as np
 import pandas as pd
-
 from aslib_scenario.aslib_scenario import ASlibScenario
 from ConfigSpace import Configuration
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import CategoricalHyperparameter
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
+)
 from sklearn.impute import SimpleImputer
-
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
@@ -19,25 +17,25 @@ __license__ = "BSD"
 class ImputerWrapper(object):
     @staticmethod
     def add_params(cs: ConfigurationSpace):
-        """
+        '''
             adds parameters to ConfigurationSpace
-        """
+        '''
         stratgey = CategoricalHyperparameter(
             "imputer_strategy", choices=["mean", "median", "most_frequent"], default_value="mean"
         )
         cs.add_hyperparameter(stratgey)
 
     def __init__(self):
-        """
+        '''
             Constructor
-        """
+        '''
         self.imputer = None
         self.active = False
 
         self.logger = logging.getLogger("MissingValueImputation")
 
     def fit(self, scenario: ASlibScenario, config: Configuration):
-        """
+        '''
             fit pca object to ASlib scenario data
 
             Arguments
@@ -46,14 +44,14 @@ class ImputerWrapper(object):
                 ASlib Scenario with all data in pandas
             config: ConfigSpace.Configuration
                 configuration
-        """
+        '''
 
         self.imputer = SimpleImputer(strategy=config.get("imputer_strategy"))
         self.imputer.fit(scenario.feature_data.values)
         self.active = True
 
     def transform(self, scenario: ASlibScenario):
-        """
+        '''
             transform ASLib scenario data
 
             Arguments
@@ -64,7 +62,7 @@ class ImputerWrapper(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        """
+        '''
         self.logger.debug("Impute Missing Feature Values")
 
         values = self.imputer.transform(np.array(scenario.feature_data.values))
@@ -75,7 +73,7 @@ class ImputerWrapper(object):
         return scenario
 
     def fit_transform(self, scenario: ASlibScenario, config: Configuration):
-        """
+        '''
             fit and transform
 
             Arguments
@@ -88,13 +86,13 @@ class ImputerWrapper(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        """
+        '''
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario
 
     def get_attributes(self):
-        """
+        '''
             returns a list of tuples of (attribute,value)
             for all learned attributes
 
@@ -107,5 +105,5 @@ class ImputerWrapper(object):
             Returns
             -------
             list of tuples of (attribute,value)
-        """
+        '''
         return ["Strategy=%s" % (self.imputer.strategy)]

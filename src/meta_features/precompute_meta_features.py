@@ -274,7 +274,7 @@ def precompute_meta_features(
         )
 
     output_path_yaml = output_path / file_name
-    output_path_yaml.with_suffix(".yaml")
+    output_path_yaml = output_path_yaml.with_suffix(".yaml")
     with output_path_yaml.open("w") as out_stream:
         yaml.dump(dataset_to_meta_features, out_stream)
 

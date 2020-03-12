@@ -2,20 +2,19 @@ import logging
 
 from aslib_scenario.aslib_scenario import ASlibScenario
 
-
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class Stats(object):
     def __init__(self, runtime_cutoff):
-        """ Constructor
+        ''' Constructor
 
             Arguments
             ---------
             runtime_cutoff: int
                 maximal running time
-        """
+        '''
         self.par1 = 0.0
         self.par10 = 0.0
         self.timeouts = 0
@@ -32,7 +31,7 @@ class Stats(object):
         self.logger = logging.getLogger("Stats")
 
     def show(self, remove_unsolvable: bool = True):
-        """
+        '''
             shows statistics
 
             Arguments
@@ -44,7 +43,7 @@ class Stats(object):
             -------
             par10: int
                 penalized average runtime
-        """
+        '''
 
         if remove_unsolvable and self.runtime_cutoff:
             rm_string = "removed"
@@ -75,8 +74,8 @@ class Stats(object):
             )
             self.logger.info("Solved: %d / %d" % (self.solved, n_samples))
             self.logger.info(
-                "Unsolvable (%s): %d / %d"
-                % (rm_string, self.unsolvable, n_samples + self.unsolvable)
+                "Unsolvable (%s): %d / %d" %
+                (rm_string, self.unsolvable, n_samples + self.unsolvable)
             )
         else:
             n_samples = self.solved
@@ -96,13 +95,13 @@ class Stats(object):
         return par10 / n_samples
 
     def merge(self, stat):
-        """
+        '''
             adds stats from another given Stats objects
 
             Arguments
             ---------
             stat : Stats
-        """
+        '''
         self.par1 += stat.par1
         self.par10 += stat.par10
         self.timeouts += stat.timeouts
@@ -118,13 +117,13 @@ class Stats(object):
 
 class Validator(object):
     def __init__(self):
-        """ Constructor """
+        ''' Constructor '''
         self.logger = logging.getLogger("Validation")
 
     def validate_runtime(
         self, schedules: dict, test_scenario: ASlibScenario, train_scenario: ASlibScenario = None
     ):
-        """
+        '''
             validate selected schedules on test instances for runtime
 
             Arguments
@@ -136,17 +135,15 @@ class Validator(object):
             train_scnenario: ASlibScenario
                 ASlib scenario with training instances;
                 required for SBS score computation
-        """
+        '''
         if test_scenario.performance_type[0] != "runtime":
             raise ValueError("Cannot validate non-runtime scenario with runtime validation method")
 
         stat = Stats(runtime_cutoff=test_scenario.algorithm_cutoff_time)
 
         feature_times = False
-        if (
-            test_scenario.feature_cost_data is not None
-            and test_scenario.performance_type[0] == "runtime"
-        ):
+        if test_scenario.feature_cost_data is not None and test_scenario.performance_type[
+            0] == "runtime":
             f_times = test_scenario.feature_cost_data[test_scenario.used_feature_groups].sum(axis=1)
             feature_times = True
 
@@ -189,11 +186,8 @@ class Validator(object):
                 stat.selection_freq[algo] = stat.selection_freq.get(algo, 0) + 1
                 time = test_scenario.performance_data[algo][inst]
                 used_time += min(time, budget)
-                if (
-                    time <= budget
-                    and used_time <= test_scenario.algorithm_cutoff_time
-                    and test_scenario.runstatus_data[algo][inst] == "ok"
-                ):
+                if time <= budget and used_time <= test_scenario.algorithm_cutoff_time and test_scenario.runstatus_data[
+                    algo][inst] == "ok":
                     stat.par1 += used_time
                     stat.solved += 1
                     self.logger.debug(
@@ -207,7 +201,8 @@ class Validator(object):
                     self.logger.debug("Timeout after %d" % (used_time))
                     break
 
-        stat.par10 = stat.par1 + 9 * test_scenario.algorithm_cutoff_time * stat.timeouts
+        stat.par10 = stat.par1 + 9 * \
+            test_scenario.algorithm_cutoff_time * stat.timeouts
 
         stat.show()
 
@@ -216,7 +211,7 @@ class Validator(object):
     def validate_quality(
         self, schedules: dict, test_scenario: ASlibScenario, train_scenario: ASlibScenario = None
     ):
-        """
+        '''
             validate selected schedules on test instances for solution quality
 
             Arguments
@@ -228,7 +223,7 @@ class Validator(object):
             train_scnenario: ASlibScenario
                 ASlib scenario with training instances;
                 required for SBS score computation
-        """
+        '''
         if test_scenario.performance_type[0] != "solution_quality":
             raise ValueError(
                 "Cannot validate non-solution_quality scenario with solution_quality validation method"

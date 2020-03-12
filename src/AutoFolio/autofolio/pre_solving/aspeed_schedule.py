@@ -6,16 +6,13 @@ import sys
 
 import numpy as np
 import pandas as pd
-
 from aslib_scenario.aslib_scenario import ASlibScenario
 from ConfigSpace import Configuration
-from ConfigSpace.conditions import EqualsCondition
-from ConfigSpace.conditions import InCondition
+from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import CategoricalHyperparameter
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
-
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
+)
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
@@ -24,7 +21,7 @@ __license__ = "BSD"
 class Aspeed(object):
     @staticmethod
     def add_params(cs: ConfigurationSpace, cutoff: int):
-        """
+        '''
             adds parameters to ConfigurationSpace
 
             Arguments
@@ -33,7 +30,7 @@ class Aspeed(object):
                 configuration space to add new parameters and conditions
             cutoff: int
                 maximal possible time for aspeed
-        """
+        '''
 
         pre_solving = CategoricalHyperparameter(
             "presolving", choices=[True, False], default_value=False
@@ -47,7 +44,7 @@ class Aspeed(object):
         cs.add_condition(cond)
 
     def __init__(self, clingo: str = None, runsolver: str = None, enc_fn: str = None):
-        """
+        '''
             Constructor
 
             Arguments
@@ -58,7 +55,7 @@ class Aspeed(object):
                 path to runsolver binary
             enc_fn: str
                 path to encoding file name
-        """
+        '''
         self.logger = logging.getLogger("Aspeed")
 
         if not runsolver:
@@ -83,7 +80,7 @@ class Aspeed(object):
         self.schedule = []
 
     def fit(self, scenario: ASlibScenario, config: Configuration):
-        """
+        '''
             fit pca object to ASlib scenario data
 
             Arguments
@@ -94,7 +91,7 @@ class Aspeed(object):
                 configuration
             classifier_class: selector.classifier.*
                 class for classification
-        """
+        '''
 
         if config["presolving"]:
             self.logger.info("Compute Presolving Schedule with Aspeed")
@@ -108,15 +105,14 @@ class Aspeed(object):
                     size=min(
                         X.shape[0], max(int(X.shape[0] * self.data_fraction), self.data_threshold)
                     ),
-                    replace=True,
+                    replace=True
                 )
                 X = X[random_indx, :]
 
             self.logger.debug("#Instances for pre-solving schedule: %d" % (X.shape[0]))
             times = [
                 "time(i%d, %d, %d)." % (i, j, max(1, math.ceil(X[i, j])))
-                for i in range(X.shape[0])
-                for j in range(X.shape[1])
+                for i in range(X.shape[0]) for j in range(X.shape[1])
             ]
 
             kappa = "kappa(%d)." % (config["pre:cutoff"])
@@ -127,7 +123,7 @@ class Aspeed(object):
             self._call_clingo(data_in=data_in, algorithms=scenario.performance_data.columns)
 
     def _call_clingo(self, data_in: str, algorithms: list):
-        """
+        '''
             call clingo on self.enc_fn and facts from data_in
 
             Arguments
@@ -136,13 +132,9 @@ class Aspeed(object):
                 facts in format time(I,A,T) and kappa(C)
             algorithms: list
                 list of algorithm names
-        """
+        '''
         cmd = "%s -C %d -M %d -w /dev/null %s %s -" % (
-            self.runsolver,
-            self.cutoff,
-            self.mem_limit,
-            self.clingo,
-            self.enc_fn,
+            self.runsolver, self.cutoff, self.mem_limit, self.clingo, self.enc_fn
         )
 
         self.logger.info("Call: %s" % (cmd))
@@ -170,7 +162,7 @@ class Aspeed(object):
         self.logger.info("Fitted Schedule: %s" % (self.schedule))
 
     def predict(self, scenario: ASlibScenario):
-        """
+        '''
             transform ASLib scenario data
 
             Arguments
@@ -182,6 +174,6 @@ class Aspeed(object):
             -------
                 schedule:{inst -> (solver, time)}
                     schedule of solvers with a running time budget
-        """
+        '''
 
         return dict((inst, self.schedule) for inst in scenario.instances)

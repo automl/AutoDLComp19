@@ -2,39 +2,37 @@ import logging
 
 import numpy as np
 import pandas as pd
-
-from ConfigSpace.hyperparameters import CategoricalHyperparameter
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
-
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
+)
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class FeatureGroupFiltering(object):
-    """
+    '''
         based on the selected feature group, we remove all features that are not available;
         we also add the feature costs for each individual instance
-    """
+    '''
 
     @staticmethod
     def add_params(cs):
-        """
+        '''
             adds parameters to ConfigurationSpace
-        """
+        '''
 
     def __init__(self):
-        """
+        '''
             Constructor
-        """
+        '''
         self.logger = logging.getLogger("FeatureGroupFiltering")
         self.active_features = []
         self.active_groups = []
         self.active = False
 
     def fit(self, scenario, config):
-        """
+        '''
             fit pca object to ASlib scenario data
 
             Arguments
@@ -43,7 +41,7 @@ class FeatureGroupFiltering(object):
                 ASlib Scenario with all data in pandas
             config: ConfigSpace.Configuration
                 configuration
-        """
+        '''
         self.active = True
         active_groups = []
         for param in config:
@@ -85,7 +83,7 @@ class FeatureGroupFiltering(object):
             )
 
     def transform(self, scenario):
-        """
+        '''
             transform ASLib scenario data
 
             Arguments
@@ -96,7 +94,7 @@ class FeatureGroupFiltering(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        """
+        '''
 
         scenario.feature_data = scenario.feature_data[self.active_features]
         scenario.used_feature_groups = self.active_groups
@@ -104,7 +102,7 @@ class FeatureGroupFiltering(object):
         return scenario
 
     def fit_transform(self, scenario, config):
-        """
+        '''
             fit and transform
 
             Arguments
@@ -117,18 +115,18 @@ class FeatureGroupFiltering(object):
             Returns
             -------
             data.aslib_scenario.ASlibScenario
-        """
+        '''
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario
 
     def get_attributes(self):
-        """
+        '''
             returns a list of tuples of (attribute,value)
             for all learned attributes
 
             Returns
             -------
             list of tuples of (attribute,value)
-        """
+        '''
         return [{"Feature Groups": self.active_groups}]

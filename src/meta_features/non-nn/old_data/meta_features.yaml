@@ -1,0 +1,161 @@
+Chucky:
+  num_channels: 1
+  num_classes: 100
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+Decal:
+  num_channels: 3
+  num_classes: 11
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+Hammer:
+  num_channels: 3
+  num_classes: 7
+  resolution: !!python/tuple
+  - 400
+  - 300
+  sequence_size: 1
+Katze:
+  num_channels: 1
+  num_classes: 6
+  resolution: !!python/tuple
+  - 120
+  - 160
+  sequence_size: -1
+Kreatur:
+  num_channels: 3
+  num_classes: 6
+  resolution: !!python/tuple
+  - 60
+  - 80
+  sequence_size: -1
+Munster:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+Pedro:
+  num_channels: 3
+  num_classes: 26
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+binary_alpha_digits:
+  num_channels: 1
+  num_classes: 36
+  resolution: !!python/tuple
+  - 16
+  - 20
+  sequence_size: 1
+caltech101:
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+caltech_birds2010:
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+caltech_birds2011:
+  num_channels: 3
+  num_classes: 200
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+cats_vs_dogs:
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1
+cifar10:
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+cifar100:
+  num_channels: 3
+  num_classes: 100
+  resolution: !!python/tuple
+  - 32
+  - 32
+  sequence_size: 1
+coil100:
+  num_channels: 3
+  num_classes: 72
+  resolution: !!python/tuple
+  - 128
+  - 128
+  sequence_size: 1
+colorectal_histology:
+  num_channels: 3
+  num_classes: 8
+  resolution: !!python/tuple
+  - 150
+  - 150
+  sequence_size: 1
+deep_weeds:
+  num_channels: 3
+  num_classes: 5
+  resolution: !!python/tuple
+  - 256
+  - 256
+  sequence_size: 1
+eurosat:
+  num_channels: 3
+  num_classes: 10
+  resolution: !!python/tuple
+  - 64
+  - 64
+  sequence_size: 1
+fashion_mnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+horses_or_humans:
+  num_channels: 3
+  num_classes: 2
+  resolution: !!python/tuple
+  - 300
+  - 300
+  sequence_size: 1
+kmnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+mnist:
+  num_channels: 1
+  num_classes: 10
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
+oxford_flowers102:
+  num_channels: 3
+  num_classes: 102
+  resolution: !!python/tuple
+  - -1
+  - -1
+  sequence_size: 1

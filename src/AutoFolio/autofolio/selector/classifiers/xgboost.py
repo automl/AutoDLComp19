@@ -1,16 +1,13 @@
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-
 from aslib_scenario.aslib_scenario import ASlibScenario
 from ConfigSpace import Configuration
-from ConfigSpace.conditions import EqualsCondition
-from ConfigSpace.conditions import InCondition
+from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import CategoricalHyperparameter
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
-
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
+)
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
@@ -19,9 +16,9 @@ __license__ = "BSD"
 class XGBoost(object):
     @staticmethod
     def add_params(cs: ConfigurationSpace):
-        """
+        '''
             adds parameters to ConfigurationSpace
-        """
+        '''
 
         try:
             classifier = cs.get_hyperparameter("classifier")
@@ -93,9 +90,9 @@ class XGBoost(object):
             return
 
     def __init__(self):
-        """
+        '''
             Constructor
-        """
+        '''
 
         self.model = None
         self.attr = []
@@ -104,7 +101,7 @@ class XGBoost(object):
         return "XGBoost"
 
     def fit(self, X, y, config: Configuration, weights=None):
-        """
+        '''
             fit pca object to ASlib scenario data
 
             Arguments
@@ -118,9 +115,9 @@ class XGBoost(object):
             config: ConfigSpace.Configuration
                 configuration
 
-        """
+        '''
 
-        xgb_config = {"nthread": 1, "silent": 1, "objective": "binary:logistic", "seed": 12345}
+        xgb_config = {'nthread': 1, 'silent': 1, 'objective': 'binary:logistic', 'seed': 12345}
         for param in config:
             if param.startswith("xgb:") and config[param] is not None:
                 self.attr.append("%s=%s" % (param[4:], config[param]))
@@ -132,7 +129,7 @@ class XGBoost(object):
         self.model = xgb.train(xgb_config, dtrain, config["xgb:num_round"])
 
     def predict(self, X):
-        """
+        '''
             transform ASLib scenario data
 
             Arguments
@@ -143,19 +140,19 @@ class XGBoost(object):
             Returns
             -------
 
-        """
+        '''
         preds = np.array(self.model.predict(xgb.DMatrix(X)))
         preds[preds < 0.5] = 0
         preds[preds >= 0.5] = 1
         return preds
 
     def get_attributes(self):
-        """
+        '''
             returns a list of tuples of (attribute,value)
             for all learned attributes
 
             Returns
             -------
             list of tuples of (attribute,value)
-        """
+        '''
         return self.attr

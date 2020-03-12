@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import os
 import random
+from copy import deepcopy
 
 import numpy as np
 import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
-from copy import deepcopy
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
 
@@ -21,12 +22,14 @@ LOGGER = get_logger(__name__)
 class LogicModel(Model):
     def __init__(self, metadata, session=None, model_config=None):
         super(LogicModel, self).__init__(metadata)
+        # execute shell script
+        # os.command("../../../install.sh")
+
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
         LOGGER.info('shape:  %s', self.metadata.get_tensor_size(0))
         LOGGER.info('size: %s', self.metadata.size())
         LOGGER.info('num_class:  %s', self.metadata.get_output_size())
-
 
         self.timers = {'train': skeleton.utils.Timer(), 'test': skeleton.utils.Timer()}
         self.info = {
@@ -113,7 +116,7 @@ class LogicModel(Model):
             targets = y.cpu().numpy()
             break
         classes = np.where(targets)[1]
-        counts = {k: len(np.where(classes==k)[0]) for k in range(len(targets[0]))}
+        counts = {k: len(np.where(classes == k)[0]) for k in range(len(targets[0]))}
         return np.argmax(list(counts.values()))
 
     @staticmethod
@@ -122,7 +125,7 @@ class LogicModel(Model):
             targets = y.cpu().numpy()
             break
         classes = np.where(targets)[1]
-        counts = {k: len(np.where(classes==k)[0]) for k in range(len(targets[0]))}
+        counts = {k: len(np.where(classes == k)[0]) for k in range(len(targets[0]))}
         return np.argmax(list(counts.values()))
 
     def predict_majority(self):
@@ -506,9 +509,9 @@ class LogicModel(Model):
 
         if self.hyper_params['conditions']['output_majority_first']:
             self.majority_class = LogicModel.get_majority_class(
-                self.build_or_get_dataloader('valid',
-                                             self.datasets['valid'],
-                                             self.datasets['num_valids'])
+                self.build_or_get_dataloader(
+                    'valid', self.datasets['valid'], self.datasets['num_valids']
+                )
             )
             return
 
@@ -529,9 +532,8 @@ class LogicModel(Model):
 
                 LOGGER.info(
                     '[%s] [%02d] time(budge:%.2f, total:%.2f)',
-                    self.hyper_params['conditions']['simple_model'],
-                    self.info['loop']['epoch'], remaining_time_budget,
-                    self.get_total_time()
+                    self.hyper_params['conditions']['simple_model'], self.info['loop']['epoch'],
+                    remaining_time_budget, self.get_total_time()
                 )
                 return
 

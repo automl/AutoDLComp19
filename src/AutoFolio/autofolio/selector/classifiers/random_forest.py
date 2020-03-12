@@ -1,16 +1,13 @@
 import numpy as np
 import pandas as pd
-
 from aslib_scenario.aslib_scenario import ASlibScenario
 from ConfigSpace import Configuration
-from ConfigSpace.conditions import EqualsCondition
-from ConfigSpace.conditions import InCondition
+from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import CategoricalHyperparameter
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
+)
 from sklearn.ensemble import RandomForestClassifier
-
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
@@ -19,9 +16,9 @@ __license__ = "BSD"
 class RandomForest(object):
     @staticmethod
     def add_params(cs: ConfigurationSpace):
-        """
+        '''
             adds parameters to ConfigurationSpace
-        """
+        '''
         try:
             classifier = cs.get_hyperparameter("classifier")
             if "RandomForest" not in classifier.choices:
@@ -40,7 +37,7 @@ class RandomForest(object):
             )
             cs.add_hyperparameter(max_features)
             max_depth = UniformIntegerHyperparameter(
-                name="rf:max_depth", lower=10, upper=2 ** 31, default_value=2 ** 31, log=True
+                name="rf:max_depth", lower=10, upper=2**31, default_value=2**31, log=True
             )
             cs.add_hyperparameter(max_depth)
             min_samples_split = UniformIntegerHyperparameter(
@@ -75,9 +72,9 @@ class RandomForest(object):
             return
 
     def __init__(self):
-        """
+        '''
             Constructor
-        """
+        '''
 
         self.model = None
 
@@ -85,7 +82,7 @@ class RandomForest(object):
         return "RandomForest"
 
     def fit(self, X, y, config: Configuration, weights=None):
-        """
+        '''
             fit pca object to ASlib scenario data
 
             Arguments
@@ -99,7 +96,7 @@ class RandomForest(object):
             config: ConfigSpace.Configuration
                 configuration
 
-        """
+        '''
 
         self.model = RandomForestClassifier(
             n_estimators=config["rf:n_estimators"],
@@ -109,12 +106,12 @@ class RandomForest(object):
             min_samples_split=config["rf:min_samples_split"],
             min_samples_leaf=config["rf:min_samples_leaf"],
             bootstrap=config["rf:bootstrap"],
-            random_state=12345,
+            random_state=12345
         )
         self.model.fit(X, y, weights)
 
     def predict(self, X):
-        """
+        '''
             transform ASLib scenario data
 
             Arguments
@@ -125,19 +122,19 @@ class RandomForest(object):
             Returns
             -------
 
-        """
+        '''
 
         return self.model.predict(X)
 
     def get_attributes(self):
-        """
+        '''
             returns a list of tuples of (attribute,value)
             for all learned attributes
 
             Returns
             -------
             list of tuples of (attribute,value)
-        """
+        '''
         attr = []
         attr.append("max_depth = %d" % (self.model.max_depth))
         attr.append("min_samples_split = %d" % (self.model.min_samples_split))
