@@ -27,13 +27,6 @@ class LogicModel(Model):
         LOGGER.info('size: %s', self.metadata.size())
         LOGGER.info('num_class:  %s', self.metadata.get_output_size())
 
-        test_metadata_filename = self.metadata.get_dataset_name(
-        ).replace('train', 'test') + '/metadata.textproto'
-        self.num_test = [
-            int(line.split(':')[1])
-            for line in open(test_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
-        ][0]
-        LOGGER.info('num_test:  %d', self.num_test)
 
         self.timers = {'train': skeleton.utils.Timer(), 'test': skeleton.utils.Timer()}
         self.info = {
@@ -72,6 +65,14 @@ class LogicModel(Model):
         self.dataloaders = {'train': None, 'valid': None, 'test': None}
         self.is_skip_valid = True
         LOGGER.info('[init] done')
+
+        test_metadata_filename = self.metadata.get_dataset_name(
+        ).replace('train', 'test') + '/metadata.textproto'
+        self.num_test = [
+            int(line.split(':')[1])
+            for line in open(test_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
+        ][0]
+        LOGGER.info('num_test:  %d', self.num_test)
 
     def __repr__(self):
         return '\n---------[{0}]---------\ninfo:{1}\nparams:{2}\n---------- ---------'.format(
@@ -511,27 +512,31 @@ class LogicModel(Model):
             )
             return
 
-        if self.hyper_params['conditions']['first_simple_model']:
-            inner_epoch += 1
-            remaining_time_budget -= self.timers['train'].step_time
+        if not self.is_multiclass():
+            if self.hyper_params['conditions']['first_simple_model']:
+                inner_epoch += 1
+                remaining_time_budget -= self.timers['train'].step_time
 
-            self.timers['train']('start', reset_step=True)
-            self.fit_classifier(self.info['loop']['epoch'], train_dataloader)
-            self.timers['train']('train')
-            self.timers['train']('end')
+                self.timers['train']('start', reset_step=True)
+                self.fit_classifier(self.info['loop']['epoch'], train_dataloader)
+                self.timers['train']('train')
+                self.timers['train']('end')
 
-            remaining_time_budget -= self.timers['train'].step_time
+                remaining_time_budget -= self.timers['train'].step_time
 
-            if not self.done_training:
-                self.adapt(remaining_time_budget)
+                if not self.done_training:
+                    self.adapt(remaining_time_budget)
 
-            LOGGER.info(
-                '[%s] [%02d] time(budge:%.2f, total:%.2f)',
-                self.hyper_params['conditions']['simple_model'],
-                self.info['loop']['epoch'], remaining_time_budget,
-                self.get_total_time()
-            )
-            return
+                LOGGER.info(
+                    '[%s] [%02d] time(budge:%.2f, total:%.2f)',
+                    self.hyper_params['conditions']['simple_model'],
+                    self.info['loop']['epoch'], remaining_time_budget,
+                    self.get_total_time()
+                )
+                return
+
+        else:
+            self.hyper_params['conditions']['first_simple_model'] = False
 
         while True:
             inner_epoch += 1

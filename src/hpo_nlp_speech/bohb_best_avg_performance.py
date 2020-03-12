@@ -40,7 +40,7 @@ SEED = 41
 BOHB_MIN_BUDGET = 80
 BOHB_MAX_BUDGET = 640
 BOHB_ETA = 2
-BOHB_WORKERS = 60
+BOHB_WORKERS = 16
 BOHB_ITERATIONS = 100000
 
 def get_configspace(use_nlp):
@@ -208,11 +208,11 @@ class BOHBWorker(Worker):
                     model_config=model_config)
                 score_list.append(score_ind)
             except Exception as e:
-                score_list.append[0]
+                score_list.append(0.01)
                 status = str(e)
                 print(status)
 
-        score = sum(score_list) / len(score_list)
+        score = sum(np.log(score_list)) / len(score_list)
 
         info['config'] = str(config)
         info['model_config'] = str(model_config)
@@ -369,6 +369,7 @@ def runBohbParallel(id, run_id):
 
     res = bohb.run(n_iterations=BOHB_ITERATIONS,
                    min_n_workers=BOHB_WORKERS)
+#    res = bohb.run(n_iterations=BOHB_ITERATIONS)
 
     bohb.shutdown(shutdown_workers=True)
     ns.shutdown()

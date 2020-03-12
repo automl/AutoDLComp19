@@ -61,6 +61,7 @@ class Model():
         logger.info("The inferred domain of current dataset is: {}."\
                     .format(self.domain))
         self.domain_metadata = get_domain_metadata(metadata, self.domain)
+        print(self.domain)
         DomainModel = DOMAIN_TO_MODEL[self.domain]
         self.domain_model = DomainModel(self.domain_metadata, model_config)
 

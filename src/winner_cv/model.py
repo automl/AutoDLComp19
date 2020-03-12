@@ -552,6 +552,9 @@ class Model(LogicModel):
                     predictions.append(logits)
 
             if detach or self.hyper_params['conditions']['first_simple_model']:
+                predictions = np.array(predictions)
+                if len(predictions.shape) == 4:
+                    predictions = np.transpose(predictions, (1, 0, 2))[:, :, 0]
                 predictions = np.concatenate(predictions, axis=0).astype(np.float)
             else:
                 predictions = torch.cat(predictions, dim=0)

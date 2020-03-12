@@ -26,6 +26,7 @@ def run_worker(args):
             host=args.host,
             working_directory=args.bohb_root_path,
             n_repeat=args.n_repeat,
+            has_repeats_as_budget=args.n_repeat is None,
             time_budget=args.time_budget,
             time_budget_approx=args.time_budget_approx,
             performance_matrix=args.performance_matrix
