@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import yaml
-from src.available_datasets import all_datasets, train_datasets_all, val_datasets_all
+from src.available_datasets import all_datasets, train_datasets, val_datasets
+#from src.available_datasets import all_datasets, train_datasets_all, val_datasets_all
 from src.competition.ingestion_program.dataset import AutoDLDataset
 from src.utils import load_datasets_processed
 
@@ -175,15 +176,13 @@ def dump_meta_features_df_and_csv(
 
     if samples_along_rows and n_samples:
         train_dataset_names = [
-            d + "_{}".format(i) for d in train_datasets_all for i in range(n_samples)
+            d + "_{}".format(i) for d in train_datasets for i in range(n_samples)
         ]
-        valid_dataset_names = [
-            d + "_{}".format(i) for d in val_datasets_all for i in range(n_samples)
-        ]
+        valid_dataset_names = [d + "_{}".format(i) for d in val_datasets for i in range(n_samples)]
         file_name = "meta_features_samples_along_rows"
     else:
-        train_dataset_names = train_datasets_all
-        valid_dataset_names = val_datasets_all
+        train_dataset_names = train_datasets
+        valid_dataset_names = val_datasets
 
     df_train = df.loc[df.index.isin(train_dataset_names)]
     df_valid = df.loc[df.index.isin(valid_dataset_names)]
@@ -294,7 +293,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         "--dataset_path",
-        default="/data/aad/image_datasets/augmented_datasets/",
+        #default="/data/aad/image_datasets/augmented_datasets/",
+        default="/data/aad/image_datasets/all_symlinks/",  # todo
         type=Path,
         help=" "
     )
@@ -314,7 +314,7 @@ if __name__ == '__main__':
     # )
     """ example (non-nn) meta features """
     parser.add_argument(
-        "--output_path", default="src/meta_features/non-nn/new_data", type=Path, help=" "
+        "--output_path", default="src/meta_features/non-nn/old_data", type=Path, help=" "
     )
 
     args = parser.parse_args()

@@ -1,6 +1,8 @@
 Chucky:
   num_channels: 1
   num_classes: 100
+  num_test: 11939
+  num_train: 48061
   resolution: !!python/tuple
   - 32
   - 32
@@ -8,6 +10,8 @@ Chucky:
 Decal:
   num_channels: 3
   num_classes: 11
+  num_test: 166
+  num_train: 634
   resolution: !!python/tuple
   - -1
   - -1
@@ -15,27 +19,17 @@ Decal:
 Hammer:
   num_channels: 3
   num_classes: 7
+  num_test: 1965
+  num_train: 8050
   resolution: !!python/tuple
   - 400
   - 300
   sequence_size: 1
-Katze:
-  num_channels: 1
-  num_classes: 6
-  resolution: !!python/tuple
-  - 120
-  - 160
-  sequence_size: -1
-Kreatur:
-  num_channels: 3
-  num_classes: 6
-  resolution: !!python/tuple
-  - 60
-  - 80
-  sequence_size: -1
 Munster:
   num_channels: 1
   num_classes: 10
+  num_test: 10000
+  num_train: 60000
   resolution: !!python/tuple
   - 28
   - 28
@@ -43,6 +37,8 @@ Munster:
 Pedro:
   num_channels: 3
   num_classes: 26
+  num_test: 19905
+  num_train: 80095
   resolution: !!python/tuple
   - -1
   - -1
@@ -50,6 +46,8 @@ Pedro:
 binary_alpha_digits:
   num_channels: 1
   num_classes: 36
+  num_test: 289
+  num_train: 1115
   resolution: !!python/tuple
   - 16
   - 20
@@ -57,6 +55,8 @@ binary_alpha_digits:
 caltech101:
   num_channels: 3
   num_classes: 102
+  num_test: 6084
+  num_train: 3060
   resolution: !!python/tuple
   - -1
   - -1
@@ -64,6 +64,8 @@ caltech101:
 caltech_birds2010:
   num_channels: 3
   num_classes: 200
+  num_test: 3033
+  num_train: 3000
   resolution: !!python/tuple
   - -1
   - -1
@@ -71,6 +73,8 @@ caltech_birds2010:
 caltech_birds2011:
   num_channels: 3
   num_classes: 200
+  num_test: 5794
+  num_train: 5994
   resolution: !!python/tuple
   - -1
   - -1
@@ -78,6 +82,8 @@ caltech_birds2011:
 cats_vs_dogs:
   num_channels: 3
   num_classes: 2
+  num_test: 999
+  num_train: 22263
   resolution: !!python/tuple
   - -1
   - -1
@@ -85,6 +91,8 @@ cats_vs_dogs:
 cifar10:
   num_channels: 3
   num_classes: 10
+  num_test: 10000
+  num_train: 50000
   resolution: !!python/tuple
   - 32
   - 32
@@ -92,6 +100,8 @@ cifar10:
 cifar100:
   num_channels: 3
   num_classes: 100
+  num_test: 10000
+  num_train: 50000
   resolution: !!python/tuple
   - 32
   - 32
@@ -99,6 +109,8 @@ cifar100:
 coil100:
   num_channels: 3
   num_classes: 72
+  num_test: 998
+  num_train: 6202
   resolution: !!python/tuple
   - 128
   - 128
@@ -106,6 +118,8 @@ coil100:
 colorectal_histology:
   num_channels: 3
   num_classes: 8
+  num_test: 997
+  num_train: 4003
   resolution: !!python/tuple
   - 150
   - 150
@@ -113,13 +127,26 @@ colorectal_histology:
 deep_weeds:
   num_channels: 3
   num_classes: 5
+  num_test: 989
+  num_train: 16520
   resolution: !!python/tuple
   - 256
   - 256
   sequence_size: 1
+emnist:
+  num_channels: 1
+  num_classes: 62
+  num_test: 116323
+  num_train: 697932
+  resolution: !!python/tuple
+  - 28
+  - 28
+  sequence_size: 1
 eurosat:
   num_channels: 3
   num_classes: 10
+  num_test: 1024
+  num_train: 25976
   resolution: !!python/tuple
   - 64
   - 64
@@ -127,6 +154,8 @@ eurosat:
 fashion_mnist:
   num_channels: 1
   num_classes: 10
+  num_test: 10000
+  num_train: 60000
   resolution: !!python/tuple
   - 28
   - 28
@@ -134,6 +163,8 @@ fashion_mnist:
 horses_or_humans:
   num_channels: 3
   num_classes: 2
+  num_test: 256
+  num_train: 1027
   resolution: !!python/tuple
   - 300
   - 300
@@ -141,13 +172,8 @@ horses_or_humans:
 kmnist:
   num_channels: 1
   num_classes: 10
-  resolution: !!python/tuple
-  - 28
-  - 28
-  sequence_size: 1
-mnist:
-  num_channels: 1
-  num_classes: 10
+  num_test: 10000
+  num_train: 60000
   resolution: !!python/tuple
   - 28
   - 28
@@ -155,6 +181,8 @@ mnist:
 oxford_flowers102:
   num_channels: 3
   num_classes: 102
+  num_test: 6149
+  num_train: 1020
   resolution: !!python/tuple
   - -1
   - -1
