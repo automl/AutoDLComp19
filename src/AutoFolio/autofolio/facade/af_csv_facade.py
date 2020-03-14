@@ -2,8 +2,8 @@ import logging
 
 import numpy as np
 from aslib_scenario.aslib_scenario import ASlibScenario
+from AutoFolio.autofolio.autofolio import AutoFolio
 from ConfigSpace.configuration_space import Configuration
-from src.AutoFolio.autofolio.autofolio import AutoFolio
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"

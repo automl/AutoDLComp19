@@ -12,9 +12,9 @@ import tensorflow as tf
 import torch
 import torchvision as tv
 import yaml
+from AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
-from src.AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade  # todo: remove src
 
 from .api import Model
 from .others import *

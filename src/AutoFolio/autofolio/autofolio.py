@@ -37,6 +37,10 @@ from ConfigSpace.hyperparameters import (
     CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
 )
 
+sys.path.insert(0, os.path.abspath("AutoFolio"))
+#sys.path.insert(0, os.path.abspath("src/AutoFolio"))
+
+
 # SMAC3
 try:
     from smac.tae.execute_func import ExecuteTAFuncDict
@@ -45,9 +49,6 @@ try:
     from smac.facade.smac_hpo_facade import SMAC4HPO as SMAC
 except ImportError:
     pass
-
-sys.path.insert(0, os.path.abspath("AutoFolio"))
-sys.path.insert(0, os.path.abspath("src/AutoFolio"))
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
