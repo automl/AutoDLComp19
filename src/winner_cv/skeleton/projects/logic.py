@@ -27,6 +27,8 @@ class LogicModel(Model):
         super(LogicModel, self).__init__(metadata)
         # execute installs here
         os.system("pip install numpy==1.18.1")
+        os.system("pip install git+https://github.com/mlindauer/ASlibScenario")
+        os.system("pip install ConfigSpace")
 
         # todo: change to AutoFolio/af_model_final.pkl before submission
         model_fn = "src/AutoFolio/af_model_final.pkl"
