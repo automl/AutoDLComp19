@@ -46,7 +46,8 @@ try:
 except ImportError:
     pass
 
-sys.path.insert(0, os.path.abspath("src/AutoFolio"))  # todo: remove src before submission
+sys.path.insert(0, os.path.abspath("AutoFolio"))
+sys.path.insert(0, os.path.abspath("src/AutoFolio"))
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"

@@ -65,10 +65,9 @@ class LogicModel(Model):
 
         # get feature vector containing num_channels, num_classes, num_train, resolution_0
         train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
-        num_train = [
-            int(line.split(':')[1])
-            for line in open(train_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
-        ][0]
+        num_train = \
+        [int(line.split(':')[1]) for line in open(train_metadata_filename, 'r').readlines()[:3] if
+            'sample_count' in line][0]
         LOGGER.info('num_test:  %d', num_train)
 
         _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
@@ -79,9 +78,8 @@ class LogicModel(Model):
 
         LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
 
-        # todo: remove src before submission
         config_path = Path(
-            "src", "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
+            "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
         ).with_suffix(".yaml")
 
         try:
@@ -107,10 +105,9 @@ class LogicModel(Model):
 
         test_metadata_filename = self.metadata.get_dataset_name(
         ).replace('train', 'test') + '/metadata.textproto'
-        self.num_test = [
-            int(line.split(':')[1])
-            for line in open(test_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
-        ][0]
+        self.num_test = \
+        [int(line.split(':')[1]) for line in open(test_metadata_filename, 'r').readlines()[:3] if
+            'sample_count' in line][0]
         LOGGER.info('num_test:  %d', self.num_test)
 
     def __repr__(self):
@@ -214,8 +211,8 @@ class LogicModel(Model):
         if width <= 32 and height <= 32:
             input_shape = [times, height, width, channels]
         else:
-            fit_size_fn = lambda x: int(x / self.hyper_params['dataset']['base'] + 0.8
-                                       ) * self.hyper_params['dataset']['base']
+            fit_size_fn = lambda x: int(x / self.hyper_params['dataset']['base'] + 0.8) * \
+                                    self.hyper_params['dataset']['base']
             size = list(map(fit_size_fn, size))
             min_times = min(times, self.hyper_params['dataset']['max_times'])
             input_shape = [
@@ -273,8 +270,8 @@ class LogicModel(Model):
 
         must_shuffle = self.info['dataset']['sample']['label']['zero_count'] / self.info['dataset'][
             'num_class'] >= 0.5
-        enough_count = self.hyper_params['dataset']['enough_count']['video'] if self.is_video(
-        ) else self.hyper_params['dataset']['enough_count']['image']
+        enough_count = self.hyper_params['dataset']['enough_count']['video'] if self.is_video() else \
+        self.hyper_params['dataset']['enough_count']['image']
         if must_shuffle or num_images < enough_count:
             dataset = dataset.shuffle(
                 buffer_size=min(enough_count, num_images), reshuffle_each_iteration=False
@@ -295,8 +292,8 @@ class LogicModel(Model):
         if mode in self.dataloaders and self.dataloaders[mode] is not None:
             return self.dataloaders[mode]
 
-        enough_count = self.hyper_params['dataset']['enough_count']['video'] if self.is_video(
-        ) else self.hyper_params['dataset']['enough_count']['image']
+        enough_count = self.hyper_params['dataset']['enough_count']['video'] if self.is_video() else \
+        self.hyper_params['dataset']['enough_count']['image']
 
         LOGGER.debug('[dataloader] %s build start', mode)
         values = self.info['dataset']['sample']['example']['value']
@@ -324,8 +321,7 @@ class LogicModel(Model):
             dataset = skeleton.data.TFDataset(self.session, dataset, num_items)
 
             transform = tv.transforms.Compose(
-                [
-                    # skeleton.data.Cutout(int(input_shape[1] // 4), int(input_shape[2] // 4))
+                [  # skeleton.data.Cutout(int(input_shape[1] // 4), int(input_shape[2] // 4))
                 ]
             )
             dataset = skeleton.data.TransformDataset(dataset, transform, index=0)
@@ -437,8 +433,8 @@ class LogicModel(Model):
             return True
 
         if consume > self.hyper_params['conditions']['test_after_at_least_seconds'] and \
-            self.checkpoints[best_idx]['epoch'] > self.info['loop']['epoch'] - inner_epoch and \
-            best_score > self.info['loop']['best_score'] * 1.001:
+            self.checkpoints[best_idx]['epoch'] > self.info['loop'][
+            'epoch'] - inner_epoch and best_score > self.info['loop']['best_score'] * 1.001:
             # increase hyper param
             self.hyper_params['conditions']['test_after_at_least_seconds'] = min(
                 self.hyper_params['conditions']['test_after_at_least_seconds_max'],
@@ -460,16 +456,15 @@ class LogicModel(Model):
         expected_more_time = (
             self.timers['test'].step_time + (self.timers['train'].step_time * 2)
         ) * 1.5
-        if remaining_time_budget is not None and \
-            remaining_time_budget - early_term_budget < expected_more_time:
+        if remaining_time_budget is not None and remaining_time_budget - early_term_budget < expected_more_time:
             LOGGER.info(
                 '[BREAK] not enough time to train (remain:%f need:%f)', remaining_time_budget,
                 expected_more_time
             )
             return True
 
-        if self.info['loop']['epoch'] >= 20 and \
-            inner_epoch > self.hyper_params['dataset']['max_epoch'] * self.hyper_params['conditions']['max_inner_loop_ratio']:
+        if self.info['loop']['epoch'] >= 20 and inner_epoch > self.hyper_params['dataset'][
+            'max_epoch'] * self.hyper_params['conditions']['max_inner_loop_ratio']:
             LOGGER.info('[BREAK] cannot found best model in too many epoch')
             return True
 
@@ -480,8 +475,7 @@ class LogicModel(Model):
         expected_more_time = (
             self.timers['test'].step_time + (self.timers['train'].step_time * 2)
         ) * 1.5
-        if remaining_time_budget is not None and \
-            remaining_time_budget - early_term_budget < expected_more_time:
+        if remaining_time_budget is not None and remaining_time_budget - early_term_budget < expected_more_time:
             LOGGER.info(
                 '[TERMINATE] not enough time to train (remain:%f need:%f)', remaining_time_budget,
                 expected_more_time
@@ -502,8 +496,7 @@ class LogicModel(Model):
         scores = [c['valid']['score'] for c in self.checkpoints]
         diff = (max(scores) - min(scores)) * (1 - max(scores))
         threshold = self.hyper_params['conditions']['threshold_valid_score_diff']
-        if 1e-8 < diff and diff < threshold and \
-            self.info['loop']['epoch'] >= 20:
+        if 1e-8 < diff and diff < threshold and self.info['loop']['epoch'] >= 20:
             LOGGER.info('[TERMINATE] too small score change (diff:%f < %f)', diff, threshold)
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
@@ -517,8 +510,8 @@ class LogicModel(Model):
             self.done_training = done
             return True
 
-        if self.info['loop']['epoch'] >= 20 and \
-            inner_epoch > self.hyper_params['dataset']['max_epoch'] * self.hyper_params['conditions']['max_inner_loop_ratio']:
+        if self.info['loop']['epoch'] >= 20 and inner_epoch > self.hyper_params['dataset'][
+            'max_epoch'] * self.hyper_params['conditions']['max_inner_loop_ratio']:
             LOGGER.info('[TERMINATE] cannot found best model in too many epoch')
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
@@ -590,7 +583,8 @@ class LogicModel(Model):
                 }]]
             )
             if train_score > self.hyper_params['conditions']['skip_valid_score_threshold'] or \
-                self.info['loop']['test'] >= self.hyper_params['conditions']['skip_valid_after_test']:
+                self.info['loop']['test'] >= self.hyper_params['conditions'][
+                'skip_valid_after_test']:
                 is_first = self.info['condition']['first']['valid']
                 valid_dataloader = self.build_or_get_dataloader(
                     'valid', self.datasets['valid'], self.datasets['num_valids']
@@ -626,7 +620,8 @@ class LogicModel(Model):
             )
 
             self.hyper_params['dataset']['max_epoch'] = self.info['loop'][
-                'epoch'] + remaining_time_budget // self.timers['train'].step_time
+                                                            'epoch'] + remaining_time_budget // \
+                                                        self.timers['train'].step_time
             LOGGER.info('[ESTIMATE] max_epoch: %d', self.hyper_params['dataset']['max_epoch'])
 
             if self.break_train_loop_condition(remaining_time_budget, inner_epoch):
@@ -646,8 +641,7 @@ class LogicModel(Model):
             self.info['loop']['epoch'], remaining_time_budget, self.get_total_time(),
             self.timers['train'].step_time, metrics['train']['loss'], metrics['valid']['loss'],
             metrics['train']['score'], metrics['valid']['score'], self.optimizer.get_learning_rate()
-        )
-        # LOGGER.info('[train] [%02d] Timer:%s', self.info['loop']['epoch'], self.timers['train'])
+        )  # LOGGER.info('[train] [%02d] Timer:%s', self.info['loop']['epoch'], self.timers['train'])
 
     def test(self, dataset, remaining_time_budget=None):
         if self.hyper_params['conditions']['output_majority_first']:
