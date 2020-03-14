@@ -2,13 +2,12 @@ import logging
 
 import numpy as np
 import pandas as pd
-from ConfigSpace.hyperparameters import (
-    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
-)
+
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
+    UniformFloatHyperparameter, UniformIntegerHyperparameter
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
-
 
 class FeatureGroupFiltering(object):
     '''
@@ -19,7 +18,7 @@ class FeatureGroupFiltering(object):
     @staticmethod
     def add_params(cs):
         '''
-            adds parameters to ConfigurationSpace
+            adds parameters to ConfigurationSpace 
         '''
 
     def __init__(self):
@@ -47,9 +46,9 @@ class FeatureGroupFiltering(object):
         for param in config:
             if param.startswith("fgroup_") and config[param]:
                 active_groups.append(param.replace("fgroup_", ""))
-
-        active_groups.sort()  # to ensure same order of features always
-
+        
+        active_groups.sort() # to ensure same order of features always
+        
         # check requirements for each step
         change = True
         while change:
@@ -65,22 +64,19 @@ class FeatureGroupFiltering(object):
                         active_groups.remove(group)
                         change = True
 
-        self.logger.debug("Active feature groups: %s" % (active_groups))
+        self.logger.debug("Active feature groups: %s" %(active_groups))
         self.active_groups = active_groups
-
+        
         # get active features
         for group in active_groups:
             if scenario.feature_group_dict[group].get("provides"):
                 self.active_features.extend(scenario.feature_group_dict[group].get("provides"))
-
-        self.logger.debug(
-            "Active features (%d): %s" % (len(self.active_features), self.active_features)
-        )
-
+        
+        self.logger.debug("Active features (%d): %s" %(len(self.active_features), self.active_features))
+            
         if not self.active_features:
-            self.logger.warn(
-                "No active features left after filtering according to selected feature steps"
-            )
+            self.logger.warn("No active features left after filtering according to selected feature steps")
+
 
     def transform(self, scenario):
         '''
@@ -95,10 +91,11 @@ class FeatureGroupFiltering(object):
             -------
             data.aslib_scenario.ASlibScenario
         '''
-
+        
+        
         scenario.feature_data = scenario.feature_data[self.active_features]
         scenario.used_feature_groups = self.active_groups
-
+        
         return scenario
 
     def fit_transform(self, scenario, config):
@@ -119,14 +116,14 @@ class FeatureGroupFiltering(object):
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario
-
+    
     def get_attributes(self):
         '''
-            returns a list of tuples of (attribute,value)
+            returns a list of tuples of (attribute,value) 
             for all learned attributes
-
+            
             Returns
             -------
-            list of tuples of (attribute,value)
+            list of tuples of (attribute,value) 
         '''
-        return [{"Feature Groups": self.active_groups}]
+        return [{"Feature Groups":self.active_groups}]

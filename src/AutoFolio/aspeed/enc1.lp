@@ -34,7 +34,7 @@ unit(1..cores).
 insert(@insert(I,S,T)) :- time(I,S,T).
 order(I,K,S) :- insert(_), solver(S), (I,K) = @order(S).
 
-{ slice(U,S,T) : time(S,T), T <= K, unit(U) } 1 :-
+{ slice(U,S,T) : time(S,T), T <= K, unit(U) } 1 :- 
   solver(S), kappa(K).
 slice(S,T) :- slice(_,S,T).
 
@@ -44,7 +44,7 @@ solved(I,S) :- slice(S,T), time(I,S,T).
 solved(I,S) :- solved(J,S), order(I,J,S).
 solved(I)   :- solved(I,_).
 
-#maximize { 1@2,I: solved(I) }.
+#maximize { 1@2,I: solved(I) }.  
 #minimize { T*T@1,S : slice(S,T)}.
 
 #show slice/3.

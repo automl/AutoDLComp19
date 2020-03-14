@@ -1,8 +1,9 @@
 import os
-
 import setuptools
 
-console_scripts = ['autofolio=autofolio.autofolio:main']
+console_scripts = [
+    'autofolio=autofolio.autofolio:main'
+]
 
 with open("autofolio/__version__.py") as fh:
     version = fh.readlines()[-1].split()[-1].strip("\"'")
@@ -25,7 +26,10 @@ setuptools.setup(
         "License :: OSI Approved :: 2-clause BSD",
     ],
     platforms=['Linux'],
-    tests_require=['mock', 'nose'],
+    tests_require=['mock',
+                   'nose'],
     test_suite='nose.collector',
-    entry_points={'console_scripts': console_scripts}
+    entry_points = {
+        'console_scripts': console_scripts
+    }
 )

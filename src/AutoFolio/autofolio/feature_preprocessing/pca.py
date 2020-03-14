@@ -2,32 +2,36 @@ import logging
 
 import numpy as np
 import pandas as pd
-from aslib_scenario.aslib_scenario import ASlibScenario
-from ConfigSpace import Configuration
+
+from sklearn.decomposition import PCA
+
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
+    UniformFloatHyperparameter, UniformIntegerHyperparameter
 from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import (
-    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
-)
-from sklearn.decomposition import PCA
+from ConfigSpace import Configuration
+
+from aslib_scenario.aslib_scenario import ASlibScenario
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class PCAWrapper(object):
+
     @staticmethod
     def add_params(cs: ConfigurationSpace):
         '''
-            adds parameters to ConfigurationSpace
+            adds parameters to ConfigurationSpace 
         '''
-        pca_switch = CategoricalHyperparameter("pca", choices=[True, False], default_value=False)
+        pca_switch = CategoricalHyperparameter(
+            "pca", choices=[True, False], default_value=False)
         n_components = UniformIntegerHyperparameter(
-            "pca_n_components", lower=1, upper=20, default_value=7, log=True
-        )
+            "pca_n_components", lower=1, upper=20, default_value=7, log=True)
         cs.add_hyperparameter(pca_switch)
         cs.add_hyperparameter(n_components)
-        cond = InCondition(child=n_components, parent=pca_switch, values=[True])
+        cond = InCondition(
+            child=n_components, parent=pca_switch, values=[True])
         cs.add_condition(cond)
 
     def __init__(self):
@@ -71,13 +75,11 @@ class PCAWrapper(object):
         '''
         if self.pca:
             self.logger.debug("Applying PCA")
-            values = self.pca.transform(np.array(scenario.feature_data.values))
+            values = self.pca.transform(
+                np.array(scenario.feature_data.values))
 
             scenario.feature_data = pd.DataFrame(
-                data=values,
-                index=scenario.feature_data.index,
-                columns=["f%d" % (i) for i in range(values.shape[1])]
-            )
+                data=values, index=scenario.feature_data.index, columns=["f%d" % (i) for i in range(values.shape[1])])
 
         return scenario
 
@@ -99,14 +101,14 @@ class PCAWrapper(object):
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario
-
+    
     def get_attributes(self):
         '''
-            returns a list of tuples of (attribute,value)
+            returns a list of tuples of (attribute,value) 
             for all learned attributes
-
+            
             Returns
             -------
-            list of tuples of (attribute,value)
+            list of tuples of (attribute,value) 
         '''
-        return ["Dimensions=%s" % (self.pca.n_components)]
+        return ["Dimensions=%s" %(self.pca.n_components)]

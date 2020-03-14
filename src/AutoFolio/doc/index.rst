@@ -21,7 +21,7 @@ Therefore, AutoFolio has a robust performance across different algorithm selecti
    we refer to
 
 	`JAIR Journal Article <http://aad.informatik.uni-freiburg.de/papers/15-JAIR-Autofolio.pdf>`_
-
+	
 	@ARTICLE{lindauer-jair15a,
 	  author    = {M. Lindauer and H. Hoos and F. Hutter and T. Schaub},
 	  title     = {AutoFolio: An automatically configured Algorithm Selector},
@@ -37,7 +37,7 @@ AutoFolio is mainly written in Python 3.5.
 .. note::
 
     This version is a re-implementation of the original AutoFolio implementation
-    and has not the same configuration space of the original implementation --
+    and has not the same configuration space of the original implementation -- 
     e.g., the clustering approach was not re-implementation because the performance had not met our expectations;
     e.g., as a new approach we implemented pair-wise performance difference prediction approach.
 
@@ -60,3 +60,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+

@@ -2,27 +2,29 @@ import logging
 
 import numpy as np
 import pandas as pd
-from aslib_scenario.aslib_scenario import ASlibScenario
+
+from sklearn.impute import SimpleImputer
+
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
+    UniformFloatHyperparameter, UniformIntegerHyperparameter
 from ConfigSpace import Configuration
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import (
-    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
-)
-from sklearn.impute import SimpleImputer
+
+from aslib_scenario.aslib_scenario import ASlibScenario
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class ImputerWrapper(object):
+
     @staticmethod
     def add_params(cs: ConfigurationSpace):
         '''
-            adds parameters to ConfigurationSpace
+            adds parameters to ConfigurationSpace 
         '''
         stratgey = CategoricalHyperparameter(
-            "imputer_strategy", choices=["mean", "median", "most_frequent"], default_value="mean"
-        )
+            "imputer_strategy", choices=["mean", "median", "most_frequent"], default_value="mean")
         cs.add_hyperparameter(stratgey)
 
     def __init__(self):
@@ -65,10 +67,10 @@ class ImputerWrapper(object):
         '''
         self.logger.debug("Impute Missing Feature Values")
 
-        values = self.imputer.transform(np.array(scenario.feature_data.values))
+        values = self.imputer.transform(
+            np.array(scenario.feature_data.values))
         scenario.feature_data = pd.DataFrame(
-            data=values, index=scenario.feature_data.index, columns=scenario.feature_data.columns
-        )
+            data=values, index=scenario.feature_data.index, columns=scenario.feature_data.columns)
 
         return scenario
 
@@ -90,20 +92,20 @@ class ImputerWrapper(object):
         self.fit(scenario, config)
         scenario = self.transform(scenario)
         return scenario
-
+    
     def get_attributes(self):
         '''
-            returns a list of tuples of (attribute,value)
+            returns a list of tuples of (attribute,value) 
             for all learned attributes
-
+            
             Arguments
             ---------
             config: ConfigSpace.Configuration
                 configuration
 
-
+            
             Returns
             -------
-            list of tuples of (attribute,value)
+            list of tuples of (attribute,value) 
         '''
-        return ["Strategy=%s" % (self.imputer.strategy)]
+        return ["Strategy=%s" %(self.imputer.strategy)]

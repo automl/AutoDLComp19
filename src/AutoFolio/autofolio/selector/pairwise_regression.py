@@ -3,23 +3,25 @@ import traceback
 
 import numpy as np
 import pandas as pd
-from aslib_scenario.aslib_scenario import ASlibScenario
-from ConfigSpace import Configuration
+
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
+    UniformFloatHyperparameter, UniformIntegerHyperparameter
 from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import (
-    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
-)
+from ConfigSpace import Configuration
+
+from aslib_scenario.aslib_scenario import ASlibScenario
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class PairwiseRegression(object):
+
     @staticmethod
     def add_params(cs: ConfigurationSpace):
         '''
-            adds parameters to ConfigurationSpace
+            adds parameters to ConfigurationSpace 
         '''
 
         selector = cs.get_hyperparameter("selector")
@@ -47,7 +49,8 @@ class PairwiseRegression(object):
             config: ConfigSpace.Configuration
                 configuration
         '''
-        self.logger.info("Fit PairwiseRegressor with %s" % (self.regressor_class))
+        self.logger.info("Fit PairwiseRegressor with %s" %
+                         (self.regressor_class))
 
         self.algorithms = scenario.algorithms
 
@@ -97,26 +100,21 @@ class PairwiseRegression(object):
         #self.logger.debug(
         #   sorted(list(zip(scenario.algorithms, scores)), key=lambda x: x[1], reverse=True))
         algo_indx = np.argmin(scores, axis=1)
-
-        schedules = dict(
-            (str(inst), [s]) for s, inst in zip(
-                [(scenario.algorithms[i], cutoff + 1)
-                 for i in algo_indx], scenario.feature_data.index
-            )
-        )
+        
+        schedules = dict((str(inst),[s]) for s,inst in zip([(scenario.algorithms[i], cutoff+1) for i in algo_indx], scenario.feature_data.index))
         #self.logger.debug(schedules)
         return schedules
 
     def get_attributes(self):
         '''
-            returns a list of tuples of (attribute,value)
+            returns a list of tuples of (attribute,value) 
             for all learned attributes
-
+            
             Returns
             -------
-            list of tuples of (attribute,value)
+            list of tuples of (attribute,value) 
         '''
         reg_attr = self.regressors[0].get_attributes()
-        attr = [{self.regressor_class.__name__: reg_attr}]
+        attr = [{self.regressor_class.__name__:reg_attr}]
 
         return attr

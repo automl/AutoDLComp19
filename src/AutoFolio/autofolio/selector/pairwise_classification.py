@@ -3,26 +3,28 @@ import traceback
 
 import numpy as np
 import pandas as pd
-from aslib_scenario.aslib_scenario import ASlibScenario
-from ConfigSpace import Configuration
+from sklearn.preprocessing import MinMaxScaler
+
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
+    UniformFloatHyperparameter, UniformIntegerHyperparameter
 from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import (
-    CategoricalHyperparameter, UniformFloatHyperparameter, UniformIntegerHyperparameter
-)
-from sklearn.preprocessing import MinMaxScaler
+from ConfigSpace import Configuration
+
+from aslib_scenario.aslib_scenario import ASlibScenario
 
 __author__ = "Marius Lindauer"
 __license__ = "BSD"
 
 
 class PairwiseClassifier(object):
+
     @staticmethod
     def add_params(cs: ConfigurationSpace):
         '''
-            adds parameters to ConfigurationSpace
+            adds parameters to ConfigurationSpace 
         '''
-
+        
         selector = cs.get_hyperparameter("selector")
         classifier = cs.get_hyperparameter("classifier")
         if "PairwiseClassifier" in selector.choices:
@@ -49,7 +51,8 @@ class PairwiseClassifier(object):
             config: ConfigSpace.Configuration
                 configuration
         '''
-        self.logger.info("Fit PairwiseClassifier with %s" % (self.classifier_class))
+        self.logger.info("Fit PairwiseClassifier with %s" %
+                         (self.classifier_class))
 
         self.algorithms = scenario.algorithms
 
@@ -58,7 +61,7 @@ class PairwiseClassifier(object):
 
         n_algos = len(scenario.algorithms)
         X = scenario.feature_data.values
-        # since sklearn (at least the RFs)
+        # since sklearn (at least the RFs) 
         # uses float32 and we pass float64,
         # the normalization ensures that floats
         # are not converted to inf or -inf
@@ -110,26 +113,21 @@ class PairwiseClassifier(object):
         #self.logger.debug(
         #   sorted(list(zip(scenario.algorithms, scores)), key=lambda x: x[1], reverse=True))
         algo_indx = np.argmax(scores, axis=1)
-
-        schedules = dict(
-            (str(inst), [s]) for s, inst in zip(
-                [(scenario.algorithms[i], cutoff + 1)
-                 for i in algo_indx], scenario.feature_data.index
-            )
-        )
+        
+        schedules = dict((str(inst),[s]) for s,inst in zip([(scenario.algorithms[i], cutoff+1) for i in algo_indx], scenario.feature_data.index))
         #self.logger.debug(schedules)
         return schedules
 
     def get_attributes(self):
         '''
-            returns a list of tuples of (attribute,value)
+            returns a list of tuples of (attribute,value) 
             for all learned attributes
-
+            
             Returns
             -------
-            list of tuples of (attribute,value)
+            list of tuples of (attribute,value) 
         '''
         class_attr = self.classifiers[0].get_attributes()
-        attr = [{self.classifier_class.__name__: class_attr}]
+        attr = [{self.classifier_class.__name__:class_attr}]
 
         return attr

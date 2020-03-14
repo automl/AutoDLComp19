@@ -20,8 +20,8 @@ To run the example, change into the root-directory of *AutoFolio* and type the f
 .. code-block:: bash
 
     cd examples/toy_example_csv/
-    python ../../scripts/autofolio --perf perf.csv --feature_csv feats.csv
-
+    python ../../scripts/autofolio --perf perf.csv --feature_csv feats.csv 
+     
 
 AutoFolio will run a 10-fold cross validation on the given data.
 The `perf.csv` file is a csv file where each column corresponds to an algorithm
@@ -42,7 +42,7 @@ In the end, AutoFolio prints the aggregated performance across the 10-folds.
 Looking into `perf.csv`, we can see that AutoFolio performs quite poorly on this example.
 The better of the two algorithms in `perf.csv` has a mean performance of 3.9.
 The issue is that two default of the hyperparameters of the random forest (`rf:min_samples_leaf` and `rf:bootstrap`)
-are a bad choice.
+are a bad choice. 
 
 So far, AutoFolio used only its default parameters.
 To automatically optimize its parameters use the arguments `-t, --tune`, e.g.,
@@ -51,7 +51,7 @@ To automatically optimize its parameters use the arguments `-t, --tune`, e.g.,
 
     cd examples/toy_example_csv/
     python ../../scripts/autofolio --perf perf.csv --feature_csv feats.csv -t
-
+    
 In most cases, AutoFolio should be able to figure out that the previously mentioned parameters have to be changed
 such that AutoFolio can get a better performance.
 
@@ -77,7 +77,7 @@ The csv input format consists of two files:
 
 	1. A performance file, where each column corresponds to an algorithm and each row to an instance.
 	2. A feature file, where each column corresponds to an instance feature and each row to an instance.
-
+	
 See `examples/toy_examples_csv` for a trivial example
 and `examples/ttp` for a complex example.
 
@@ -135,4 +135,8 @@ please run
 Self-Tuning Mode
 ----------------
 
-To use algorithm configuration to optimize the performance of AutoFolio please use the option `--tune`.
+To use algorithm configuration to optimize the performance of AutoFolio please use the option `--tune`. 
+
+
+
+
