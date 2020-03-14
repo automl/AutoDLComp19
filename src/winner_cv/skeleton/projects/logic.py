@@ -30,8 +30,7 @@ class LogicModel(Model):
         os.system("pip install git+https://github.com/mlindauer/ASlibScenario")
         os.system("pip install ConfigSpace")
 
-        # todo: change to AutoFolio/af_model_final.pkl before submission
-        model_fn = "src/AutoFolio/af_model_final.pkl"
+        model_fn = "AutoFolio/af_model_final.pkl"
 
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
