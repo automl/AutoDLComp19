@@ -7,6 +7,7 @@ from multiprocessing.pool import ThreadPool
 
 import librosa
 import numpy as np
+from CONSTANT import FFT_DURATION, HOP_DURATION, NUM_MFCC
 from tensorflow.python.keras.preprocessing import sequence
 from tools import log, timeit
 
@@ -53,7 +54,7 @@ def extract_parallel(data, extract):
 
 # mfcc
 @timeit
-def extract_mfcc(data, sr=None, n_mfcc=None):
+def extract_mfcc(data, sr=16000, n_mfcc=NUM_MFCC):
     results = []
     for d in data:
         r = librosa.feature.mfcc(d, sr=sr, n_mfcc=n_mfcc)
@@ -75,11 +76,11 @@ def extract_for_one_sample(tuple, extract, use_power_db=False, **kwargs):
 
 
 @timeit
-def extract_mfcc_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None, n_mfcc=None):
+def extract_mfcc_parallel(data, sr=16000, n_fft=None, hop_length=None, n_mfcc=NUM_MFCC):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
 
     extract = partial(
         extract_for_one_sample,
@@ -109,11 +110,11 @@ def extract_zero_crossing_rate_parallel(data):
 
 
 @timeit
-def extract_spectral_centroid_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None):
+def extract_spectral_centroid_parallel(data, sr=16000, n_fft=None, hop_length=None):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
     extract = partial(
         extract_for_one_sample,
         extract=librosa.feature.spectral_centroid,
@@ -128,12 +129,12 @@ def extract_spectral_centroid_parallel(data, sr=None, fft_duration=None, hop_dur
 
 @timeit
 def extract_melspectrogram_parallel(
-    data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None, n_mels=40, use_power_db=False
+    data, sr=16000, n_fft=None, hop_length=None, n_mels=40, use_power_db=False
 ):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
     extract = partial(
         extract_for_one_sample,
         extract=librosa.feature.melspectrogram,
@@ -150,11 +151,11 @@ def extract_melspectrogram_parallel(
 
 # spectral rolloff
 @timeit
-def extract_spectral_rolloff_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None):
+def extract_spectral_rolloff_parallel(data, sr=16000, n_fft=None, hop_length=None):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
     extract = partial(
         extract_for_one_sample,
         extract=librosa.feature.spectral_rolloff,
@@ -169,11 +170,11 @@ def extract_spectral_rolloff_parallel(data, sr=None, fft_duration=None, hop_dura
 
 # chroma stft
 @timeit
-def extract_chroma_stft_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None, n_chroma=12):
+def extract_chroma_stft_parallel(data, sr=16000, n_fft=None, hop_length=None, n_chroma=12):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
     extract = partial(
         extract_for_one_sample,
         extract=librosa.feature.chroma_stft,
@@ -188,11 +189,11 @@ def extract_chroma_stft_parallel(data, sr=None, fft_duration=None, hop_duration=
 
 
 @timeit
-def extract_bandwidth_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None):
+def extract_bandwidth_parallel(data, sr=16000, n_fft=None, hop_length=None):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
 
     extract = partial(
         extract_for_one_sample,
@@ -207,11 +208,11 @@ def extract_bandwidth_parallel(data, sr=None, fft_duration=None, hop_duration=No
 
 
 @timeit
-def extract_spectral_contrast_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None, n_bands=6):
+def extract_spectral_contrast_parallel(data, sr=16000, n_fft=None, hop_length=None, n_bands=6):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
 
     extract = partial(
         extract_for_one_sample,
@@ -227,11 +228,11 @@ def extract_spectral_contrast_parallel(data, sr=None, fft_duration=None, hop_dur
 
 
 @timeit
-def extract_spectral_flatness_parallel(data, sr=None, fft_duration=None, hop_duration=None, n_fft=None, hop_length=None):
+def extract_spectral_flatness_parallel(data, sr=16000, n_fft=None, hop_length=None):
     if n_fft is None:
-        n_fft = int(sr * fft_duration)
+        n_fft = int(sr * FFT_DURATION)
     if hop_length is None:
-        hop_length = int(sr * hop_duration)
+        hop_length = int(sr * HOP_DURATION)
 
     extract = partial(
         extract_for_one_sample,
@@ -243,3 +244,63 @@ def extract_spectral_flatness_parallel(data, sr=None, fft_duration=None, hop_dur
 
     return results
 
+
+@timeit
+def extract_tonnetz_parallel(data, sr=16000):
+    extract = partial(extract_for_one_sample, extract=librosa.feature.tonnetz, sr=sr)
+    results = extract_parallel(data, extract)
+    return results
+
+
+@timeit
+def extract_chroma_cens_parallel(data, sr=16000, hop_length=None, n_chroma=12):
+    if hop_length is None:
+        hop_length = int(sr * HOP_DURATION)
+    extract = partial(
+        extract_for_one_sample,
+        extract=librosa.feature.chroma_cens,
+        sr=sr,
+        hop_length=hop_length,
+        n_chroma=n_chroma
+    )
+    results = extract_parallel(data, extract)
+
+    return results
+
+
+@timeit
+def extract_rms_parallel(data, sr=16000, n_fft=None, hop_length=None):
+    if n_fft is None:
+        n_fft = int(sr * FFT_DURATION)
+    if hop_length is None:
+        hop_length = int(sr * HOP_DURATION)
+
+    extract = partial(
+        extract_for_one_sample,
+        extract=librosa.feature.rms,
+        frame_length=n_fft,
+        hop_length=hop_length
+    )
+    results = extract_parallel(data, extract)
+
+    return results
+
+
+@timeit
+def extract_poly_features_parallel(data, sr=16000, n_fft=None, hop_length=None, order=1):
+    if n_fft is None:
+        n_fft = int(sr * FFT_DURATION)
+    if hop_length is None:
+        hop_length = int(sr * HOP_DURATION)
+
+    extract = partial(
+        extract_for_one_sample,
+        extract=librosa.feature.poly_features,
+        sr=sr,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        order=order
+    )
+    results = extract_parallel(data, extract)
+
+    return results
