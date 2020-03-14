@@ -103,6 +103,19 @@ train_keys = [
     "oxford_flowers102",
 ]
 
+# train_keys = [
+#   "Chucky",
+#   "Hammer",
+#   "Munster",
+#   "caltech_birds2010",
+#   "cats_vs_dogs",
+#   "cifar10",
+#   "cifar100",
+#   "coil100",
+#   "colorectal_histology",
+#   "eurosat"
+# ]
+
 #valid_keys = ["coil100", "kmnist", "vgg-flowers", "oxford_iiit_pet", "cmaterdb_telugu"]
 valid_keys = ["cmaterdb_telugu"]
 # lists ending without _all contain subset of available datasets (not filtered by keys)

@@ -52,6 +52,7 @@ def get_scores_dataset_x_configs(dataset_dir):
             avg_config_scores.append(0.0)
         else:
             avg_config_scores.append(np.mean(config_scores))
+            print(np.var(config_scores))
 
     assert len(avg_config_scores) == len(config_names), \
         "something went wrong, number of configs != scores"
@@ -77,6 +78,7 @@ def create_df_perf_matrix(experiment_group_dir, split_df=True, existing_df=None)
                 # remove default from indices (i.e. datasets since there are only configs of it)
                 indices = config_names.copy()
                 indices.remove("default")
+                indices.remove("best_generalist")
                 # indices.remove("generalist")
 
                 df = pd.DataFrame(columns=config_names, index=indices)

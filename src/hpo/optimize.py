@@ -86,7 +86,7 @@ def run_master(args):
     if args.previous_run_dir is not None:
         previous_result = hpres.logged_results_to_HBS_result(args.previous_run_dir)
     else:
-        pervious_result = None
+        previous_result = None
 
     logger = logging.getLogger(__file__)
     logging_level = getattr(logging, args.logger_level)
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     p.add_argument(
         "--logger_level",
         type=str,
-        default="INFO",
+        default="DEBUG",
         help=
         "Sets the logger level. Choose from ['INFO', 'DEBUG', 'NOTSET', 'WARNING', 'ERROR', 'CRITICAL']"
     )
