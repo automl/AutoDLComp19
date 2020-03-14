@@ -1,0 +1,109 @@
+active_model_files: []
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 2
+    first_simple_model: false
+    max_inner_loop_ratio: 0.20643565394894176
+    min_lr: 1.0e-06
+    output_majority_first: false
+    score_type: auc
+    simple_model: RF
+    skip_valid_score_threshold: 0.922467701985432
+    test_after_at_least_seconds: 2
+    test_after_at_least_seconds_max: 96
+    test_after_at_least_seconds_step: 5
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.001
+    use_fast_auto_aug: true
+  dataset:
+    base: 16
+    batch_size: 61
+    batch_size_test: 256
+    cv_valid_ratio: 0.1578336894508655
+    enough_count:
+      image: 10000
+      video: 1000
+    max_epoch: 1000
+    max_size: 128
+    max_times: 8
+    max_valid_count: 486
+    steps_per_epoch: 16
+    train_info_sample: 241
+  model:
+    architecture: ResNet18
+  optimizer:
+    amsgrad: true
+    freeze_portion: 0.30000000000000004
+    lr: 0.0006853449344369436
+    min_lr: 2.092862944126646e-06
+    momentum: 0.9
+    nesterov: true
+    scheduler: plateau
+    type: Adam
+    warm_up_epoch: 5
+    warmup_multiplier: 1.0
+    wd: 0.0008353947924354549
+autonlp:
+  common:
+    max_char_length: 153
+    max_seq_length: 53
+    max_vocab_size: 34513
+  data_manager:
+    chi_word_length: 2.72
+    max_sample_train: 13276
+    max_train_perclass_sample: 738
+    max_valid_perclass_sample: 272
+  model:
+    early_stop_auc: 0.899
+    ft_dir:
+    - /app/embedding
+    - /home/ferreira/autodl_data/embedding
+    - /home/dingsda/data/embedding
+    increase_batch_acc: 0.669
+    init_batch_size: 128
+    num_epoch: 1
+    total_call_num: 10
+    valid_ratio: 0.0982
+  model_manager:
+    embedding_dim: 300
+  optimizer:
+    lr: 0.00474
+    rho: 0.606
+autospeech:
+  common:
+    audio_sample_rate: 32000
+    fft_duration: 0.179
+    first_round_duration: 14
+    hop_duration: 0.0574
+    is_cut_audio: false
+    max_audio_duration: 2
+    max_frame_num: 472
+    middle_duration: 8
+    model_first_max_run_loop: 2
+    num_mfcc: 85
+    second_round_duration: 57
+    sr: 32000
+  data_manager:
+    max_valid_perclass_sample: 287
+    min_valid_per_class: 2
+  optimizer:
+    amsgrad: false
+    beta_1: 0.0341
+    beta_2: 0.000125
+    decay: 1.61e-05
+    epsilon: 1.08e-08
+    lr_attention_gru: 0.00276
+    lr_bilstm_attention: 0.00179
+    lr_cnn: 0.00284
+    lr_crnn: 0.00263
+    lr_crnn2d: 0.000166
+    lr_crnn2d_larger: 0.000108
+    lr_crnn2d_vgg: 0.00045
+    lr_lstm_attention: 0.000296
+    schedule_decay: 0.00302
+cluster_datasets_dir: /data/aad/image_datasets/all_symlinks
+cluster_model_dir: /home/ferreira/autodl_data/models
+extra_packages: []
+is_submission: false

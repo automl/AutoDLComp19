@@ -4,14 +4,17 @@ from __future__ import absolute_import
 import os
 import random
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import skeleton
 import tensorflow as tf
 import torch
 import torchvision as tv
+import yaml
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
+from src.AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade  # todo: remove src
 
 from .api import Model
 from .others import *
@@ -22,8 +25,11 @@ LOGGER = get_logger(__name__)
 class LogicModel(Model):
     def __init__(self, metadata, session=None, model_config=None):
         super(LogicModel, self).__init__(metadata)
-        # execute shell script
-        # os.command("../../../install.sh")
+        # execute installs here
+        os.system("pip install numpy==1.18.1")
+
+        # todo: change to AutoFolio/af_model_final.pkl before submission
+        model_fn = "src/AutoFolio/af_model_final.pkl"
 
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
@@ -55,7 +61,35 @@ class LogicModel(Model):
             'terminate': False
         }
 
-        self.hyper_params = model_config
+        # get feature vector containing num_channels, num_classes, num_train, resolution_0
+        train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
+        num_train = [
+            int(line.split(':')[1])
+            for line in open(train_metadata_filename, 'r').readlines()[:3] if 'sample_count' in line
+        ][0]
+        LOGGER.info('num_test:  %d', num_train)
+
+        _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
+        num_classes = self.info['dataset']['num_class']
+        feature = [num_channels, num_classes, num_train, resolution_0]
+
+        pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
+
+        LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
+
+        # todo: remove src before submission
+        config_path = Path(
+            "src", "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
+        ).with_suffix(".yaml")
+
+        try:
+            with config_path.open() as in_stream:
+                model_config = yaml.safe_load(in_stream)
+        except:
+            with config_path.with_name("default.yaml").open() as in_stream:
+                model_config = yaml.safe_load(in_stream)
+
+        self.hyper_params = model_config["autocv"]
         skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
         self.hyper_params["conditions"]["skip_valid_after_test"] = skip_valid_after_test
 
