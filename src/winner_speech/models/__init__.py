@@ -1,6 +1,7 @@
 from .attention_gru import AttentionGru
 from .bilstm_attention import BilstmAttention
-from .cnn import CnnModel2D
+from .cnn import CnnModel1D, CnnModel2D, CnnModelRawData
+from .cnn_features import CnnFeatures
 from .crnn import CrnnModel
 from .logistic_regression import LogisticRegression
 from .lstm_attention import LstmAttention

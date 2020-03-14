@@ -4,6 +4,9 @@
 import gc
 
 import numpy as np
+from CONSTANT import (
+    CLASS_NUM, FIRST_ROUND_DURATION, MODEL_FIRST_MAX_RUN_LOOP, SECOND_ROUND_DURATION
+)
 from models import *  # import all models and model_name constant
 from models.crnn2d import Crnn2dModel
 from models.crnn2d_larger import Crnn2dLargerModel
@@ -33,7 +36,6 @@ class ModelManager(Classifier):
         self,
         meta,
         data_manager,
-        model_config,
         keep_num=5,
         each_model_keep_num=3,
         each_model_top_k=2,
@@ -44,7 +46,6 @@ class ModelManager(Classifier):
     ):
         self.metadata = meta
         self._data_manager = data_manager
-        self.model_config = model_config
 
         self._keep_num = keep_num
         self._each_model_keep_num = each_model_keep_num
@@ -78,7 +79,7 @@ class ModelManager(Classifier):
         self._cur_model_max_auc = -1
         self._auc_threshold = auc_threshold
 
-        self._num_classes = self.metadata['class_num']
+        self._num_classes = self.metadata[CLASS_NUM]
         self._model_lib = {
             LR_MODEL: LogisticRegression,
             LSTM_MODEL: LstmAttention,
@@ -92,7 +93,7 @@ class ModelManager(Classifier):
             ATTGRU: AttentionGru
         }
         self._model_sequences = [LR_MODEL, LSTM_MODEL, CRNN_MODEL, BILSTM_MODEL]
-        self._max_first_model_run_loop = self.model_config["common"]["model_first_max_run_loop"]
+        self._max_first_model_run_loop = MODEL_FIRST_MAX_RUN_LOOP
         self._max_model_run_loop = 12
 
         self._models = {}
@@ -105,9 +106,8 @@ class ModelManager(Classifier):
             if self._model_name == CNN_MODEL_2D:
                 kwargs = {
                     'input_shape': self._input_shape[1:],
-                    'num_classes': self.metadata['class_num'],
-                    'max_layer_num': 10,
-                    'model_config': self.model_config
+                    'num_classes': self.metadata[CLASS_NUM],
+                    'max_layer_num': 10
                 }
             elif self._model_name in [
                 LSTM_MODEL, BILSTM_MODEL, CRNN_MODEL, CRNN2D_MODEL, CRNN2D_LARGER_MODEL,
@@ -115,13 +115,12 @@ class ModelManager(Classifier):
             ]:
                 kwargs = {
                     'input_shape': self._input_shape[1:],
-                    'num_classes': self.metadata['class_num'],
-                    'model_config': self.model_config
+                    'num_classes': self.metadata[CLASS_NUM],
                 }
             elif self._model_name == SVM_MODEL:
-                kwargs = {'kernel': 'linear', 'max_iter': 1000, 'model_config': self.model_config}
+                kwargs = {'kernel': 'linear', 'max_iter': 1000}
             elif self._model_name == LR_MODEL:
-                kwargs = {'kernel': 'liblinear', 'max_iter': 100, 'model_config': self.model_config}
+                kwargs = {'kernel': 'liblinear', 'max_iter': 100}
             else:
                 raise Exception("No such model!")
             if not self._model.is_init:
@@ -348,15 +347,15 @@ class ModelManager(Classifier):
                     elif self._round_num == 0:
                         self._test_x = self._data_manager.nn_preprocess(
                             test_x,
-                            n_mfcc=self.model_config["common"]["num_mfcc"],
-                            max_duration=self.model_config["common"]["first_round_duration"],
+                            n_mfcc=96,
+                            max_duration=FIRST_ROUND_DURATION,
                             is_mfcc=self._use_mfcc
                         )
                     else:
                         self._test_x = self._data_manager.nn_preprocess(
                             test_x,
-                            n_mfcc=int(self.model_config["common"]["num_mfcc"]*4/3),
-                            max_duration=self.model_config["common"]["second_round_duration"],
+                            n_mfcc=128,
+                            max_duration=SECOND_ROUND_DURATION,
                             is_mfcc=self._use_mfcc
                         )
             if self._round_num > 1:

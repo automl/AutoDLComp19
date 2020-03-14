@@ -4,6 +4,7 @@
 # @Author:  Mecthew
 
 import numpy as np
+from CONSTANT import AUDIO_SAMPLE_RATE, IS_CUT_AUDIO, MAX_AUDIO_DURATION
 from data_process import (
     extract_bandwidth_parallel, extract_chroma_stft_parallel, extract_melspectrogram_parallel,
     extract_mfcc_parallel, extract_spectral_centroid_parallel, extract_spectral_contrast_parallel,
@@ -24,36 +25,23 @@ class SvmModel(Classifier):
         self._model = None
         self.is_init = False
 
-    def init_model(self, kernel, model_config, max_iter=800, C=1.0, **kwargs):
-        self.model_config = model_config
+    def init_model(self, kernel, max_iter=800, C=1.0, **kwargs):
         self._model = SVC(C=C, kernel=kernel, max_iter=100)
         self.is_init = True
 
     @timeit
     def preprocess_data(self, x):
-        if self.model_config["common"]["is_cut_audio"]:
-            x = [sample[0:self.model_config["common"]["max_audio_duration"] * self.model_config["common"]["audio_sample_rate"]] for sample in x]
+        if IS_CUT_AUDIO:
+            x = [sample[0:MAX_AUDIO_DURATION * AUDIO_SAMPLE_RATE] for sample in x]
         # extract mfcc
-        x_mfcc = extract_mfcc_parallel(x,
-                                       sr=self.model_config["common"]["sr"],
-                                       fft_duration=self.model_config["common"]["fft_duration"],
-                                       hop_duration=self.model_config["common"]["hop_duration"],
-                                       n_mfcc=self.model_config["common"]["num_mfcc"])
-        x_mel = extract_melspectrogram_parallel(x,
-                                                sr=self.model_config["common"]["sr"],
-                                                fft_duration=self.model_config["common"]["fft_duration"],
-                                                hop_duration=self.model_config["common"]["hop_duration"],
-                                                n_mels=20, use_power_db=True)
+        x_mfcc = extract_mfcc_parallel(x, n_mfcc=20)
+        x_mel = extract_melspectrogram_parallel(x, n_mels=20, use_power_db=True)
         x_chroma_stft = extract_chroma_stft_parallel(x, n_chroma=12)
         # x_rms = extract_rms_parallel(x)
         x_contrast = extract_spectral_contrast_parallel(x, n_bands=6)
         x_flatness = extract_spectral_flatness_parallel(x)
         # x_polyfeatures = extract_poly_features_parallel(x, order=1)
-        x_cent = extract_spectral_centroid_parallel(x,
-                                                    sr=self.model_config["common"]["sr"],
-                                                    fft_duration=self.model_config["common"]["fft_duration"],
-                                                    hop_duration=self.model_config["common"]["hop_duration"],
-                                                    )
+        x_cent = extract_spectral_centroid_parallel(x)
         x_bw = extract_bandwidth_parallel(x)
         x_rolloff = extract_spectral_rolloff_parallel(x)
         x_zcr = extract_zero_crossing_rate_parallel(x)

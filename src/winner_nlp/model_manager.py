@@ -31,17 +31,20 @@ from keras.layers import (
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import LinearSVC
 
+EMBEDDING_DIM = 300
+MAX_VOCAB_SIZE = 20000
+
 
 class ModelGenerator(object):
     def __init__(
         self,
         feature_mode,
-        model_config,
         load_pretrain_emb=False,
         data_feature=None,
         meta_data_feature=None,
         fasttext_embeddings_index=None
     ):
+
         self.cnn_model_lib = {
             'text_cnn': ModelGenerator.text_cnn_model,
             'sep_cnn_model': ModelGenerator.sep_cnn_model,
@@ -61,7 +64,6 @@ class ModelGenerator(object):
             self.input_shape = data_feature['input_shape']
 
         self.feature_mode = feature_mode
-        self.model_config = model_config
         self.embedding_matrix = None
 
         if self.feature_mode == 0:
@@ -93,16 +95,14 @@ class ModelGenerator(object):
                 'input_shape': data_feature['input_shape'],
                 'max_length': data_feature['max_length'],
                 'num_features': data_feature['num_features'],
-                'num_classes': data_feature['num_class'],
-                'model_config': self.model_config
+                'num_classes': data_feature['num_class']
             }
 
             #self.model_name = 'text_cnn'
             self.model = self.cnn_model_lib[model_name](**kwargs)
             self.model.compile(
                 loss="categorical_crossentropy",
-                optimizer=keras.optimizers.RMSprop(lr=self.model_config["optimizer"]["lr"],
-                                                   rho=1-self.model_config["optimizer"]["rho"]),
+                optimizer=keras.optimizers.RMSprop(),
                 metrics=["accuracy"]
             )
 
@@ -128,8 +128,7 @@ class ModelGenerator(object):
     def generate_emb_matrix(self):
 
         cnt = 0
-        self.embedding_matrix = np.zeros((self.model_config["common"]["max_vocab_size"],
-                                          self.model_config["model_manager"]["embedding_dim"]))
+        self.embedding_matrix = np.zeros((self.num_features, EMBEDDING_DIM))
         for word, i in self.word_index.items():
             if i >= self.num_features:
                 continue
@@ -139,8 +138,7 @@ class ModelGenerator(object):
                 self.embedding_matrix[i] = embedding_vector
             else:
                 # self.embedding_matrix[i] = np.zeros(300)
-                self.embedding_matrix[i] = np.random.uniform(-0.05, 0.05,
-                                                             size=self.model_config["model_manager"]["embedding_dim"])
+                self.embedding_matrix[i] = np.random.uniform(-0.05, 0.05, size=EMBEDDING_DIM)
                 cnt += 1
 
         print('fastText oov words: %s' % cnt)
@@ -166,7 +164,6 @@ class ModelGenerator(object):
         max_length,
         num_features,
         num_classes,
-        model_config,
         input_tensor=None,
         filters=64,
         emb_size=300,
@@ -178,7 +175,7 @@ class ModelGenerator(object):
                 input_dim=num_features, output_dim=emb_size, input_length=input_shape
             )(inputs)
         else:
-            num_features = model_config["common"]["max_vocab_size"]
+            num_features = MAX_VOCAB_SIZE
             layer = Embedding(
                 input_dim=num_features,
                 output_dim=emb_size,
@@ -207,7 +204,6 @@ class ModelGenerator(object):
         num_classes,
         num_features,
         embedding_matrix,
-        model_config,
         input_tensor=None,
         emb_size=300,
         blocks=1,
@@ -223,7 +219,7 @@ class ModelGenerator(object):
                 input_dim=num_features, output_dim=emb_size, input_length=input_shape
             )(inputs)
         else:
-            num_features = model_config["common"]["max_vocab_size"]
+            num_features = MAX_VOCAB_SIZE
             layer = Embedding(
                 input_dim=num_features,
                 output_dim=emb_size,

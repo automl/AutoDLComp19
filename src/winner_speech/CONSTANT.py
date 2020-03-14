@@ -1,5 +1,3 @@
-# Thomas' comment: not needed anymore, just for lookup purpose
-
 UNBALANCE_RATIO = 3
 
 # symbols
