@@ -61,14 +61,11 @@ def get_data_type(dataset_dir):
 def get_configspace():
     cs = CS.ConfigurationSpace()
     # fc classifier
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1,2,4,8]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batches', choices=[1]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [4,8,16,32,64]))
-    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [128,256,512,1024]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-6, upper=1e-1, log=True))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_test_batch_size', choices = [4,8,16,32,64,128,256,512,1024]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_lr', lower=1e-5, upper=1e-2, log=True))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='nn_neurons', choices=[16,32,64,128,256,512,1024]))
-    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_dropout', lower=0.0, upper=0.8,))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_dropout', lower=0.0, upper=0.8))
 
     # xgb classifier
     # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
@@ -100,20 +97,20 @@ def get_configspace():
     # common parameters
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_scale', lower=0.3, upper=1, log=False))
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='transform_ratio', lower=0.3, upper=1, log=False))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_med', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_mean', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_var', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_std', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
-    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_med', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_mean', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_var', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_std', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
+    cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
+    cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
 
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_data', choices=[True, False]))
 
     return cs
 
 
-def get_configuration(log_subfolder=None):
+def get_configuration(log_subfolder=None, test_batch_size=32):
     cfg = {}
     cluster_mode = False
     if cluster_mode:
@@ -139,7 +136,7 @@ def get_configuration(log_subfolder=None):
     else:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
 
-    cfg["use_model"] = 'dl'    # xgb or dl
+    cfg["use_model"] = 'dl'    # xgb, dl, dl2 or cluster
 
     if cfg["use_model"] == 'dl':
         cfg["bohb_min_budget"] = 100
@@ -157,7 +154,7 @@ def get_configuration(log_subfolder=None):
     cfg['data_type'] = get_data_type(cfg['proc_dataset_dir'])
     cfg["data_gain"] = 0.5
 
-    cfg["bohb_iterations"] = 100
+    cfg["bohb_iterations"] = 20
     cfg["bohb_run_id"] = '123'
     cfg['model_input_size'] = 128
     cfg['transform_scale'] = 0.7
@@ -166,12 +163,12 @@ def get_configuration(log_subfolder=None):
     cfg['nn_train_batches'] = 1
     # cfg['nn_train_batch_size'] = 128
     # DL2
-    
-    cfg['model_input_size'] = 512
+
     cfg['nn_dropout'] = 0.13170661832419298
     cfg['nn_lr'] = 0.0007190982887197122
     cfg['nn_neurons'] = 1024
     cfg['nn_train_batch_size'] = 16
+    cfg['nn_test_batch_size'] = test_batch_size
 
     cfg['xgb_eta'] = 0.3
     cfg['xgb_max_depth'] = 6
@@ -405,7 +402,11 @@ class WrapperModel_dl(torch.nn.Module):
             input_size = 512
         elif cfg['data_type'] == 'combined':
             input_size = 530
-        self.fc = torch.nn.Linear(input_size*mult, num_classes)
+
+        self.fc1 = torch.nn.Linear(input_size*mult, self.cfg["nn_neurons"])
+        self.fc2 = torch.nn.Linear(self.cfg["nn_neurons"], num_classes)
+        self.a = Swish()
+        self.d = torch.nn.Dropout(cfg["nn_dropout"])
 
         if os.path.isfile(self.filename):
             self.load_state_dict(torch.load(self.filename))
@@ -439,7 +440,7 @@ class WrapperModel_dl(torch.nn.Module):
         if self.cfg['use_kurt']:
             x = kurt if x is None else torch.cat((x, kurt), 0)
 
-        x = self.fc(x)
+        x = self.fc2(self.d(self.a(self.fc1(x))))
         x = x.unsqueeze(0)
 
         return x
@@ -1751,16 +1752,17 @@ def verify_data_histogram(cfg):
 
 if __name__ == "__main__":
     # Run bohb paralell
-    if False:
+    if True:
         if len(sys.argv) > 1:
             for arg in sys.argv[1:]:
                 print(arg)
-            cfg = get_configuration(sys.argv[2])
+            cfg = get_configuration()
             res = runBohbParallel(cfg, sys.argv[1])
         else:
         # Run bohb sequentiel
-            cfg = get_configuration()
-            res = runBohbSerial(cfg)
+            for test_batch_size in [4,8,16,32,64,128,256,512,1024]:
+                cfg = get_configuration(str(test_batch_size), test_batch_size)
+                res = runBohbSerial(cfg)
 
     elif False:
         cfg = get_configuration()
@@ -1772,20 +1774,20 @@ if __name__ == "__main__":
             print(conf, b)
             res = execute_run_cluster((0,0,0), cfg, 10000, dataset_list, session)
     elif False:
-
-		best_configs = [
+        best_configs = [
                     {'nn_dropout': 0.2406233374164684, 'nn_lr': 0.0001835779897283161, 'nn_neurons': 1024, 'nn_test_batch_size': 512, 'nn_train_batch_size': 4},
-			        {'nn_dropout': 0.015032016318402924, 'nn_lr': 0.00027597433616436567, 'nn_neurons': 512, 'nn_test_batch_size': 1024, 'nn_train_batch_size': 4},
-			        {'nn_dropout': 0.265914494580002, 'nn_lr': 0.00019312566767674795, 'nn_neurons': 1024, 'nn_test_batch_size': 256, 'nn_train_batch_size': 2}, #  5000 / 2
-			        {'nn_dropout': 0.3734588726442405, 'nn_lr': 0.0005275358224146664, 'nn_neurons': 512, 'nn_test_batch_size': 8, 'nn_train_batch_size': 16},
-					{'nn_dropout': 0.3598083186534323, 'nn_lr': 0.0005366919839121555, 'nn_neurons': 512, 'nn_test_batch_size': 4, 'nn_train_batch_size': 16},
-					{'nn_dropout': 0.37062016751621196, 'nn_lr': 0.0005012957952660666, 'nn_neurons': 512, 'nn_test_batch_size': 16, 'nn_train_batch_size': 16},
-					{'nn_dropout': 0.029190097431261088, 'nn_lr': 0.00026599274177340377, 'nn_neurons': 1024, 'nn_test_batch_size': 32, 'nn_train_batch_size': 4},
-					{'nn_dropout': 0.3797008190733056, 'nn_lr': 0.00048381687040660837, 'nn_neurons': 512, 'nn_test_batch_size': 64, 'nn_train_batch_size': 16},
-					{'nn_dropout': 0.3455860433427515, 'nn_lr': 0.00017972625147607334, 'nn_neurons': 512, 'nn_test_batch_size': 128, 'nn_train_batch_size': 2},
+                    {'nn_dropout': 0.015032016318402924, 'nn_lr': 0.00027597433616436567, 'nn_neurons': 512, 'nn_test_batch_size': 1024, 'nn_train_batch_size': 4},
+                    {'nn_dropout': 0.265914494580002, 'nn_lr': 0.00019312566767674795, 'nn_neurons': 1024, 'nn_test_batch_size': 256, 'nn_train_batch_size': 2}, #  5000 / 2
+                    {'nn_dropout': 0.3734588726442405, 'nn_lr': 0.0005275358224146664, 'nn_neurons': 512, 'nn_test_batch_size': 8, 'nn_train_batch_size': 16},
+                    {'nn_dropout': 0.3598083186534323, 'nn_lr': 0.0005366919839121555, 'nn_neurons': 512, 'nn_test_batch_size': 4, 'nn_train_batch_size': 16},
+                    {'nn_dropout': 0.37062016751621196, 'nn_lr': 0.0005012957952660666, 'nn_neurons': 512, 'nn_test_batch_size': 16, 'nn_train_batch_size': 16},
+                    {'nn_dropout': 0.029190097431261088, 'nn_lr': 0.00026599274177340377, 'nn_neurons': 1024, 'nn_test_batch_size': 32, 'nn_train_batch_size': 4},
+                    {'nn_dropout': 0.3797008190733056, 'nn_lr': 0.00048381687040660837, 'nn_neurons': 512, 'nn_test_batch_size': 64, 'nn_train_batch_size': 16},
+                    {'nn_dropout': 0.3455860433427515, 'nn_lr': 0.00017972625147607334, 'nn_neurons': 512, 'nn_test_batch_size': 128, 'nn_train_batch_size': 2}
             ]
 
         cfg = get_configuration()
+
         for conf in best_configs:
             for k, v in conf.items():
                 cfg[k] = v
