@@ -16,6 +16,7 @@ import numpy as np
 import time
 import torchvision
 import torch
+import json
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import hpbandster.core.nameserver as hpns
@@ -35,20 +36,6 @@ torch.backends.cudnn.benchmark = False
 #torch.backends.cudnn.enabled = False
 
 print(sys.path)
-
-def split_datasets(datasets, fraction):
-    '''
-    split list of datasets into training/testing datasets
-    '''
-    train_datasets = []
-    test_datasets = []
-    for i in range(len(datasets)):
-        if i%fraction == 0:
-            test_datasets.append(datasets[i])
-        else:
-            train_datasets.append(datasets[i])
-    return train_datasets, test_datasets
-
 
 def get_data_type(dataset_dir):
     for elem in ['meta', 'resnet', 'combined']:
@@ -130,6 +117,10 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
         cfg["bohb_interface"] = 'lo'
         cfg["bohb_workers"] = 3
 
+    # for final evaluation
+    cfg['final_evaluated_config_dir'] = '/home/dingsda/logs/evaluated_configs'
+    cfg['final_bohb_log_dir'] = '/home/dingsda/logs/dl_logs_new'
+
     log_folder = "dl_logs"
     if log_subfolder is None:
         cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
@@ -177,22 +168,15 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
 
     cfg['cluster_test_batch_size'] = 10
 
-    #datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
-    #           'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-    #           'colorectal_histology', 'deep_weeds', 'eurosat',
-    #           'fashion_mnist',]
-
-    datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
-               'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
-               'colorectal_histology', 'deep_weeds', 'eurosat',
-               'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
-               'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
-               'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
     # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101', 'SMv2', 'oxford_flowers102', 'emnist', 'caltech_birds2011',
 
-    #train_datasets, test_datasets = split_datasets(datasets, 4)
-    train_datasets = datasets
-    test_datasets = []
+    train_datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
+                      'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
+                      'colorectal_histology', 'deep_weeds', 'eurosat',
+                      'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
+                      'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
+                      'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
+    test_datasets = ['Chucky', 'Decal', 'Hammer', 'Munster', 'Pedro', 'Kraut', 'Katze', 'Kreatur']
     cfg["train_datasets"] = train_datasets
     cfg["test_datasets"] = test_datasets
 
@@ -1423,6 +1407,7 @@ def continuous_training(cfg):
 
     return avg_acc
 
+
 def continuous_training2(cfg):
     print(cfg)
 
@@ -1484,6 +1469,7 @@ def continuous_training2(cfg):
         print(avg_acc, flush = True)
     return avg_acc
 
+
 def generate_samples_resnet(cfg, idx=1, idx_total=1):
     model = torchvision.models.resnet18(pretrained=True)
     model.cuda()
@@ -1491,7 +1477,7 @@ def generate_samples_resnet(cfg, idx=1, idx_total=1):
     session = tf.Session()
     batch_size = 512
 
-    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"] + cfg["test_datasets"])
+    dataset_list = load_datasets_raw(cfg, cfg["train_datasets"])
     print(dataset_list)
     des_num_samples = cfg['des_num_samples']
 
@@ -1749,10 +1735,145 @@ def verify_data_histogram(cfg):
         plt.close()
 
 
+def load_eval_configs(path):
+    with open(path) as config_file:
+        eval_config_list = json.load(config_file)
+    return eval_config_list
+
+
+def find_eval_config_name(eval_config_list, name):
+    for elem in eval_config_list:
+        if elem[0] == name:
+            return elem
+
+
+def plot_dataset_scores(dataset_name, test_batch_sizes, kakaobrain_scores, best_scores, same_scores, simi_scores, wrst_scores):
+    plt.figure(figsize=(5,3))
+    #sns.boxplot(x=data, y=name_list, order=name_list_sorted)
+    plt.plot(kakaobrain_scores, lw=2, label='kakaob. ALC.')
+    plt.plot(best_scores, lw=2, label='best ALC.')
+    plt.plot(simi_scores, lw=2, label='DL ALC.')
+    plt.plot(wrst_scores, lw=2, label='worst ALC.')
+    plt.legend(loc='right')
+    #ax.set_xticklabels(x_data)
+    plt.xlabel('batch size')
+    plt.ylabel('ALC')
+    plt.title(dataset_name)
+    plt.xticks(np.arange(9), test_batch_sizes)
+    plt.show()
+
+
+def evaluate_dl_on_datasets():
+    cfg = get_configuration()
+    session = tf.Session()
+    train_datasets = cfg["train_datasets"]
+    dataset_list_raw = load_datasets_raw(cfg, cfg["test_datasets"])
+
+    best_config_id_dict = {4: (14, 0, 5),
+                           8: (7, 0, 2),
+                           16: (6, 0, 0),
+                           32: (18, 0, 7),
+                           64: (13, 0, 5),
+                           128: (12, 0, 1),
+                           256: (16, 0, 7),
+                           512: (4, 0, 0),
+                           1024: (9, 0, 8)}
+
+
+    for i in range(len(dataset_list_raw)):
+        dataset_test = dataset_list_raw[i][1].get_dataset()
+        dataset_name = dataset_list_raw[i][2]
+
+        transform_test = load_transform(cfg, is_training=False)
+        ds_temp = TFDataset(session=session, dataset=dataset_test, num_samples=int(1e9))
+        info = ds_temp.scan()
+        ds_test = TFDataset(session=session, dataset=dataset_test, num_samples=info['num_samples'],
+                            transform=transform_test)
+
+        test_batch_sizes = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
+        best_scores = []
+        same_scores = []
+        simi_scores = []
+        wrst_scores = []
+
+        if dataset_name == 'Chucky':
+            kakaobrain_scores = [0.8082]*len(test_batch_sizes)
+        elif dataset_name == 'Decal':
+            kakaobrain_scores = [0.8647]*len(test_batch_sizes)
+        elif dataset_name == 'Hammer':
+            kakaobrain_scores = [0.8147]*len(test_batch_sizes)
+        elif dataset_name == 'Munster':
+            kakaobrain_scores = [0.9421]*len(test_batch_sizes)
+        elif dataset_name == 'Pedro':
+            kakaobrain_scores = [0.7948]*len(test_batch_sizes)
+        elif dataset_name == 'Kreatur':
+            kakaobrain_scores = [0.8677]*len(test_batch_sizes)
+        elif dataset_name == 'Katze':
+            kakaobrain_scores = [0.8613]*len(test_batch_sizes)
+        elif dataset_name == 'Kraut':
+            kakaobrain_scores = [0.6678]*len(test_batch_sizes)
+
+        for test_batch_size in test_batch_sizes:
+            best_config_id = best_config_id_dict[test_batch_size]
+            final_log_dir = os.path.join(cfg['final_bohb_log_dir'], str(test_batch_size))
+            result = hpres.logged_results_to_HBS_result(final_log_dir)
+            id2conf = result.get_id2config_mapping()
+            bohb_conf = id2conf[best_config_id]['config']
+
+            ds_test.reset()
+            dl_test = torch.utils.data.DataLoader(ds_test, batch_size=test_batch_size, shuffle=False, drop_last=False)
+
+            resnet = torchvision.models.resnet18(pretrained=True)
+            resnet.fc = Identity()
+            class_conf = {'bohb_log_dir': final_log_dir}
+            class_conf.update(cfg)
+            class_conf.update(bohb_conf)
+            model = WrapperModel_dl(config_id=best_config_id, num_classes=len(train_datasets), cfg=class_conf)
+            torch.set_grad_enabled(False)
+            resnet.cuda()
+            model.cuda()
+            resnet.eval()
+            model.eval()
+
+            input_data = next(iter(dl_test))[0].cuda()
+            output = model(resnet(input_data))
+
+            similar_dataset = train_datasets[np.argmax(output.cpu().data)]
+
+            eval_config_path = os.path.join(cfg['final_evaluated_config_dir'], dataset_name + '.json')
+            eval_config_list = load_eval_configs(eval_config_path)
+            eval_config_list = sorted(eval_config_list, key = lambda x: -x[1])
+
+            best_config = eval_config_list[0]
+            simi_config = find_eval_config_name(eval_config_list, similar_dataset)
+            same_config = find_eval_config_name(eval_config_list, dataset_name)
+            wrst_config = eval_config_list[-1]
+
+            best_scores.append(best_config[1])
+            same_scores.append(same_config[1])
+            simi_scores.append(simi_config[1])
+            wrst_scores.append(wrst_config[1])
+
+            print('---------------')
+            print('Dataset: ' + dataset_name)
+            print('batch size: ' + str(test_batch_size))
+            print('best score: ' + str(best_config[1]))
+            print('same score: ' + str(same_config[1]))
+            print('simi score: ' + str(simi_config[1]))
+            print('wrst score: ' + str(wrst_config[1]))
+
+        plot_dataset_scores(dataset_name = dataset_name,
+                            test_batch_sizes = test_batch_sizes,
+                            kakaobrain_scores = kakaobrain_scores,
+                            best_scores = best_scores,
+                            same_scores = same_scores,
+                            simi_scores = simi_scores,
+                            wrst_scores = wrst_scores)
+
 
 if __name__ == "__main__":
     # Run bohb paralell
-    if True:
+    if False:
         if len(sys.argv) > 1:
             for arg in sys.argv[1:]:
                 print(arg)
@@ -1763,6 +1884,9 @@ if __name__ == "__main__":
             for test_batch_size in [4,8,16,32,64,128,256,512,1024]:
                 cfg = get_configuration(str(test_batch_size), test_batch_size)
                 res = runBohbSerial(cfg)
+
+    elif True:
+        res = evaluate_dl_on_datasets()
 
     elif False:
         cfg = get_configuration()
