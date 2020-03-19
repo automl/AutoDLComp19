@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pickle
 import xgboost as xgb
 import sklearn.cluster as cluster
+import sklearn.ensemble as ensemble
 import sklearn.neighbors as neighbors
 from sklearn.metrics import accuracy_score
 import tensorflow as tf
@@ -29,6 +30,8 @@ from common.dataset_kakaobrain import TFDataset
 from AutoDL_ingestion_program.dataset import AutoDLDataset
 from common.utils import ToTorchFormat, SaveImage, Stats, SelectSample, AlignAxes, FormatChannels, ToPilFormat
 
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 torch.manual_seed(42)
 np.random.seed(42)
 torch.backends.cudnn.deterministic = True
@@ -55,11 +58,19 @@ def get_configspace():
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='nn_dropout', lower=0.0, upper=0.8))
 
     # xgb classifier
-    # cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
-    # cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=3, upper=10))
-    # cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=2, upper=20))
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
-    # cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [64]))
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_eta', lower=0, upper=1, log=False))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=1, upper=10))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_train_steps', lower=1, upper=20))
+    #  cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_train_batch_size', choices = [2,4,8,16,32,64,128,256,512,1024]))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_test_batch_size', choices = [4]))
+    # xgb2 classifier
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_lr', lower=0.001, upper=0.5))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_n_estimators', lower=1, upper=20))
+    #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='xgb_subsample', lower=0.2, upper=1.0))
+    #cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='xgb_criterion', choices = ['friedman_mse', 'mae', 'mse']))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_min_samples_split', lower=2, upper=10))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_min_samples_leaf', lower=1, upper=10))
+    #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='xgb_max_depth', lower=1, upper=10))
 
     # kmeans classifier
     #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_n_clusters', lower=5, upper=40, ))  # default=8
@@ -68,7 +79,8 @@ def get_configspace():
     #cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='kmeans_random_state', lower=1, upper=20000))
 
     # nearest centroid
-    # has no hyperparameters
+    cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(name='cluster_samples', lower=10, upper=15000, ))  #  default=10
+
 
     # DBSCAN Classifier
     #cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='dbscan_eps', lower=0.1, upper=5))  # , default=0.5
@@ -134,7 +146,7 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
         cfg["bohb_max_budget"] = 1000
     elif cfg["use_model"] == 'dl2':
         cfg["bohb_min_budget"] = 100
-        cfg["bohb_max_budget"] = 10000
+        cfg["bohb_max_budget"] = 5000
     elif cfg["use_model"] == 'cluster':
         cfg["bohb_min_budget"] = 1000
         cfg["bohb_max_budget"] = 1000
@@ -159,7 +171,9 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
     cfg['nn_lr'] = 0.0007190982887197122
     cfg['nn_neurons'] = 1024
     cfg['nn_train_batch_size'] = 16
-    cfg['nn_test_batch_size'] = test_batch_size
+	cfg['nn_test_batch_size'] = test_batch_size
+    cfg['gamma'] = 0.5
+    cfg['epochs'] = 3
 
     cfg['xgb_eta'] = 0.3
     cfg['xgb_max_depth'] = 6
@@ -440,7 +454,7 @@ class WrapperModel_dl2(torch.nn.Module):
     def __init__(self, config_id, num_classes, cfg):
         super().__init__()
         self.cfg = cfg
-        self.filename = self.cfg["bohb_log_dir"] + '/test_bs_' + str(self.cfg["nn_test_batch_size"]) + '_model.pt'
+        self.filename = self.cfg["code_dir"] + '/test_bs_' + str(self.cfg["nn_test_batch_size"]) + '_model.pt'
         self.fc1 = torch.nn.Linear(512, self.cfg["nn_neurons"])
         self.fc2 = torch.nn.Linear(self.cfg["nn_neurons"], num_classes)
         self.a = Swish()
@@ -450,10 +464,7 @@ class WrapperModel_dl2(torch.nn.Module):
             self.load_state_dict(torch.load(self.filename))
 
     def forward(self, x):
-        
         x = self.fc2(self.d(self.a(self.fc1(x))))
-        #x = x.unsqueeze(0)
-
         return x
 
     def save(self):
@@ -529,35 +540,22 @@ class WrapperModel_cluster(torch.nn.Module):
             self.load_state_dict(torch.load(self.filename))
 
     def forward(self, x):
-        nb_samples = x.shape[0]
-        nb_cut = int(self.cfg['cut_perc'] * nb_samples)
-        x = x.sort(dim=0)[0]
-        x = x[nb_cut:nb_samples-nb_cut]
+        return x
 
-        med  = x.median(dim=0)[0]
-        mean = torch.mean(x, dim=0)
-        var  = torch.var(x, dim=0)
-        std  = torch.pow(var, 0.5)
-        diff = x - mean
-        tmp  = diff/(std+0.1)
-        skew = torch.mean(torch.pow(tmp, 3.0), dim=0)
-        kurt = torch.mean(torch.pow(tmp, 4.0), dim=0)
+    def save(self):
+        torch.save(self.state_dict(), self.filename)
 
-        x = None
-        if self.cfg['use_med']:
-            x = med if x is None else torch.cat((x, med), 0)
-        if self.cfg['use_mean']:
-            x = mean if x is None else torch.cat((x, mean), 0)
-        if self.cfg['use_std']:
-            x = std if x is None else torch.cat((x, std), 0)
-        if self.cfg['use_var']:
-            x = var if x is None else torch.cat((x, var), 0)
-        if self.cfg['use_skew']:
-            x = skew if x is None else torch.cat((x, skew), 0)
-        if self.cfg['use_kurt']:
-            x = kurt if x is None else torch.cat((x, kurt), 0)
+class WrapperModel_xgb2(torch.nn.Module):
+    def __init__(self, config_id, cfg):
+        super().__init__()
+        self.cfg = cfg
+        self.filename = self.cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_model' + '.pt'
 
-        x = x.unsqueeze(0)
+        if os.path.isfile(self.filename):
+            self.load_state_dict(torch.load(self.filename))
+
+    def forward(self, x):
+        # x = x.unsqueeze(0)
 
         return x
 
@@ -609,8 +607,7 @@ def execute_run_cluster(config_id, cfg, budget, dataset_list, session):
             raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
         m.collect_samples_train(dataset = dataset_train.get_dataset(),
                                 class_index = class_index,
-                                desired_batches = budget)
-
+                                desired_batches = cfg['cluster_samples'])
     m.train()
 
     acc_list = []
@@ -682,14 +679,13 @@ class Model_cluster(object):
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=1,
-            shuffle=cfg['shuffle_data'],
+            shuffle=False,
             drop_last=False
         )
         finish_loop = False
         train_batches = 0
-
         while not finish_loop:
-            # Set train mode before we go into the train loop over an epoch
+    		# Set train mode before we go into the train loop over an epoch
             for data, _ in dataloader:
                 self.X.append(np.squeeze(data.cpu().numpy()))
                 self.y.append(np.array([class_index]))
@@ -733,16 +729,18 @@ class Model_cluster(object):
             print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))  # + ' ' + str(time.time() - t1))
 
         else:
-
+            prediction_list = []
             for data, _ in dataloader:
-                counterr +=1
                 # prediction_list.append(self.model(data.cuda()).cpu())#
-                _ , label = torch.max(self.model.predict(X), 1)
-                labels, counts = torch.unique(label, sorted=True, return_inverse=False, return_counts=True, dim=None)
-                # print(labels[torch.argmax(counts)])
+                if data.shape[0] == 1:
+                    data = torch.cat((data, data), 0)
+                X = np.squeeze(data.cpu().numpy())
+                predictions = self.model.predict(X)
+                labels, counts = np.unique(predictions, return_counts=True)
                 prediction_list.append(labels[np.argmax(counts)])
             # prediction = torch.cat(prediction_list)
             prediction = np.array(prediction_list)
+            # print(prediction)
             # print(prediction.shape, counterr)
             #+print(prediction)
             # print(sum(prediction == class_index) / len(prediction))
@@ -794,6 +792,49 @@ def execute_run_xgb(config_id, cfg, budget, dataset_list, session):
 
     return avg_acc, 0
 
+def execute_run_xgb2(config_id, cfg, budget, dataset_list, session):
+    num_classes = len(dataset_list)
+
+    m = Model_xgb2(config_id = config_id,
+                  num_classes = num_classes,
+                  cfg = cfg,
+                  session = session)
+
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_train = dataset_list[selected_class][0]
+        dataset_name  = dataset_list[selected_class][2]
+        class_index   = dataset_list[selected_class][3]
+
+        print(dataset_name)
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        m.collect_samples_train(dataset = dataset_train.get_dataset(),
+                                class_index = class_index,
+                                desired_batches = budget)
+
+    m.train()
+
+    acc_list = []
+    for i in range(num_classes):
+        selected_class = i % num_classes
+        dataset_test = dataset_list[selected_class][1]
+        dataset_name = dataset_list[selected_class][2]
+        class_index  = dataset_list[selected_class][3]
+
+        if class_index != selected_class:
+            raise ValueError("class index mismatch: " + str(class_index) + ' ' + str(selected_class))
+
+        acc = m.test(dataset=dataset_test.get_dataset(),
+                     dataset_name=dataset_name,
+                     class_index=class_index)
+        acc_list.append(acc)
+
+    avg_acc = sum(acc_list) / len(acc_list)
+
+    return avg_acc, 0
 
 class Model_xgb(object):
     def __init__(self, config_id, num_classes, cfg, session):
@@ -877,6 +918,88 @@ class Model_xgb(object):
         return acc
 
 
+class Model_xgb2(object):
+    def __init__(self, config_id, num_classes, cfg, session, algorithm='nc'):
+        super().__init__()
+        self.cfg = cfg
+        self.train_dataloader_dict = {}
+        self.session = session
+        self.algorithm = algorithm
+        self.model = ensemble.GradientBoostingClassifier(loss='deviance', 
+                        learning_rate=cfg['xgb_lr'], n_estimators=cfg['xgb_n_estimators'], subsample=cfg['xgb_subsample'], 
+                        criterion=cfg['xgb_criterion'], min_samples_split=cfg['xgb_min_samples_split'],
+                        min_samples_leaf=cfg['xgb_min_samples_leaf'], min_weight_fraction_leaf=0.0,
+                        max_depth=cfg['xgb_max_depth'], min_impurity_decrease=0.0, min_impurity_split=None,
+                        init=None, random_state=42, max_features=None,
+                        verbose=0, max_leaf_nodes=None, warm_start=False,
+                        validation_fraction=0.1, n_iter_no_change=None, tol=0.0001)
+
+        self.X = []
+        self.y = []
+        self.num_classes = num_classes
+
+    def collect_samples_train(self, dataset, class_index, desired_batches):
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=False,
+            drop_last=False
+        )
+        finish_loop = False
+        train_batches = 0
+        while not finish_loop:
+            # Set train mode before we go into the train loop over an epoch
+            for data, _ in dataloader:
+                self.X.append(np.squeeze(data.cpu().numpy()))
+                self.y.append(np.array([class_index]))
+                train_batches += 1
+                if train_batches > desired_batches:
+                    finish_loop = True
+                    break
+
+    def train(self):
+        X = np.asarray(self.X)
+        y = np.asarray(self.y)
+        self.model.fit(X, y)
+        self.X = None
+        self.y = None
+
+    def test(self, dataset, dataset_name, class_index):
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=cfg['xgb_test_batch_size'],
+            shuffle=False,
+            drop_last=False
+        )
+        if True:
+            X = []
+            y = []
+            for data, _ in dataloader:
+                X.append(np.squeeze(data.cpu().numpy()))
+                y.append(np.array([class_index]))
+            prediction = self.model.predict(X)
+            acc = accuracy_score(prediction, y)
+            print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))  # + ' ' + str(time.time() - t1))
+
+        else:
+            prediction_list = []
+            for data, _ in dataloader:
+                # prediction_list.append(self.model(data.cuda()).cpu())#
+                if data.shape[0] == 1:
+                    data = torch.cat((data, data), 0)
+                X = np.squeeze(data.cpu().numpy())
+                predictions = self.model.predict(X)
+                labels, counts = np.unique(predictions, return_counts=True)
+                prediction_list.append(labels[np.argmax(counts)])
+            # prediction = torch.cat(prediction_list)
+            prediction = np.array(prediction_list)
+            # print(prediction)
+            # print(prediction.shape, counterr)
+            #+print(prediction)
+            # print(sum(prediction == class_index) / len(prediction))
+            acc = sum(prediction == class_index) / len(prediction)
+
+        return acc
 
 def execute_run_dl(config_id, cfg, budget, dataset_list, session):
     num_classes = len(dataset_list)
@@ -959,7 +1082,10 @@ def execute_run_dl2(config_id, cfg, budget, dataset_list, session):
         m.collect_samples_train(dataset = dataset_train.get_dataset(),
                                 class_index = class_index,
                                 desired_batches = budget)
-    loss = m.train(budget * num_classes)
+    for e in range(cfg['epochs']):
+        loss = m.train(budget * num_classes)
+        m.scheduler.step()
+        loss_list.append(loss)
 
     #m.model.save()
     #m.optimizer.save()
@@ -983,6 +1109,7 @@ def execute_run_dl2(config_id, cfg, budget, dataset_list, session):
         acc_list.append(acc)
 
     avg_acc = sum(acc_list) / len(acc_list)
+    loss = sum(loss_list) / len(loss_list)
     # print(avg_acc)
 
     return avg_acc, loss
@@ -1090,7 +1217,7 @@ class Model_dl2(object):
         self.y = []
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
                                             step_size=1, 
-                                            gamma=0.01, 
+                                            gamma=cfg['gamma'],
                                             last_epoch=-1)
 
     def collect_samples_train(self, dataset, class_index, desired_batches):
@@ -1134,27 +1261,20 @@ class Model_dl2(object):
         train_batches = 0
         loss_list = []
 
-        while not finish_loop:
-            # Set train mode before we go into the train loop over an epoch
-            for data, labels in dataloader:
-                #im = data[0].cpu().permute(1,2,0).numpy()
-                #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
-                self.optimizer.zero_grad()
-                #data_preproc = preprocess_meta_data(data.cuda(), self.cfg)
-                output = self.model(data.cuda())
-                labels = labels.cuda()
-                loss = self.criterion(output, labels)
-                #print('LOSS: ' + str(loss))
-                loss.backward()
-                self.optimizer.step()
-
-                loss_list.append(loss.cpu().detach().numpy())
-
-                train_batches += 1
-                if train_batches > budget // self.cfg['nn_train_batch_size'] + 1 :
-                    finish_loop = True
-                    break
-            self.scheduler.step()
+        # Set train mode before we go into the train loop over an epoch
+        for data, labels in dataloader:
+            #im = data[0].cpu().permute(1,2,0).numpy()
+            #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
+            self.optimizer.zero_grad()
+            #data_preproc = preprocess_meta_data(data.cuda(), self.cfg)
+            output = self.model(data.cuda())
+            labels = labels.cuda()
+            loss = self.criterion(output, labels)
+            #print('LOSS: ' + str(loss))
+            loss.backward()
+            self.optimizer.step()
+            loss_list.append(loss.cpu().detach().numpy())
+            train_batches += 1
 
         return sum(loss_list) / len(loss_list)
 
@@ -1171,9 +1291,7 @@ class Model_dl2(object):
 
         prediction_list = []
 
-        counterr = 0
         for data, _ in dataloader:
-            counterr +=1
             # prediction_list.append(self.model(data.cuda()).cpu())#
             _ , label = torch.max(self.model(data.cuda()).cpu(), 1)
             labels, counts = torch.unique(label, sorted=True, return_inverse=False, return_counts=True, dim=None)
@@ -1219,6 +1337,12 @@ class BOHBWorker(Worker):
         #try:
         if cfg['use_model'] == 'xgb':
             score, avg_loss = execute_run_xgb(config_id = config_id,
+                                              cfg = cfg,
+                                              budget = budget,
+                                              dataset_list = self.dataset_list,
+                                              session=self.session)
+        elif cfg['use_model'] == 'xgb2':
+            score, avg_loss = execute_run_xgb2(config_id = config_id,
                                               cfg = cfg,
                                               budget = budget,
                                               dataset_list = self.dataset_list,
@@ -1416,7 +1540,7 @@ def continuous_training2(cfg):
     num_classes = len(dataset_list)
     session = tf.Session()
     budget = cfg['budget']
-    epochs = 3
+    epochs = cfg['epochs']
     m = Model_dl2(config_id=(0,0,0),
                  num_classes=num_classes,
                  cfg=cfg,
@@ -1426,7 +1550,7 @@ def continuous_training2(cfg):
 
 
     for i in range(num_classes):
-        selected_class = i
+        selected_class = i % num_classes
         dataset_train = dataset_list[selected_class][0]
         dataset_name  = dataset_list[selected_class][2]
         class_index   = dataset_list[selected_class][3]
@@ -1439,14 +1563,12 @@ def continuous_training2(cfg):
     best_acc = 0
     for i in range(epochs):
         loss = m.train(budget*num_classes)
-
-        #m.model.save()
-        #m.optimizer.save()
+        m.scheduler.step()
 
         print(' ')
         acc_list = []
         for i in range(num_classes):
-            selected_class = i
+            selected_class = i % num_classes
             dataset_test = dataset_list[selected_class][1]
             dataset_name = dataset_list[selected_class][2]
             class_index  = dataset_list[selected_class][3]
@@ -1460,13 +1582,16 @@ def continuous_training2(cfg):
                          dataset_name = dataset_name,
                          class_index = class_index)
             acc_list.append(acc)
-            if acc >= best_acc:
-                best_acc = acc
-                # m.model.save()
+        temp_acc = sum(acc_list) / len(acc_list)
+        if temp_acc >= cfg['best_acc']:
+            cfg['best_acc'] = temp_acc
+            m.model.save()
+            print('saved model with best accuracy: {}'.format( cfg['best_acc']))
+        print(temp_acc, flush = True)
 
 
-        avg_acc = sum(acc_list) / len(acc_list)
-        print(avg_acc, flush = True)
+    avg_acc = sum(acc_list) / len(acc_list)
+    print(avg_acc, flush = True)
     return avg_acc
 
 
@@ -1600,6 +1725,7 @@ def generate_samples_meta(cfg, idx=1, idx_total=1):
         #print(general_vector_train)
         # general_vector = np.array([info["num_samples"]])
         general_vector_test = np.array([n_classes])
+        general_vector_test = np.concatenate([general_vector_test, [channels]])
         general_vector_test = np.concatenate([general_vector_test, info_test["min_shape"]])
         general_vector_test = np.concatenate([general_vector_test, info_test["max_shape"]])
         general_vector_test = np.concatenate([general_vector_test, info_test["avg_shape"]])
@@ -1624,8 +1750,8 @@ def generate_samples_meta(cfg, idx=1, idx_total=1):
         #output_train = np.concatenate(output_list_train, axis=0)
         #output_test = np.concatenate(output_list_test, axis=0)
 
-        print(output_train.shape)
-        print(output_test.shape)
+        print(general_vector_train.shape)
+        print(general_vector_test.shape)
 
         file_train = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_train')
         file_test = os.path.join(cfg["proc_dataset_dir"], dataset_name + '_test')
@@ -1890,37 +2016,32 @@ if __name__ == "__main__":
 
     elif False:
         cfg = get_configuration()
+        cfg["use_model"] = 'cluster'
         os.makedirs(cfg['bohb_log_dir'], exist_ok=True)
         dataset_list = load_datasets_processed(cfg, cfg["train_datasets"])
         session = tf.Session()
-        for b in [4, 8, 16, 32, 64, 128, 512, 1024]:
-            cfg['cluster_test_batch_size'] = b
-            print(conf, b)
-            res = execute_run_cluster((0,0,0), cfg, 10000, dataset_list, session)
+        budget = 0
+        for b in range(1646 - 10, 1646 + 10):
+            cfg['cluster_test_batch_size'] =4
+            cfg['cluster_samples'] = b
+            print(b)
+            res = execute_run_cluster((0,0,0), cfg, budget, dataset_list, session)
+            print(res)
     elif False:
-        best_configs = [
-                    {'nn_dropout': 0.2406233374164684, 'nn_lr': 0.0001835779897283161, 'nn_neurons': 1024, 'nn_test_batch_size': 512, 'nn_train_batch_size': 4},
-                    {'nn_dropout': 0.015032016318402924, 'nn_lr': 0.00027597433616436567, 'nn_neurons': 512, 'nn_test_batch_size': 1024, 'nn_train_batch_size': 4},
-                    {'nn_dropout': 0.265914494580002, 'nn_lr': 0.00019312566767674795, 'nn_neurons': 1024, 'nn_test_batch_size': 256, 'nn_train_batch_size': 2}, #  5000 / 2
-                    {'nn_dropout': 0.3734588726442405, 'nn_lr': 0.0005275358224146664, 'nn_neurons': 512, 'nn_test_batch_size': 8, 'nn_train_batch_size': 16},
-                    {'nn_dropout': 0.3598083186534323, 'nn_lr': 0.0005366919839121555, 'nn_neurons': 512, 'nn_test_batch_size': 4, 'nn_train_batch_size': 16},
-                    {'nn_dropout': 0.37062016751621196, 'nn_lr': 0.0005012957952660666, 'nn_neurons': 512, 'nn_test_batch_size': 16, 'nn_train_batch_size': 16},
-                    {'nn_dropout': 0.029190097431261088, 'nn_lr': 0.00026599274177340377, 'nn_neurons': 1024, 'nn_test_batch_size': 32, 'nn_train_batch_size': 4},
-                    {'nn_dropout': 0.3797008190733056, 'nn_lr': 0.00048381687040660837, 'nn_neurons': 512, 'nn_test_batch_size': 64, 'nn_train_batch_size': 16},
-                    {'nn_dropout': 0.3455860433427515, 'nn_lr': 0.00017972625147607334, 'nn_neurons': 512, 'nn_test_batch_size': 128, 'nn_train_batch_size': 2}
-            ]
-
+        best_configs = [{'nn_dropout': 0.3451839700839631, 'nn_lr': 0.00021643294430478865, 'nn_neurons': 512, 'nn_test_batch_size': 4, 'nn_train_batch_size': 2}]
         cfg = get_configuration()
-
+        cfg["use_model"] = 'dl2'
+        cfg['best_acc'] = 0
         for conf in best_configs:
             for k, v in conf.items():
                 cfg[k] = v
-            for b in [5000, 7500, 10000]:  # [5000, 10000, 15000, 20000]:
+            for b in np.arange(6000, 8000, 100):  # [5000, 10000, 15000, 20000]:
                 cfg['budget'] = int(b)
+                #cfg['gamma'] = 0.5
+                cfg['epochs'] = 8
                 print(conf, b)
                 res = continuous_training2(cfg)
-
-    else:
+    elif False::
         pass
         #cfg = get_configuration()
         # res = verify_data(cfg)

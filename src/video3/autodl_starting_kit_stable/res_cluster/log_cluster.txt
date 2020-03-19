@@ -1,0 +1,289 @@
+['/app/codalab', '/usr/lib/python35.zip', '/usr/lib/python3.5', '/usr/lib/python3.5/plat-x86_64-linux-gnu', '/usr/lib/python3.5/lib-dynload', '/usr/local/lib/python3.5/dist-packages', '/usr/lib/python3/dist-packages', '/app/codalab/AutoDL_ingestion_program', '/app/codalab/AutoDL_scoring_program']
+Dataset: Chucky
+batch size: 4
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 8
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 16
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 32
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 64
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 128
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 256
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 512
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Chucky
+batch size: 1024
+Most similar: cifar100
+simi score: 0.8551050172127426
+Dataset: Decal
+batch size: 4
+Most similar: caltech101
+simi score: 0.7424308849581667
+Dataset: Decal
+batch size: 8
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 16
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 32
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 64
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 128
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 256
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 512
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Decal
+batch size: 1024
+Most similar: colorectal_histology
+simi score: 0.6654460444362835
+Dataset: Hammer
+batch size: 4
+Most similar: binary_alpha_digits
+simi score: 0.751521931039925
+Dataset: Hammer
+batch size: 8
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Hammer
+batch size: 16
+Most similar: binary_alpha_digits
+simi score: 0.751521931039925
+Dataset: Hammer
+batch size: 32
+Most similar: binary_alpha_digits
+simi score: 0.751521931039925
+Dataset: Hammer
+batch size: 64
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Hammer
+batch size: 128
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Hammer
+batch size: 256
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Hammer
+batch size: 512
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Hammer
+batch size: 1024
+Most similar: colorectal_histology
+simi score: 0.7078829672715524
+Dataset: Munster
+batch size: 4
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 8
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 16
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 32
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 64
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 128
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 256
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 512
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Munster
+batch size: 1024
+Most similar: cifar100
+simi score: 0.9558589016284069
+Dataset: Pedro
+batch size: 4
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 8
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 16
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 32
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 64
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 128
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 256
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 512
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Pedro
+batch size: 1024
+Most similar: caltech101
+simi score: 0.4500844810515726
+Dataset: Kraut
+batch size: 4
+Most similar: binary_alpha_digits
+simi score: 0
+Dataset: Kraut
+batch size: 8
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 16
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 32
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 64
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 128
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 256
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 512
+Most similar: caltech101
+simi score: 0
+Dataset: Kraut
+batch size: 1024
+Most similar: caltech101
+simi score: 0
+Dataset: Katze
+batch size: 4
+Most similar: binary_alpha_digits
+simi score: 0.668993542188389
+Dataset: Katze
+batch size: 8
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 16
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 32
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 64
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 128
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 256
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 512
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Katze
+batch size: 1024
+Most similar: caltech101
+simi score: 0.8319082146117777
+Dataset: Kreatur
+batch size: 4
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 8
+Most similar: cifar10
+simi score: 0.8634515185680475
+Dataset: Kreatur
+batch size: 16
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 32
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 64
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 128
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 256
+Most similar: cifar10
+simi score: 0.8634515185680475
+Dataset: Kreatur
+batch size: 512
+Most similar: binary_alpha_digits
+simi score: 0.6863943954957776
+Dataset: Kreatur
+batch size: 1024
+Most similar: cifar10
+simi score: 0.8634515185680475
