@@ -117,15 +117,15 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
         cfg["bohb_interface"] = 'lo'
         cfg["bohb_workers"] = 3
 
+    # log_folder = "dl_logs"
+    # if log_subfolder is None:
+    #     cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
+    # else:
+    #     cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
+
     # for final evaluation
     cfg['final_evaluated_config_dir'] = '/home/dingsda/logs/evaluated_configs'
-    cfg['final_bohb_log_dir'] = '/home/dingsda/logs/dl_logs_new'
-
-    log_folder = "dl_logs"
-    if log_subfolder is None:
-        cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, str(int(time.time())))
-    else:
-        cfg["bohb_log_dir"] = os.path.join(os.getcwd(), log_folder, log_subfolder)
+    cfg['bohb_log_dir'] = os.path.join('/home/dingsda/logs/dl_logs_new', log_subfolder)
 
     cfg["use_model"] = 'dl'    # xgb, dl, dl2 or cluster
 
@@ -393,6 +393,7 @@ class WrapperModel_dl(torch.nn.Module):
         self.d = torch.nn.Dropout(cfg["nn_dropout"])
 
         if os.path.isfile(self.filename):
+            print('load model')
             self.load_state_dict(torch.load(self.filename))
 
     def forward(self, x):
@@ -1030,8 +1031,6 @@ class Model_dl(object):
         while not finish_loop:
             # Set train mode before we go into the train loop over an epoch
             for data, _ in dataloader:
-                #im = data[0].cpu().permute(1,2,0).numpy()
-                #matplotlib.pyplot.imsave(dataset_name + '_' + str(iteration) + '.jpeg', im)
                 self.optimizer.zero_grad()
                 data_preproc = preprocess_meta_data(data.cuda(), self.cfg)
                 output = self.model(data_preproc)
@@ -1067,8 +1066,6 @@ class Model_dl(object):
         for data, _ in dataloader:
             prediction_list.append(self.model(data.cuda()).cpu())
         prediction = torch.cat(prediction_list, dim=0)
-
-
         acc = calc_accuracy(prediction, class_index)
         print("ACCURACY: " + str(dataset_name) + ' ' + str(acc))
 
@@ -1769,6 +1766,7 @@ def evaluate_dl_on_datasets():
     train_datasets = cfg["train_datasets"]
     dataset_list_raw = load_datasets_raw(cfg, cfg["test_datasets"])
 
+    # two-layer MLP
     best_config_id_dict = {4: (14, 0, 5),
                            8: (7, 0, 2),
                            16: (6, 0, 0),
@@ -1778,6 +1776,17 @@ def evaluate_dl_on_datasets():
                            256: (16, 0, 7),
                            512: (4, 0, 0),
                            1024: (9, 0, 8)}
+
+    # single-layer MLP
+    # best_config_id_dict = {4: (1, 0, 6),
+    #                        8: (1, 0, 5),
+    #                        16: (1, 0, 6),
+    #                        32: (6, 0, 2),
+    #                        64: (1, 0, 6),
+    #                        128: (0, 0, 6),
+    #                        256: (4, 0, 6),
+    #                        512: (2, 0, 4),
+    #                        1024: (7, 0, 2)}
 
 
     for i in range(len(dataset_list_raw)):
@@ -1791,6 +1800,7 @@ def evaluate_dl_on_datasets():
                             transform=transform_test)
 
         test_batch_sizes = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
+
         best_scores = []
         same_scores = []
         simi_scores = []
@@ -1814,14 +1824,19 @@ def evaluate_dl_on_datasets():
             kakaobrain_scores = [0.6678]*len(test_batch_sizes)
 
         for test_batch_size in test_batch_sizes:
+            cfg = get_configuration(log_subfolder=str(test_batch_size))
+
             best_config_id = best_config_id_dict[test_batch_size]
-            final_log_dir = os.path.join(cfg['final_bohb_log_dir'], str(test_batch_size))
+            final_log_dir = cfg['bohb_log_dir']
             result = hpres.logged_results_to_HBS_result(final_log_dir)
             id2conf = result.get_id2config_mapping()
             bohb_conf = id2conf[best_config_id]['config']
 
             ds_test.reset()
-            dl_test = torch.utils.data.DataLoader(ds_test, batch_size=test_batch_size, shuffle=False, drop_last=False)
+            dl_test = torch.utils.data.DataLoader(ds_test,
+                                                  batch_size=test_batch_size,
+                                                  shuffle=False,
+                                                  drop_last=False)
 
             resnet = torchvision.models.resnet18(pretrained=True)
             resnet.fc = Identity()
@@ -1840,6 +1855,10 @@ def evaluate_dl_on_datasets():
 
             similar_dataset = train_datasets[np.argmax(output.cpu().data)]
 
+            print('---------------')
+            print('Dataset: ' + dataset_name)
+            print('Similar: ' + similar_dataset)
+
             eval_config_path = os.path.join(cfg['final_evaluated_config_dir'], dataset_name + '.json')
             eval_config_list = load_eval_configs(eval_config_path)
             eval_config_list = sorted(eval_config_list, key = lambda x: -x[1])
@@ -1856,6 +1875,7 @@ def evaluate_dl_on_datasets():
 
             print('---------------')
             print('Dataset: ' + dataset_name)
+            print('Similar: ' + similar_dataset)
             print('batch size: ' + str(test_batch_size))
             print('best score: ' + str(best_config[1]))
             print('same score: ' + str(same_config[1]))
