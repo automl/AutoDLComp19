@@ -75,6 +75,8 @@ def get_configuration(dataset, best_dataset):
     cfg["code_dir"] = '/home/nierhoff/AutoDLComp19_project/src/video3/autodl_starting_kit_stable/AutoDL_sample_code_submission'
     #cfg["code_dir"] = '/home/dingsda/autodl/AutoDLComp19/src/video3/autodl_starting_kit_stable'
     cfg["dataset"] = dataset
+    cfg["nb_rep"] = 3
+
 
     # load
     with open('./common/files/best_config_dict.json', 'r') as f:
@@ -186,7 +188,13 @@ def compute(cfg, budget):
         print('ON DATASET        : ' + str(cfg["dataset"]))
         print('WITH MODEL        : ' + str(cfg["model"]))
         print('WITH BEST DATASET : ' + str(cfg["best_dataset"]))
-        score = execute_run(cfg=cfg, budget=budget)
+
+        score_list = []
+        for i in range(cfg["nb_rep"]):
+            score_list.append(execute_run(cfg=cfg, budget=budget))
+
+        score_list.sort()
+        score = sum(score_list) / len(score_list)
     except Exception:
         status = traceback.format_exc()
         print(status)

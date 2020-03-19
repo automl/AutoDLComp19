@@ -137,7 +137,8 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
 
     # for final evaluation
     cfg['final_evaluated_config_dir'] = '/home/dingsda/logs/evaluated_configs'
-    cfg['bohb_log_dir'] = os.path.join('/home/dingsda/logs/dl_logs_new', log_subfolder)
+    if log_subfolder is not None:
+        cfg['bohb_log_dir'] = os.path.join('/home/dingsda/logs/dl_logs_new', log_subfolder)
 
     cfg["use_model"] = 'dl'    # xgb, dl, dl2 or cluster
 
@@ -171,7 +172,7 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
     cfg['nn_lr'] = 0.0007190982887197122
     cfg['nn_neurons'] = 1024
     cfg['nn_train_batch_size'] = 16
-	cfg['nn_test_batch_size'] = test_batch_size
+    cfg['nn_test_batch_size'] = test_batch_size
     cfg['gamma'] = 0.5
     cfg['epochs'] = 3
 
@@ -1864,24 +1865,32 @@ def load_eval_configs(path):
     return eval_config_list
 
 
+def get_eval_config_scores(eval_config_list):
+    config_scores = []
+    for elem in eval_config_list:
+        config_scores.append(elem[1])
+    return config_scores
+
+
 def find_eval_config_name(eval_config_list, name):
     for elem in eval_config_list:
         if elem[0] == name:
             return elem
 
 
-def plot_dataset_scores(dataset_name, test_batch_sizes, kakaobrain_scores, best_scores, same_scores, simi_scores, wrst_scores):
-    plt.figure(figsize=(5,3))
-    #sns.boxplot(x=data, y=name_list, order=name_list_sorted)
-    plt.plot(kakaobrain_scores, lw=2, label='kakaob. ALC.')
-    plt.plot(best_scores, lw=2, label='best ALC.')
-    plt.plot(simi_scores, lw=2, label='DL ALC.')
-    plt.plot(wrst_scores, lw=2, label='worst ALC.')
+def plot_dataset_scores(dataset_name, test_batch_sizes, kakaobrain_scores, same_scores, simi_scores, config_scores, simi_datasets):
+    plt.figure(figsize=(6,4))
+    plt.plot(kakaobrain_scores, lw=2.5, color='#0080FF', label='kakaob. ALC.')
+    plt.plot(same_scores, lw=2.5, color='#00D000',  label='same ALC.')
+    plt.plot(simi_scores, lw=2.5, color='#FF0000',  label='DL ALC.')
+    for elem in config_scores:
+        plt.plot([elem]*9, lw=1, color='#00D000', alpha=0.1)
+
     plt.legend(loc='right')
-    #ax.set_xticklabels(x_data)
     plt.xlabel('batch size')
     plt.ylabel('ALC')
     plt.title(dataset_name)
+    plt.ylim(0,1)
     plt.xticks(np.arange(9), test_batch_sizes)
     plt.show()
 
@@ -1931,6 +1940,7 @@ def evaluate_dl_on_datasets():
         same_scores = []
         simi_scores = []
         wrst_scores = []
+        simi_datasets = []
 
         if dataset_name == 'Chucky':
             kakaobrain_scores = [0.8082]*len(test_batch_sizes)
@@ -1988,33 +1998,34 @@ def evaluate_dl_on_datasets():
             eval_config_path = os.path.join(cfg['final_evaluated_config_dir'], dataset_name + '.json')
             eval_config_list = load_eval_configs(eval_config_path)
             eval_config_list = sorted(eval_config_list, key = lambda x: -x[1])
+            eval_config_scores = get_eval_config_scores(eval_config_list)
 
-            best_config = eval_config_list[0]
             simi_config = find_eval_config_name(eval_config_list, similar_dataset)
             same_config = find_eval_config_name(eval_config_list, dataset_name)
             wrst_config = eval_config_list[-1]
 
-            best_scores.append(best_config[1])
             same_scores.append(same_config[1])
             simi_scores.append(simi_config[1])
             wrst_scores.append(wrst_config[1])
+            simi_datasets.append(similar_dataset)
 
             print('---------------')
             print('Dataset: ' + dataset_name)
             print('Similar: ' + similar_dataset)
             print('batch size: ' + str(test_batch_size))
-            print('best score: ' + str(best_config[1]))
             print('same score: ' + str(same_config[1]))
             print('simi score: ' + str(simi_config[1]))
-            print('wrst score: ' + str(wrst_config[1]))
+
+        print(simi_datasets)
+        print(simi_scores)
 
         plot_dataset_scores(dataset_name = dataset_name,
                             test_batch_sizes = test_batch_sizes,
                             kakaobrain_scores = kakaobrain_scores,
-                            best_scores = best_scores,
                             same_scores = same_scores,
                             simi_scores = simi_scores,
-                            wrst_scores = wrst_scores)
+                            config_scores = eval_config_scores,
+                            simi_datasets = simi_datasets)
 
 
 if __name__ == "__main__":
@@ -2061,7 +2072,7 @@ if __name__ == "__main__":
                 cfg['epochs'] = 8
                 print(conf, b)
                 res = continuous_training2(cfg)
-    elif False::
+    elif False:
         pass
         #cfg = get_configuration()
         # res = verify_data(cfg)
