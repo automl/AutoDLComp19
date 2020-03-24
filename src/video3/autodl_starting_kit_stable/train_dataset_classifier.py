@@ -1962,7 +1962,8 @@ def evaluate_dl_on_datasets():
         for test_batch_size in test_batch_sizes:
             cfg = get_configuration(log_subfolder=str(test_batch_size))
 
-            best_config_id = best_config_id_dict[test_batch_size]
+            #best_config_id = best_config_id_dict[test_batch_size]
+            best_config_id = best_config_id_dict[64]
             final_log_dir = cfg['bohb_log_dir']
             result = hpres.logged_results_to_HBS_result(final_log_dir)
             id2conf = result.get_id2config_mapping()
@@ -1991,9 +1992,9 @@ def evaluate_dl_on_datasets():
 
             similar_dataset = train_datasets[np.argmax(output.cpu().data)]
 
-            print('---------------')
-            print('Dataset: ' + dataset_name)
-            print('Similar: ' + similar_dataset)
+            # print('---------------')
+            # print('Dataset: ' + dataset_name)
+            # print('Similar: ' + similar_dataset)
 
             eval_config_path = os.path.join(cfg['final_evaluated_config_dir'], dataset_name + '.json')
             eval_config_list = load_eval_configs(eval_config_path)
@@ -2009,15 +2010,18 @@ def evaluate_dl_on_datasets():
             wrst_scores.append(wrst_config[1])
             simi_datasets.append(similar_dataset)
 
-            print('---------------')
-            print('Dataset: ' + dataset_name)
-            print('Similar: ' + similar_dataset)
-            print('batch size: ' + str(test_batch_size))
-            print('same score: ' + str(same_config[1]))
-            print('simi score: ' + str(simi_config[1]))
+            # print('---------------')
+            # print('Dataset: ' + dataset_name)
+            # print('Similar: ' + similar_dataset)
+            # print('batch size: ' + str(test_batch_size))
+            # print('same score: ' + str(same_config[1]))
+            # print('simi score: ' + str(simi_config[1]))
 
-        print(simi_datasets)
-        print(simi_scores)
+        print(dataset_name)
+        print(same_scores)
+        #print(simi_datasets)
+        #print(kakaobrain_scores)
+        #print(eval_config_scores)
 
         plot_dataset_scores(dataset_name = dataset_name,
                             test_batch_sizes = test_batch_sizes,
