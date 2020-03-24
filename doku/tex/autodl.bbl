@@ -1,0 +1,117 @@
+\begin{thebibliography}{13}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bilalli et~al.(2017)Bilalli, Abell{\'o}, and Aluja-Banet]{bilalli17}
+Bilalli, B., Abell{\'o}, A., and Aluja-Banet, T.
+\newblock On the predictive power of meta-features in openml.
+\newblock \emph{Applied Mathematics and Computer Science}, 27:\penalty0
+  697--712, 2017.
+
+\bibitem[Elsken et~al.(2018)Elsken, Metzen, and Hutter]{elsken18}
+Elsken, T., Metzen, J.~H., and Hutter, F.
+\newblock Simple and efficient architecture search for convolutional neural
+  networks, 2018.
+\newblock URL \url{https://openreview.net/forum?id=SySaJ0xCZ}.
+
+\bibitem[Finn et~al.(2017)Finn, Abbeel, and Levine]{finn17}
+Finn, C., Abbeel, P., and Levine, S.
+\newblock Model-agnostic meta-learning for fast adaptation of deep networks.
+\newblock In Precup, D. and Teh, Y.~W. (eds.), \emph{Proceedings of the 34th
+  International Conference on Machine Learning}, volume~70 of \emph{Proceedings
+  of Machine Learning Research}, pp.\  1126--1135, International Convention
+  Centre, Sydney, Australia, 2017. PMLR.
+\newblock URL \url{http://proceedings.mlr.press/v70/finn17a.html}.
+
+\bibitem[Han et~al.(2015)Han, Mao, and Dally]{han15}
+Han, S., Mao, H., and Dally, W.~J.
+\newblock Deep compression: Compressing deep neural networks with pruning,
+  trained quantization and huffman coding.
+\newblock 2015.
+\newblock URL \url{http://arxiv.org/abs/1510.00149}.
+\newblock cite arxiv:1510.00149Comment: Published as a conference paper at ICLR
+  2016 (oral).
+
+\bibitem[He et~al.(2018)He, Lin, Liu, Wang, Li, and Han]{han18}
+He, Y., Lin, J., Liu, Z., Wang, H., Li, L., and Han, S.
+\newblock {AMC:} automl for model compression and acceleration on mobile
+  devices.
+\newblock In \emph{Computer Vision - {ECCV} 2018 - 15th European Conference,
+  Munich, Germany, September 8-14, 2018, Proceedings, Part {VII}}, pp.\
+  815--832, 2018.
+\newblock \doi{10.1007/978-3-030-01234-2\_48}.
+\newblock URL \url{https://doi.org/10.1007/978-3-030-01234-2\_48}.
+
+\bibitem[Hinton et~al.(2015)Hinton, Vinyals, and Dean]{hinton15}
+Hinton, G., Vinyals, O., and Dean, J.
+\newblock Distilling the knowledge in a neural network.
+\newblock \emph{arXiv preprint arXiv:1503.02531}, 2015.
+\newblock URL \url{https://arxiv.org/abs/1503.02531v1}.
+
+\bibitem[Howard et~al.(2017)Howard, Zhu, Chen, Kalenichenko, Wang, Weyand,
+  Andreetto, and Adam]{howard17}
+Howard, A.~G., Zhu, M., Chen, B., Kalenichenko, D., Wang, W., Weyand, T.,
+  Andreetto, M., and Adam, H.
+\newblock Mobilenets: Efficient convolutional neural networks for mobile vision
+  applications.
+\newblock \emph{ArXiv}, abs/1704.04861, 2017.
+
+\bibitem[Hutter et~al.(2018)Hutter, Kotthoff, and Vanschoren]{hutter19}
+Hutter, F., Kotthoff, L., and Vanschoren, J. (eds.).
+\newblock \emph{Automatic Machine Learning: Methods, Systems, Challenges}.
+\newblock Springer, 2018.
+\newblock In press, available at http://automl.org/book.
+
+\bibitem[Pan \& Yang(2010)Pan and Yang]{pan10}
+Pan, S.~J. and Yang, Q.
+\newblock A survey on transfer learning.
+\newblock \emph{IEEE Trans. on Knowl. and Data Eng.}, 22\penalty0
+  (10):\penalty0 1345--1359, October 2010.
+\newblock ISSN 1041-4347.
+\newblock \doi{10.1109/TKDE.2009.191}.
+\newblock URL \url{https://doi.org/10.1109/TKDE.2009.191}.
+
+\bibitem[Phuong \& Lampert(2019)Phuong and Lampert]{phuong19}
+Phuong, M. and Lampert, C.
+\newblock Towards understanding knowledge distillation.
+\newblock In Chaudhuri, K. and Salakhutdinov, R. (eds.), \emph{Proceedings of
+  the 36th International Conference on Machine Learning}, volume~97 of
+  \emph{Proceedings of Machine Learning Research}, pp.\  5142--5151, Long
+  Beach, California, USA, 09--15 Jun 2019. PMLR.
+\newblock URL \url{http://proceedings.mlr.press/v97/phuong19a.html}.
+
+\bibitem[Reagan et~al.(2018)Reagan, Gupta, Adolf, Mitzenmacher, Rush, Wei, and
+  Brooks]{reagan18}
+Reagan, B., Gupta, U., Adolf, B., Mitzenmacher, M., Rush, A., Wei, G.-Y., and
+  Brooks, D.
+\newblock Weightless: Lossy weight encoding for deep neural network
+  compression.
+\newblock In Dy, J. and Krause, A. (eds.), \emph{Proceedings of the 35th
+  International Conference on Machine Learning}, volume~80 of \emph{Proceedings
+  of Machine Learning Research}, pp.\  4324--4333. PMLR, 10--15 Jul 2018.
+\newblock URL \url{http://proceedings.mlr.press/v80/reagan18a.html}.
+
+\bibitem[Santoro et~al.(2016)Santoro, Bartunov, Botvinick, Wierstra, and
+  Lillicrap]{santoro16}
+Santoro, A., Bartunov, S., Botvinick, M., Wierstra, D., and Lillicrap, T.
+\newblock Meta-learning with memory-augmented neural networks.
+\newblock In Balcan, M.~F. and Weinberger, K.~Q. (eds.), \emph{Proceedings of
+  The 33rd International Conference on Machine Learning}, volume~48 of
+  \emph{Proceedings of Machine Learning Research}, pp.\  1842--1850, New York,
+  New York, USA, 20--22 Jun 2016. PMLR.
+\newblock URL \url{http://proceedings.mlr.press/v48/santoro16.html}.
+
+\bibitem[Tan \& Le(2019)Tan and Le]{tan19}
+Tan, M. and Le, Q.
+\newblock {E}fficient{N}et: Rethinking model scaling for convolutional neural
+  networks.
+\newblock In Chaudhuri, K. and Salakhutdinov, R. (eds.), \emph{Proceedings of
+  the 36th International Conference on Machine Learning}, volume~97 of
+  \emph{Proceedings of Machine Learning Research}, pp.\  6105--6114, Long
+  Beach, California, USA, 09--15 Jun 2019. PMLR.
+\newblock URL \url{http://proceedings.mlr.press/v97/tan19a.html}.
+
+\end{thebibliography}

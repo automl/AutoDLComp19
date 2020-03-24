@@ -13,6 +13,7 @@
 \usepackage{amsmath} 
 \usepackage{amsfonts}
 \usepackage{amssymb,bm}
+ 
 
 % hyperref makes hyperlinks in the resulting PDF.
 % If your build breaks (sometimes temporarily if a hyperlink spans a page)
@@ -130,6 +131,7 @@ with $AUC$ as the area under receiver operating characteristic curve. The final 
 %
 \begin{equation}
 ALC = \frac{1}{\log \left( 1 + \frac{T}{t_0} \right)} \int_0^T \frac{s(t)}{t+t_0} dt, \nonumber
+\label{eq:ALC}
 \end{equation} 
 %
 with $t_0=20s$. This way, the predictions of every test run at time $t$ are weighted with $\frac{1}{t+t_0}$. Because early predictions are weighted more, focus shifts from a high classification accuracy at the end of the time budget to a high accuracy as early as possible. A example of $ALC$ can be seen in Fig.~\ref{fig:learningCurveExample}. It is visible that the performance within the first $60s$ counts roughly as much as the performance within the last $600s$.
@@ -142,8 +144,6 @@ with $t_0=20s$. This way, the predictions of every test run at time $t$ are weig
 \label{fig:learningCurveExample}
 \end{figure} 
 %
-
-
 Additional limitations consider memory constraints (max. 300Mb per submission), computational constraints (NVIDIA Tesla P100 1GPU, 4vCPU, 26GB) and time constraints (AutoCV2: max. 5 hours runtime per 24 hours, max. 5 submissions per 24 hours).
 
 
@@ -213,7 +213,7 @@ YFCC100m & 521035 & 130258 & 1570 & own \\
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Video classification through transfer learning}
+\section{Image/video classification through transfer learning}
 \label{sec:tl}
 
 The approach used for the AutoCV2 challenge is described in this section. Focusing solely on video classification, the AutoCV2 challenge consists of 5 publicly available datasets that can be downloaded during the online phase, 5 disclosed datasets used for the preliminary ranking during the online phase and another 5 disclosed datasets for the final evaluation during the on-site phase. 
@@ -256,23 +256,14 @@ dataset 5 & 0.1031 & 14 \\
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Video classification through meta-learning}
+\section{Image/video classification through meta-learning}
 \label{sec:ml}
 
-The AutoCV2 challenge has shown servere limitations of the transfer learning approach using only one model, namely low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta-learning are presented in this chapter:
-%
-\begin{itemize}
-\item For the first aproach we train a neural network to measure the similarity between any new dataset and a set of known datasets using different meta-features. For every known dataset an optimized neural network with corresponding hyperparameters has been selected a priori. Then the neural network of the most similar known dataset will be used for transfer learning on the new dataset.
-\item TODO: Philipps approach comes here
-\end{itemize} 
-%
-Formally, for both approaches the video dataset to be learned is named task $t_j \in T$ and contained in the set of all known tasks. Each task is described by a meta-feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a new task (dataset) $t_{new}$, we want to specify how similar it is to prior tasks $t_j$ and derive an optimized configuration $\theta^*_{new}$ to maximize $P(\theta^*_{new}, t_{new})$.
+The AutoCV2 challenge has shown severe limitations of the transfer learning approach using only one model, namely low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta-learning are presented in this chapter. They all have in common that a classifier is trained to measure the similarity between any new dataset and a set of known datasets using meta-features. Fur every known dataset an optimized neural network has been selected a priori. Then the neural network of the most similar known dataset will be used for transfer learning on the new dataset. However, they differ on the type of meta-features and the classifier that determines the similarity of the new dataset to the set of known datasets. 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{First approach}
-\label{sec:firstapproach}
+Formally, for all presented approaches the dataset to be learned is named task $t_j \in T$ and contained in the set of all known tasks. Each task is described by a meta-feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a new task (dataset) $t_{new}$, we want to specify how similar it is to prior tasks $t_j$ and derive an optimized configuration $\theta^*_{new}$ to maximize $P(\theta^*_{new}, t_{new})$.
 
-This section describes the first approach on how meta-learning is used in combination with transfer learning to adapt quickly to new classification tasks. From a mathematical point of view we assume that an optimized configuration $\theta^*(t_j)$ is found for every task $t_j$ during an offline phase. As all tasks are represented by their meta-feature vectors $\mathbf{m}(t_j)$, we want to find the most similar task $t_{sim}$ for a new task $t_{new}$ as 
+It is assumed that an optimized configuration $\theta^*(t_j)$ is found for every task $t_j$ during the offline phase. As all tasks are represented by their meta-feature vectors $\mathbf{m}(t_j)$, we want to find the most similar task $t_{sim}$ for a new task $t_{new}$ as 
 %
 \begin{equation}
 t_{sim} = \underset{t_j \in T}{\operatorname{argmax}}  \left\|\mathbf{m}(t_{new}) - \mathbf{m}(t_j)\right\|, 
@@ -290,30 +281,28 @@ Two challenges arise from Eq.~(\ref{eq:tsim}):
 %
 Expressive meta-features are essential for distinguishing different tasks (a.k.a. datasets): If different datasets result in similar meta-feature vectors they cannot be distinguished, regardless of the used distance measure. At the same time the variation of the meta-features shall be roughly proportional to the variation of the datasets: sing e.g. a generic hash function as meta-feature leads to large variations even if two datasets are almost similar. The same applies for the distance measure: Having found good meta-features, almost identical datasets shall have only a small distance whereas dissimilar datasets shall have a large distance. 
 
-The next sections describe how both challenges are solved.
+The next sections describe how both challenges are tackled by different approaches
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Finding expressive meta-features}
+\subsection{Approach 1}
 \label{sec:expressiveMeta}
 
-Finding expressive meta-features for an entire dataset is different from finding expressive meta-features for individual samples of the dataset. Whereas one is limited in the latter case to extract meta-features from individual samples, multiple samples can be used to calculate dataset meta-features. Rather than relying on human expertise our approach automatically selects and optimizes the meta-features. This can either be achieved through explicit optimization of a given set of meta-features or the training of a regression model that automatically finds and adjusts suitable meta-features. 
-
-The specific implementation uses the output of an image classification network as meta-features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last or last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta-feature vector $\mathbf{m}(t_j)$. 
+The first class of presented approaches relies on the output of an image classification network as meta-features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last or last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta-feature vector $\mathbf{m}(t_j)$. 
 The advantage of the method is the large number of possible meta-features, i.e. the number of features/classes of the original dataset (up to several thousand) and the fully automated classification. In addition, the network generating the vector $\mathbf{m}(t_j)$ can be trained offline and then kept frozen. A possible disadvantage is the expressiveness of the meta-features if new datasets contain classes that are orthogonal to the trained ones.
 
+Different classifiers are used to find a reasonable distance metric based on the output of the image classification network, see Fig.(TODO). By assigning an individual label to every dataset (note that every dataset represents a class), the distance measure is learned implicitly.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Finding a reasonable distance measure}
-\label{sec:expressiveDist}
+The first approach (which also serves as baseline for the experiments) relies on k-means clustering to specify the most similar dataset for every sample of the new dataset. It also uses majority voting for more reliable predictions based on multiple samples (i.e. batch sizes > 1).
 
-A neural network has been chosen to find a reasonable distance measure. The meta-feature vector $\mathbf{m}(t_j)$ from the previous section is fed into a \textbf{fingerprint network} and trained on assigning an individual label to every dataset (note that every dataset represents a class). Thus the distance measure is learned only implicitly.
+The second approach is based upon a two-layer perceptron with a Swish activation function and dropout. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less noisy.
 
+The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta-features, the output of the precalculation layer is a vector with length $m \cdot f$. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Experiments}
 \label{sec:expressiveMeta}
 
-BOHB is used to find optimized configurations $\theta^*(t_j)$ for the different training datasets $t_j$. Every configuration consists of a pretrained network (either trained on ImageNet or CIFAR-100) and the following hyperparameters (if applicable):
+BOHB is used for the a priori calculation of optimized configurations $\theta^*(t_j)$ for the different training datasets $t_j$. Every configuration consists of a pretrained network (either trained on ImageNet or CIFAR-100) and the following hyperparameters (if applicable):
 %
 \begin{itemize}
 \item Optimizer: ADAM or SGD (with Nesterov momentum 0.9 and weight decay 1e-6)
@@ -340,21 +329,58 @@ An overview of the used datasets and models is given in Fig.~\ref{fig:dataset_re
 \label{fig:rank_results}
 \end{figure} 
 %
+In addition, multiple optimization runs find an optimal meta-feature vector and a reasonable distance measure while keeping the configuration space $\Theta$ small: Being reasonably small and fast, a ResNet18 network pretrained on ImageNet serves as basis to generate the meta-feature vector $\mathbf{m}(t_j)$. However, using the output of the second last layer yields consistently better results than the last output and is therefore chosen.
 
-In addition, multiple optimization runs are used to find an optimal meta-feature vector and a reasonable distance measure while keeping the configuration space $\Theta$ small: Being reasonably small and fast, a ResNet18 network pretrained on ImageNet serves as basis to generate the meta-feature vector $\mathbf{m}(t_j)$. 
-The output of the second-last ResNet18 layer is fed to a transformation layer, followed by the fingerprint network. 
-Within the transformation layer, different p-quantile measures (mean, median, standard deviation, variance, skewness, kurtosis) are calculated individually for every feature of the batch and fed to the fingerprint network, consisting of a single FC layer. One-hot-encoding is used to train the different datasets. This way, every processed batch results in a single classification vector.
+The following parameters have been optimized with BOHB for the different approaches: 
 
-Using this architecture, an optimal configuration for the following parameters is found using BOHB:
+First approach (KMeans):
+\begin{itemize}
+\item Number of clusters: 5 - 40
+\item Number of different initializations: 10 - 30
+\item Maximum number of iterations per run: 100 - 500
+\end{itemize}
+
+Second approach (MLP with maj. vote):
+\begin{itemize}
+\item Train batch size: 1/2/4/8/16/32/64/128/256/512/1024
+\item Neurons per layer: 16/32/64/128/256/512/1024
+\item Learning rate: 1e-5 - 1e-2
+\item Dropout rate: 0 - 0.8
+\end{itemize}
+
+Third approach (MLP with precalculation):
 %
 \begin{itemize}
 \item Train batch size: 1/2/4/8/16/32/64/128/256/512/1024
-\item Test batch size: 4/8/16/32/64/128/256/512/1024
-\item Learning rate: 1e-5 - 1e-3
+\item Neurons per layer: 16/32/64/128/256/512/1024
+\item Learning rate: 1e-5 - 1e-2
+\item Dropout rate: 0 - 0.8
 \item p-quantile: 0 - 0.4
 \item (Do not) use mean, median, standard deviation, variance, skewness, kurtosis
 \end{itemize}
 %
+
+Final results of the different approaches are shown in Fig.~(TODO): For every test data. Every plot shows the ALC according to Eq.  
+\begin{figure}[!ht]
+   \begin{minipage}{\linewidth}
+   \centering
+   \includegraphics[width=.45\linewidth]{../figures/Chucky.eps}
+   \includegraphics[width=.45\linewidth]{../figures/Decal.eps}\\
+	 \includegraphics[width=.45\linewidth]{../figures/Hammer.eps}
+   \includegraphics[width=.45\linewidth]{../figures/Munster.eps}\\
+	 \includegraphics[width=.45\linewidth]{../figures/Pedro.eps}
+   \includegraphics[width=.45\linewidth]{../figures/Kraut.eps}\\
+   \includegraphics[width=.45\linewidth]{../figures/Katze.eps}
+   \includegraphics[width=.45\linewidth]{../figures/Kreatur.eps}
+   \caption{TODO}
+   \label{fig:results}
+	 \end{minipage}
+\end{figure}
+
+
+
+Having found optimal configuration
+
 Choosing an optimal test batch size is crucial during runtime. When being too small, not enough samples are used to calculate the mean, median, etc. Thus the classification accuracy decreases. When being too large, more samples than necessary are processed. This leads to computational overhead. Fig.~ shows the classification accuracy of the fingerprint network of all the datasets in Fig.~\ref{fig:dataset_results}. For every fixed test batch size 100 BOHB runs were performed. It is visible that the classification accuracy increases until a test batch size of 512 after which it decreases again. For the final experiments a test batch size of 32 or 64 seems to be a good compromise between speed and accuracy. 
 %
 \begin{figure}[htb]
