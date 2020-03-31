@@ -20,6 +20,8 @@
 % please comment out the following usepackage line and replace
 % \usepackage{icml2018} with \usepackage[nohyperref]{icml2018} above.
 \usepackage{hyperref}
+\usepackage{breakurl}
+\hypersetup{breaklinks=true} % set automatically by hyperref?
 
 % Attempt to make hyperref and algorithmic work together better:
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
@@ -195,8 +197,8 @@ Pedro & 80095 & 19905 & 26 & AutoDL\\
 video dataset name & train samples & test samples & classes & source \\
 \hline
 Katze & 1528 & 863 & 6 & AutoDL \\
-Kreatur & 1528 & 863 & 6 & AutoDL \\ 
-Kraut & & & & AutoDL \\
+Kreatur & 1528 & 863 & 4 & AutoDL \\ 
+Kraut & 1528 & 863 & 4 & AutoDL \\
 EPIC-Kitchens & 24699 & 3773 & 125*331 & inet \\
 HMDB51 & 3570 & 500 & 51 & inet \\ 
 JHMDB21 & 658 & 270 & 21 & inet \\
@@ -298,6 +300,18 @@ The second approach is based upon a two-layer perceptron (MLP) with a Swish acti
 
 The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta-features, the output of the precalculation layer is a vector with length $m \cdot f$. 
 
+A visual overview of the different approaches together with typical implementations is given in Fig.~\ref{fig:approach1}. Here, a ResNet18 is used as image classification network. It also shows the output dimensions of the different components for a batch size of 128, an input image size of 96x96 pixels with three channels, a 512-dimensional ResNet18 output (the second-last layer), the use of five modes (e.g. mean, standard deviation, variance, skewness, kurtosis) resulting in the 2560-dimensonal (512x5) output of the precalculation layer and 20 datasets to be distinguished.
+
+%
+\begin{figure}[htb]
+\begin{center}
+ 	\includegraphics[width=0.8\linewidth]{../figures/approach1.eps} 
+\end{center}
+\caption{Overview of the different approaches based on an image classification network with typical implementation parameters}
+\label{fig:approach1}
+\end{figure} 
+%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Approach 2}
 \label{sec:approach2}
@@ -378,7 +392,7 @@ Third approach (MLP with precalculation):
    \includegraphics[width=.45\linewidth]{../figures/Kraut.eps}\\
    \includegraphics[width=.45\linewidth]{../figures/Katze.eps}
    \includegraphics[width=.45\linewidth]{../figures/Kreatur.eps}
-   \caption{Final classification results for the }
+   \caption{Final classification results}
    \label{fig:results}
 	 \end{minipage}
 \end{figure}
@@ -409,9 +423,13 @@ Choosing an optimal test batch size is crucial during test time. When being too 
 
 TODO
 
-
-
 The used HDDs of the computing cluster constituted a main bottleneck during calculation and led to a huge variance in execution speed - sometimes up to a factor of 10. In combination with a measure based on accuracy over time, reproducible results became virtually impossible. Thus the workaround with the lookup table was chosen. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary and Outlook}
+\label{sec:summary}
+
+TODO
 
 \bibliography{../bib/autodl}
 \bibliographystyle{icml2018}
