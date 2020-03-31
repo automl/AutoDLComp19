@@ -156,7 +156,7 @@ def execute_run(cfg, budget):
     time_for_test = num_examples_test / ts[0][2]
     for t in ts:
         t_cur = M.train(D_train.get_dataset(), desired_batches=int(t[1]))
-        t_list.append(t[1] + time_for_test)
+        t_list.append(t[0] + time_for_test)
         prediction = M.test(D_test.get_dataset())
 
         if prediction is None:  # Stop train/predict process if Y_pred is None
@@ -245,4 +245,3 @@ if __name__ == "__main__":
     else:                       # serial processing
         for dataset in datasets:
             compute_and_log(dataset, best_datasets)
-
