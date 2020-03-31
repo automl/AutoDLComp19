@@ -260,8 +260,8 @@ if __name__ == "__main__":
                'horses_or_humans', 'kmnist', 'mnist', 'omniglot',                              # 4
                'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',# 4
                'smallnorb', 'stanford_dogs', 'svhn_cropped', 'tf_flowers', 'uc_merced',        # 5
-               'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
-               'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
+               'Chucky', 'Decal', 'Hammer',  'Katze', 'Kraut', 'Kreatur', 'Munster', 'Pedro']  # 8
+            # without 'Hmdb51', 'miniciao', 'SMv2', 'Ucf101', 'Monkeys',
     models = ['squeezenet_32', 'squeezenet_64', 'squeezenet_128', 'squeezenet_224',
               'shufflenet05_32','shufflenet05_64', 'shufflenet05_128', 'shufflenet05_224',
               'shufflenet10_32', 'shufflenet10_64', 'shufflenet10_128', 'shufflenet10_224',
