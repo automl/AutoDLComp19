@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.getcwd(), 'AutoDL_ingestion_program'))
 sys.path.append(os.path.join(os.getcwd(), 'AutoDL_scoring_program'))
 
 #def load_log_names
-LOG_FOLDER = '/home/dingsda/logs/bohb_logs_new'
+LOG_FOLDER = '/home/dingsda/logs/bohb_logs_newer/'
 SAVE_FOLDER = os.path.join(os.getcwd(), 'common', 'files')
 EXCLUDE_DATASETS = {'Chucky', 'Decal', 'Munster', 'Pedro', 'Hammer', 'Katze', 'Kreatur', 'Kraut'}
 OPTIM_PORTFOLIO_SIZE = 3
@@ -68,6 +68,11 @@ def find_complete_datasets():
             print('Manually excluded dataset "' + dataset + '" from further analysis')
         else:
             complete_dataset_set.add(dataset)
+
+    print('-------------')
+    print('Complete datasets: ')
+    for elem in complete_dataset_set:
+        print(elem)
 
     return complete_dataset_set
 
@@ -127,9 +132,9 @@ def find_best_configs(result_dict):
         v.sort(key=lambda tup: tup[1], reverse=True)
         best_config_dict[k] = v[0]
 
-        print(v[0])
-        for elem in v:
-            print(elem[1])
+        # print(v[0])
+        # for elem in v:
+        #     print(elem[1])
 
     return best_config_dict
 
@@ -246,7 +251,6 @@ def store_model_portfolio(result_dict, best_models):
 
 
 def optimize_model_portfolio(result_dict):
-    print(result_dict)
     _, all_model_set = get_all_datasets_and_models()
     nb_dataset = len(result_dict)
     nb_model = len(all_model_set)
@@ -263,9 +267,6 @@ def optimize_model_portfolio(result_dict):
     best_perf = calculate_portfolio_performance(best_pf, data, OPTIM_MODE)
 
     for rs in range(OPTIM_RESTARTS):
-        if rs % 100 == 0:
-            print(rs)
-
         # initialize model portfolio
         pf = np.random.randint(nb_model, size=OPTIM_PORTFOLIO_SIZE)
         perf = calculate_portfolio_performance(pf, data, OPTIM_MODE)
@@ -289,12 +290,14 @@ def optimize_model_portfolio(result_dict):
             best_perf = perf
 
     best_pf = np.sort(best_pf)
-    print(best_pf)
-    print(best_perf)
-    print(calculate_portfolio_performance(best_pf, data, 'avg'))
-    print(calculate_portfolio_performance(best_pf, data, 'min'))
+
     best_models = [list(sorted(all_model_set))[i] for i in best_pf]
-    print(best_models)
+
+    # print(best_pf)
+    # print(best_perf)
+    # print(calculate_portfolio_performance(best_pf, data, 'avg'))
+    # print(calculate_portfolio_performance(best_pf, data, 'min'))
+    # print(best_models)
 
     return best_models
 
@@ -339,9 +342,9 @@ if __name__ == "__main__":
     best_config_dict = find_best_configs(result_dict)
     model_rank_dict, model_loss_dict = rank_result(result_dict)
     best_models = optimize_model_portfolio(result_dict)
-    #plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
-    #plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
-    #plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
+    plot_dataset_results(result_dict, xlabel='accuracy', ylabel='datasets')
+    plot_rank_result(model_dict=model_rank_dict, xlabel='relative rank', ylabel='models', invert=False)
+    plot_rank_result(model_dict=model_loss_dict, xlabel='accuracy', ylabel='models', invert=True)
     plot_model_portfolio_performance()
 
     save_dict(result_dict, 'result_dict.json')

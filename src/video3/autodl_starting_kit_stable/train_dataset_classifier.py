@@ -103,7 +103,6 @@ def get_configspace():
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_skew', choices=[False, True]))
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='use_kurt', choices=[False, True]))
     cs.add_hyperparameter(CSH.UniformFloatHyperparameter(name='cut_perc', lower=0, upper=0.4, log=False))
-
     cs.add_hyperparameter(CSH.CategoricalHyperparameter(name='shuffle_data', choices=[True, False]))
 
     return cs
@@ -138,7 +137,7 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
     # for final evaluation
     cfg['final_evaluated_config_dir'] = '/home/dingsda/logs/evaluated_configs'
     if log_subfolder is not None:
-        cfg['bohb_log_dir'] = os.path.join('/home/dingsda/logs/dl_logs_new', log_subfolder)
+        cfg['bohb_log_dir'] = os.path.join('/home/dingsda/logs/dl_logs_newer', log_subfolder)
 
     cfg["use_model"] = 'dl'    # xgb, dl, dl2 or cluster
 
@@ -186,10 +185,10 @@ def get_configuration(log_subfolder=None, test_batch_size=32):
     # without 'Munster', 'Kraut', 'Chucky', 'Decal', 'Hammer', 'Katze', 'Kreatur', 'Pedro', 'Hmdb51', 'Ucf101', 'SMv2', 'oxford_flowers102', 'emnist', 'caltech_birds2011',
 
     train_datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010',
-                      'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100',
+                      'cifar10', 'cifar100', 'coil100',
                       'colorectal_histology', 'deep_weeds', 'eurosat',
                       'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist',
-                      'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',
+                      'oxford_iiit_pet', 'oxford_flowers102', 'patch_camelyon', 'rock_paper_scissors',
                       'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced']
     test_datasets = ['Chucky', 'Decal', 'Hammer', 'Munster', 'Pedro', 'Kraut', 'Katze', 'Kreatur']
     cfg["train_datasets"] = train_datasets
@@ -568,22 +567,34 @@ class WrapperOptimizer(object):
     def __init__(self, config_id, model, cfg):
         super().__init__()
 
-        self.filename = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_optimizer' + '.pt'
+        self.filename_optimizer = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_optimizer' + '.pt'
+        self.filename_scheduler = cfg["bohb_log_dir"] + '/' + str(config_id[0]) + '_' + str(config_id[1]) + '_' + str(config_id[2]) + '_scheduler' + '.pt'
 
-        self.optimizer =  torch.optim.Adam(model.parameters(),
+        self.optimizer = torch.optim.Adam(model.parameters(),
                                            cfg['nn_lr'])
 
-        if os.path.isfile(self.filename):
-            self.optimizer.load_state_dict(torch.load(self.filename))
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
+                                                                    T_max=cfg["bohb_max_budget"]/10,
+                                                                    eta_min=cfg['nn_lr']/4,
+                                                                    last_epoch=-1)
+
+        if os.path.isfile(self.filename_optimizer):
+            self.optimizer.load_state_dict(torch.load(self.filename_optimizer))
+        if os.path.isfile(self.filename_scheduler):
+            self.scheduler.load_state_dict(torch.load(self.filename_scheduler))
 
     def zero_grad(self):
         self.optimizer.zero_grad()
 
-    def step(self):
+    def optimizer_step(self):
         self.optimizer.step()
 
+    def scheduler_step(self):
+        self.scheduler.step()
+
     def save(self):
-        torch.save(self.optimizer.state_dict(), self.filename)
+        torch.save(self.optimizer.state_dict(), self.filename_optimizer)
+        torch.save(self.optimizer.state_dict(), self.filename_scheduler)
 
 
 def calc_accuracy(prediction, class_index):
@@ -1166,7 +1177,8 @@ class Model_dl(object):
                 loss = self.criterion(output, labels)
                 #print('LOSS: ' + str(loss))
                 loss.backward()
-                self.optimizer.step()
+                self.optimizer.optimizer_step()
+                self.optimizer.scheduler_step()
 
                 loss_list.append(loss.cpu().detach().numpy())
 
@@ -1213,10 +1225,14 @@ class Model_dl2(object):
         self.optimizer = torch.optim.Adam(self.model.parameters(), cfg['nn_lr'])
         self.X = []
         self.y = []
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
-                                            step_size=1, 
-                                            gamma=cfg['gamma'],
-                                            last_epoch=-1)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
+                                                                    T_max=cfg["bohb_max_budget"]/10,
+                                                                    eta_min=0,
+                                                                    last_epoch=-1)
+        # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
+        #                                     step_size=1,
+        #                                     gamma=cfg['gamma'],
+        #                                     last_epoch=-1)
 
     def collect_samples_train(self, dataset, class_index, desired_batches):
         dataloader = torch.utils.data.DataLoader(
@@ -2034,7 +2050,7 @@ def evaluate_dl_on_datasets():
 
 if __name__ == "__main__":
     # Run bohb paralell
-    if False:
+    if True:
         if len(sys.argv) > 1:
             for arg in sys.argv[1:]:
                 print(arg)
@@ -2046,7 +2062,7 @@ if __name__ == "__main__":
                 cfg = get_configuration(str(test_batch_size), test_batch_size)
                 res = runBohbSerial(cfg)
 
-    elif True:
+    elif False:
         res = evaluate_dl_on_datasets()
 
     elif False:
