@@ -1,9 +1,0 @@
-This is BibTeX, Version 0.99dThe top-level auxiliary file: autodl.aux
-The style file: icml2018.bst
-Database file #1: ../bib/autodl.bib
-A bad cross reference---entry "han18"
-refers to entry "DBLP:conf/eccv/2018-7", which doesn't exist
-Warning--I didn't find a database entry for "kakaobrain"
-Warning--I didn't find a database entry for "DBLP:conf/eccv/2018-7"
-Warning--empty journal in han15
-(There was 1 error message)
