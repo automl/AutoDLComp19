@@ -71,7 +71,7 @@ def find_complete_datasets():
 
     print('-------------')
     print('Complete datasets: ')
-    for elem in complete_dataset_set:
+    for elem in sorted(complete_dataset_set):
         print(elem)
 
     return complete_dataset_set

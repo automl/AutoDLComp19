@@ -220,14 +220,19 @@ def compute_and_log(dataset, best_datasets):
 
 if __name__ == "__main__":
     datasets = ['Chucky', 'Decal', 'Hammer', 'Katze', 'Kraut', 'Kreatur', 'Munster', 'Pedro']
-    best_datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',  # 4
-                     'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100', 'colorectal_histology',       # 5
-                     'deep_weeds', 'emnist', 'eurosat', 'fashion_mnist',                             # 4
-                     'horses_or_humans', 'kmnist', 'mnist',                                          # 3
-                     'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',# 4
-                     'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',                         # 4
-                     'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
-                     'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
+    best_datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',
+                     'cifar10', 'cifar100', 'coil100', 'colorectal_histology', 'deep_weeds', 'eurosat',
+                     'fashion_mnist', 'horses_or_humans', 'kmnist', 'mnist', 'oxford_flowers102',
+                     'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors', 'smallnorb',
+                     'svhn_cropped', 'tf_flowers', 'uc_merced']
+    # best_datasets = ['binary_alpha_digits', 'caltech101', 'caltech_birds2010', 'caltech_birds2011',  # 4
+    #                  'cats_vs_dogs', 'cifar10', 'cifar100', 'coil100', 'colorectal_histology',       # 5
+    #                  'deep_weeds', 'emnist', 'eurosat', 'fashion_mnist',                             # 4
+    #                  'horses_or_humans', 'kmnist', 'mnist',                                          # 3
+    #                  'oxford_flowers102', 'oxford_iiit_pet', 'patch_camelyon', 'rock_paper_scissors',# 4
+    #                  'smallnorb', 'svhn_cropped', 'tf_flowers', 'uc_merced',                         # 4
+    #                  'Chucky', 'Decal', 'Hammer', 'Hmdb51', 'Katze', 'Kraut', 'Kreatur', 'miniciao', # 8
+    #                  'Monkeys', 'Munster', 'Pedro', 'SMv2', 'Ucf101']                                # 5
 
     if len(sys.argv) == 3:      # parallel processing
         for arg in sys.argv[1:]:
@@ -240,7 +245,6 @@ if __name__ == "__main__":
                 continue
 
             compute_and_log(dataset, best_datasets)
-
 
     else:                       # serial processing
         for dataset in datasets:
