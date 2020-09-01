@@ -27,10 +27,10 @@
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
 % Use the following line for the initial blind version submitted for review:
-\usepackage{icml2018}
+% \usepackage{icml2018}
 
 % If accepted, instead use the following line for the camera-ready submission:
-%\usepackage[accepted]{icml2018}
+\usepackage[accepted]{icml2018}
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
@@ -58,9 +58,9 @@
 \icmlsetsymbol{equal}{*}
 
 \begin{icmlauthorlist}
+\icmlauthor{Philipp Jankov}{equal,fr}
 \icmlauthor{Christopher Krolla}{equal,fr}
 \icmlauthor{Thomas Nierhoff}{equal,fr}
-\icmlauthor{Philipp Yankov}{equal,fr}
 \end{icmlauthorlist}
 
 \icmlaffiliation{fr}{University of Freiburg, Freiburg, Germany}
@@ -175,7 +175,9 @@ DeepWeeds & 16520 & 989 & 5 & tfds \\
 EuroSAT & 25976 & 1024 & 10 & tfds \\
 EMNIST & 697932 & 116323 & 62 & tfds \\
 Fashion-MNIST & 60000 & 10000 & 10 & tfds \\
+Food-101 & 75750 & 25250 & 101 & tfds \\
 Horses or Humans & 1027 & 256 & 2 & tfds \\
+ImageNet &  1281167  & 100000 & 1000 & tfds \\
 KMNIST & 60000 & 10000 & 10 & tfds \\
 MNIST & 60000 & 10000 & 10 & tfds \\
 Oxford-102 Flower & 1020 & 6149 & 102 & tfds \\
@@ -260,27 +262,27 @@ dataset 5 & 0.1031 & 14 \\
 \section{Image/video classification through meta-learning}
 \label{sec:ml}
 
-The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta-learning are presented in this chapter. They all have in common that a classifier (from now an called meta-classifier) is trained to measure the similarity between any new dataset and a set of known datasets using meta-features. Fur every known dataset an optimized neural network has been selected a priori. Then the neural network of the most similar known dataset will be used for transfer learning on the new dataset. However, they differ on the type of meta-features and the classifier that determines the similarity of the new dataset to the set of known datasets. The approaches belong to the larger class of non-parametric meta-learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that we want to distinguish datasets and not samples of different classes within one dataset.
+The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta-learning are presented in this chapter. They all have in common that a classifier (from now an called meta-classifier) is trained to measure the similarity between any new dataset (i.e. test dataset) and a set of known datasets (training datasets) using meta-features. Fur every training dataset an optimized neural network has been selected a priori. Then the neural network of the most similar training dataset will be used for transfer learning on the test dataset. However, they differ on the type of meta-features and the classifier that determines the similarity of the test dataset to the set of training datasets. The approaches belong to the larger class of non-parametric meta-learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that our principal goal is to distinguish datasets and not samples of different classes within one dataset. To describe our approach formally, we follow mostly the notation in \cite{hutter19}, chapter 2. As we are solely interested in dataset classification, every task in \cite{hutter19} refers to a dataset classification problem:
 
-Formally, for all presented approaches the dataset to be learned is named task $t_j \in T$ and contained in the set of all known tasks. Each task is described by a meta-feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a new task (dataset) $t_{new}$, we want to specify how similar it is to prior (training) tasks $t_j$ and derive an optimized configuration $\theta^*_{new}$ to maximize $P(\theta^*_{new}, t_{new})$.
+For all presented approaches the dataset to be learned is named $t_j \in T$ and contained in the set of all training datasets. Each dataset is described by a meta-feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a test dataset $t_{test}$, we want to specify how similar it is to the training datasets $t_j$ and derive an optimized configuration $\theta^*_{test}$ to maximize $P(\theta^*_{test}, t_{test})$.
 
-It is assumed that an optimized configuration $\theta^*(t_j)$ is found for every task $t_j$ during the offline phase. As all tasks are represented by their meta-feature vectors $\mathbf{m}(t_j)$, we want to find the most similar task $t_{sim}$ for a new task $t_{new}$ as 
+It is assumed that an optimized configuration $\theta^*(t_j)$ is found for every training dataset $t_j$ during the offline phase. As all datasets are represented by their meta-feature vectors $\mathbf{m}(t_j)$, we want to find the most similar dataset $t_{sim}$ for a test dataset $t_{test}$ as 
 %
 \begin{equation}
-t_{sim} = \underset{t_j \in T}{\operatorname{argmax}}  \left\|\mathbf{m}(t_{new}) - \mathbf{m}(t_j)\right\|, 
+t_{sim} = \underset{t_j \in T}{\operatorname{argmax}}  \left\|\mathbf{m}(t_{test}) - \mathbf{m}(t_j)\right\|, 
 \label{eq:tsim}
 \end{equation}
 %
-and then use the configuration $\theta^*(t_{sim})$ for $t_{new}$. 
+and then use the configuration $\theta^*(t_{sim})$ for $t_{test}$. 
 
 Two challenges arise from Eq.~(\ref{eq:tsim}):
 %
 \begin{itemize}
-\item Finding expressive meta-features $\mathbf{m}(t_j)$ for every task
+\item Finding expressive meta-features $\mathbf{m}(t_j)$ for every dataset
 \item Finding a reasonable distance measure $\left\| \cdot \right\|$ 
 \end{itemize} 
 %
-Expressive meta-features are essential for distinguishing different tasks (a.k.a. datasets): If different datasets result in similar meta-feature vectors they cannot be distinguished, regardless of the used distance measure. At the same time the variation of the meta-features shall be roughly proportional to the variation of the datasets: An intuitive counterexample is the use of a generic hash function as meta-feature, which leads to large variations even if two datasets are almost similar. The same applies for the distance measure: Having found good meta-features, almost identical datasets shall have only a small distance whereas dissimilar datasets shall result in a large distance. 
+Expressive meta-features are essential for distinguishing different datasets: If different datasets result in similar meta-feature vectors they cannot be distinguished, regardless of the used distance measure. At the same time the variation of the meta-features shall be roughly proportional to the variation of the datasets: An intuitive counterexample is the use of a generic hash function as meta-feature, which leads to large variations even if two datasets are almost similar. The same applies for the distance measure: Having found good meta-features, almost identical datasets shall have only a small distance whereas dissimilar datasets shall result in a large distance. 
 
 The next sections describe how both challenges are tackled by different approaches.
 
@@ -288,14 +290,14 @@ The next sections describe how both challenges are tackled by different approach
 \subsection{Approach 1}
 \label{sec:approach1}
 
-The first class of presented meta-classifers relies on the output of an image classification network as meta-features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last/last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta-feature vector $\mathbf{m}(t_j)$. 
-The advantage of the method is the large number of possible meta-features, i.e. the number of features/classes of the original dataset ($>1e3$) and the fully automated classification. In addition, the network generating the vector $\mathbf{m}(t_j)$ can be trained offline and then kept frozen. A possible disadvantage is the expressiveness of the meta-features if new datasets contain classes that are orthogonal to the trained ones.
+The first class of presented meta-classifers relies on the output of an image classification network as meta-features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last or last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta-feature vector $\mathbf{m}(t_j)$. 
+%The advantage of the method is the large number of possible meta-features, i.e. the number of features/classes of the original dataset ($>1e3$) and the fully automated classification. In addition, the network generating the vector $\mathbf{m}(t_j)$ can be trained offline and then kept frozen. A possible disadvantage is the expressiveness of the meta-features if new datasets contain classes that are orthogonal to the trained ones.
 
 Different classifiers are used to find a reasonable distance metric based on the output of the image classification network, see Fig.~\ref{fig:approach1}. By assigning an individual label to every dataset (note that every dataset represents a class), the distance measure is learned implicitly.
 
 The first approach (which also serves as baseline for the experiments) relies on k-means clustering to specify the most similar dataset for every sample of the new dataset. It also uses majority voting for more reliable predictions based on multiple samples (i.e. batch sizes $> 1$).
 
-The second approach is based upon a two-layer perceptron (MLP) with a Swish activation function and dropout. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less susceptible to outliers.
+The second approach is based upon a multi-layer perceptron (MLP) with two layers, a Swish activation function and dropout. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less susceptible to outliers.
 
 The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta-features, the output of the precalculation layer is a vector with length $m \cdot f$. 
 
@@ -315,8 +317,26 @@ A visual overview of the different approaches together with typical implementati
 \subsection{Approach 2}
 \label{sec:approach2}
 
-TODO: Philipp's approach
+The second approach uses the latent space of a variational autoencoder (VAE) as meta-features. By pretraining the VAE on a large variety of images, similar images belonging to one dataset cluster together in latent space whereas dissimilar images from different datasets have a large (Euclidean) distance in latent space. When measuring both the mean and standard deviation of a batch of images in latent space for the test dataset and batches of images of the different training datasets, a two-sampled t-test is used to determine the ``nearest'' dataset. %Note that differing from the first approach the datasets to be pretrained on can be only a subset of the training datasets: If the VAE has been trained on a large variety of images (which may be contained in a single large dataset as ImageNet), it might be capable of reconstructing images from other (training) datasets as well, even it has never been trained on them. 
 
+The VAE consists of a DenseNet 121 \cite{huang17} for the encoder and a PixelCNN++ \cite{salimans17} for the decoder. A fully connected layer maps the 196-dimensional latent space (i.e. the logits output of the DenseNet) to the 64x64x3-dimensional input of the PixelCNN++ network. Differing from the original DenseNet implementation, the first layer has been adjusted for the smaller image size to a 3x3 convolution with stride 1, no padding and no pooling after it. The VAE trained on seven different datasets (Caltech101, Colorectal Histology, DeepWeeds, EuroSAT, Food-101, ImageNet) whereas the last one has been resized to 64x64 pixel for faster calculation. These datasets have shown to yield a large variety of different images which are supposed to generalize well to other datasets.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Comparison of the two approaches}
+\label{sec:comparison}
+
+While the two approaches of chapter \ref{sec:approach1} and \ref{sec:approach2} are conceptually similar as they first learn a suitable embedding and then classify different datasets based on the information from the embedding, they have also some subtle differences:
+
+\textbf{Number of parameters}: Both approaches are very small in terms of model parameters compared to current state-of-the-art image classification networks: Whereas a Resnet18 with the subsequent MLP with precalculation has around 12M parameters, the VAE has only around 7m parameters.
+
+\textbf{Pretraining}: Both models can be pretrained well on a single dataset if it contains a large enough variety of images (e.g. ImageNet). Still, being a well-proven architecture a ResNet18 is probably even easier to train than a VAE. Moreover, there are mutliple sources with well pretrained Resnet18 models, making manual pretraining obsolete.
+
+\textbf{Adding more training datasets}: Unless the additional training datasets differ significantly from the ones used for pretraining, both the Resnet18 of the first approach and the VAE of the second approach can be kept as-is. However, the first approach requires pretraining of the MLP from scratch whenever a training dataset is added.
+
+\textbf{Dependence on training datasets during test time}: Because the first approach encodes the relation between different training datasets in the MLP, it requires only test data during test time. On the contrary, the second approach compares a batch from the test dataset with batches from all training datasets during test time using a two-sample t-test. Thus it needs access to the entire training datasets or at least the latent representation (mean and standard deviation) of a few selected batches of every training dataset during test time. 
+
+\textbf{Dataset class classification}: Whereas the first approach is restricted to dataset classification, the second approach also allows for a more fine-grained classification: By comparing a batch of the test dataset to batches sampled from the same class of a training dataset, one can find not only the most similar dataset but also the most similar class of a dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Experiments}
@@ -420,7 +440,7 @@ Choosing an optimal test batch size is crucial during test time. When being too 
 \section{Discussion}
 \label{sec:discussion}
 
-TODO
+
 
 The used HDDs of the computing cluster constituted a main bottleneck during calculation and led to a huge variance in execution speed - sometimes up to a factor of 10. In combination with a measure based on accuracy over time, reproducible results became virtually impossible. Thus the workaround with the lookup table was chosen. 
 
@@ -428,7 +448,8 @@ The used HDDs of the computing cluster constituted a main bottleneck during calc
 \section{Summary and Outlook}
 \label{sec:summary}
 
-TODO
+This 
+
 
 \bibliography{../bib/autodl}
 \bibliographystyle{icml2018}
