@@ -39,8 +39,7 @@
 \begin{document}
 
 \twocolumn[
-\icmltitle{Submission and Formatting Instructions for \\
-           International Conference on Machine Learning (ICML 2018)}
+\icmltitle{The AutoCV2 challenge}
 
 % It is OKAY to include author information, even for blind
 % submissions: the style file will automatically remove it for you
@@ -90,7 +89,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-Abstract
+This documentation summarizes the progress of the automl{\textunderscore}freiburg video team on the AutoDL $2019-2020$ challenge. Two methods are presented: The first method relies on transfer learning of a single, pretrained video classification network which is fine tuned during the challenge. As this approach has shown several limitations if the test datasets vary too much, a more elaborate method based on meta learning is developed: Multiple classification networks are evaluated on different training datasets a priori and the incumbent for every dataset is stored in a lookup table. During test time, the similarity between the test dataset and all training datasets is measured and the incumbent of the most similar training dataset is used for training/evaluation on the test dataset. Thus focus shifts from finding a single state-of-the-art video classification network working well on a variety of different datasets to measuring the similarity between two datasets and selecting the one that is most similar - the latter being much easier to implement for anyone who is not an expert in video classification. The first method has been submitted and evaluated on the AutoCV2 challenge and resulted in a mediocre score. Four different approaches are presented and evaluated for the second method, resulting in scores on par with the best performing image and video classification team.
 \end{abstract}
 
 
@@ -104,22 +103,17 @@ A open question is how to deal with computational limitations and generic datase
 
 To reduce the model size (and thus implicitly also execution time, storage capacity and computational resources), one can remove the most ``unimportant'' parts of a neural network and/or quantize it, resulting in a compression of the neural network The selection of the nodes/layers to be pruned can either be specified manually or derived automatically through reinforcement learning~\cite{han15,han18}. A second option is knowledge distillation where a smaller student``network'' is trained to produce outputs similar to a previously trained larger ``teacher'' network~\cite{hinton15,phuong19}. By using the logits output instead of the softmax output, much more information is preserved in every training step. Thus training the student network can be achieved with way less samples. For both approaches there is only a negligible decrease in classification accuracy while the compression rate can be huge (up to a factor of 496x for certain layers of a neural network ~\cite{reagan18}). Another more straightforward method is to search directly for smaller/faster models. This can be either done manually (e.g.~\cite{howard17}) or through neural architecture search~\cite{elsken18}. Note that the last approach can output networks that are state of the art with respect to model size, speed and classification accuracy~\cite{tan19}.
 
-Other techniques are used if the time budget for training is tight or the dataset to be trained on is not known a priori. They all have in common that a network is pretrained on one or more datasets beforehand and information from pretraining is subsequently used for the final training step. One technique is transfer learning~\cite{pan10}. Here the common use case consists of pretraining a network on a given dataset to initialize the network weights with reasonable values. If a new dataset is similar enough, only parts of the network must be trained again. In addition, the new dataset can be rather small as less optimization steps are required (the network is not trained from scratch). Another option is meta-learning or learning to learn~\cite{santoro16,hutter19}: By learning multiple models for multiple tasks (or more specific: datasets) beforehand, it is quite likely that a new task will be similar to a previously learned task. In this case, knowledge gained from the previous task can be reused, thus accelerating the learning progress. The challenge with meta-learning is a proper selection of the meta-features to be extracted as their predictive capabilities vary heavily~\cite{bilalli17}. One predominant meta-learning approach at the moment is MAML \cite{finn17}, optimizing a model not for classification accuracy but specifically for generalization performance. 
+Other techniques are used if the time budget for training is tight or the dataset to be trained on is not known a priori. They all have in common that a network is pretrained on one or more datasets beforehand and information from pretraining is subsequently used for the final training step. One technique is transfer learning~\cite{pan10}. Here the common use case consists of pretraining a network on a given dataset to initialize the network weights with reasonable values. If a new dataset is similar enough, only parts of the network must be trained again. In addition, the new dataset can be rather small as less optimization steps are required (the network is not trained from scratch). Another option is meta learning or learning to learn~\cite{santoro16,hutter19}: By learning multiple models for multiple tasks (or more specific: datasets) beforehand, it is quite likely that a new task will be similar to a previously learned task. In this case, knowledge gained from the previous task can be reused, thus accelerating the learning progress. The challenge with meta learning is a proper selection of the meta features to be extracted as their predictive capabilities vary heavily~\cite{bilalli17}. One predominant meta learning approach at the moment is MAML \cite{finn17}, optimizing a model not for classification accuracy but specifically for generalization performance. 
 
 The AutoDL challenge contains both aspects, tight computational limitations (both time- and resource-wise) and generic datasets. As such it provides an ideal testbed for advanced approaches in order to find data-savvy and time-efficient algorithms. Because the datasets are undisclosed, the options for manual tweaking are limited. Instead of highly specific solutions tied to a specific environment one is thus seeking for a fast yet robust approach. This makes the challenge different from ``traditional'' benchmarks like ImageNet classification where computing power is solely limited by the budget of the chair/institute and the dataset is known beforehand.
 
-The remainder of the paper is organized as follows: Sec.~\ref{sec:problem} describes the general problem from a more mathematical point of view. Sec.~TODO provide general background information about the AutoDL challenge, the used datasets and initial approaches for the AutoDL video competition. As focus shifted after the video competition, Sec.~TODO illustrates two more elaborate approaches for video and image classification that can be used for the final AutoDL challenge. 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Problem formulation}
-\label{sec:problem}
-
+The remainder of the paper is organized as follows: Section~\ref{sec:autodl} and section~\ref{sec:datasets} provide general background information about the AutoDL challenge and an overview of the used datasets. A first method used during the AutoCV2 video challenge is presented in section~\ref{sec:tl}. As focus shifted after the video challenge, section~\ref{sec:ml} illustrates two more elaborate approaches for video and image classification that can be used for the final AutoDL challenge. The documentation concludes with a short discussion in section~\ref{sec:discussion} and a summary with possible future directions in section~\ref{sec:summary}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{AutoDL challenge}
 \label{sec:autodl}
-This section gives a quick overview of the AutoDL challenge: The AutoDL challenges consist of a set of different, individual challenges depending on the underlying dataset modality: Image (AutoCV), video (AutoCV2), text (AutoNLP), speech (AutoSpeech), weakly supervised learning (AutoWSL) and all previously mentioned modalities combined (AutoDL). 
+This section gives a quick overview of the AutoDL $2019-2020$ challenge: The AutoDL 2019-2020 challenges consist of a set of different, individual challenges depending on the underlying dataset modality: Image (AutoCV), video (AutoCV2), text (AutoNLP), speech (AutoSpeech), weakly supervised learning (AutoWSL) and all previously mentioned modalities combined (AutoDL). 
 All challenges have in common that teams can upload code and models during a online phase which is tested immediately on a number of datasets. This gives every team immediate feedback about their relative performance. These online phases last between two weeks and two months. Some challenges (e.g. for video) have a second, full blind testing (onsite) phase at the end where every team's last submission is evaluated on a new, previously unknown set of of datasets. 
 
 Differing from other challenges, there are tight constraints: Rather than focusing on the final classification accuracy after a certain time limit, each team can choose freely how much time to spend on training and how much on testing within a specific time budget $T=1200s$. Training is performed by running a ``train'' function with the train dataset as input, test by running a ``test'' function with the test dataset as input and the classification results as output. Based on the output of every test run its score $s(t)$ at time $t$ is calculated as 
@@ -259,14 +253,14 @@ dataset 5 & 0.1031 & 14 \\
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Image/video classification through meta-learning}
+\section{Image/video classification through meta learning}
 \label{sec:ml}
 
-The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta-learning are presented in this chapter. They all have in common that a classifier (from now an called meta-classifier) is trained to measure the similarity between any new dataset (i.e. test dataset) and a set of known datasets (training datasets) using meta-features. Fur every training dataset an optimized neural network has been selected a priori. Then the neural network of the most similar training dataset will be used for transfer learning on the test dataset. However, they differ on the type of meta-features and the classifier that determines the similarity of the test dataset to the set of training datasets. The approaches belong to the larger class of non-parametric meta-learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that our principal goal is to distinguish datasets and not samples of different classes within one dataset. To describe our approach formally, we follow mostly the notation in \cite{hutter19}, chapter 2. As we are solely interested in dataset classification, every task in \cite{hutter19} refers to a dataset classification problem:
+The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta learning are presented in this section. They all have in common that a classifier (from now an called meta classifier) is trained to measure the similarity between any new dataset (i.e. test dataset) and a set of known datasets (training datasets) using meta features. Fur every training dataset an optimized neural network has been selected a priori. Then the neural network of the most similar training dataset will be used for transfer learning on the test dataset. However, they differ on the type of meta features and the classifier that determines the similarity of the test dataset to the set of training datasets. The approaches belong to the larger class of non-parametric meta learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that our principal goal is to distinguish datasets and not samples of different classes within one dataset. To describe our approach formally, we follow mostly the notation in \cite{hutter19}, chapter 2. As we are solely interested in dataset classification, every task in \cite{hutter19} refers to a dataset classification problem:
 
-For all presented approaches the dataset to be learned is named $t_j \in T$ and contained in the set of all training datasets. Each dataset is described by a meta-feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a test dataset $t_{test}$, we want to specify how similar it is to the training datasets $t_j$ and derive an optimized configuration $\theta^*_{test}$ to maximize $P(\theta^*_{test}, t_{test})$.
+For all presented approaches the dataset to be learned is named $t_j \in T$ and contained in the set of all training datasets. Each dataset is described by a meta feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a test dataset $t_{test}$, we want to specify how similar it is to the training datasets $t_j$ and derive an optimized configuration $\theta^*_{test}$ to maximize $P(\theta^*_{test}, t_{test})$.
 
-It is assumed that an optimized configuration $\theta^*(t_j)$ is found for every training dataset $t_j$ during the offline phase. As all datasets are represented by their meta-feature vectors $\mathbf{m}(t_j)$, we want to find the most similar dataset $t_{sim}$ for a test dataset $t_{test}$ as 
+It is assumed that an optimized configuration $\theta^*(t_j)$ is found for every training dataset $t_j$ during the offline phase. As all datasets are represented by their meta feature vectors $\mathbf{m}(t_j)$, we want to find the most similar dataset $t_{sim}$ for a test dataset $t_{test}$ as 
 %
 \begin{equation}
 t_{sim} = \underset{t_j \in T}{\operatorname{argmax}}  \left\|\mathbf{m}(t_{test}) - \mathbf{m}(t_j)\right\|, 
@@ -278,11 +272,11 @@ and then use the configuration $\theta^*(t_{sim})$ for $t_{test}$.
 Two challenges arise from Eq.~(\ref{eq:tsim}):
 %
 \begin{itemize}
-\item Finding expressive meta-features $\mathbf{m}(t_j)$ for every dataset
+\item Finding expressive meta features $\mathbf{m}(t_j)$ for every dataset
 \item Finding a reasonable distance measure $\left\| \cdot \right\|$ 
 \end{itemize} 
 %
-Expressive meta-features are essential for distinguishing different datasets: If different datasets result in similar meta-feature vectors they cannot be distinguished, regardless of the used distance measure. At the same time the variation of the meta-features shall be roughly proportional to the variation of the datasets: An intuitive counterexample is the use of a generic hash function as meta-feature, which leads to large variations even if two datasets are almost similar. The same applies for the distance measure: Having found good meta-features, almost identical datasets shall have only a small distance whereas dissimilar datasets shall result in a large distance. 
+Expressive meta features are essential for distinguishing different datasets: If different datasets result in similar meta feature vectors they cannot be distinguished, regardless of the used distance measure. At the same time the variation of the meta features shall be roughly proportional to the variation of the datasets: An intuitive counterexample is the use of a generic hash function as meta feature, which leads to large variations even if two datasets are almost similar. The same applies for the distance measure: Having found good meta features, almost identical datasets shall have only a small distance whereas dissimilar datasets shall result in a large distance. 
 
 The next sections describe how both challenges are tackled by different approaches.
 
@@ -290,8 +284,8 @@ The next sections describe how both challenges are tackled by different approach
 \subsection{Approach 1}
 \label{sec:approach1}
 
-The first class of presented meta-classifers relies on the output of an image classification network as meta-features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last or last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta-feature vector $\mathbf{m}(t_j)$. 
-%The advantage of the method is the large number of possible meta-features, i.e. the number of features/classes of the original dataset ($>1e3$) and the fully automated classification. In addition, the network generating the vector $\mathbf{m}(t_j)$ can be trained offline and then kept frozen. A possible disadvantage is the expressiveness of the meta-features if new datasets contain classes that are orthogonal to the trained ones.
+The first class of presented meta classifers relies on the output of an image classification network as meta features. Being trained on a sufficiently large dataset with enough features/classes (corresponding to the output of the second last or last network layer), the distribution of the detected features/classes acts as a unique ``fingerprint'' for each dataset and constitutes the meta feature vector $\mathbf{m}(t_j)$. 
+%The advantage of the method is the large number of possible meta features, i.e. the number of features/classes of the original dataset ($>1e3$) and the fully automated classification. In addition, the network generating the vector $\mathbf{m}(t_j)$ can be trained offline and then kept frozen. A possible disadvantage is the expressiveness of the meta features if new datasets contain classes that are orthogonal to the trained ones.
 
 Different classifiers are used to find a reasonable distance metric based on the output of the image classification network, see Fig.~\ref{fig:approach1}. By assigning an individual label to every dataset (note that every dataset represents a class), the distance measure is learned implicitly.
 
@@ -299,7 +293,7 @@ The first approach (which also serves as baseline for the experiments) relies on
 
 The second approach is based upon a multi-layer perceptron (MLP) with two layers, a Swish activation function and dropout. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less susceptible to outliers.
 
-The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta-features, the output of the precalculation layer is a vector with length $m \cdot f$. 
+The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta features, the output of the precalculation layer is a vector with length $m \cdot f$. 
 
 A visual overview of the different approaches together with typical implementations is given in Fig.~\ref{fig:approach1}. Here, a ResNet18 is used as image classification network. It also shows the output dimensions of the different components for a batch size of 128, an input image size of 96x96 pixels with three channels, a 512-dimensional ResNet18 output (the second-last layer), the use of five modes (e.g. mean, standard deviation, variance, skewness, kurtosis) resulting in the 2560-dimensonal (512x5) output of the precalculation layer and 20 datasets to be distinguished.
 
@@ -317,16 +311,26 @@ A visual overview of the different approaches together with typical implementati
 \subsection{Approach 2}
 \label{sec:approach2}
 
-The second approach uses the latent space of a variational autoencoder (VAE) as meta-features. By pretraining the VAE on a large variety of images, similar images belonging to one dataset cluster together in latent space whereas dissimilar images from different datasets have a large (Euclidean) distance in latent space. When measuring both the mean and standard deviation of a batch of images in latent space for the test dataset and batches of images of the different training datasets, a two-sampled t-test is used to determine the ``nearest'' dataset. %Note that differing from the first approach the datasets to be pretrained on can be only a subset of the training datasets: If the VAE has been trained on a large variety of images (which may be contained in a single large dataset as ImageNet), it might be capable of reconstructing images from other (training) datasets as well, even it has never been trained on them. 
+The second approach uses the latent space of a variational autoencoder (VAE) as meta features. By pretraining the VAE on a large variety of images, similar images belonging to one dataset cluster together in latent space whereas dissimilar images from different datasets have a large (Euclidean) distance in latent space. When measuring both the mean and standard deviation of a batch of images in latent space for the test dataset and batches of images of the different training datasets, a two-sampled t-test is used to determine the ``nearest'' dataset. %Note that differing from the first approach the datasets to be pretrained on can be only a subset of the training datasets: If the VAE has been trained on a large variety of images (which may be contained in a single large dataset as ImageNet), it might be capable of reconstructing images from other (training) datasets as well, even it has never been trained on them. 
 
-The VAE consists of a DenseNet 121 \cite{huang17} for the encoder and a PixelCNN++ \cite{salimans17} for the decoder. A fully connected layer maps the 196-dimensional latent space (i.e. the logits output of the DenseNet) to the 64x64x3-dimensional input of the PixelCNN++ network. Differing from the original DenseNet implementation, the first layer has been adjusted for the smaller image size to a 3x3 convolution with stride 1, no padding and no pooling after it. The VAE trained on seven different datasets (Caltech101, Colorectal Histology, DeepWeeds, EuroSAT, Food-101, ImageNet) whereas the last one has been resized to 64x64 pixel for faster calculation. These datasets have shown to yield a large variety of different images which are supposed to generalize well to other datasets.
+The VAE consists of a DenseNet 121 \cite{huang17} for the encoder and a PixelCNN++ \cite{salimans17} for the decoder, see Fig.~\ref{fig:approach2}. A fully connected layer maps the 196-dimensional latent space (i.e. the logits output of the DenseNet) to the 64x64x3-dimensional input of the PixelCNN++ network. Differing from the original DenseNet implementation, the first layer has been adjusted for the smaller image size to a 3x3 convolution with stride 1, no padding and no pooling after it. The VAE trained on seven different datasets (Caltech101, Colorectal Histology, DeepWeeds, EuroSAT, Food-101, ImageNet) whereas the last one has been resized to 64x64 pixel for faster calculation. These datasets have shown to yield a large variety of different images which are supposed to generalize well to other datasets.
+
+%
+\begin{figure}[htb]
+\begin{center}
+ 	\includegraphics[width=0.8\linewidth]{../figures/approach2.eps} 
+\end{center}
+\caption{Overview of the VAE approach based on an image classification network for the encoder and a generative image network for the decoder.}
+\label{fig:approach2}
+\end{figure} 
+% 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Comparison of the two approaches}
 \label{sec:comparison}
 
-While the two approaches of chapter \ref{sec:approach1} and \ref{sec:approach2} are conceptually similar as they first learn a suitable embedding and then classify different datasets based on the information from the embedding, they have also some subtle differences:
+While the two approaches of section~\ref{sec:approach1} and~\ref{sec:approach2} are conceptually similar as they first learn a suitable embedding and then classify different datasets based on the information from the embedding, they have also some subtle differences:
 
 \textbf{Number of parameters}: Both approaches are very small in terms of model parameters compared to current state-of-the-art image classification networks: Whereas a Resnet18 with the subsequent MLP with precalculation has around 12M parameters, the VAE has only around 7m parameters.
 
@@ -352,24 +356,24 @@ BOHB is used for the a priori calculation of optimized configurations $\theta^*(
 \end{itemize}
 %
 An overview of the used datasets and models is given in Fig.~\ref{fig:dataset_results} and Fig.~\ref{fig:rank_results}. The two figures show the best classification accuracy of the different models on the different datasets, both from a model-based perspective and a dataset-based perspective. The hyperparameters for every combination of dataset and model are optimized through 10 BOHB runs. Note that not all datasets listed in Tab.~\ref{table:datasets} appear in Fig.~\ref{fig:dataset_results}. Some are used as test datasets whereas others (especially video datasets) are too large to be processed efficiently with the given resources.
-%
+
 \begin{figure}[htb]
 \begin{center}
- 	\includegraphics[width=0.95\linewidth]{../figures/dataset_results.eps} 
+ 	\includegraphics[width=0.85\linewidth]{../figures/dataset_results.eps} 
 \end{center}
 \caption{Classification accuracy of the different models across all datasets, sorted by dataset}
 \label{fig:dataset_results}
 \end{figure} 
-%
+
 \begin{figure}[htb]
 \begin{center}
- 	\includegraphics[width=0.95\linewidth]{../figures/rank_results.eps} 
+ 	\includegraphics[width=0.85\linewidth]{../figures/accuracy_results.eps} 
 \end{center}
 \caption{Classification accuracy of the different models across all datasets, sorted by model}
 \label{fig:rank_results}
 \end{figure} 
-%
-In addition, multiple optimization runs find an optimal meta-feature vector and a reasonable distance measure while keeping the configuration space $\Theta$ small: Being reasonably small and fast, a ResNet18 network pretrained on ImageNet serves as basis to generate the meta-feature vector $\mathbf{m}(t_j)$. However, using the output of the second last layer yields consistently better results than the last output and is therefore chosen.
+
+In addition, multiple optimization runs find an optimal meta feature vector and a reasonable distance measure while keeping the configuration space $\Theta$ small: Being reasonably small and fast, a ResNet18 network pretrained on ImageNet serves as basis to generate the meta feature vector $\mathbf{m}(t_j)$. However, using the output of the second last layer yields consistently better results than the last output and is therefore chosen.
 
 The following parameters have been optimized for the different approaches using BOHB: 
 
@@ -416,12 +420,12 @@ Third approach (MLP with precalculation):
 	 \end{minipage}
 \end{figure}
 
-Final results of the different approaches are shown in Fig.~\ref{fig:results}. The eight plots correspond to the eight test datasets (Chucky, Decal, Hammer, Munster, Pedro, Kraut, Katze, Kreatur). Every plot shows the test ALC according to Eq.~(\ref{eq:ALC}) over the test batch size of the classification networks of chapter \ref{sec:approach1} and \ref{sec:approach2}. The different thick solid lines correspond to:
+Final results of the different approaches are shown in Fig.~\ref{fig:results}. The eight plots correspond to the eight test datasets (Chucky, Decal, Hammer, Munster, Pedro, Kraut, Katze, Kreatur). Every plot shows the test ALC according to Eq.~(\ref{eq:ALC}) over the test batch size of the classification networks of section~\ref{sec:approach1} and~\ref{sec:approach2}. The different thick solid lines correspond to:
 \begin{itemize}
 \item \textbf{kakaobrain}: ALC results from the winning AutoCV and AutoCV2 team kakaobrain \cite{kakaobrain}.
 \item \textbf{same-config}: ALC of the optimized configuration $\theta^*(t_s)$ for the same dataset $t_s$. Can be seen as ground truth.
-\item \textbf{precalc}: Third approach of chapter~\ref{sec:approach1} with individual networks trained specifically for every test batch size.
-\item \textbf{precalc-64}: Third approach of chapter~\ref{sec:approach1} with one network trained for a test batch size of 64 samples.
+\item \textbf{precalc}: Third approach of section~\ref{sec:approach1} with individual networks trained specifically for every test batch size.
+\item \textbf{precalc-64}: Third approach of section~\ref{sec:approach1} with one network trained for a test batch size of 64 samples.
 \end{itemize}
 There are also multiple horizontal thin green lines in every plot. Each one corresponds to the ALC of the optimized configuration $\theta^*(t_p)$ of a prior dataset $t_p$, evaluated on the test dataset. 
 Thus, a plot ideally has the following appearance: Kakaobrain has the highest ALC as we do not expect to perform better than a team of computer vision professionals. Next comes the ALC of the optimized configuration for the corresponding dataset (same-config). Note that this measure is usually not available and only added for comparative purpose. The individual ALCs of the different presented approaches are expected to score worse than the previous two as they rely on optimized configurations of different datasets (and not the test dataset). 
@@ -432,13 +436,23 @@ Sometimes an optimized configuration has a better ALC than kakaobrain. A possibl
 
 In addition, the same-config ALC is sometimes worse than the ALCs of optimized configurations of prior datasets. We are not sure about the exact cause. One reason can be the limited number of BOHB evaluations to find the optimized configuration $\theta^*(t_s)$ for the same dataset. Only 90 different configurations (10 BOHB runs, eta=3, max~budget~=~9~*~min~budget) are evaluated for every dataset. Thus, with more than 20 other training datasets used, it is possible that one of these 20 optimized configurations scores better. Another option is the ALC variation during test time. Hence an optimized configuration which scored rather well during training may score considerably worse during testing (even on the same dataset).
 
-For some datasets (e.g. Munster) the ALC of a presented approach is similar for multiple/all test batch sizes. Although this is the preferred case (the output of the meta-classifier is ideally independent of the batch size), the effect is usually caused by the test dataset being similar to one of the training datasets. Then a well-trained meta-classifier always correctly classifies the test dataset being most similar to the (identical) training dataset.
+For some datasets (e.g. Munster) the ALC of a presented approach is similar for multiple/all test batch sizes. Although this is the preferred case (the output of the meta classifier is ideally independent of the batch size), the effect is usually caused by the test dataset being similar to one of the training datasets. Then a well-trained meta classifier always correctly classifies the test dataset being most similar to the (identical) training dataset.
 
 Choosing an optimal test batch size is crucial during test time. When being too small, the meta classifier may produce noisy (and thus possibly incorrect) predictions. When being too large, more samples than necessary are processed. This leads to computational overhead. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion}
 \label{sec:discussion}
+
+Results of the AutoCV2 challenge have shown that it is not sufficient for any non-CV expert to rely on a single video classification network. Thus the meta learning approach with a portfolio of different classification networks has been developed. Although being effective, finding incumbent configurations for more than 20 datasets for more than 50 models is time-consuming and took around two weeks using 40 NVIDIA RTX 2080 Ti GPUs. In addition, Fig.~\ref{fig:rank_results} indicates that it is sufficient to use a much smaller portfolio of e.g. the ten models with the average best performance. 
+
+\begin{figure}[htb]
+\begin{center}
+ 	\includegraphics[width=0.85\linewidth]{../figures/portfolio_performance.eps} 
+\end{center}
+\caption{Average best performance of a reduced model portfolio across all datasets}
+\label{fig:portfolio_performance}
+\end{figure} 
 
 
 
@@ -448,8 +462,7 @@ The used HDDs of the computing cluster constituted a main bottleneck during calc
 \section{Summary and Outlook}
 \label{sec:summary}
 
-This 
-
+Albeit the meta learning appro
 
 \bibliography{../bib/autodl}
 \bibliographystyle{icml2018}
