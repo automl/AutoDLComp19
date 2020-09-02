@@ -34,12 +34,12 @@
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{Submission and Formatting Instructions for ICML 2018}
+%\icmltitlerunning{Submission and Formatting Instructions for ICML 2018}
 
 \begin{document}
 
 \twocolumn[
-\icmltitle{The AutoCV2 challenge}
+\icmltitle{The AutoDL challenge 2019-2020 (automl{\textunderscore}freiburg video team)}
 
 % It is OKAY to include author information, even for blind
 % submissions: the style file will automatically remove it for you
@@ -57,20 +57,21 @@
 \icmlsetsymbol{equal}{*}
 
 \begin{icmlauthorlist}
-\icmlauthor{Philipp Jankov}{equal,fr}
-\icmlauthor{Christopher Krolla}{equal,fr}
-\icmlauthor{Thomas Nierhoff}{equal,fr}
+\icmlauthor{Philipp Jankov}{}
+\icmlauthor{Christopher Krolla}{}
+\icmlauthor{Thomas Nierhoff}{}
 \end{icmlauthorlist}
 
-\icmlaffiliation{fr}{University of Freiburg, Freiburg, Germany}
+%\icmlaffiliation{fr}{University of Freiburg, Freiburg, Germany}
 
-\icmlcorrespondingauthor{Cieua Vvvvv}{c.vvvvv@googol.com}
-\icmlcorrespondingauthor{Eee Pppp}{ep@eden.co.uk}
+\icmlcorrespondingauthor{Philipp Jankov}{philipp.jankov@gmail.com}
+\icmlcorrespondingauthor{Christopher Krolla}{krollac.ck@gmail.com}
+\icmlcorrespondingauthor{Thomas Nierhoff}{thomasnierhoff@web.de}
 
 % You may provide any keywords that you
 % find helpful for describing your paper; these are used to populate
 % the "keywords" metadata in the PDF but will not be shown in the document
-\icmlkeywords{Machine Learning, ICML}
+\icmlkeywords{Machine Learning, Freiburg}
 
 \vskip 0.3in
 ]
@@ -84,12 +85,12 @@
 % Remove it (just {}) if you do not need this facility.
 
 %\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
-\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+%\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-This documentation summarizes the progress of the automl{\textunderscore}freiburg video team on the AutoDL $2019-2020$ challenge. Two methods are presented: The first method relies on transfer learning of a single, pretrained video classification network which is fine tuned during the challenge. As this approach has shown several limitations if the test datasets vary too much, a more elaborate method based on meta learning is developed: Multiple classification networks are evaluated on different training datasets a priori and the incumbent for every dataset is stored in a lookup table. During test time, the similarity between the test dataset and all training datasets is measured and the incumbent of the most similar training dataset is used for training/evaluation on the test dataset. Thus focus shifts from finding a single state-of-the-art video classification network working well on a variety of different datasets to measuring the similarity between two datasets and selecting the one that is most similar - the latter being much easier to implement for anyone who is not an expert in video classification. The first method has been submitted and evaluated on the AutoCV2 challenge and resulted in a mediocre score. Four different approaches are presented and evaluated for the second method, resulting in scores on par with the best performing image and video classification team.
+This documentation summarizes the progress of the automl{\textunderscore}freiburg video team on the AutoDL $2019-2020$ challenge. Two methods are presented: The first method relies on transfer learning of a single, pretrained video classification network which is fine tuned during the challenge. As this approach has shown several limitations if the test datasets vary too much, a more elaborate method based on meta learning is developed: Multiple classification networks are evaluated on different training datasets a priori and the incumbent for every dataset is stored in a lookup table. During test time, the similarity between the test dataset and all training datasets is measured and the incumbent of the most similar training dataset is used for training/evaluation on the test dataset. The first method has been submitted and evaluated on the AutoCV2 challenge and resulted in a mediocre score. Four different approaches are presented and evaluated for the second method, resulting in scores on par with the best performing image and video classification team.
 \end{abstract}
 
 
@@ -99,13 +100,13 @@ This documentation summarizes the progress of the automl{\textunderscore}freibur
 \section{Introduction}
 Machine learning (ML) based on artificial neural networks is a fast-growing field in the domain of computer science. Instead of manually tweaking the features used for classification or regression, neural networks are able to extract them automatically. They have shown state-of-the-art performance on a variety of classification problems when trained on huge datasets and are well suited for parallelization. 
 
-A open question is how to deal with computational limitations and generic datasets. In many real-world applications (e.g. smartphones) computational resources, execution time and storage capacity is limited. Thus the current trend of using larger and larger networks for better classification results becomes unfeasible. In addition, it may be not known a priori what the dataset to be classified looks like, requiring the neural network to be applicable to a variety of different datasets. Multiple approaches emerged within the last years to tackle both challenges:
+A open question is how to deal with computational limitations and generic datasets. In many real-world applications (e.g. smartphones) computational resources, execution time and storage capacity is limited. Thus the current trend of using even larger networks for better classification results becomes unfeasible. In addition, it may be not known a priori what the dataset to be classified looks like, requiring the neural network to be applicable to a variety of different datasets. Multiple approaches emerged within the last years to tackle both challenges:
 
-To reduce the model size (and thus implicitly also execution time, storage capacity and computational resources), one can remove the most ``unimportant'' parts of a neural network and/or quantize it, resulting in a compression of the neural network The selection of the nodes/layers to be pruned can either be specified manually or derived automatically through reinforcement learning~\cite{han15,han18}. A second option is knowledge distillation where a smaller student``network'' is trained to produce outputs similar to a previously trained larger ``teacher'' network~\cite{hinton15,phuong19}. By using the logits output instead of the softmax output, much more information is preserved in every training step. Thus training the student network can be achieved with way less samples. For both approaches there is only a negligible decrease in classification accuracy while the compression rate can be huge (up to a factor of 496x for certain layers of a neural network ~\cite{reagan18}). Another more straightforward method is to search directly for smaller/faster models. This can be either done manually (e.g.~\cite{howard17}) or through neural architecture search~\cite{elsken18}. Note that the last approach can output networks that are state of the art with respect to model size, speed and classification accuracy~\cite{tan19}.
+To reduce the model size (and thus implicitly also execution time, storage capacity and computational resources), one can remove the most ``unimportant'' parts of a neural network and/or quantize it, resulting in a compression of the neural network The selection of the nodes/layers to be pruned can either be specified manually or derived automatically through reinforcement learning~\cite{han15,han18}. A second option is knowledge distillation where a smaller student``network'' is trained to produce outputs similar to a previously trained larger ``teacher'' network~\cite{hinton15,phuong19}. By using the logits output instead of the softmax output, much more information is preserved in every training step. Thus training the student network can be achieved with way less samples. For both approaches there is only a negligible decrease in classification accuracy while the compression rate can be huge (up to a factor of 496x for certain layers of a neural network ~\cite{reagan18}). Another more straightforward method is to search directly for smaller/faster models. This can be either done manually (e.g.~\cite{howard17}) or through neural architecture search~\cite{elsken19}. Note that the last approach can output networks that are state of the art with respect to model size, speed and classification accuracy~\cite{tan19}.
 
-Other techniques are used if the time budget for training is tight or the dataset to be trained on is not known a priori. They all have in common that a network is pretrained on one or more datasets beforehand and information from pretraining is subsequently used for the final training step. One technique is transfer learning~\cite{pan10}. Here the common use case consists of pretraining a network on a given dataset to initialize the network weights with reasonable values. If a new dataset is similar enough, only parts of the network must be trained again. In addition, the new dataset can be rather small as less optimization steps are required (the network is not trained from scratch). Another option is meta learning or learning to learn~\cite{santoro16,hutter19}: By learning multiple models for multiple tasks (or more specific: datasets) beforehand, it is quite likely that a new task will be similar to a previously learned task. In this case, knowledge gained from the previous task can be reused, thus accelerating the learning progress. The challenge with meta learning is a proper selection of the meta features to be extracted as their predictive capabilities vary heavily~\cite{bilalli17}. One predominant meta learning approach at the moment is MAML \cite{finn17}, optimizing a model not for classification accuracy but specifically for generalization performance. 
+Other techniques are used if the time budget for training is tight or the dataset to be trained on is not known a priori. They all have in common that a network is pretrained on one or more datasets and information from pretraining is subsequently used for the final training step. One technique is transfer learning~\cite{pan10}. Here the common use case consists of pretraining a network on a large dataset to initialize the network weights with reasonable values. If a new dataset is similar enough, only parts of the network (e.g. the last layers of a convolutional neural network) must be trained again. In addition, the new dataset can be rather small as less optimization steps are required (the network is not trained from scratch). Another option is meta learning or learning to learn~\cite{santoro16,hutter19}: By learning multiple models for multiple tasks (or more specific: datasets) beforehand, it is quite likely that a new task will be similar to a previously learned task. In this case, knowledge gained from the previous task can be reused, thus accelerating the learning progress. The challenge with meta learning is a proper selection of the meta features to be extracted as their predictive capabilities vary heavily~\cite{bilalli17}. One predominant meta learning approach at the moment is MAML \cite{finn17}, optimizing a model not for classification accuracy but specifically for good generalization. 
 
-The AutoDL challenge contains both aspects, tight computational limitations (both time- and resource-wise) and generic datasets. As such it provides an ideal testbed for advanced approaches in order to find data-savvy and time-efficient algorithms. Because the datasets are undisclosed, the options for manual tweaking are limited. Instead of highly specific solutions tied to a specific environment one is thus seeking for a fast yet robust approach. This makes the challenge different from ``traditional'' benchmarks like ImageNet classification where computing power is solely limited by the budget of the chair/institute and the dataset is known beforehand.
+The AutoDL challenge contains both aspects, tight computational limitations (both time- and resource-wise) and generic datasets. As such it provides an ideal testbed for advanced approaches in order to find time-efficient algorithms with a small memory footprint. Because the datasets are undisclosed, the options for manual tweaking are limited. Instead of highly specific solutions tied to a specific environment one is thus seeking for a fast yet robust approach. This makes the challenge different from ``traditional'' benchmarks like ImageNet classification where computing power is solely limited by the budget of the chair/institute and the dataset is known beforehand.
 
 The remainder of the paper is organized as follows: Section~\ref{sec:autodl} and section~\ref{sec:datasets} provide general background information about the AutoDL challenge and an overview of the used datasets. A first method used during the AutoCV2 video challenge is presented in section~\ref{sec:tl}. As focus shifted after the video challenge, section~\ref{sec:ml} illustrates two more elaborate approaches for video and image classification that can be used for the final AutoDL challenge. The documentation concludes with a short discussion in section~\ref{sec:discussion} and a summary with possible future directions in section~\ref{sec:summary}.
 
@@ -146,7 +147,7 @@ Additional limitations consider memory constraints (max. 300Mb per submission), 
 \section{Datasets}
 \label{sec:datasets}
 Table~\ref{table:datasets} lists all available datasets used for training our models. Shown is the dataset name both for image and video datasets, the number of train samples, test samples and classes and the source from where the dataset can be obtained. Datasets marked with ``tfds'' can be downloaded using the Tensorflow Datasets module, the ones marked with ``AutoDL'' using the provided code from the AutoDL challenge and the ones with ``inet'' are publicly available. Both the Youtube8m and YFCC100m have been downloaded partially by using/extracting the individual video links in/from the dataset file. Note that these two datasets are also the only two multilabel datasets.
-Although looking promising in theory as they are both the largest video datasets available and the only multilabel datasets, Youtube8m and YFCC100m were impossible to use due to their sheer size. Even if the exact reason is unknown (possible inode overhead due to many files), training any neural network on them was almost a magnitude slower compared to smaller datasets.
+Although looking promising in theory as they are both the largest video datasets available and the only multilabel datasets, Youtube8m and YFCC100m were impossible to use due to their sheer size. Even if the exact reason is unknown (possible inode overhead due to too many files), training any neural network on them was almost a magnitude slower compared to smaller datasets.
 Furthermore, results from the AutoCV2 challenge indicate that it is unnecessary to capture multiple frames from a video (one is sufficient), thus turning the video classification task into a image classification task.
 
 \begin{table}
@@ -210,7 +211,7 @@ YFCC100m & 521035 & 130258 & 1570 & own \\
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Image/video classification through transfer learning}
+\section{Image/video classification using transfer learning}
 \label{sec:tl}
 
 The approach used for the AutoCV2 challenge is described in this section. Focusing solely on video classification, the AutoCV2 challenge consists of 5 publicly available datasets that can be downloaded during the online phase, 5 disclosed datasets used for the preliminary ranking during the online phase and another 5 disclosed datasets for the final evaluation during the on-site phase. 
@@ -222,7 +223,7 @@ c = g\left(f(v'_1), f(v'_2), \ldots, f(v'_m) \right).
 \label{eq:videoClass1}
 \end{equation}
 %
-Both the 300Mb limit for each submission and the logarithmic time scale impose tight constraints. As such focus is on fast training rather than a superb classification rate. Hence MobileNet is chosen as primary network for the image classification $f$. Besides achieving state-of-the-art results on ImageNet, it can be arbitrarily scaled down for a better performance-accuracy tradeoff and is almost a magnitude smaller and faster than comparable networks. However, it is quite difficult to train. Therefore an Inception v3 network is added to the model portfolio.
+Both the 300Mb limit for each submission and the logarithmic time scale impose tight constraints. As such focus is on fast training rather than a superb classification rate. Hence EfficientNet is chosen as primary network for the image classification $f$. Besides achieving state-of-the-art results on ImageNet, it can be almost arbitrarily scaled down for a better performance-accuracy tradeoff and is almost a magnitude smaller and faster than comparable networks. 
 
 Different networks are evaluated for selecting the network~$g$. In the end, a simple averaging layer shows sufficient performance while being fastest to train. Eq.~(\ref{eq:videoClass1}) thus simplifies to 
 %
@@ -231,7 +232,7 @@ c = \frac{1}{m}\sum\limits_{i=1}^m f(v'_i)
 \label{eq:videoClass2}
 \end{equation}
 %
-The averaged ALC scores based on three runs together with final ranks for the five datasets of the on-site phase are shown in Tab.~\ref{table:autocv2}. In total there are 20 participating teams. It is interesting to see how the ranks vary, from first place for dataset 4 to last place for dataset. We assume that dataset 4 is an average to difficult video classification dataset - this is what our network has been optimized for. Conversely the used network is rather slow compared to some deep learning unrelated approaches or very small networks. This causes problems if the test dataset is large or easy to classify. 
+The averaged ALC scores based on three runs together with final ranks for the five datasets of the on-site phase are shown in Tab.~\ref{table:autocv2}. In total there are 20 participating teams. It is interesting to see how the ranks vary, from first place for dataset 4 to last place for dataset. We assume that dataset 4 is an average to difficult video classification dataset - this is what our network has been optimized for. Conversely the used network is rather slow compared to other approaches like SVMs or very small networks. This causes problems if the test dataset is large or easy to classify. 
 %
 \begin{table}
 \center
@@ -253,10 +254,12 @@ dataset 5 & 0.1031 & 14 \\
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Image/video classification through meta learning}
+\section{Image/video classification using meta learning}
 \label{sec:ml}
 
-The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta learning are presented in this section. They all have in common that a classifier (from now an called meta classifier) is trained to measure the similarity between any new dataset (i.e. test dataset) and a set of known datasets (training datasets) using meta features. Fur every training dataset an optimized neural network has been selected a priori. Then the neural network of the most similar training dataset will be used for transfer learning on the test dataset. However, they differ on the type of meta features and the classifier that determines the similarity of the test dataset to the set of training datasets. The approaches belong to the larger class of non-parametric meta learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that our principal goal is to distinguish datasets and not samples of different classes within one dataset. To describe our approach formally, we follow mostly the notation in \cite{hutter19}, chapter 2. As we are solely interested in dataset classification, every task in \cite{hutter19} refers to a dataset classification problem:
+The AutoCV2 challenge has shown severe limitations of the transfer-learning approach using only two models, specifically low adaptability to changed conditions (e.g. very easy/difficult classification task or large test dataset). Thus different approaches based on meta learning are presented in this section. They all have in common that a classifier (from now an called meta classifier) is trained to measure the similarity between any new dataset (i.e. test dataset) and a set of known datasets (training datasets) using meta features. It shall be noted that all training and test datasets contain a train/test split used for training and evaluation of the models on every individual dataset. But as we are looking for good generalization across different datasets, the train/test set now refers primarily to datasets instead of samples within the dataset.
+
+Fur every training dataset an optimized neural network has been selected a priori. Then the neural network of the most similar training dataset will be used for transfer learning on the test dataset. However, they differ on the type of meta features and the classifier that determines the similarity of the test dataset to the set of training datasets. The approaches belong to the larger class of non-parametric meta learning and are conceptually similar with \cite{vinyals16, snell17, sung18} in the sense that they first learn an embedding of the data and then measure the similarity on the embedding space. The difference is that our principal goal is to distinguish datasets and not samples of different classes within one dataset. To describe our approach formally, we follow mostly the notation in \cite{hutter19}, chapter 2. As we are solely interested in dataset classification, every task in \cite{hutter19} refers to a dataset classification problem:
 
 For all presented approaches the dataset to be learned is named $t_j \in T$ and contained in the set of all training datasets. Each dataset is described by a meta feature vector $\mathbf{m}(t_j)$. The neural network and its corresponding (hyper-)parameters are defined by a configuration $\theta_i \in \Theta$ where $\Theta$ represents the entire configuration space (discrete, continuous or mixed). In addition, there are offline evaluations $P(\theta_i, t_j) \in \mathbf{P}$ from the set of all prior evaluations $\mathbf{P}$. Assuming that we are given a test dataset $t_{test}$, we want to specify how similar it is to the training datasets $t_j$ and derive an optimized configuration $\theta^*_{test}$ to maximize $P(\theta^*_{test}, t_{test})$.
 
@@ -289,9 +292,10 @@ The first class of presented meta classifers relies on the output of an image cl
 
 Different classifiers are used to find a reasonable distance metric based on the output of the image classification network, see Fig.~\ref{fig:approach1}. By assigning an individual label to every dataset (note that every dataset represents a class), the distance measure is learned implicitly.
 
-The first approach (which also serves as baseline for the experiments) relies on k-means clustering to specify the most similar dataset for every sample of the new dataset. It also uses majority voting for more reliable predictions based on multiple samples (i.e. batch sizes $> 1$).
+The first approach (which also serves as baseline for the experiments) relies on k-nearest centroids classification with a median as distance metric to be more robust against single outliers. It clusters the datasets according to their dataset class label and calculates the centroid of each cluster.
+At test time it calculates the centroid of the test dataset and outputs class label of the dataset with the closest centroid. It also uses majority voting for more reliable predictions based on multiple samples (i.e. batch sizes $>1$).
 
-The second approach is based upon a multi-layer perceptron (MLP) with two layers, a Swish activation function and dropout. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less susceptible to outliers.
+The second approach is based upon a mult-layer perceptron (MLP) with two layers with a Swish activation function, dropout and batch normalization. Similar to the baseline approach, majority voting in combination with large batch sizes is used to make predictions less susceptible to outliers.
 
 The third approach uses the same two-layer perceptron as the second approach. However, instead of relying on majority voting, the output of the image classification network is first fed to a precalculation layer. This layer calculates different p-quantile moments and related measures (mean, median, standard deviation, variance, skewness, ...) which are then fed to the two-layer perceptron. Note that the moments are calculated across the batch size, i.e. when calculating $m$ moments for a batch size $b$ and $f$ meta features, the output of the precalculation layer is a vector with length $m \cdot f$. 
 
@@ -377,13 +381,6 @@ In addition, multiple optimization runs find an optimal meta feature vector and 
 
 The following parameters have been optimized for the different approaches using BOHB: 
 
-First approach (k-means):
-\begin{itemize}
-\item Number of clusters: 5 - 40
-\item Number of different initializations: 10 - 30
-\item Maximum number of iterations per run: 100 - 500
-\end{itemize}
-
 Second approach (MLP with majority vote):
 \begin{itemize}
 \item Train batch size: 1/2/4/8/16/32/64/128/256/512/1024
@@ -444,25 +441,33 @@ Choosing an optimal test batch size is crucial during test time. When being too 
 \section{Discussion}
 \label{sec:discussion}
 
-Results of the AutoCV2 challenge have shown that it is not sufficient for any non-CV expert to rely on a single video classification network. Thus the meta learning approach with a portfolio of different classification networks has been developed. Although being effective, finding incumbent configurations for more than 20 datasets for more than 50 models is time-consuming and took around two weeks using 40 NVIDIA RTX 2080 Ti GPUs. In addition, Fig.~\ref{fig:rank_results} indicates that it is sufficient to use a much smaller portfolio of e.g. the ten models with the average best performance. 
-
+Results of the AutoCV2 challenge have shown that it is not sufficient for any non-CV expert to rely on a single video classification network. Thus the meta learning approach with a portfolio of different classification networks has been developed. Although being effective, finding incumbent configurations for more than 20 datasets for more than 50 models is time-consuming and took around two weeks using 40 NVIDIA RTX 2080 Ti GPUs. In addition, Fig.~\ref{fig:rank_results} indicates that it is sufficient to use a much smaller portfolio of e.g. only the ten models with the average best performance. A small experiment leads to the result in Fig.~\ref{fig:portfolio_performance} where the optimized averaged best performance across all datasets is plotted over the model portfolio size.  With averaged best performance we are referring to the best performance of all the models in the portfolio for every dataset, averaged over all datasets. The plot indicates that is is sufficient to use as few as five carefully selected models to achieve an almost similar performance as with all 52 models.
+%
 \begin{figure}[htb]
 \begin{center}
  	\includegraphics[width=0.85\linewidth]{../figures/portfolio_performance.eps} 
 \end{center}
-\caption{Average best performance of a reduced model portfolio across all datasets}
+\caption{Averaged best performance of a reduced model portfolio across all datasets}
 \label{fig:portfolio_performance}
 \end{figure} 
+%
 
+A more substantial critic concerns the format of the AutoDL challenge: By using the ALC score (more specifically: the logarithmic time scale), submissions with very good results from the beginning on are favored. Albeit this is desired by the organizers, it became more an engineering problem than an interesting research challenge to optimize the data loading pipeline, strip state-of-the-art models to the bare minimum and evaluate how long they produce reasonable results. This is backed by the observation that the winners of both the AutoCV and AutoCV2 challenge used rather simple base models (Resnet9 and Resnet18) and their superior performance is the result of the combination of many small, existing tweaks instead of a completely new approach.
 
+Using the wall clock time to calculate the ALC score was an major issue for reproducibility and portability across multiple systems. As such the final results for the AutoCV2 challenge were calculated as the average of three individual runs. The wall clock time issues was worst on the computing cluster in Freiburg. The combination of a high data throughput when classifying image/video datasets and the use of HDDs led to a huge variance in execution speed - sometimes up to a factor of 10. Thus the workaround with the execution time lookup table described in Sec.~\ref{sec:experiments} has been chosen.
 
-The used HDDs of the computing cluster constituted a main bottleneck during calculation and led to a huge variance in execution speed - sometimes up to a factor of 10. In combination with a measure based on accuracy over time, reproducible results became virtually impossible. Thus the workaround with the lookup table was chosen. 
+In the end we were suprised how conceptually simple our approach was. Distinguishing different datasets seems to be an easier problem than distinguishing different classes within a dataset. As such the simplest approach (Resnet18 +  k-nearest centroids) provides surprisingly good results. However, this simplicity comes with the drawback of a large computational load when computing the incumbents for the different training datasets.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Summary and Outlook}
 \label{sec:summary}
 
-Albeit the meta learning appro
+We present two conceptually different methods for quick generalization of a pretrained network to new datasets in the context of the AutoCV2 and AutoDL challenge. Whereas the first method relies on transfer learning (i.e. pretraining a model and then fine tuning it on the new dataset), the second approach considers a portfolio of different models and selects the model that performed best on a dataset that is most similar to the new dataset.
+Thus focus shifts from finding a single state-of-the-art model working well on a variety of different datasets to measuring the similarity between two datasets and selecting the one that is most similar - the latter being much easier to implement for anyone who is not an expert in video classification. 
+
+There are several directions for future work: The first one considers redundancy in the datasets. It is shown in the discussion chapter how the used models are highly redundant and the model portfolio can be reduced by a factor of 10 without severe performance loss. It is unknown (but suspected) if the same applies for the datasets, i.e. if training the models on a small but carefully selected set of datasets leads to the same generalization performance. 
+
+Furthermore, the VAE approach of Sec.~\ref{sec:approach2} is a promising idea for future expansions. It is an open question if more advanced classification methods using the latent space representation (e.g. neural networks) lead to better classification results than a two-sample t-test. 
 
 \bibliography{../bib/autodl}
 \bibliographystyle{icml2018}
