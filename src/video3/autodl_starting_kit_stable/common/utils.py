@@ -240,9 +240,7 @@ def get_model(parser_args, num_classes):
     else:
         raise TypeError('Unknown model type')
 
-    model = load_model(model, os.path.join(parser_args.file_dir, save_file))
-    model = torch.nn.DataParallel(model)
-    model = model.cuda()
+    model = load_model(model, os.path.join(parser_args.file_dir, save_file)).cuda()
 
     return model
 
