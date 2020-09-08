@@ -371,9 +371,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.8"
-     inkscape:cx="238.70806"
-     inkscape:cy="225.57059"
+     inkscape:zoom="1.4"
+     inkscape:cx="312.55908"
+     inkscape:cy="205.5293"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -951,5 +951,15 @@
          x="-10.720839"
          y="19.84375"
          style="stroke-width:0.26458332">k-nearest centroids </tspan></text>
-  </g>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot1084"
+       style="fill:black;fill-opacity:1;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:13.33333333px;line-height:1.25;letter-spacing:0px;word-spacing:0px"><flowRegion
+         id="flowRegion1086"><rect
+           id="rect1088"
+           width="590"
+           height="600"
+           x="-114.86979"
+           y="-37.213543" /></flowRegion><flowPara
+         id="flowPara1090"></flowPara></flowRoot>  </g>
 </svg>

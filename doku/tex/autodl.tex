@@ -223,7 +223,7 @@ c = g\left(f(v'_1), f(v'_2), \ldots, f(v'_m) \right).
 \label{eq:videoClass1}
 \end{equation}
 %
-Both the 300Mb limit for each submission and the logarithmic time scale impose tight constraints. As such focus is on fast training rather than a superb classification rate. Hence EfficientNet is chosen as primary network for the image classification $f$. Besides achieving state-of-the-art results on ImageNet, it can be almost arbitrarily scaled down for a better performance-accuracy tradeoff and is almost a magnitude smaller and faster than comparable networks. 
+Both the 300Mb limit for each submission and the logarithmic time scale impose tight constraints. As such focus is on fast training rather than a superb classification rate. Hence EfficientNet~cite{tan19} is chosen as primary network for the image classification $f$. Besides achieving state-of-the-art results on ImageNet, it can be almost arbitrarily scaled down for a better performance-accuracy tradeoff and is almost a magnitude smaller and faster than comparable networks. 
 
 Different networks are evaluated for selecting the network~$g$. In the end, a simple averaging layer shows sufficient performance while being fastest to train. Eq.~(\ref{eq:videoClass1}) thus simplifies to 
 %
@@ -350,7 +350,7 @@ While the two approaches of section~\ref{sec:approach1} and~\ref{sec:approach2} 
 \subsection{Experiments}
 \label{sec:experiments}
 
-BOHB is used for the a priori calculation of optimized configurations $\theta^*(t_j)$ for different training datasets $t_j$. Every configuration consists of a pretrained network (either trained on ImageNet or CIFAR-100) and the following hyperparameters (if applicable):
+BOHB~\cite{falkner18} is used for the a priori calculation of optimized configurations $\theta^*(t_j)$ for different training datasets $t_j$. Every configuration consists of a pretrained network (either trained on ImageNet or CIFAR-100) and the following hyperparameters (if applicable):
 %
 \begin{itemize}
 \item Optimizer: ADAM or SGD (with Nesterov momentum 0.9 and weight decay 1e-6)
