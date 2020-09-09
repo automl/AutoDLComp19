@@ -14,11 +14,11 @@
    version="1.1"
    viewBox="0 0 450 862.5"
    width="450pt"
-   id="svg3543"
+   id="svg3391"
    sodipodi:docname="rank_results.svg"
    inkscape:version="0.92.3 (2405546, 2018-03-11)">
   <metadata
-     id="metadata3547">
+     id="metadata3395">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
@@ -40,19 +40,19 @@
      inkscape:pageshadow="2"
      inkscape:window-width="1201"
      inkscape:window-height="1399"
-     id="namedview3545"
+     id="namedview3393"
      showgrid="false"
-     inkscape:zoom="0.66221111"
-     inkscape:cx="299.99999"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="0.21376812"
+     inkscape:cx="300"
      inkscape:cy="575"
      inkscape:window-x="146"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg3543"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0" />
+     inkscape:current-layer="svg3391" />
   <defs
      id="defs4"
      style="stroke-linecap:butt;stroke-linejoin:round">
@@ -62,120 +62,24 @@
 *{stroke-linecap:butt;stroke-linejoin:round;}
   </style>
   </defs>
-  <g
-     id="line2d_63"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_68"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_73"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_88"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_93"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_98"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_108"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_113"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_123"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_128"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_133"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_138"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_148"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_153"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_168"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_178"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_183"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_198"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_203"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_208"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_223"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_233"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_238"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
-  <g
-     id="line2d_253"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     transform="translate(174.49975,143.16591)" />
   <defs
-     id="defs3541">
+     id="defs3389">
     <clipPath
-       id="p25ff9fd318"
+       id="p4c6f531409"
        style="stroke-linecap:butt;stroke-linejoin:round">
       <rect
-         height="582.12"
-         width="279"
-         x="45"
-         y="90.720001"
-         id="rect3538"
+         height="637.56"
+         width="334.79999"
+         x="54"
+         y="99.360001"
+         id="rect3386"
          style="stroke-linecap:butt;stroke-linejoin:round" />
     </clipPath>
   </defs>
   <image
      y="0"
      x="0"
-     id="image851"
+     id="image6096"
      xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAR+CAIAAACDIdyaAACAAElEQVR4XuydCVxU5f7/Adk3UVkU
 RC0VQbEsd+N/S+AHSGmKuCR0w8xyw7wXN7DINEwjtxS96DXz5lKa5nYVKXNPBSUCA0EycK8kvbJo
 ps7/0zz6dDyzOPMwMwzwfb/mxeucZztnzjw87/mec+Y8FgqCIAiCaMBYyBMIgiAIoiFBIiQIgiAa
