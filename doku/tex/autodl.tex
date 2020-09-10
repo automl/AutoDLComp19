@@ -90,7 +90,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-This documentation summarizes the progress of the automl{\textunderscore}freiburg video team on the AutoDL $2019-2020$ challenge. Two methods are presented: The first method relies on transfer learning of a single, pretrained video classification network which is fine tuned during the challenge. As this approach has shown several limitations if the test datasets vary too much, a more elaborate method based on meta learning is developed: Multiple classification networks are evaluated on different training datasets a priori and the incumbent for every dataset is stored in a lookup table. During test time, the similarity between the test dataset and all training datasets is measured and the incumbent of the most similar training dataset is used for training/evaluation on the test dataset. The first method has been submitted and evaluated on the AutoCV2 challenge and resulted in a mediocre score. Four different approaches are presented and evaluated for the second method, resulting in scores on par with the best performing image and video classification team.
+This documentation summarizes the progress of the automl{\textunderscore}freiburg video team on the AutoDL $2019-2020$ challenge. Two methods are presented: The first method relies on transfer learning of a single, pretrained video classification network which is fine tuned during the challenge. As this approach has shown several limitations if the test datasets vary too much, a more elaborate method based on meta learning is developed: Multiple classification networks are evaluated on different training datasets a priori and the incumbent for every dataset is stored in a lookup table. During test time, the similarity between the test dataset and all training datasets is measured and the incumbent of the most similar training dataset is used for training/evaluation on the test dataset. The first method has been submitted and evaluated on the AutoCV2 challenge and resulted in a mediocre score. Four different approaches are presented and evaluated for the second method, resulting in scores almost on par with the best performing image and video classification team.
 \end{abstract}
 
 
@@ -359,13 +359,13 @@ BOHB~\cite{falkner18} is used for the a priori calculation of optimized configur
 \item Dropout 0.01 - 0.99
 \end{itemize}
 %
-An overview of the used datasets and models is given in Fig.~\ref{fig:dataset_results} and Fig.~\ref{fig:rank_results}. The two figures show the best classification accuracy of the different models on the different datasets, both from a model-based perspective and a dataset-based perspective. The hyperparameters for every combination of dataset and model are optimized through 10 BOHB runs. Note that not all datasets listed in Tab.~\ref{table:datasets} appear in Fig.~\ref{fig:dataset_results}. Some are used as test datasets whereas others (especially video datasets) are too large to be processed efficiently with the given resources.
+An overview of the used datasets and models is given in Fig.~\ref{fig:dataset_results} and Fig.~\ref{fig:rank_results}. The two figures show the best classification accuracy in terms of ALC of the different models on the different datasets, both from a model-based perspective and a dataset-based perspective. The hyperparameters for every combination of dataset and model are optimized through 10 BOHB runs. Note that not all datasets listed in Tab.~\ref{table:datasets} appear in Fig.~\ref{fig:dataset_results}. Some are used as test datasets whereas others (especially video datasets) are too large to be processed efficiently with the given resources.
 
 \begin{figure}[htb]
 \begin{center}
  	\includegraphics[width=0.85\linewidth]{../figures/dataset_results.eps} 
 \end{center}
-\caption{Classification accuracy of the different models across all datasets, sorted by dataset}
+\caption{ALC of the different models across all datasets, sorted by dataset}
 \label{fig:dataset_results}
 \end{figure} 
 
@@ -373,7 +373,7 @@ An overview of the used datasets and models is given in Fig.~\ref{fig:dataset_re
 \begin{center}
  	\includegraphics[width=0.85\linewidth]{../figures/accuracy_results.eps} 
 \end{center}
-\caption{Classification accuracy of the different models across all datasets, sorted by model}
+\caption{ALC of the different models across all datasets, sorted by model}
 \label{fig:rank_results}
 \end{figure} 
 
@@ -401,39 +401,116 @@ MLP with precalculation:
 \end{itemize}
 %
 
-\begin{figure}[!ht]
-   \begin{minipage}{\linewidth}
-   \centering
-   \includegraphics[width=.45\linewidth]{../figures/Chucky.eps}
-   \includegraphics[width=.45\linewidth]{../figures/Decal.eps}\\
-	 \includegraphics[width=.45\linewidth]{../figures/Hammer.eps}
-   \includegraphics[width=.45\linewidth]{../figures/Munster.eps}\\
-	 \includegraphics[width=.45\linewidth]{../figures/Pedro.eps}
-   \includegraphics[width=.45\linewidth]{../figures/Kraut.eps}\\
-   \includegraphics[width=.45\linewidth]{../figures/Katze.eps}
-   \includegraphics[width=.45\linewidth]{../figures/Kreatur.eps}
-   \caption{Final classification results}
-   \label{fig:results}
-	 \end{minipage}
-\end{figure}
+%\begin{figure}[!ht]
+   %\begin{minipage}{\linewidth}
+   %\centering
+   %\includegraphics[width=.45\linewidth]{../figures/Chucky.eps}
+   %\includegraphics[width=.45\linewidth]{../figures/Decal.eps}\\
+	 %\includegraphics[width=.45\linewidth]{../figures/Hammer.eps}
+   %\includegraphics[width=.45\linewidth]{../figures/Munster.eps}\\
+	 %\includegraphics[width=.45\linewidth]{../figures/Pedro.eps}
+   %\includegraphics[width=.45\linewidth]{../figures/Kraut.eps}\\
+   %\includegraphics[width=.45\linewidth]{../figures/Katze.eps}
+   %\includegraphics[width=.45\linewidth]{../figures/Kreatur.eps}
+   %\caption{Final classification results}
+   %\label{fig:results}
+	 %\end{minipage}
+%\end{figure}
 
-Final results of the different approaches are shown in Fig.~\ref{fig:results}. The eight plots correspond to the eight test datasets (Chucky, Decal, Hammer, Munster, Pedro, Kraut, Katze, Kreatur). Every plot shows the test ALC according to Eq.~(\ref{eq:ALC}) over the test batch size of the classification networks of section~\ref{sec:approach1} and~\ref{sec:approach2}. The different thick solid lines correspond to:
+%\begin{figure}[!ht]
+   %\begin{minipage}{\linewidth}
+   %\centering
+   %\includegraphics[width=.9\linewidth]{../figures/10.eps}
+   %\includegraphics[width=.9\linewidth]{../figures/11.eps}
+	 %\includegraphics[width=.9\linewidth]{../figures/12.eps}
+   %\includegraphics[width=.9\linewidth]{../figures/13.eps}
+	 %\includegraphics[width=.9\linewidth]{../figures/14.eps}
+   %\includegraphics[width=.9\linewidth]{../figures/15.eps}
+   %\includegraphics[width=.9\linewidth]{../figures/16.eps}
+   %\includegraphics[width=.9\linewidth]{../figures/17.eps}
+   %\caption{Final classification results}
+   %\label{fig:results}
+	 %\end{minipage}
+%\end{figure}
+
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/14.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Chucky}
+\label{fig:14}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/15.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Decal}
+\label{fig:15}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/16.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Hammer}
+\label{fig:16}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/13.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Munster}
+\label{fig:13}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/17.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Pedro}
+\label{fig:17}
+\end{figure} 
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/10.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Katze}
+\label{fig:10}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/12.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Kraut}
+\label{fig:12}
+\end{figure} 
+%
+\begin{figure}[H]
+\begin{center}
+ 	\includegraphics[width=0.99\linewidth]{../figures/11.eps} 
+\end{center}
+\caption{Test ALC for the different approaches for dataset Kreatur}
+\label{fig:11}
+\end{figure} 
+
+Final results of the different approaches are shown in Fig.~\ref{fig:14}-Fig.~\ref{fig:11}. The eight plots correspond to the eight test datasets (Chucky, Decal, Hammer, Munster, Pedro, Kraut, Katze, Kreatur). Every plot shows the test ALC according to Eq.~(\ref{eq:ALC}) over the test batch size of the classification networks of section~\ref{sec:approach1} and~\ref{sec:approach2}. The different thick solid lines correspond to:
 \begin{itemize}
 \item \textbf{kakaobrain}: ALC results from the winning AutoCV and AutoCV2 team kakaobrain \cite{kakaobrain}.
-\item \textbf{same-config}: ALC of the optimized configuration $\theta^*(t_s)$ for the same dataset $t_s$. Can be seen as ground truth.
-\item \textbf{precalc}: Third approach of section~\ref{sec:approach1} with individual networks trained specifically for every test batch size.
-\item \textbf{precalc-64}: Third approach of section~\ref{sec:approach1} with one network trained for a test batch size of 64 samples.
+\item \textbf{best}: Best ALC of all incumbents of the training datasets evaluated on the test dataset
+\item \textbf{avg}: Average ALC of all incumbents of the training datasets evaluated on the test dataset
+\item \textbf{min}: Minimum ALC of all incumbents of the training datasets evaluated on the test dataset
 \end{itemize}
-There are also multiple horizontal thin green lines in every plot. Each one corresponds to the ALC of the optimized configuration $\theta^*(t_p)$ of a prior dataset $t_p$, evaluated on the test dataset. 
-Thus, a plot ideally has the following appearance: Kakaobrain has the highest ALC as we do not expect to perform better than a team of computer vision professionals. Next comes the ALC of the optimized configuration for the corresponding dataset (same-config). Note that this measure is usually not available and only added for comparative purpose. The individual ALCs of the different presented approaches are expected to score worse than the previous two as they rely on optimized configurations of different datasets (and not the test dataset). 
+Thus, a plot ideally has the following appearance: Kakaobrain has the highest ALC as we do not expect to perform better than a team of computer vision professionals, followed by the different ALCs of the incumbents of the training datasets evaluated on the test dataset.
 
 There are several effects why the plots in Fig.~\ref{fig:results} differ from the ideal plot described before: 
 
-Sometimes an optimized configuration has a better ALC than kakaobrain. A possible reason is the different ALC calculation: Due to heavily varying execution times on the cluster (up to a factor of 10) we did not measure the real ALC. Rather, the execution time of an individual forward and backward pass for every model for images/videos of different input shapes has been measured on a reference system and been stored in a lookup table. The lookup table is then used on the cluster to estimate the ALC based on the number of batches, the number of samples per batch and the average shape of the images/videos of the dataset. This procedure allows one to be independent of the cluster execution time while having a good approximation of the true ALC but may overestimate the true ALC.
+Sometimes an incumbent yields a better ALC than kakaobrain. A possible reason is the different ALC calculation: Due to heavily varying execution times on the cluster (up to a factor of 10) we did not measure the real ALC. Rather, the execution time of an individual forward and backward pass for every model for images/videos of different input shapes has been measured on a reference system and been stored in a lookup table. The lookup table is then used on the cluster to estimate the ALC based on the number of batches, the number of samples per batch and the average shape of the images/videos of the dataset. This procedure allows one to be independent of the cluster execution time while having a good approximation of the true ALC but may overestimate the true ALC.
 
-In addition, the same-config ALC is sometimes worse than the ALCs of optimized configurations of prior datasets. We are not sure about the exact cause. One reason can be the limited number of BOHB evaluations to find the optimized configuration $\theta^*(t_s)$ for the same dataset. Only 90 different configurations (10 BOHB runs, eta=3, max~budget~=~9~*~min~budget) are evaluated for every dataset. Thus, with more than 20 other training datasets used, it is possible that one of these 20 optimized configurations scores better. Another option is the ALC variation during test time. Hence an optimized configuration which scored rather well during training may score considerably worse during testing (even on the same dataset).
-
-For some datasets (e.g. Munster) the ALC of a presented approach is similar for multiple/all test batch sizes. Although this is the preferred case (the output of the meta classifier is ideally independent of the batch size), the effect is usually caused by the test dataset being similar to one of the training datasets. Then a well-trained meta classifier always correctly classifies the test dataset being most similar to the (identical) training dataset.
+For some datasets (e.g. Munster) the ALC varies very little across different test batch sizes. Although this is the preferred case (the output of the meta classifier is ideally independent of the batch size), the effect is usually caused by the test dataset being similar to one of the training datasets. Then a well-trained meta classifier always correctly classifies the test dataset being most similar to the (identical) training dataset.
 
 Choosing an optimal test batch size is crucial during test time. When being too small, the meta classifier may produce noisy (and thus possibly incorrect) predictions. When being too large, more samples than necessary are processed. This leads to computational overhead. 
 
@@ -466,6 +543,8 @@ We present two conceptually different methods for quick generalization of a pret
 Thus focus shifts from finding a single state-of-the-art model working well on a variety of different datasets to measuring the similarity between two datasets and selecting the one that is most similar - the latter being much easier to implement for anyone who is not an expert in video classification. 
 
 There are several directions for future work: The first one considers redundancy in the datasets. It is shown in the discussion chapter how the used models are highly redundant and the model portfolio can be reduced by a factor of 10 without severe performance loss. It is unknown (but suspected) if the same applies for the datasets, i.e. if training the models on a small but carefully selected set of datasets leads to the same generalization performance. 
+
+The second tackles the choice of meta features. All used meta features are located in the embedding space of either a image classification network or a VAE. It is an open question if a different choice of meta features yields substantially better results.
 
 Furthermore, the VAE approach of Sec.~\ref{sec:approach2} is a promising idea for future expansions. It is an open question if more advanced classification methods using the latent space representation (e.g. neural networks) lead to better classification results than a two-sample t-test. 
 
