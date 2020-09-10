@@ -438,7 +438,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/14.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Chucky}
+\caption{Test ALC for the different meta learning approaches for dataset Chucky}
 \label{fig:14}
 \end{figure} 
 %
@@ -446,7 +446,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/15.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Decal}
+\caption{Test ALC for the different meta learning approaches for dataset Decal}
 \label{fig:15}
 \end{figure} 
 %
@@ -454,7 +454,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/16.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Hammer}
+\caption{Test ALC for the different meta learning approaches for dataset Hammer}
 \label{fig:16}
 \end{figure} 
 %
@@ -462,7 +462,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/13.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Munster}
+\caption{Test ALC for the different meta learning approaches for dataset Munster}
 \label{fig:13}
 \end{figure} 
 %
@@ -470,14 +470,14 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/17.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Pedro}
+\caption{Test ALC for the different meta learning approaches for dataset Pedro}
 \label{fig:17}
 \end{figure} 
 \begin{figure}[H]
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/10.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Katze}
+\caption{Test ALC for the different meta learning approaches for dataset Katze}
 \label{fig:10}
 \end{figure} 
 %
@@ -485,7 +485,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/12.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Kraut}
+\caption{Test ALC for the different meta learning approaches for dataset Kraut}
 \label{fig:12}
 \end{figure} 
 %
@@ -493,7 +493,7 @@ MLP with precalculation:
 \begin{center}
  	\includegraphics[width=0.99\linewidth]{../figures/11.eps} 
 \end{center}
-\caption{Test ALC for the different approaches for dataset Kreatur}
+\caption{Test ALC for the different meta learning approaches for dataset Kreatur}
 \label{fig:11}
 \end{figure} 
 
@@ -501,12 +501,12 @@ Final results of the different approaches are shown in Fig.~\ref{fig:14}-Fig.~\r
 \begin{itemize}
 \item \textbf{kakaobrain}: ALC results from the winning AutoCV and AutoCV2 team kakaobrain \cite{kakaobrain}.
 \item \textbf{best}: Best ALC of all incumbents of the training datasets evaluated on the test dataset
-\item \textbf{avg}: Average ALC of all incumbents of the training datasets evaluated on the test dataset
+\item \textbf{average}: Average ALC of all incumbents of the training datasets evaluated on the test dataset
 \item \textbf{min}: Minimum ALC of all incumbents of the training datasets evaluated on the test dataset
 \end{itemize}
-Thus, a plot ideally has the following appearance: Kakaobrain has the highest ALC as we do not expect to perform better than a team of computer vision professionals, followed by the different ALCs of the incumbents of the training datasets evaluated on the test dataset.
+As we do not expect to perform better than a team of computer vision professionals, a plot ``ideally'' has the following appearance: Kakaobrain has the highest ALC, followed by the different ALCs of the incumbents of the training datasets evaluated on the test dataset.
 
-There are several effects why the plots in Fig.~\ref{fig:results} differ from the ideal plot described before: 
+There are several effects why the plots in Fig.~\ref{fig:14}-Fig.~\ref{fig:11} differ from the ``ideal'' plot described before: 
 
 Sometimes an incumbent yields a better ALC than kakaobrain. A possible reason is the different ALC calculation: Due to heavily varying execution times on the cluster (up to a factor of 10) we did not measure the real ALC. Rather, the execution time of an individual forward and backward pass for every model for images/videos of different input shapes has been measured on a reference system and been stored in a lookup table. The lookup table is then used on the cluster to estimate the ALC based on the number of batches, the number of samples per batch and the average shape of the images/videos of the dataset. This procedure allows one to be independent of the cluster execution time while having a good approximation of the true ALC but may overestimate the true ALC.
 
