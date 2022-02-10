@@ -23,7 +23,7 @@ protobuf==3.7.1
 xgboost==0.90
 pyyaml==5.1.1
 lightgbm==2.2.3
-tensorflow-gpu==2.4.0
+tensorflow-gpu==2.5.3
 Pillow==8.1.1
 hpbandster==0.7.4
 
