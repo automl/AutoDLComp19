@@ -24,7 +24,7 @@ xgboost==0.90
 pyyaml==5.1.1
 lightgbm==2.2.3
 tensorflow-gpu==2.4.0
-Pillow==8.1.1
+Pillow==9.3.0
 hpbandster==0.7.4
 
 # Packages for AutoFolio
